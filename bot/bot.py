@@ -1,4 +1,4 @@
-from typing import FrozenSet, List
+from typing import FrozenSet, List, Set
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.game_data import AbilityData
@@ -49,6 +49,7 @@ class CompetitiveBot(BotAI):
         await self.drop_mules()
         await self.build_workers()
         await self.build_gas()
+        await self.train_medivac()
         await self.build_starport()
         await self.build_ebays()
         await self.build_barracks()
@@ -63,12 +64,12 @@ class CompetitiveBot(BotAI):
         await self.expand()
         self.lower_supplies()
 
-        if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
-            workers: Units = self.workers.selected
-            if (workers):
-                scv: Unit = workers.random
-                print("SCV is building", scv.is_constructing_scv)
-                print("build progress", self.scv_build_progress(scv))
+        # if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
+        #     workers: Units = self.workers.selected
+        #     if (workers):
+        #         scv: Unit = workers.random
+        #         print("SCV is building", scv.is_constructing_scv)
+        #         print("build progress", self.scv_build_progress(scv))
 
     def saturate_gas(self):
         # Saturate refineries
@@ -123,7 +124,6 @@ class CompetitiveBot(BotAI):
             if (len(supply_placement_positions) >= 1) :
                 target_supply_location: Point2 = supply_placement_positions.pop()
                 await self.build_custom(UnitTypeId.SUPPLYDEPOT, target_supply_location)
-                print("built")
             else:
                 workers: Units = self.workers.gathering
                 worker: Unit = workers.furthest_to(workers.center)
@@ -142,7 +142,7 @@ class CompetitiveBot(BotAI):
             self.can_afford(UnitTypeId.REFINERY)
             and self.structures(UnitTypeId.REFINERY).amount <= 2 * self.townhalls.ready.amount
             and self.structures(UnitTypeId.BARRACKS).amount >= 1
-            and workers_mining >= (gasCount + 1) * 12
+            and workers_mining >= (gasCount + 1) * 11
             and (not self.waitingForOrbital() or self.minerals >= 225)
         ):
             for th in self.townhalls.ready:
@@ -178,12 +178,12 @@ class CompetitiveBot(BotAI):
     async def build_barracks(self):
         barracks_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracksPosition: Point2 = self.main_base_ramp.barracks_correct_placement
-        barracks_amount: int = self.structures(UnitTypeId.BARRACKS).ready.amount + self.already_pending(UnitTypeId.BARRACKS)
+        barracks_amount: int = self.structures(UnitTypeId.BARRACKS).amount + self.structures(UnitTypeId.BARRACKSFLYING).amount
         cc_amount: int = self.townhalls.amount
-        max_barracks: int = (cc_amount * (cc_amount + 1)) // 2
+        max_barracks: int = cc_amount ** 2 - 2 * cc_amount + 2
 
-        # We want 1 rax for 1 base, 3 raxes for 2 bases, 6 raxes for 3 bases, so 1 + 2 + 3, etc...
-        # Basically it's (cc_amount * (cc_amount + 1)) /2
+        # We want 1 rax for 1 base, 2 raxes for 2 bases, 5 raxes for 3 bases, 10 raxes for 4 bases
+        # y = x² - 2x + 2 where x is the number of bases and y the number of raxes
         if (
             barracks_tech_requirement == 1
             and self.can_afford(UnitTypeId.BARRACKS)
@@ -199,13 +199,17 @@ class CompetitiveBot(BotAI):
 
     async def build_factory(self):
         facto_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.FACTORY)
-        
+        max_factories: int = 1
+        factories_count: int = self.structures(UnitTypeId.FACTORY).amount + self.structures(UnitTypeId.FACTORYFLYING).amount
+
         # We want 1 factory so far
         if (
             facto_tech_requirement == 1
+            and self.townhalls.amount >= 2
             and self.can_afford(UnitTypeId.FACTORY)
             and self.already_pending(UnitTypeId.FACTORY) < 1
             and not self.structures(UnitTypeId.FACTORY)
+            and factories_count < max_factories
             and not self.waitingForOrbital()
         ) :
             print("Build Factory")
@@ -215,18 +219,26 @@ class CompetitiveBot(BotAI):
 
     async def build_starport(self):
         starport_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.STARPORT)
-        
-        # We want 1 factory so far
+        max_starport: int = 1
+        starport_count: int = self.structures(UnitTypeId.STARPORT).amount + self.structures(UnitTypeId.STARPORTFLYING).amount
+
+        # We want 1 starport so far
         if (
             starport_tech_requirement == 1
+            and self.townhalls.amount >= 2
             and self.can_afford(UnitTypeId.STARPORT)
             and self.already_pending(UnitTypeId.STARPORT) <= 2
             and not self.structures(UnitTypeId.STARPORT)
+            and starport_count < max_starport
             and not self.waitingForOrbital()
         ) :
-            print("Build Starport")
-            factory: Unit = self.structures(UnitTypeId.FACTORY).ready.random
-            starport_position = factory.position.towards(self.game_info.map_center, 2)
+            print("Build Starport close to Factory")
+            factories: Units = self.structures(UnitTypeId.FACTORY).ready
+            ccs: Units = self.townhalls
+            if (factories):
+                starport_position = factories.random.position.towards(self.game_info.map_center, 2)
+            else:
+                starport_position = ccs.random.position.towards(self.game_info.map_center, 2)
             await self.build_custom(UnitTypeId.STARPORT, starport_position)
 
     async def build_addons(self):
@@ -302,9 +314,15 @@ class CompetitiveBot(BotAI):
         
         # Loop over each flying Factory
         for factory in self.structures(UnitTypeId.FACTORYFLYING).idle:
-            if (self.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1):
-                print("Starport is Flying, Factory idle")
+            starports: Units = self.units(UnitTypeId.STARPORT).ready + self.units(UnitTypeId.STARPORTFLYING)
+            starports_pending_amount = self.already_pending(UnitTypeId.STARPORT)
+            starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on)
+            if (
+                starports_pending_amount == 0
+                and starports_without_reactor.amount == 0
+            ):
                 break
+            
             possible_land_positions_offset = sorted(
                 (Point2((x, y)) for x in range(-10, 10) for y in range(-10, 10)),
                 key=lambda point: point.x**2 + point.y**2,
@@ -347,17 +365,20 @@ class CompetitiveBot(BotAI):
             for flying_starport in self.structures(UnitTypeId.STARPORTFLYING).ready:
                 reactors: Units = self.structures(UnitTypeId.REACTOR)
                 if (reactors.amount == 0):
-                    print("no reactor found")
                     break
+                    
                 free_reactors: Units = reactors.filter(
                     lambda reactor: self.in_placement_grid(reactor.add_on_land_position)
                 )
                 if (free_reactors.amount >= 1):
-                    print("Land Starport")
+                    # print("Land Starport")
                     closest_free_reactor = free_reactors.closest_to(flying_starport)
                     flying_starport(AbilityId.LAND, closest_free_reactor.add_on_land_position)
                 else:
-                    print("no free reactor")
+                    factories_building_reactor = self.structures(UnitTypeId.FACTORY).ready.filter(lambda facto: facto.is_using_ability(AbilityId.BUILD_REACTOR_FACTORY))
+                    if (factories_building_reactor.amount >= 1):
+                        flying_starport.move(factories_building_reactor.closest_to(flying_starport))
+                    # print("no free reactor")
 
     async def search_stim(self):
         if (
@@ -406,13 +427,22 @@ class CompetitiveBot(BotAI):
             print("Start +0/+1")
             ebay.research(UpgradeId.TERRANINFANTRYARMORSLEVEL1)
 
+    async def train_medivac(self):
+        starports: Units = self.structures(UnitTypeId.STARPORT).ready
+        for starport in starports :
+            if (
+                self.can_afford(UnitTypeId.MEDIVAC)
+                and (starport.is_idle or (starport.has_reactor and starport.orders.__len__() < 2))
+            ):
+                print("Train Medivak")
+                starport.train(UnitTypeId.MEDIVAC)
+
     async def train_marine(self):
         barracks: Units = self.structures(UnitTypeId.BARRACKS).ready
-        orbitalCost: int = UnitTypeId.ORBITALCOMMAND
         for barrack in barracks :
             if (
                 self.can_afford(UnitTypeId.MARINE)
-                and barrack.is_idle or (barrack.has_reactor and barrack.orders.__len__() < 2)
+                and (barrack.is_idle or (barrack.has_reactor and barrack.orders.__len__() < 2))
                 and (not self.waitingForOrbital() or self.minerals >= 200)
             ):
                 print("Train Marine")
@@ -444,9 +474,34 @@ class CompetitiveBot(BotAI):
                 oc(AbilityId.CALLDOWNMULE_CALLDOWNMULE, mf)
 
     async def attack(self):
-        army: Units = self.units(UnitTypeId.MARINE).ready
-        
-        for marine in army:
+        marines: Units = self.units(UnitTypeId.MARINE).ready
+        medivaks: Units = self.units(UnitTypeId.MEDIVAC).ready
+
+        army = marines + medivaks
+        for medivak in medivaks:
+            # if not boosting, boost
+            if (not medivak.has_buff(BuffId.MEDIVACSPEEDBOOST)):
+                medivak(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
+            
+            # if no energy, no healing
+            if (medivak.energy == 0):
+                break
+
+            # if damaged units in sight, heal them
+            damaged_allies_close: Units = self.units.filter(
+                lambda unit: unit.distance_to(medivak) <= 15 and unit.health_percentage < 1
+            )
+            if (damaged_allies_close.amount >= 1):
+                medivak(AbilityId.MEDIVACHEAL_HEAL, damaged_allies_close.random)
+            else:
+                closest_marines: Units = marines.closest_n_units(self.enemy_start_locations[0], 5)
+                if (closest_marines.amount >= 1):
+                    medivak.move(closest_marines.center)
+                else:
+                    medivak.move(self.townhalls.closest_to(self.enemy_start_locations[0]))
+
+
+        for marine in marines:
             #If units in sight, should be stimmed
             enemies_in_sight: Units = self.enemy_units.filter(
                 lambda unit: unit.distance_to(marine) <= 10 and unit.can_be_attacked
@@ -461,31 +516,46 @@ class CompetitiveBot(BotAI):
             
             #If units in range, attack the one with the least HPs, closest if tied (don't forget to stim first if not)
             enemies: Units = self.enemy_units | self.enemy_structures
-            enemy_ground_units: Units = enemies.filter(
+            enemy_ground_units_in_range: Units = enemies.filter(
                 lambda unit: marine.target_in_range(unit) and not unit.is_structure and unit.can_be_attacked
             )
+            enemy_ground_units_outside_of_range: Units = enemies.filter(
+                lambda unit: not marine.target_in_range(unit) and not unit.is_structure and unit.can_be_attacked
+            )
+            
             enemy_ground_buildings: Units = enemies.filter(
                 lambda unit: marine.target_in_range(unit) and unit.is_structure and unit.can_be_attacked
             )
 
-            if (enemy_ground_units) :
-                enemy_ground_units.sort(
+            if (enemy_ground_units_in_range) :
+                enemy_ground_units_in_range.sort(
                     key=lambda unit: unit.health
                 )
                 if (marine.weapon_ready):
-                    marine.attack(enemy_ground_units[0])
+                    marine.attack(enemy_ground_units_in_range[0])
                 else:
-                    closest_enemy: Unit = enemy_ground_units.closest_to(marine)
+                    closest_enemy: Unit = enemy_ground_units_in_range.closest_to(marine)
                     if(closest_enemy.can_attack and closest_enemy.ground_range < marine.ground_range):
                         self.move_away(marine, closest_enemy)
             elif (enemy_ground_buildings) :
                     marine.attack(enemy_ground_buildings.closest_to(marine))
             elif (army.amount > 15) :
                     marine.attack(self.enemy_start_locations[0])
+            elif (
+                enemy_ground_units_outside_of_range.amount >= 1
+            ):
+                distance_to_hq: float = enemy_ground_units_outside_of_range.closest_distance_to(self.townhalls.first)
+                distance_to_oppo: float = enemy_ground_units_outside_of_range.closest_distance_to(self.enemy_start_locations[0])
+                # meet revealed enemy outside of range if they are in our half of the map
+                if (distance_to_hq < distance_to_oppo):
+                    for marine in army:
+                        marine.move(enemy_ground_units_outside_of_range.closest_to(marine))
             else:
+                # find nearest opposing townhalls
+                self.enemy_structures.filter(lambda structure: structure)
                 for marine in army:
-                    marine.move(self.townhalls.closest_to(self.enemy_start_locations[0]))   
-
+                    marine.move(self.townhalls.closest_to(self.enemy_start_locations[0]))
+                    
     def orbitalTechAvailable(self):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
 
