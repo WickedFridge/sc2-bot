@@ -1,10 +1,13 @@
-from typing import FrozenSet
+from typing import FrozenSet, List
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
+from sc2.game_data import AbilityData
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
-from sc2.unit import Unit
+from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 
 class CompetitiveBot(BotAI):
@@ -20,6 +23,7 @@ class CompetitiveBot(BotAI):
         Race.Protoss
         Race.Random
     """
+    shield_researched: bool = False
 
     def __init__(self) -> None:
         super().__init__()
@@ -39,23 +43,41 @@ class CompetitiveBot(BotAI):
         Populate this function with whatever your bot should do!
         """
         await self.distribute_workers()
+        self.saturate_gas()
         await self.build_supply()
         await self.morph_orbitals()
         await self.drop_mules()
         await self.build_workers()
+        await self.build_gas()
+        await self.build_starport()
+        await self.build_ebays()
         await self.build_barracks()
+        await self.build_factory()
+        await self.switch_addons()
+        await self.build_addons()
+        await self.search_stim()
+        await self.search_shield()
+        await self.search_upgrades()
         await self.train_marine()
         await self.attack()
         await self.expand()
-        await self.lower_supplies()
+        self.lower_supplies()
 
-        # if (not int(self.time) % 5 and self.time - int(self.time) <= 0.1):
-        #     print("waiting for orbital", self.waitingForOrbital())
-        #     for cc in self.townhalls(UnitTypeId.COMMANDCENTER).ready:
-        #         print("CC is upgrading : ", cc.is_using_ability(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND))
+        if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
+            workers: Units = self.workers.selected
+            if (workers):
+                scv: Unit = workers.random
+                print("SCV is building", scv.is_constructing_scv)
+                print("build progress", self.scv_build_progress(scv))
 
-        pass
-
+    def saturate_gas(self):
+        # Saturate refineries
+        for refinery in self.gas_buildings:
+            if refinery.assigned_harvesters < refinery.ideal_harvesters:
+                worker: Units = self.workers.closer_than(10, refinery)
+                if worker:
+                    worker.random.gather(refinery)
+    
     async def build_workers(self):
         if (
             self.can_afford(UnitTypeId.SCV)
@@ -70,14 +92,25 @@ class CompetitiveBot(BotAI):
                     th.train(UnitTypeId.SCV)
 
     async def build_supply(self):
-        depot_placement_positions: FrozenSet[Point2] = self.main_base_ramp.corner_depots
+        # move SCV for first depot
+        workers_mining: int = self.workers.gathering.amount + self.workers.returning.amount
+        if (
+            self.supply_used == 13
+            and workers_mining == self.supply_used
+            and self.structures(UnitTypeId.SUPPLYDEPOT).ready.amount == 0
+            and self.minerals >= 50
+        ):
+            print("move worker for first depot")
+            self.workers.random.move(self.main_base_ramp.depot_in_middle)
+        
+        supply_placement_positions: FrozenSet[Point2] = self.main_base_ramp.corner_depots
         depots: Units = self.structures.of_type({UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED})
 
         # Filter locations close to finished supply depots
         if depots:
-            depot_placement_positions: Set[Point2] = {
+            supply_placement_positions: Set[Point2] = {
                 d
-                for d in depot_placement_positions if depots.closest_distance_to(d) > 1
+                for d in supply_placement_positions if depots.closest_distance_to(d) > 1
             }
             
         if (
@@ -87,68 +120,311 @@ class CompetitiveBot(BotAI):
             and not self.already_pending(UnitTypeId.SUPPLYDEPOT)
         ) :
             print("Build Supply Depot")
-            if (len(depot_placement_positions) > 1) :
-                target_depot_location: Point2 = depot_placement_positions.pop()
-                await self.build(UnitTypeId.SUPPLYDEPOT, target_depot_location)
+            if (len(supply_placement_positions) >= 1) :
+                target_supply_location: Point2 = supply_placement_positions.pop()
+                await self.build_custom(UnitTypeId.SUPPLYDEPOT, target_supply_location)
+                print("built")
             else:
-                await self.build_custom(UnitTypeId.SUPPLYDEPOT)
+                workers: Units = self.workers.gathering
+                worker: Unit = workers.furthest_to(workers.center)
+                await self.build_custom(UnitTypeId.SUPPLYDEPOT, worker.position)
     
-    async def lower_supplies(self):
+    def lower_supplies(self):
         supplies: Units = self.structures(UnitTypeId.SUPPLYDEPOT).ready
         for supply in supplies :
             print("Lower Supply Depot")
             supply(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
 
+    async def build_gas(self):
+        gasCount: int = self.structures(UnitTypeId.REFINERY).amount
+        workers_mining: int = self.workers.gathering.amount + self.workers.returning.amount
+        if(
+            self.can_afford(UnitTypeId.REFINERY)
+            and self.structures(UnitTypeId.REFINERY).amount <= 2 * self.townhalls.ready.amount
+            and self.structures(UnitTypeId.BARRACKS).amount >= 1
+            and workers_mining >= (gasCount + 1) * 12
+            and (not self.waitingForOrbital() or self.minerals >= 225)
+        ):
+            for th in self.townhalls.ready:
+                # Find all vespene geysers that are closer than range 10 to this townhall
+                print("Build Gas")
+                vgs: Units = self.vespene_geyser.closer_than(10, th)
+                await self.build(UnitTypeId.REFINERY, vgs.random)
+                break
+
+    async def build_ebays(self):
+        ebay_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.ENGINEERINGBAY)
+        ebays_count: int = self.structures(UnitTypeId.ENGINEERINGBAY).ready.amount + self.already_pending(UnitTypeId.ENGINEERINGBAY)
+
+        # We want 2 ebays once we have a 3rd CC
+        if (
+            ebay_tech_requirement == 1
+            and self.can_afford(UnitTypeId.ENGINEERINGBAY)
+            and ebays_count < 2
+            and self.townhalls.amount >= 3
+            and not self.waitingForOrbital() 
+        ) :
+            print("Build EBay")
+            ebay_position = await self.find_placement(UnitTypeId.ENGINEERINGBAY, near=self.townhalls.ready.center)
+            if (ebay_position):
+                workers = self.workers.filter(
+                    # lambda worker: worker.is_constructing_scv == False
+                    lambda worker: worker.is_idle or worker.is_gathering or worker.is_collecting
+                )
+                worker: Unit = workers.closest_to(ebay_position)
+                worker.build(UnitTypeId.ENGINEERINGBAY, ebay_position)
+
+
     async def build_barracks(self):
         barracks_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracksPosition: Point2 = self.main_base_ramp.barracks_correct_placement
+        barracks_amount: int = self.structures(UnitTypeId.BARRACKS).ready.amount + self.already_pending(UnitTypeId.BARRACKS)
+        cc_amount: int = self.townhalls.amount
+        max_barracks: int = (cc_amount * (cc_amount + 1)) // 2
+
+        # We want 1 rax for 1 base, 3 raxes for 2 bases, 6 raxes for 3 bases, so 1 + 2 + 3, etc...
+        # Basically it's (cc_amount * (cc_amount + 1)) /2
         if (
             barracks_tech_requirement == 1
             and self.can_afford(UnitTypeId.BARRACKS)
             and self.already_pending(UnitTypeId.BARRACKS) < self.townhalls.amount
-            and self.units(UnitTypeId.BARRACKS).amount <= 3 * self.townhalls.amount
+            and barracks_amount < max_barracks
             and not self.waitingForOrbital()
         ) :
-            print("Build Barracks")
-            await self.build(UnitTypeId.BARRACKS, barracksPosition)
-            # await self.build_custom(unitType=UnitTypeId.BARRACKS, placement_step=5)
+            print("Build Barracks", barracks_amount + 1, "/", max_barracks)
+            if (barracks_amount >= 1):
+                cc: Unit = self.townhalls.random
+                barracksPosition = cc.position.towards(self.game_info.map_center, 4)
+            await self.build_custom(UnitTypeId.BARRACKS, barracksPosition)
+
+    async def build_factory(self):
+        facto_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.FACTORY)
+        
+        # We want 1 factory so far
+        if (
+            facto_tech_requirement == 1
+            and self.can_afford(UnitTypeId.FACTORY)
+            and self.already_pending(UnitTypeId.FACTORY) < 1
+            and not self.structures(UnitTypeId.FACTORY)
+            and not self.waitingForOrbital()
+        ) :
+            print("Build Factory")
+            cc: Unit = self.townhalls.random
+            factory_position = cc.position.towards(self.game_info.map_center, 4)
+            await self.build_custom(UnitTypeId.FACTORY, factory_position)
+
+    async def build_starport(self):
+        starport_tech_requirement: float = self.tech_requirement_progress(UnitTypeId.STARPORT)
+        
+        # We want 1 factory so far
+        if (
+            starport_tech_requirement == 1
+            and self.can_afford(UnitTypeId.STARPORT)
+            and self.already_pending(UnitTypeId.STARPORT) <= 2
+            and not self.structures(UnitTypeId.STARPORT)
+            and not self.waitingForOrbital()
+        ) :
+            print("Build Starport")
+            factory: Unit = self.structures(UnitTypeId.FACTORY).ready.random
+            starport_position = factory.position.towards(self.game_info.map_center, 2)
+            await self.build_custom(UnitTypeId.STARPORT, starport_position)
+
+    async def build_addons(self):
+        # Loop over each Barrack without an add-on
+        for barrack in self.structures(UnitTypeId.BARRACKS).ready.filter(
+            lambda barrack: barrack.has_add_on == False
+        ):
+            if (
+                not barrack.is_idle
+                or self.units(UnitTypeId.MARINE).ready.amount < 2
+            ):
+                break
+            
+            addon_points = self.points_to_build_addon(barrack.position)
+            if not all(
+                self.in_map_bounds(addon_point) and self.in_placement_grid(addon_point)
+                and self.in_pathing_grid(addon_point) for addon_point in addon_points
+            ):
+                print("Can't build add-on, Barracks lifts")
+                barrack(AbilityId.LIFT_BARRACKS)
+                
+            # If we have the same number of techlabs & reactor, we build a techlab, otherwise we build a reactor
+            if (
+                self.structures(UnitTypeId.BARRACKSTECHLAB).amount <= self.structures(UnitTypeId.BARRACKSREACTOR).amount):
+                if (self.can_afford(UnitTypeId.BARRACKSTECHLAB)):
+                    barrack.build(UnitTypeId.BARRACKSTECHLAB)
+                    print("Build Techlab")
+            else:
+                if (self.can_afford(UnitTypeId.BARRACKSREACTOR)):
+                    barrack.build(UnitTypeId.BARRACKSREACTOR)
+                    print("Build Reactor")
+
+        # Loop over each flying Barrack
+        for barrack in self.structures(UnitTypeId.BARRACKSFLYING).idle:
+            possible_land_positions_offset = sorted(
+                (Point2((x, y)) for x in range(-10, 10) for y in range(-10, 10)),
+                key=lambda point: point.x**2 + point.y**2,
+            )
+            offset_point: Point2 = Point2((-0.5, -0.5))
+            possible_land_positions = (barrack.position.rounded + offset_point + p for p in possible_land_positions_offset)
+            for target_land_position in possible_land_positions:
+                land_and_addon_points: List[Point2] = self.building_land_positions(target_land_position)
+                if all(
+                    self.in_map_bounds(land_pos) and self.in_placement_grid(land_pos)
+                    and self.in_pathing_grid(land_pos) for land_pos in land_and_addon_points
+                ):
+                    print("Barracks found a position to land")
+                    barrack(AbilityId.LAND, target_land_position)
+                    break
+
+        # Loop over each Factory without an add-on
+        for factory in self.structures(UnitTypeId.FACTORY).ready.filter(
+            lambda factory: factory.has_add_on == False
+        ):
+            if (
+                not factory.is_idle
+                or not self.can_afford(UnitTypeId.FACTORYREACTOR)
+                or self.structures(UnitTypeId.STARPORT).ready.amount < 1 and self.already_pending(UnitTypeId.STARPORT) < 1
+            ):
+                break
+            
+            addon_points = self.points_to_build_addon(factory.position)
+            if not all(
+                self.in_map_bounds(addon_point) and self.in_placement_grid(addon_point)
+                and self.in_pathing_grid(addon_point) for addon_point in addon_points
+            ):
+                print("Can't build add-on, Factory lifts")
+                factory(AbilityId.LIFT_FACTORY)
+                break
+            
+            print('Build Factory Reactor')
+            factory.build(UnitTypeId.FACTORYREACTOR)
+        
+        # Loop over each flying Factory
+        for factory in self.structures(UnitTypeId.FACTORYFLYING).idle:
+            if (self.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1):
+                print("Starport is Flying, Factory idle")
+                break
+            possible_land_positions_offset = sorted(
+                (Point2((x, y)) for x in range(-10, 10) for y in range(-10, 10)),
+                key=lambda point: point.x**2 + point.y**2,
+            )
+            offset_point: Point2 = Point2((-0.5, -0.5))
+            possible_land_positions = (factory.position.rounded + offset_point + p for p in possible_land_positions_offset)
+            for target_land_position in possible_land_positions:
+                land_and_addon_points: List[Point2] = self.building_land_positions(target_land_position)
+                if all(
+                    self.in_map_bounds(land_pos) and self.in_placement_grid(land_pos)
+                    and self.in_pathing_grid(land_pos) for land_pos in land_and_addon_points
+                ):
+                    print("Factory found a position to land")
+                    factory(AbilityId.LAND, target_land_position)
+                    break
+    
+    async def switch_addons(self):
+        # if starport is complete and has no reactor, lift it
+        if (
+            self.structures(UnitTypeId.STARPORT).ready.amount >= 1
+            and self.structures(UnitTypeId.STARPORTREACTOR).ready.amount < self.structures(UnitTypeId.STARPORT).ready.amount
+        ):
+            for starport in self.structures(UnitTypeId.STARPORT).ready:
+                if (not starport.has_add_on):
+                    print("Lift Starport")
+                    starport(AbilityId.LIFT_STARPORT)
+        
+        # if factory is complete with a reactor, lift it
+        if (
+            self.structures(UnitTypeId.FACTORY).ready.amount >= 1
+            and self.structures(UnitTypeId.FACTORYREACTOR).ready.amount >= 1
+        ):
+            for factory in self.structures(UnitTypeId.FACTORY).ready:
+                if (factory.has_add_on):
+                    print ("Lift Factory")
+                    factory(AbilityId.LIFT_FACTORY)
+
+        # Handle flying Starports
+        if (self.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1):
+            for flying_starport in self.structures(UnitTypeId.STARPORTFLYING).ready:
+                reactors: Units = self.structures(UnitTypeId.REACTOR)
+                if (reactors.amount == 0):
+                    print("no reactor found")
+                    break
+                free_reactors: Units = reactors.filter(
+                    lambda reactor: self.in_placement_grid(reactor.add_on_land_position)
+                )
+                if (free_reactors.amount >= 1):
+                    print("Land Starport")
+                    closest_free_reactor = free_reactors.closest_to(flying_starport)
+                    flying_starport(AbilityId.LAND, closest_free_reactor.add_on_land_position)
+                else:
+                    print("no free reactor")
+
+    async def search_stim(self):
+        if (
+            self.tech_requirement_progress(UpgradeId.STIMPACK) == 1
+            and self.structures(UnitTypeId.BARRACKSTECHLAB).ready.idle.amount >= 1
+            and self.can_afford(UpgradeId.STIMPACK)
+            and not self.already_pending_upgrade(UpgradeId.STIMPACK)
+        ):
+            print("Search Stim")
+            techlab: Unit = self.structures(UnitTypeId.BARRACKSTECHLAB).ready.idle.random
+            techlab.research(UpgradeId.STIMPACK)
+
+    async def search_shield(self):
+        if (
+            self.tech_requirement_progress(UpgradeId.STIMPACK) == 1
+            and self.structures(UnitTypeId.BARRACKSTECHLAB).ready.idle.amount >= 1
+            and self.can_afford(UpgradeId.STIMPACK)
+            and self.shield_researched == False
+            # and not self.already_pending_upgrade(AbilityId.RESEARCH_COMBATSHIELD)
+        ):
+            print("Search Shield")
+            self.shield_researched = True
+            techlab: Unit = self.structures(UnitTypeId.BARRACKSTECHLAB).ready.idle.random
+            techlab(AbilityId.RESEARCH_COMBATSHIELD)
+
+    async def search_upgrades(self):
+        ebays: Units = self.structures(UnitTypeId.ENGINEERINGBAY).ready
+        if (ebays.ready.idle.amount < 1):
+            return
+        
+        ebay: Unit = ebays.idle.random
+        if (not ebay):
+            return
+        
+        # determine which upgrade to search
+        if (
+            self.can_afford(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
+            and not self.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
+        ):
+            print("Start +1/+0")
+            ebay.research(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
+        elif (
+            self.can_afford(UpgradeId.TERRANINFANTRYARMORSLEVEL1)
+            and not self.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL1)
+        ):
+            print("Start +0/+1")
+            ebay.research(UpgradeId.TERRANINFANTRYARMORSLEVEL1)
 
     async def train_marine(self):
         barracks: Units = self.structures(UnitTypeId.BARRACKS).ready
+        orbitalCost: int = UnitTypeId.ORBITALCOMMAND
         for barrack in barracks :
             if (
                 self.can_afford(UnitTypeId.MARINE)
-                and barrack.is_idle
-                and not self.waitingForOrbital()
+                and barrack.is_idle or (barrack.has_reactor and barrack.orders.__len__() < 2)
+                and (not self.waitingForOrbital() or self.minerals >= 200)
             ):
                 print("Train Marine")
                 barrack.train(UnitTypeId.MARINE)
 
-    async def attack(self):
-        army: Units = self.units(UnitTypeId.MARINE).ready
-        if (army.amount > 10) :
-            for marine in army:
-                enemies: Units = self.enemy_units | self.enemy_structures
-                enemy_ground_units: Units = enemies.filter(
-                    lambda unit: unit.distance_to(marine) < 15 and not unit.is_structure
-                )
-                enemy_ground_buildings: Units = enemies.filter(
-                    lambda unit: unit.distance_to(marine) < 15 and unit.is_structure
-                )
-                if (enemy_ground_units) :
-                    marine.attack(enemy_ground_units.closest_to(marine))
-                elif (enemy_ground_buildings) :
-                    marine.attack(enemy_ground_buildings.closest_to(marine))
-                else :
-                    marine.attack(self.enemy_start_locations[0])
-        else:
-            for marine in army:
-                marine.move(self.townhalls.closest_to(self.enemy_start_locations[0]))   
 
     async def expand(self):
+        next_expansion: Point2 = await self.get_next_expansion()
         if (
             self.can_afford(UnitTypeId.COMMANDCENTER)
-            and self.townhalls.amount < 3                   
+            # and self.townhalls.ready.amount + self.already_pending(UnitTypeId.COMMANDCENTER) < 3
+            and next_expansion
         ):
             print("Expand")
             await self.expand_now()
@@ -156,7 +432,7 @@ class CompetitiveBot(BotAI):
     async def morph_orbitals(self):
         if (self.orbitalTechAvailable()):
             for cc in self.townhalls(UnitTypeId.COMMANDCENTER).ready.idle:
-                if(self.can_afford(UnitTypeId.ORBITALCOMMAND)):
+                if(self.can_afford(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)):
                     print("Morph Orbital Command")
                     cc(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)
 
@@ -167,8 +443,51 @@ class CompetitiveBot(BotAI):
                 mf: Unit = max(mfs, key=lambda x: x.mineral_contents)
                 oc(AbilityId.CALLDOWNMULE_CALLDOWNMULE, mf)
 
+    async def attack(self):
+        army: Units = self.units(UnitTypeId.MARINE).ready
+        
+        for marine in army:
+            #If units in sight, should be stimmed
+            enemies_in_sight: Units = self.enemy_units.filter(
+                lambda unit: unit.distance_to(marine) <= 10 and unit.can_be_attacked
+            )
+            if (
+                enemies_in_sight
+                and self.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+                and not marine.has_buff(BuffId.STIMPACK)
+            ):
+                # print("Stim")
+                marine(AbilityId.EFFECT_STIM_MARINE)
+            
+            #If units in range, attack the one with the least HPs, closest if tied (don't forget to stim first if not)
+            enemies: Units = self.enemy_units | self.enemy_structures
+            enemy_ground_units: Units = enemies.filter(
+                lambda unit: marine.target_in_range(unit) and not unit.is_structure and unit.can_be_attacked
+            )
+            enemy_ground_buildings: Units = enemies.filter(
+                lambda unit: marine.target_in_range(unit) and unit.is_structure and unit.can_be_attacked
+            )
+
+            if (enemy_ground_units) :
+                enemy_ground_units.sort(
+                    key=lambda unit: unit.health
+                )
+                if (marine.weapon_ready):
+                    marine.attack(enemy_ground_units[0])
+                else:
+                    closest_enemy: Unit = enemy_ground_units.closest_to(marine)
+                    if(closest_enemy.can_attack and closest_enemy.ground_range < marine.ground_range):
+                        self.move_away(marine, closest_enemy)
+            elif (enemy_ground_buildings) :
+                    marine.attack(enemy_ground_buildings.closest_to(marine))
+            elif (army.amount > 15) :
+                    marine.attack(self.enemy_start_locations[0])
+            else:
+                for marine in army:
+                    marine.move(self.townhalls.closest_to(self.enemy_start_locations[0]))   
+
     def orbitalTechAvailable(self):
-        return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) == 1
+        return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
 
     def waitingForOrbital(self):
         ccs: Units = self.townhalls(UnitTypeId.COMMANDCENTER).ready.filter(
@@ -176,16 +495,68 @@ class CompetitiveBot(BotAI):
         )
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
-    async def build_custom(self, unitType: UnitTypeId, placement_step=3):
-        cc: Unit = self.townhalls.ready.random.position
-        workers: Units = self.workers.gathering
-        if workers:
-            worker: Unit = workers.furthest_to(workers.center)
-            location: Point2 = await self.find_placement(unitType, worker.position, placement_step)
-            # If a placement location was found
-            if location:
-                # Order worker to build exactly on that location
-                worker.build(unitType, location)
+    async def build_custom(self, unitType: UnitTypeId, position: Point2, placement_step: int = 2):
+        # addon_place: bool = (
+        #     unitType == UnitTypeId.BARRACKS
+        #     or unitType == UnitTypeId.FACTORY
+        #     or unitType == UnitTypeId.STARPORT
+        # )
+        # print("addon place :", addon_place)
+        
+        location: Point2 = await self.find_placement(unitType, near=position, placement_step=placement_step)
+        if (location):
+            workers = self.workers.filter(
+                lambda worker: self.scv_build_progress(worker) >= 0.9
+            )
+            worker: Unit = workers.closest_to(location)
+            worker.build(unitType, location)
+    
+    def points_to_build_addon(self, building_position: Point2) -> List[Point2]:
+        """ Return all points that need to be checked when trying to build an addon. Returns 4 points. """
+        addon_offset: Point2 = Point2((2.5, -0.5))
+        addon_position: Point2 = building_position + addon_offset
+        addon_points = [
+            (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
+        ]
+        return addon_points
+
+    def building_land_positions(self, sp_position: Point2) -> List[Point2]:
+        """ Return all points that need to be checked when trying to land at a location where there is enough space to build an addon. Returns 13 points. """
+        land_positions = [(sp_position + Point2((x, y))).rounded for x in range(-1, 2) for y in range(-1, 2)]
+        return land_positions + self.points_to_build_addon(sp_position)
+
+    def away(self, selected: Unit, enemy: Unit, distance: int = 2):
+        selected_position: Point2 = selected.position
+        offset: Point2 = selected_position.negative_offset(enemy.position)
+        target: Point2 = selected_position.__add__(offset)
+        return selected_position.towards(target, distance)
+
+    def move_away(self, selected: Unit, enemy: Unit, distance: int = 2):
+        # print("Moving away 1 from 2", selected.name, enemy.name)
+        selected_position: Point2 = selected.position
+        offset: Point2 = selected_position.negative_offset(enemy.position)
+        target: Point2 = selected_position.__add__(offset)
+        selected.move(selected_position.towards(target, distance))
+
+    def constructible(self, position: Point2):
+        structures: Units = self.structures
+        for structure in structures:
+            if (position == structure.position):
+                return False
+        return (
+            self.in_map_bounds(position)
+            and self.in_placement_grid(position)
+            and self.in_pathing_grid(position)
+        )
+
+    def scv_build_progress(self, scv: Unit):
+        if (not scv.is_constructing_scv):
+            return 1
+        building: Unit = self.structures.closest_to(scv)
+        if (building.is_ready):
+            return 1
+        else:
+            return building.build_progress
 
     async def on_end(self, result: Result):
         """
