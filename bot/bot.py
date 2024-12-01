@@ -1,3 +1,4 @@
+from math import pi, sqrt
 from typing import FrozenSet, List, Set
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
@@ -69,6 +70,7 @@ class CompetitiveBot(BotAI):
         await self.distribute_workers()
         self.saturate_gas()
         await self.panic()
+        await self.finish_buildings()
         await self.build_supply()
         await self.morph_orbitals()
         await self.drop_mules()
@@ -89,7 +91,7 @@ class CompetitiveBot(BotAI):
         await self.barracks_production()
         await self.attack()
         # await self.scout()
-        self.lower_supplies()
+        self.handle_supplies()
 
         # if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
         #     if (self.workers.selected):
@@ -121,6 +123,36 @@ class CompetitiveBot(BotAI):
                 worker: Units = self.workers.closer_than(10, refinery)
                 if worker:
                     worker.random.gather(refinery)
+    
+    async def finish_buildings(self):
+        if (self.workers.collecting.amount == 0):
+            print("no workers to finish buildings o7")
+            return
+        
+        add_ons: List[int] = [
+            UnitTypeId.BARRACKSREACTOR,
+            UnitTypeId.BARRACKSTECHLAB,
+            UnitTypeId.FACTORYREACTOR,
+            UnitTypeId.FACTORYTECHLAB,
+            UnitTypeId.STARPORTREACTOR,
+            UnitTypeId.STARPORTTECHLAB
+        ]
+        
+        incomplete_buildings: Units = self.structures.filter(
+            lambda structure: (
+                structure.build_progress < 1
+                and structure.type_id not in add_ons
+                and structure.type_id != UnitTypeId.ORBITALCOMMAND
+                and (
+                    self.workers.closest_to(structure).is_constructing_scv == False
+                    or self.workers.closest_distance_to(structure) >= structure.radius * sqrt(2)
+                )
+            )
+        )
+        for incomplete_building in incomplete_buildings:
+            closest_worker: Unit = self.workers.closest_to(incomplete_building)
+            print("ordering SCV to finish", incomplete_building.name)
+            closest_worker.smart(incomplete_building)
     
     async def scout(self):
         # Use the reaper to scout
@@ -175,7 +207,7 @@ class CompetitiveBot(BotAI):
 
     async def build_supply(self):
         # move SCV for first depot
-        workers_mining: int = self.workers.gathering.amount + self.workers.returning.amount
+        workers_mining: int = self.workers.collecting.amount
         if (
             self.supply_used == 13
             and workers_mining == self.supply_used
@@ -206,20 +238,26 @@ class CompetitiveBot(BotAI):
                 target_supply_location: Point2 = supply_placement_positions.pop()
                 await self.build_custom(UnitTypeId.SUPPLYDEPOT, target_supply_location)
             else:
-                workers: Units = self.workers.gathering
+                workers: Units = self.workers.collecting
                 if (workers):
                     worker: Unit = workers.furthest_to(workers.center)
                     await self.build_custom(UnitTypeId.SUPPLYDEPOT, worker.position)
     
-    def lower_supplies(self):
-        supplies: Units = self.structures(UnitTypeId.SUPPLYDEPOT).ready
-        for supply in supplies :
-            print("Lower Supply Depot")
-            supply(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
-
+    def handle_supplies(self):
+        supplies_raised: Units = self.structures(UnitTypeId.SUPPLYDEPOT).ready
+        supplies_lowered: Units = self.structures(UnitTypeId.SUPPLYDEPOTLOWERED)
+        for supply in supplies_raised:
+            if self.enemy_units.amount == 0 or self.enemy_units.closest_distance_to(supply) > 5:
+                print("Lower Supply Depot")
+                supply(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
+        for supply in supplies_lowered:
+            if self.enemy_units.amount >= 1 and self.enemy_units.closest_distance_to(supply) <= 5:
+                print("Raise Supply Depot")
+                supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
+                
     async def build_gas(self):
         gasCount: int = self.structures(UnitTypeId.REFINERY).ready.amount + self.already_pending(UnitTypeId.REFINERY)
-        workers_mining: int = self.workers.gathering.amount + self.workers.returning.amount
+        workers_mining: int = self.workers.collecting.amount
         if(
             self.can_afford(UnitTypeId.REFINERY)
             and gasCount <= 2 * self.townhalls.ready.amount
@@ -425,8 +463,6 @@ class CompetitiveBot(BotAI):
         if (self.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1):
             for flying_starport in self.structures(UnitTypeId.STARPORTFLYING).ready:
                 reactors: Units = self.structures(UnitTypeId.REACTOR)
-                if (reactors.amount == 0):
-                    break
                     
                 free_reactors: Units = reactors.filter(
                     lambda reactor: self.in_placement_grid(reactor.add_on_land_position)
@@ -564,12 +600,16 @@ class CompetitiveBot(BotAI):
             if (not medivac.has_buff(BuffId.MEDIVACSPEEDBOOST)):
                 medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
-            # if damaged units in sight, heal them
-            damaged_allies_close: Units = self.units.filter(
-                lambda unit: unit.distance_to(medivac) <= 30 and unit.health_percentage < 1
+            # heal closest damaged ally
+            damaged_allies: Units = self.units.filter(
+                lambda unit: (
+                    unit.is_biological
+                    and unit.health_percentage < 1
+                )
             )
-            if (damaged_allies_close.amount >= 1):
-                medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies_close.random)
+
+            if (damaged_allies.amount >= 1):
+                medivac(AbilityId.MEDIVACHEAL_HEAL,damaged_allies.closest_to(medivac))
             else:
                 closest_marines: Units = marines.closest_n_units(self.enemy_start_locations[0], marines.amount // 2)
                 if (closest_marines.amount >= 1):
@@ -577,9 +617,25 @@ class CompetitiveBot(BotAI):
                 elif (self.townhalls.amount >= 1):
                     medivac.move(self.townhalls.closest_to(self.enemy_start_locations[0]))
 
+            
+            # damaged_allies_close: Units = self.units.filter(
+            #     lambda unit: unit.distance_to(medivac) <= 30 and unit.health_percentage < 1
+            # )
+            # if (damaged_allies_close.amount >= 1):
+            #     very_close_allies = damaged_allies_close.filter(lambda unit: unit.distance_to(medivac) <= 5).sort(key=lambda unit: unit.health)
+            #     medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies_close.first)
+            # else:
+            #     closest_marines: Units = marines.closest_n_units(self.enemy_start_locations[0], marines.amount // 2)
+            #     if (closest_marines.amount >= 1):
+            #         medivac.move(closest_marines.center)
+            #     elif (self.townhalls.amount >= 1):
+            #         medivac.move(self.townhalls.closest_to(self.enemy_start_locations[0]))
+
 
         for marine in marines:            
             enemy_units = self.enemy_units.filter(lambda unit: not unit.is_structure and unit.can_be_attacked and unit.type_id not in dont_attack)
+            enemy_towers = self.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
+            enemy_units += enemy_towers
             enemy_buildings = self.enemy_structures.filter(lambda unit: unit.can_be_attacked)
 
             enemy_units_in_range: Units = enemy_units.filter(
@@ -616,9 +672,16 @@ class CompetitiveBot(BotAI):
                 if (marine.weapon_ready):
                     marine.attack(enemy_units_in_range[0])
                 else:
+                    # only run away from unit with smaller range that are facing (chasing us)
                     closest_enemy: Unit = enemy_units_in_range.closest_to(marine)
-                    if(closest_enemy.can_attack and closest_enemy.ground_range < marine.ground_range):
+                    if(
+                        (closest_enemy.can_attack or closest_enemy.type_id == UnitTypeId.BANELING)
+                        and closest_enemy.is_facing(marine, pi)
+                        and closest_enemy.ground_range < marine.ground_range
+                    ):
                         self.move_away(marine, closest_enemy)
+                    else:
+                        marine.move(closest_enemy)
             elif (enemy_units_in_sight) :
                 marine.attack(enemy_units_in_sight.closest_to(marine))
             elif (enemy_buildings_in_range) :
@@ -669,6 +732,12 @@ class CompetitiveBot(BotAI):
             if (self.enemy_units):
                 if self.enemy_units.amount == 0:
                     self.panic_mode = False
+                    # ask all chasing SCVs to stop
+                    attacking_workers = self.workers.filter(
+                        lambda unit: unit.is_attacking
+                    )
+                    for attacking_worker in attacking_workers:
+                        attacking_worker.stop()
                     return
                 closest_enemy: Unit = self.enemy_units.closest_to(cc)
                 self.panic_mode = True if closest_enemy.distance_to(cc) <= 10 else False
@@ -681,8 +750,8 @@ class CompetitiveBot(BotAI):
         if not self.panic_mode:
             return
 
-        if self.workers.amount == 0:
-            print("no workers left, o7")
+        if self.workers.collecting.amount == 0:
+            print("no workers to pull, o7")
             return
 
         # if every townhalls is dead, just attack the nearest unit with every worker
@@ -709,9 +778,7 @@ class CompetitiveBot(BotAI):
             print("panic attack : ", enemy_towers.amount, "enemy towers, ", enemy_threats.amount, "enemy units")
             # respond to canon/bunker/spine rush
             for tower in enemy_towers:
-                workers: Units = self.workers.filter(
-                    lambda unit: unit.is_gathering or unit.is_collecting
-                ).sorted_by_distance_to(tower)
+                workers: Units = self.workers.collecting.sorted_by_distance_to(tower)
 
                 # Pull 3 workers by tower by default, less if we don't have enough
                 workers_pulled: Units = workers[:3] if workers.amount >= 3 else workers
@@ -720,26 +787,27 @@ class CompetitiveBot(BotAI):
                     worker_pulled.attack(tower)
                     workers_pulled_amount += 1
 
-            # gathering workers close to threats should be pulled
-            workers: Units = self.workers.filter(
-                lambda unit: unit.is_gathering or unit.is_collecting
-            )
+            # collecting workers close to threats should be pulled
+            workers: Units = self.workers.collecting
             
             for threat in enemy_threats:
                 # handle scouting worker identified as threat
                 if (threat.type_id in worker_types):
-                    # pull 1 scv to follow it
-                    attacking_worker = workers.closest_to(threat)
-                    attacking_worker.attack(threat)
-                    workers_pulled_amount += 1
-                    break
-
-                # handle pulling workers against units
-                for worker in workers:
-                    closest_threat = enemy_threats.closest_to(worker)
-                    if (worker.distance_to(closest_threat) <= 20):
-                        worker.attack(closest_threat)
+                    # if no scv is already chasing
+                    attacking_workers: Unit = self.workers.filter(
+                        lambda unit: unit.is_attacking and unit.order_target == threat.tag
+                    )
+                    if (attacking_workers.amount == 0):
+                        # pull 1 scv to follow it
+                        attacking_worker = workers.closest_to(threat)
+                        attacking_worker.attack(threat)
                         workers_pulled_amount += 1
+                        break
+
+                closest_worker: Unit = workers.closest_to(threat)
+                if (closest_worker.distance_to(threat) <= 20):
+                    closest_worker.attack(threat)
+                    workers_pulled_amount += 1
 
             print(workers_pulled_amount, "workers pulled")
 
@@ -790,25 +858,11 @@ class CompetitiveBot(BotAI):
         target: Point2 = selected_position.__add__(offset)
         selected.move(selected_position.towards(target, distance))
 
-    def constructible(self, position: Point2):
-        structures: Units = self.structures
-        for structure in structures:
-            if (position == structure.position):
-                return False
-        return (
-            self.in_map_bounds(position)
-            and self.in_placement_grid(position)
-            and self.in_pathing_grid(position)
-        )
-
     def scv_build_progress(self, scv: Unit):
         if (not scv.is_constructing_scv):
             return 1
         building: Unit = self.structures.closest_to(scv)
-        if (building.is_ready):
-            return 1
-        else:
-            return building.build_progress
+        return 1 if building.is_ready else building.build_progress
 
     async def find_land_position(self, building: Unit):
         possible_land_positions_offset = sorted(
