@@ -3,7 +3,7 @@ sys.path.append('ares-sc2/src/ares')
 sys.path.append('ares-sc2/src')
 sys.path.append('ares-sc2')
 
-from bot import CompetitiveBot
+from bot import WickedBot
 
 import argparse
 import asyncio
@@ -11,7 +11,7 @@ import logging
 import aiohttp
 import sc2
 from sc2.main import run_game
-from sc2.data import Race, Difficulty
+from sc2.data import AIBuild, Race, Difficulty
 from sc2.client import Client
 from sc2.player import Bot, Computer
 from sc2.protocol import ConnectionAlreadyClosed
@@ -108,11 +108,11 @@ def parse_arguments():
 
 def load_bot(args):
     # Load bot
-    competitive_bot = CompetitiveBot()
+    competitive_bot = WickedBot()
     # Add opponent_id to the bot class (accessed through self.opponent_id)
     competitive_bot.opponent_id = args.OpponentId
 
-    return Bot(CompetitiveBot.RACE, competitive_bot)
+    return Bot(WickedBot.RACE, competitive_bot)
 
 
 def run():
@@ -130,7 +130,7 @@ def run():
         # Local game
         print("Starting local game...")
         run_game(sc2.maps.get(args.Map),
-                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty])],
+                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty], AIBuild.Rush)],
                      realtime=args.Realtime,
                      sc2_version=args.Sc2Version, )
 
