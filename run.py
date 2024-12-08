@@ -130,7 +130,7 @@ def run():
         # Local game
         print("Starting local game...")
         run_game(sc2.maps.get(args.Map),
-                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty], AIBuild.Rush)],
+                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty], AIBuild.Timing)],
                      realtime=args.Realtime,
                      sc2_version=args.Sc2Version, )
 

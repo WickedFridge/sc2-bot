@@ -118,7 +118,7 @@ class Build:
         ) :
             print("Build Barracks", barracks_amount + 1, "/", max_barracks)
             if (barracks_amount >= 1):
-                cc: Unit = self.bot.townhalls.random
+                cc: Unit = self.bot.townhalls.ready.random
                 barracksPosition = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.BARRACKS, barracksPosition)
     
@@ -142,7 +142,7 @@ class Build:
             and not self.bot.waitingForOrbital()
         ) :
             print("Build Factory")
-            cc: Unit = self.bot.townhalls.random
+            cc: Unit = self.bot.townhalls.ready.random
             factory_position = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.FACTORY, factory_position)
 

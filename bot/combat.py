@@ -1,6 +1,8 @@
 import math
-from typing import List
+from typing import List, Set
+from bot.utils.army import Army
 from sc2.bot_ai import BotAI
+from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -9,16 +11,19 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import tower_types, worker_types, dont_attack, hq_types
+from .utils.unit_supply import supply, units_supply
 
 class Combat:
     bot: BotAI
     workers_pulled_amount: int = 0
     enemy_threats_amount: int = 0
     enemy_towers_amount: int = 0
+    known_enemy_army: Army
     
     def __init__(self, bot) -> None:
         super().__init__()
         self.bot = bot
+        self.known_enemy_army = Army(Units([], bot), bot)
 
     async def pull_workers(self):
         # fill bunkers
@@ -108,8 +113,10 @@ class Combat:
         marines: Units = self.bot.units(UnitTypeId.MARINE).ready
         medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).ready
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        
+        army_supply: int = 0
         army = (marines + medivacs)
+        for unit in army:
+            army_supply += supply[unit.type_id]
 
         for medivac in medivacs:
             # if not boosting, boost
@@ -136,10 +143,12 @@ class Combat:
 
 
         for marine in marines:            
-            enemy_units = self.bot.enemy_units.filter(lambda unit: not unit.is_structure and unit.can_be_attacked and unit.type_id not in dont_attack)
-            enemy_towers = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
+            enemy_units: Units = self.bot.enemy_units.filter(lambda unit: not unit.is_structure and unit.can_be_attacked and unit.type_id not in dont_attack)
+            enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
             enemy_units += enemy_towers
-            enemy_buildings = self.bot.enemy_structures.filter(lambda unit: unit.can_be_attacked)
+            enemy_buildings: Units = self.bot.enemy_structures.filter(lambda unit: unit.can_be_attacked)
+            local_army: Units = army.filter(lambda unit: unit.distance_to(marine) <= 20)
+            local_army_supply: float = units_supply(local_army)
 
             enemy_units_in_range: Units = enemy_units.filter(
                 lambda unit: marine.target_in_range(unit)
@@ -157,60 +166,51 @@ class Combat:
                 lambda unit: not marine.target_in_range(unit)
             )
 
-            # If units in sight, should be stimmed
+
+            # If units in sight, should be stimmed if above 25 hp
             # For building we only stim if high on life
             if (
-                (enemy_units_in_sight or (enemy_buildings_in_range and marine.health >= 45))
+                (enemy_units_in_sight and marine.health >= 25 or (enemy_buildings_in_range and marine.health >= 45))
                 and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
                 and not marine.has_buff(BuffId.STIMPACK)
             ):
                 marine(AbilityId.EFFECT_STIM_MARINE)
+
+
+            # if panic mode, should defend
+            # if my army supply is above opponent known army, take the fight
+            # if (local_army_supply > self.known_enemy_army.army_supply()):
+                # pass
             
-            
-            # If units in range, attack the one with the least HPs, closest if tied (don't forget to stim first if not)
+            # If units in range, attack the one with the least HPs, closest if tied
             if (enemy_units_in_range) :
-                enemy_units_in_range.sort(
-                    key=lambda unit: unit.health
-                )
-                if (marine.weapon_ready):
-                    marine.attack(enemy_units_in_range[0])
-                else:
-                    # only run away from unit with smaller range that are facing (chasing us)
-                    closest_enemy: Unit = enemy_units_in_range.closest_to(marine)
-                    if(
-                        (closest_enemy.can_attack or closest_enemy.type_id == UnitTypeId.BANELING)
-                        and closest_enemy.is_facing(marine, math.pi)
-                        and closest_enemy.ground_range < marine.ground_range
-                    ):
-                        self.move_away(marine, closest_enemy)
-                    # else:
-                    #     marine.move(closest_enemy)
-            
-            elif (enemy_units_in_sight) :
+                self.micro(marine, enemy_units_in_range)
+            elif (enemy_units_in_sight and army_supply >= self.known_enemy_army.army_supply()) :
                 marine.attack(enemy_units_in_sight.closest_to(marine))
             elif (enemy_buildings_in_range) :
                 marine.attack(enemy_buildings_in_range.closest_to(marine))
-            elif (marines.amount > 10) :
+            elif (marines.amount >= 10 and army_supply >= self.known_enemy_army.army_supply()) :
                 # find nearest opposing townhalls
                 
                 enemy_workers: Units = self.bot.enemy_units.filter(lambda unit: unit.type_id in worker_types)
                 enemy_bases: Units = self.bot.enemy_structures.filter(lambda structure: structure.type_id in hq_types)
                 close_army: Units = army.closest_n_units(enemy_main_position, army.amount // 2)
 
-                if (enemy_workers.amount):
+                # if enemy workers in sight, focus them
+                if (enemy_workers.amount >= 1):
                     marine.attack(enemy_workers.closest_to(marine))
 
                 # group first
-                elif (marine.distance_to(close_army.center) > 10):
+                elif (marine.distance_to(close_army.center) > 6):
                     marine.move(close_army.center)
                 
                 # attack nearest base
-                elif (enemy_bases.amount):
-                    marine.move(enemy_bases.closest_to(marine))
+                elif (enemy_bases.amount >= 1):
+                    marine.attack(enemy_bases.closest_to(marine))
                 
                 # attack nearest building
                 elif (enemy_buildings_outside_of_range.amount >= 1):
-                    marine.move(enemy_buildings_outside_of_range.closest_to(marine))
+                    marine.attack(enemy_buildings_outside_of_range.closest_to(marine))
                 
                 # attack enemy location
                 else:
@@ -223,13 +223,33 @@ class Combat:
                 
                 # meet revealed enemy outside of range if they are in our half of the map
                 if (distance_to_hq < distance_to_oppo):
-                    for marine in marines:
-                        marine.move(enemy_units_outside_of_range.closest_to(marine))
+                    marine.move(enemy_units_outside_of_range.closest_to(marine))
             else:
-                for marine in army:
-                    if (self.bot.townhalls.amount == 0):
-                        break
-                    marine.move(self.bot.townhalls.closest_to(enemy_main_position))
+                if (self.bot.townhalls.amount == 0):
+                    break
+                marine.move(self.bot.townhalls.closest_to(enemy_main_position))
+
+    async def micro(self, marine: Unit, enemy_units_in_range: Units):
+        enemy_units_in_range.sort(
+            key=lambda unit: (
+                unit.shield if unit.race == Race.Protoss else unit.health
+            )
+        )
+        if (marine.weapon_ready):
+            marine.race
+            marine.attack(enemy_units_in_range[0])
+        else:
+            # only run away from unit with smaller range that are facing (chasing us)
+            closest_enemy: Unit = enemy_units_in_range.closest_to(marine)
+            if(
+                (closest_enemy.can_attack or closest_enemy.type_id == UnitTypeId.BANELING)
+                and closest_enemy.is_facing(marine, math.pi)
+                and closest_enemy.ground_range < marine.ground_range
+            ):
+                Combat.move_away(marine, closest_enemy)
+            # else:
+            #     marine.move(closest_enemy)
+
 
     async def detect_panic(self):
         panic_mode: bool = False
@@ -246,15 +266,26 @@ class Combat:
             print("Panic mode:", panic_mode)
             self.bot.panic_mode = panic_mode
 
+
+    async def detect_enemy_army(self):
+        enemy_units: Units = self.bot.enemy_units
+        self.known_enemy_army.detect_units(enemy_units)
             
-    def away(self, selected: Unit, enemy: Unit, distance: int = 2):
+    def unit_died(self, unit_tag: int):
+        if unit_tag not in self.known_enemy_army.units.tags:
+            return
+        self.known_enemy_army.remove_by_tag(unit_tag)
+        enemy_army: dict = self.known_enemy_army.recap()
+        print("remaining enemy units :", enemy_army)
+
+    def away(selected: Unit, enemy: Unit, distance: int = 2):
         selected_position: Point2 = selected.position
         offset: Point2 = selected_position.negative_offset(enemy.position)
         target: Point2 = selected_position.__add__(offset)
         return selected_position.towards(target, distance)
 
 
-    def move_away(self, selected: Unit, enemy: Unit, distance: int = 2):
+    def move_away(selected: Unit, enemy: Unit, distance: int = 2):
         # print("Moving away 1 from 2", selected.name, enemy.name)
         selected_position: Point2 = selected.position
         offset: Point2 = selected_position.negative_offset(enemy.position)

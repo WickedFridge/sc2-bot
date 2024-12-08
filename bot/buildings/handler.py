@@ -13,11 +13,13 @@ class BuildingsHandler:
         self.bot = bot
 
     async def repair_buildings(self):
-        if (self.bot.workers.amount == 0):
+        available_workers: Units = self.bot.workers.collecting
+        if (available_workers.amount == 0):
             print("no workers to repair o7")
+            return
         burning_buildings = self.bot.structures.ready.filter(lambda unit: unit.health_percentage < 0.6)
         for burning_building in burning_buildings:
-            repairing_workers: Units = self.bot.workers.filter(
+            repairing_workers: Units = available_workers.filter(
                 lambda unit: unit.is_repairing and unit.order_target == burning_building.tag
             )
             if (
@@ -25,6 +27,7 @@ class BuildingsHandler:
                 or repairing_workers.amount < 3
             ):
                 print("pulling worker to repair", burning_building.name)
+                
                 self.bot.workers.closest_to(burning_building).repair(burning_building)
     
     async def morph_orbitals(self):

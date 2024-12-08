@@ -52,6 +52,7 @@ class WickedBot(BotAI):
         """
         await self.distribute_workers()
         await self.saturate_gas()
+        await self.combat.detect_enemy_army()
         await self.combat.detect_panic()
         await self.combat.pull_workers()
         await self.buildings.repair_buildings()
@@ -79,11 +80,9 @@ class WickedBot(BotAI):
         await self.buildings.handle_supplies()
 
         # if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
-        #     barracks = self.structures(UnitTypeId.BARRACKS).ready.selected
-        #     if (barracks):
-        #         barrack = barracks.random
-        #         if (barrack.orders.__len__() >= 1):
-        #             print("barracks order :", barracks.random.orders[0].ability)
+        #     units: Units = self.units
+        #     army: dict = self.combat.units_recap(units)
+        #     print("army :", army)
             
                     
     async def saturate_gas(self):
@@ -141,6 +140,9 @@ class WickedBot(BotAI):
         )
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
+    async def on_unit_destroyed(self, unit_tag: int):
+        
+        self.combat.unit_died(unit_tag)
 
     async def on_end(self, result: Result):
         """
