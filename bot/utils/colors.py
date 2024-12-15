@@ -1,0 +1,7 @@
+RED: tuple = (255,0,0)
+GREEN: tuple = (0,255,0)
+BLUE: tuple = (0,0,255)
+YELLOW: tuple = (255,255,0)
+PURPLE: tuple = (255,0,255)
+LIGHTBLUE: tuple = (0,255,255)
+WHITE: tuple = (255,255,255)

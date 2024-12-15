@@ -17,9 +17,11 @@ supply[UnitTypeId.HELLION] = 2
 supply[UnitTypeId.WIDOWMINE] = 2
 # Tier 2
 supply[UnitTypeId.SIEGETANK] = 3
+supply[UnitTypeId.SIEGETANKSIEGED] = 3
 supply[UnitTypeId.CYCLONE] = 3
 supply[UnitTypeId.MEDIVAC] = 2
 supply[UnitTypeId.VIKING] = 2
+supply[UnitTypeId.VIKINGFIGHTER] = 2
 supply[UnitTypeId.VIKINGASSAULT] = 2
 supply[UnitTypeId.BANSHEE] = 3
 supply[UnitTypeId.RAVEN] = 2
@@ -38,25 +40,42 @@ supply[UnitTypeId.BROODLING] = 0
 supply[UnitTypeId.SLAYNSWARMHOSTSPAWNFLYER] = 0
 supply[UnitTypeId.LOCUSTMP] = 0
 supply[UnitTypeId.CHANGELING] = 0
+supply[UnitTypeId.CHANGELINGMARINE] = 0
+supply[UnitTypeId.CHANGELINGMARINESHIELD] = 0
+supply[UnitTypeId.CHANGELINGZEALOT] = 0
+supply[UnitTypeId.CHANGELINGZERGLING] = 0
+supply[UnitTypeId.CHANGELINGZERGLINGWINGS] = 0
+supply[UnitTypeId.SPORECRAWLER] = 0
+supply[UnitTypeId.SPINECRAWLER] = 0
 # Tier 1
 supply[UnitTypeId.OVERLORD] = 0
 supply[UnitTypeId.OVERSEER] = 0
 supply[UnitTypeId.OVERLORDCOCOON] = 0
+supply[UnitTypeId.OVERLORDTRANSPORT] = 0
 supply[UnitTypeId.DRONE] = 1
+supply[UnitTypeId.DRONEBURROWED] = 1
 supply[UnitTypeId.ZERGLING] = 0.5
 supply[UnitTypeId.ZERGLINGBURROWED] = 0.5
 supply[UnitTypeId.BANELING] = 0.5
 supply[UnitTypeId.BANELINGBURROWED] = 0.5
 supply[UnitTypeId.BANELINGCOCOON] = 0.5
 supply[UnitTypeId.QUEEN] = 2
+supply[UnitTypeId.QUEENBURROWED] = 2
 supply[UnitTypeId.ROACH] = 2
+supply[UnitTypeId.ROACHBURROWED] = 2
 supply[UnitTypeId.RAVAGER] = 3
+supply[UnitTypeId.RAVAGERBURROWED] = 3
+supply[UnitTypeId.RAVAGERCOCOON] = 3
 # Tier 2
 supply[UnitTypeId.HYDRALISK] = 2
+supply[UnitTypeId.HYDRALISKBURROWED] = 2
 supply[UnitTypeId.LURKER] = 3
+supply[UnitTypeId.LURKERMP] = 3
+supply[UnitTypeId.LURKERMPBURROWED] = 3
 supply[UnitTypeId.LURKERBURROWED] = 3
 supply[UnitTypeId.LURKEREGG] = 3
 supply[UnitTypeId.INFESTOR] = 2
+supply[UnitTypeId.INFESTORBURROWED] = 2
 supply[UnitTypeId.SWARMHOSTMP] = 3
 supply[UnitTypeId.SWARMHOSTBURROWEDMP] = 3
 supply[UnitTypeId.MUTALISK] = 2
@@ -66,9 +85,14 @@ supply[UnitTypeId.BROODLORDEGG] = 4
 supply[UnitTypeId.BROODLORD] = 4
 supply[UnitTypeId.VIPER] = 3
 supply[UnitTypeId.ULTRALISK] = 6
+supply[UnitTypeId.ULTRALISKBURROWED] = 6
 
 
 # Protoss Units
+# creeps
+supply[UnitTypeId.ADEPTPHASESHIFT] = 0
+supply[UnitTypeId.PHOTONCANNON] = 3
+
 # Tier 1
 supply[UnitTypeId.PROBE] = 1
 supply[UnitTypeId.ZEALOT] = 2

@@ -19,7 +19,7 @@ class BuildingsHandler:
             return
         burning_buildings = self.bot.structures.ready.filter(lambda unit: unit.health_percentage < 0.6)
         for burning_building in burning_buildings:
-            repairing_workers: Units = available_workers.filter(
+            repairing_workers: Units = self.bot.workers.filter(
                 lambda unit: unit.is_repairing and unit.order_target == burning_building.tag
             )
             if (
@@ -28,7 +28,7 @@ class BuildingsHandler:
             ):
                 print("pulling worker to repair", burning_building.name)
                 
-                self.bot.workers.closest_to(burning_building).repair(burning_building)
+                available_workers.closest_to(burning_building).repair(burning_building)
     
     async def morph_orbitals(self):
         if (self.bot.orbitalTechAvailable()):
@@ -47,12 +47,13 @@ class BuildingsHandler:
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready
         supplies_lowered: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOTLOWERED)
+        minimal_distance: float = 6
         for supply in supplies_raised:
-            if self.bot.enemy_units.amount == 0 or self.bot.enemy_units.closest_distance_to(supply) > 5:
+            if self.bot.enemy_units.amount == 0 or self.bot.enemy_units.closest_distance_to(supply) > minimal_distance:
                 print("Lower Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
         for supply in supplies_lowered:
-            if self.bot.enemy_units.amount >= 1 and self.bot.enemy_units.closest_distance_to(supply) <= 5:
+            if self.bot.enemy_units.amount >= 1 and self.bot.enemy_units.closest_distance_to(supply) <= minimal_distance:
                 print("Raise Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 

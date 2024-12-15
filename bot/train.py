@@ -11,10 +11,11 @@ class Train:
         self.bot = bot
 
     async def workers(self):
+        worker_count: int = self.bot.workers.amount + self.bot.already_pending(UnitTypeId.SCV)
         if (
             self.bot.can_afford(UnitTypeId.SCV)
-            and self.bot.workers.amount < self.bot.townhalls.amount * 22
-            and self.bot.workers.amount <= 84
+            and worker_count < self.bot.townhalls.amount * 22
+            and worker_count < 84
         ) :
             if (self.bot.orbitalTechAvailable()):
                 townhalls = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.idle

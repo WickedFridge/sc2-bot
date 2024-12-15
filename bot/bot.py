@@ -2,7 +2,7 @@ from math import pi, sqrt
 from typing import FrozenSet, List, Set
 from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
-from bot.combat import Combat
+from bot.combat.combat import Combat
 from bot.train import Train
 from bot.search import Search
 from sc2.bot_ai import BotAI, Race
@@ -75,11 +75,15 @@ class WickedBot(BotAI):
         await self.builder.addons()
         await self.builder.expand()
         await self.train.infantry()
-        await self.combat.attack()
+        # await self.combat.attack()
+        await self.combat.select_orders()
+        await self.combat.execute_orders()
+        # await self.combat.debug_colorize_army()
         # await self.scout()
         await self.buildings.handle_supplies()
 
         # if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
+            # self.combat.debug_cluster()
         #     units: Units = self.units
         #     army: dict = self.combat.units_recap(units)
         #     print("army :", army)

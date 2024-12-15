@@ -117,7 +117,7 @@ class Build:
             and not self.bot.waitingForOrbital()
         ) :
             print("Build Barracks", barracks_amount + 1, "/", max_barracks)
-            if (barracks_amount >= 1):
+            if (barracks_amount >= 1 and cc_amount >= 1):
                 cc: Unit = self.bot.townhalls.ready.random
                 barracksPosition = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.BARRACKS, barracksPosition)
@@ -175,13 +175,19 @@ class Build:
     async def ebays(self):
         ebay_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ENGINEERINGBAY)
         ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount + self.bot.already_pending(UnitTypeId.ENGINEERINGBAY)
+        staport_count: float = (
+            self.bot.structures(UnitTypeId.STARPORT).amount
+            + self.bot.structures(UnitTypeId.STARPORTFLYING).amount
+            + self.bot.already_pending(UnitTypeId.STARPORT)
+        )
 
-        # We want 2 ebays once we have a 3rd CC
+        # We want 2 ebays once we have a 3rd CC and a Starport
         if (
             ebay_tech_requirement == 1
             and self.bot.can_afford(UnitTypeId.ENGINEERINGBAY)
             and ebays_count < 2
             and self.bot.townhalls.amount >= 3
+            and staport_count >= 1
             and not self.bot.waitingForOrbital() 
         ) :
             print("Build EBay")
