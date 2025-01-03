@@ -4,10 +4,10 @@ from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
 from bot.train import Train
-from bot.search import Search
+from bot.technology.search import Search
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
-from sc2.game_data import AbilityData
+from sc2.game_data import AbilityData, UpgradeData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -16,26 +16,27 @@ from sc2.position import Point2
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from .utils.unit_tags import *
+from sc2.dicts.unit_abilities import UNIT_ABILITIES
+
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
-    shield_researched: bool = False
     panic_mode: bool = False
     
     builder: Build
     buildings: BuildingsHandler
     search: Search
-    train: Train
     combat: Combat
+    train: Train
 
     def __init__(self) -> None:
         super().__init__()
         self.builder = Build(self)
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)
-        self.train = Train(self)
         self.combat = Combat(self)
+        self.train = Train(self, self.combat)
 
     async def on_start(self):
         """
@@ -44,6 +45,9 @@ class WickedBot(BotAI):
         """
 
         print("Game started")
+        await self.chat_send("Good Luck & Have fun !")
+        # await self.client.debug_create_unit([[UnitTypeId.ARMORY, 1, self.townhalls.random.position.towards(self._game_info.map_center, 3), 1]])
+        # await self.client.debug_all_resources()
 
     async def on_step(self, iteration: int):
         """
@@ -58,12 +62,11 @@ class WickedBot(BotAI):
         await self.buildings.repair_buildings()
         await self.builder.finish_construction()
         await self.builder.supplies()
+        await self.builder.bunker()
         await self.buildings.morph_orbitals()
         await self.buildings.drop_mules()
         await self.train.workers()
-        await self.search.upgrades()
-        await self.search.stim()
-        await self.search.shield()
+        await self.search.tech()
         await self.builder.gas()
         await self.builder.armory()
         await self.builder.starport()
@@ -75,25 +78,26 @@ class WickedBot(BotAI):
         await self.builder.addons()
         await self.builder.expand()
         await self.train.infantry()
-        # await self.combat.attack()
         await self.combat.select_orders()
         await self.combat.execute_orders()
-        # await self.combat.debug_colorize_army()
-        # await self.scout()
+        await self.combat.handle_bunkers()
+        await self.combat.debug_colorize_army()
+        await self.scout()
         await self.buildings.handle_supplies()
 
-        # if (not int(self.time) % 2  and self.time - int(self.time) <= 0.1):
-            # self.combat.debug_cluster()
-        #     units: Units = self.units
-        #     army: dict = self.combat.units_recap(units)
-        #     print("army :", army)
-            
+        Armories: Units = self.structures(UnitTypeId.ARMORY).filter(lambda unit: unit.is_selected)
+        if (Armories.amount >= 1 and round(self.time) % 2 == 0):
+            Armory: Unit = Armories.random
+            print("Armory", Armory)
+            print("Orders", Armory.orders)
+            Armory.research(UpgradeId.TERRANVEHICLEARMORSVANADIUMPLATINGLEVEL1)
+            # Armory(AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1)
                     
     async def saturate_gas(self):
         # Saturate refineries
         for refinery in self.gas_buildings:
             if refinery.assigned_harvesters < refinery.ideal_harvesters:
-                worker: Units = self.workers.closer_than(10, refinery)
+                worker: Units = self.workers.gathering.closer_than(10, refinery)
                 if worker:
                     worker.random.gather(refinery)
     
@@ -145,7 +149,6 @@ class WickedBot(BotAI):
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
     async def on_unit_destroyed(self, unit_tag: int):
-        
         self.combat.unit_died(unit_tag)
 
     async def on_end(self, result: Result):

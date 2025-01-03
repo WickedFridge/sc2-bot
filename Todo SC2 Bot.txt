@@ -1,0 +1,17 @@
+Todo SC2 Bot
+
+X - Finir les bâtiments en construction
+X - attaquer (avec 1 ou 2 SCV) unit qui est dans notre base
+X - Starport qui se déplace sous la facto lorsqu'elle construit un add-on + réparer facto qui se land mal
+O - Bank un scan
+O - Scan unités invisibles / prise de fight ?
+O - Bunker B3 ? (B2 si l'oppo n'a pas fait de B2, scout au timing où on fait B2)
+X - Medivac Movement
+X - Focus buildings
+X - Don't pull worker against air units
+X - Attack defensive towers
+X - Repair Buildings when burning
+X - Refacto classes
+O - Fly CC when burning
+X - Focus fire protoss units with less shield
+O - Scout

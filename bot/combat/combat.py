@@ -5,16 +5,12 @@ from bot.combat.orders import Orders
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from sc2.bot_ai import BotAI
-from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, menacing
-from ..utils.unit_supply import supply
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
 
 
 class Combat:
@@ -32,16 +28,33 @@ class Combat:
         self.execute = Execute(bot)
         self.known_enemy_army = Army(Units([], bot), bot)
 
+    @property
+    def army_supply(self) -> float:
+        result: float = 0
+        for army in self.armies:
+            result += army.supply
+        return result
+
+    @property
+    def armored_supply(self) -> float:
+        result: float = 0
+        for army in self.armies:
+            result += army.armored_supply
+        return result
+
     def debug_cluster(self) -> None:
         clusters: List[Units] = self.get_army_clusters()
         for i, cluster in enumerate(clusters):
             army = Army(cluster, self.bot)
             print("army", i)
-            print(army.recap())
+            print(army.recap)
             
-
     def get_army_clusters(self, radius: float = 15) -> List[Army]:
-        army: Units = (self.bot.units(UnitTypeId.MARINE) + self.bot.units(UnitTypeId.MEDIVAC))
+        army: Units = (
+            self.bot.units(UnitTypeId.MARINE)
+            + self.bot.units(UnitTypeId.MARAUDER)
+            + self.bot.units(UnitTypeId.MEDIVAC)
+        )
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()
         visited_ids: Set[int] = set()
@@ -74,21 +87,7 @@ class Combat:
             clusters.append(Army(Units(cluster, self.bot), self.bot))
         return clusters
 
-    def get_army_supply(self) -> float:
-        result: float = 0
-        for army in self.armies:
-            result += army.army_supply()
-        return result
-
     async def pull_workers(self):
-        # TODO: estimate enemy threat
-        # retreat workers if army > enemy threat
-        # else pull workers
-        
-        # TODO: fill bunkers
-        # for bunker in self.structures(UnitTypeId.BUNKER).ready:
-        #     for marine in self.units(UnitTypeId.MARINE).closest_n_units(bunker, 4):
-        #         marine(AbilityId.LOAD_BUNKER, bunker)
         if not self.bot.panic_mode:
             # ask all chasing SCVs to stop
             attacking_workers = self.bot.workers.filter(
@@ -124,7 +123,6 @@ class Combat:
             if (enemy_threats.amount != self.enemy_threats_amount or enemy_towers.amount != self.enemy_towers_amount):
                 self.enemy_threats_amount = enemy_threats.amount
                 self.enemy_towers_amount = enemy_towers.amount
-                # print("panic attack : ", enemy_towers.amount, "enemy towers, ", enemy_threats.amount, "enemy units")
             # respond to canon/bunker/spine rush
             for tower in enemy_towers:
                 # Pull 3 workers by tower by default, less if we don't have enough
@@ -159,7 +157,7 @@ class Combat:
                         # pull 1 scv to follow it
                         closest_worker.attack(threat)
                 # else pull against close units
-                elif (closest_worker.distance_to(threat) <= 20):
+                elif (closest_worker.distance_to(threat) <= 10):
                         closest_worker.attack(threat)
 
             workers_pulled_amount: int = self.bot.workers.filter(lambda unit: unit.is_attacking).amount
@@ -167,11 +165,10 @@ class Combat:
                 self.workers_pulled_amount = workers_pulled_amount
                 print(workers_pulled_amount, "workers pulled")
 
-
     async def select_orders(self):
         # update local armies
         # Scale radius in function of army supply
-        army_radius: float = 0.2 * self.get_army_supply() + 15
+        army_radius: float = 0.15 * self.army_supply + 15
 
         self.armies = self.get_army_clusters(army_radius)
         global_enemy_buildings: Units = self.bot.enemy_structures
@@ -184,18 +181,8 @@ class Combat:
         
         for army in self.armies:
             # define local enemies
-            
-            local_enemy_units: Units = global_enemy_units.filter(
-                lambda unit: unit.distance_to(army.units.center) <= 20
-            )
-            local_enemy_towers: Units = self.bot.enemy_structures.filter(
-                lambda unit: unit.type_id in tower_types and unit.can_be_attacked
-            )
-            local_enemy_units += local_enemy_towers
-            local_enemy_buildings: Units = self.bot.enemy_structures.filter(
-                lambda unit: unit.distance_to(army.units.center) <= 10 and unit.can_be_attacked
-            )
-            local_enemy_buildings.sort(key=lambda building: building.health)
+            local_enemy_units: Units = self.get_local_enemy_units(army.units.center)
+            local_enemy_buildings = self.get_local_enemy_buildings(army.units.center)
             local_enemy_workers: Units = self.bot.enemy_units.filter(
                 lambda unit: (
                     unit.distance_to(army.units.center) <= 30
@@ -204,37 +191,40 @@ class Combat:
                 )
             )
 
-            army_supply: float = army.army_supply()
+            army_supply: float = army.supply
             local_enemy_army: Army = Army(local_enemy_units, self.bot)
-            local_enemy_supply: float = local_enemy_army.army_supply()
-            unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight(), self.bot)
-            unseen_enemy_supply: float = unseen_enemy_army.army_supply()
+            local_enemy_supply: float = local_enemy_army.supply
+            unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
+            unseen_enemy_supply: float = unseen_enemy_army.supply
             potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
             closest_building_to_enemies: Unit = None if global_enemy_units.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units)
             distance_building_to_enemies: float = 1000 if global_enemy_units.amount == 0 else global_enemy_units.closest_distance_to(closest_building_to_enemies)
             closest_army_distance: float = self.get_closest_army_distance(army)
             
-            # TODO: add regroup
             # if local_army_supply > local threat
             # attack local_threat if it exists
             if (local_enemy_supply + local_enemy_buildings.amount >= 1):
                 
-                # TODO: move stim in the write place
-                # If units or buildings in sight, should be stimmed if above 25 hp
-                self.stim(army.units, local_enemy_units, local_enemy_buildings)
-    
+                
                 # if enemy is a threat, micro if we win or we panic, retreat if we don't
                 if (
-                    army_supply >= potential_enemy_supply
+                    army_supply >= local_enemy_supply
                     or self.bot.panic_mode
                     or distance_building_to_enemies <= 10
                 ):
                     army.orders = Orders.FIGHT
                 else:
-                    print(f'not fighting against {potential_enemy_supply} supply')
-                    print("local_enemy_army:", local_enemy_army.recap())
-                    print("unseen_enemy_army:", unseen_enemy_army.recap())
-                    army.orders = Orders.RETREAT
+                    local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
+                    local_enemy_speed: Unit = local_enemy_units.first.real_speed
+                    closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
+                    if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
+                        print("enemy too fast, taking the fight")
+                        army.orders = Orders.FIGHT
+                    else:
+                        print(f'not fighting against {local_enemy_supply} supply')
+                        print("local_enemy_army:", local_enemy_army.recap)
+                        print("unseen_enemy_army:", unseen_enemy_army.recap)
+                        army.orders = Orders.RETREAT
                     
             # if we should defend
             elif (
@@ -250,7 +240,7 @@ class Combat:
             # if another army is close, we should regroup
             elif (
                 self.armies.__len__() >= 2
-                and closest_army_distance <= 20
+                and closest_army_distance <= 15
             ):
                 army.orders = Orders.REGROUP
             
@@ -274,6 +264,8 @@ class Combat:
             ):
                 # move towards closest enemy base
                 army.orders = Orders.ATTACK_NEAREST_BASE
+                # army.orders = Orders.RETREAT
+
             else:
                 army.orders = Orders.RETREAT
 
@@ -304,6 +296,46 @@ class Combat:
                 case Orders.REGROUP:
                     self.execute.regroup(army, self.armies)
     
+    async def handle_bunkers(self):
+        for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
+            enemy_units_in_sight: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.distance_to(bunker) <= 10
+            )
+            if (enemy_units_in_sight.amount == 0):
+                if(bunker.cargo_used == 0):
+                    self.draw_sphere_on_world(bunker.position, radius=7, draw_color=GREEN)
+                    self.draw_text_on_world(bunker.position, "No unit detected", GREEN)
+                    return
+                bunker(AbilityId.UNLOADALL_BUNKER)
+                return
+            if(bunker.cargo_left == 0):
+                self.draw_sphere_on_world(bunker.position, radius=7, draw_color=WHITE)
+                self.draw_text_on_world(bunker.position, "Bunker Full", WHITE)
+                return
+            bio_close_by: Units = self.bot.units.filter(
+                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 10
+            )
+            if (bio_close_by.amount == 0):
+                self.draw_sphere_on_world(bunker.position, radius=7, draw_color=RED)
+                self.draw_text_on_world(bunker.position, "No ally unit closeby", RED)
+                return
+            bio_in_range: List[Unit] = bio_close_by.filter(lambda unit: unit.distance_to(bunker) <= 3)[:4]
+            if (bio_in_range.__len__() == 0):
+                bio_close_by.sort(key = lambda unit: unit.distance_to(bunker))
+                bio_moving_towards_bunker: List[Unit] = bio_close_by.copy()[:4]
+                for bio_unit in bio_moving_towards_bunker:
+                    bio_unit.move(bunker)
+                    self.draw_sphere_on_world(bio_unit.position, draw_color=BLUE)
+                    self.draw_text_on_world(bio_unit.position, "moving towards bunker", draw_color=BLUE)
+                    self.draw_sphere_on_world(bunker.position, radius=7, draw_color=BLUE)
+                    self.draw_text_on_world(bunker.position, "Units closeby", BLUE)
+                    return
+            print("bio should load")
+            self.draw_sphere_on_world(bunker.position, radius=7, draw_color=YELLOW)
+            self.draw_text_on_world(bunker.position, "Loading Units", YELLOW)
+            for unit in bio_in_range:
+                bunker(AbilityId.LOAD_BUNKER, unit)
+
     async def debug_colorize_army(self):
         color: tuple
         for army in self.armies:
@@ -328,8 +360,9 @@ class Combat:
                     color = WHITE
                 case _:
                     color = WHITE
-            army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.army_supply()}, D: {self.get_closest_army_distance(army)})'
-            radius: float = army.army_supply() / 50 + 2
+            army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.supply})'
+            # army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.army_supply()}, D: {self.get_closest_army_distance(army)})'
+            radius: float = army.supply * 0.15 + 1
             self.draw_sphere_on_world(army.units.center, radius, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
 
@@ -348,156 +381,6 @@ class Combat:
             color=draw_color,
             size=font_size,
         )
-
-    async def attack(self):
-        marines: Units = self.bot.units(UnitTypeId.MARINE).ready
-        medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).ready
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        army_supply: int = 0
-        army = (marines + medivacs)
-        for unit in army:
-            army_supply += supply[unit.type_id]
-
-        for medivac in medivacs:
-            await self.micro_medivac(medivac, marines)
-
-        for marine in marines:            
-            enemy_units: Units = self.bot.enemy_units.filter(lambda unit: not unit.is_structure and unit.can_be_attacked and unit.type_id not in dont_attack)
-            enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
-            enemy_units += enemy_towers
-            enemy_buildings: Units = self.bot.enemy_structures.filter(lambda unit: unit.can_be_attacked)
-            # local_army: Units = army.filter(lambda unit: unit.distance_to(marine) <= 20)
-            # local_army_supply: float = units_supply(local_army)
-
-            enemy_units_in_range: Units = enemy_units.filter(
-                lambda unit: marine.target_in_range(unit)
-            )
-            enemy_units_in_sight: Units = enemy_units.filter(
-                lambda unit: unit.distance_to(marine) <= 20 
-            )
-            enemy_units_outside_of_range: Units = enemy_units.filter(
-                lambda unit: not marine.target_in_range(unit)
-            )
-            enemy_buildings_in_range: Units = enemy_buildings.filter(
-                lambda unit: marine.target_in_range(unit)
-            )
-            enemy_buildings_outside_of_range: Units = enemy_buildings.filter(
-                lambda unit: not marine.target_in_range(unit)
-            )
-
-            # TODO: This only if we're taking a fight
-            # If units in sight, should be stimmed if above 25 hp
-            # For building we only stim if high on life
-            if (
-                (enemy_units_in_sight and marine.health >= 25 or (enemy_buildings_in_range and marine.health >= 45))
-                and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
-                and not marine.has_buff(BuffId.STIMPACK)
-            ):
-                marine(AbilityId.EFFECT_STIM_MARINE)
-
-
-            # if panic mode, should defend
-            # if my army supply is above opponent known army, take the fight
-            # if (local_army_supply > self.known_enemy_army.army_supply()):
-                # pass
-            
-            # If units in range, attack the one with the least HPs, closest if tied
-            if (enemy_units_in_range) :
-                self.micro(marine, enemy_units_in_range)
-            elif (enemy_units_in_sight and army_supply >= self.known_enemy_army.army_supply()) :
-                marine.attack(enemy_units_in_sight.closest_to(marine))
-            elif (enemy_buildings_in_range) :
-                marine.attack(enemy_buildings_in_range.closest_to(marine))
-            elif (marines.amount >= 10 and army_supply >= self.known_enemy_army.army_supply()) :
-                # find nearest opposing townhalls
-                
-                enemy_workers: Units = self.bot.enemy_units.filter(lambda unit: unit.type_id in worker_types)
-                enemy_bases: Units = self.bot.enemy_structures.filter(lambda structure: structure.type_id in hq_types)
-                close_army: Units = army.closest_n_units(enemy_main_position, army.amount // 2)
-
-                # if enemy workers in sight, focus them
-                if (enemy_workers.amount >= 1):
-                    marine.attack(enemy_workers.closest_to(marine))
-
-                # group first
-                elif (marine.distance_to(close_army.center) > 6):
-                    marine.move(close_army.center)
-                
-                # attack nearest base
-                elif (enemy_bases.amount >= 1):
-                    marine.attack(enemy_bases.closest_to(marine))
-                
-                # attack nearest building
-                elif (enemy_buildings_outside_of_range.amount >= 1):
-                    marine.attack(enemy_buildings_outside_of_range.closest_to(marine))
-                
-                # attack enemy location
-                else:
-                    marine.attack(enemy_main_position)
-            elif (
-                enemy_units_outside_of_range.amount >= 1
-                and self.bot.townhalls.amount >= 1
-            ):
-                distance_to_hq: float = enemy_units_outside_of_range.closest_distance_to(self.bot.townhalls.first)
-                distance_to_oppo: float = enemy_units_outside_of_range.closest_distance_to(enemy_main_position)
-                
-                # meet revealed enemy outside of range if they are in our half of the map
-                if (distance_to_hq < distance_to_oppo):
-                    marine.move(enemy_units_outside_of_range.closest_to(marine))
-                else:
-                    self.retreat(marine)
-            else:
-                self.retreat(marine)
-
-    def stim(self, army: Units, local_threats: Units, local_enemy_buildings: Units):
-        for unit in army:
-            if (unit.type_id != UnitTypeId.MARINE):
-                break
-            # If units in sight, should be stimmed if above 25 hp
-            # For building we only stim if high on life
-            if (
-                (local_threats and unit.health >= 25 or (local_enemy_buildings and unit.health >= 45))
-                and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
-                and not unit.has_buff(BuffId.STIMPACK)
-            ):
-                unit(AbilityId.EFFECT_STIM_MARINE)
-    
-    async def micro(self, unit: Unit, local_army: Units):
-        enemy_units_in_range: Units = self.bot.enemy_units.filter(
-                lambda enemy_unit: (
-                    unit.target_in_range(enemy_unit)
-                    and unit.can_be_attacked
-                    and unit.type_id not in dont_attack
-                )
-        )
-        if (unit.type_id == UnitTypeId.MARINE):
-            self.micro_marine(unit, enemy_units_in_range)
-        elif(unit.type_id == UnitTypeId.MEDIVAC):
-            await self.micro_medivac(unit, local_army)
-
-    async def micro_medivac(self, medivac: Unit, local_army: Units):
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        # if not boosting, boost
-        available_abilities = (await self.bot.get_available_abilities([medivac]))[0]
-        if AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities:
-            medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
-        
-        # heal closest damaged ally
-        damaged_allies: Units = self.bot.units.filter(
-            lambda unit: (
-                unit.is_biological
-                and unit.health_percentage < 1
-            )
-        )
-
-        if (damaged_allies.amount >= 1):
-            medivac(AbilityId.MEDIVACHEAL_HEAL,damaged_allies.closest_to(medivac))
-        else:
-            closest_marines: Units = local_army.closest_n_units(enemy_main_position, local_army.amount // 2)
-            if (closest_marines.amount >= 1):
-                medivac.move(closest_marines.center)
-            elif (self.bot.townhalls.amount >= 1):
-                medivac.move(self.bot.townhalls.closest_to(enemy_main_position))
     
     def get_closest_army_distance(self, army: Army):
         if (self.armies.__len__() < 2):
@@ -509,7 +392,27 @@ class Combat:
                 closest_distance_to_other = army.center.distance_to(other_army.center)
         return round(closest_distance_to_other, 1)
                 
+    def get_local_enemy_units(self, position: Point2) -> Units:
+        global_enemy_units: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.can_be_attacked
+                and unit.type_id not in dont_attack
+            )
+        )
+        local_enemy_units: Units = global_enemy_units.filter(
+            lambda unit: unit.distance_to(position) <= 25
+        )
+        local_enemy_towers: Units = self.bot.enemy_structures.filter(
+            lambda unit: unit.type_id in tower_types and unit.can_be_attacked
+        )
+        return local_enemy_units + local_enemy_towers
 
+    def get_local_enemy_buildings(self, position: Point2) -> Units:
+        local_enemy_buildings: Units = self.bot.enemy_structures.filter(
+            lambda unit: unit.distance_to(position) <= 10 and unit.can_be_attacked
+        )
+        local_enemy_buildings.sort(key=lambda building: building.health)
+        return local_enemy_buildings
 
     async def detect_panic(self):
         panic_mode: bool = False
@@ -517,7 +420,7 @@ class Combat:
         for cc in self.bot.townhalls:
             threats = (
                 self.bot.enemy_units + self.bot.enemy_structures
-            ).filter(lambda unit: unit.distance_to(cc) <= 12)
+            ).filter(lambda unit: unit.distance_to(cc) <= 10)
             
             if (threats.amount >= 1):
                 panic_mode = True
@@ -534,18 +437,5 @@ class Combat:
         if unit_tag not in self.known_enemy_army.units.tags:
             return
         self.known_enemy_army.remove_by_tag(unit_tag)
-        enemy_army: dict = self.known_enemy_army.recap()
+        enemy_army: dict = self.known_enemy_army.recap
         print("remaining enemy units :", enemy_army)
-
-    def away(selected: Unit, enemy: Unit, distance: int = 2):
-        selected_position: Point2 = selected.position
-        offset: Point2 = selected_position.negative_offset(enemy.position)
-        target: Point2 = selected_position.__add__(offset)
-        return selected_position.towards(target, distance)
-
-    def move_away(selected: Unit, enemy: Unit, distance: int = 2):
-        # print("Moving away 1 from 2", selected.name, enemy.name)
-        selected_position: Point2 = selected.position
-        offset: Point2 = selected_position.negative_offset(enemy.position)
-        target: Point2 = selected_position.__add__(offset)
-        selected.move(selected_position.towards(target, distance))

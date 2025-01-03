@@ -82,9 +82,9 @@ def parse_arguments():
                         help="Computer race. One of [Terran, Zerg, Protoss, Random]. Default is Terran. Only for local play.")
     parser.add_argument("--ComputerDifficulty", type=str, default="CheatInsane",
                         help=f"Computer difficulty. One of [VeryEasy, Easy, Medium, MediumHard, Hard, Harder, VeryHard, CheatVision, CheatMoney, CheatInsane]. Default is VeryEasy. Only for local play.")
-    parser.add_argument("--BuildOrder", type=str, default="Random",
-                        help=f"Computer difficulty. One of [VeryEasy, Easy, Medium, MediumHard, Hard, Harder, VeryHard, CheatVision, CheatMoney, CheatInsane]. Default is VeryEasy. Only for local play.")
-    parser.add_argument("--Map", type=str, default="Equilibrium513AIE",
+    parser.add_argument("--BuildOrder", type=str, default="Rush",
+                        help=f"Enemy Buid Order. One of [Rush, Timing, Power, Macro, Air, Harder, RandomBuild]. Default is Rush. Only for local play.")
+    parser.add_argument("--Map", type=str, default="EphemeronAIE",
                         help="The name of the map to use. Default is Simple64. Only for local play.")
 
     # Both Ladder and Local play arguments
@@ -130,7 +130,7 @@ def run():
         # Local game
         print("Starting local game...")
         run_game(sc2.maps.get(args.Map),
-                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty], AIBuild.Rush)],
+                     [bot, Computer(Race[args.ComputerRace], Difficulty[args.ComputerDifficulty], AIBuild[args.BuildOrder])],
                      realtime=args.Realtime,
                      sc2_version=args.Sc2Version, )
 

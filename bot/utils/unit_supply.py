@@ -8,27 +8,31 @@ supply: dict = {}
 # creeps
 supply[UnitTypeId.MULE] = 0
 supply[UnitTypeId.AUTOTURRET] = 0
+supply[UnitTypeId.MISSILETURRET] = 0
 # Tier 1
 supply[UnitTypeId.SCV] = 1
 supply[UnitTypeId.MARINE] = 1
 supply[UnitTypeId.REAPER] = 1
 supply[UnitTypeId.MARAUDER] = 2
 supply[UnitTypeId.HELLION] = 2
+supply[UnitTypeId.HELLIONTANK] = 2
 supply[UnitTypeId.WIDOWMINE] = 2
 # Tier 2
-supply[UnitTypeId.SIEGETANK] = 3
-supply[UnitTypeId.SIEGETANKSIEGED] = 3
+supply[UnitTypeId.SIEGETANK] = 2
+supply[UnitTypeId.SIEGETANKSIEGED] = 5
 supply[UnitTypeId.CYCLONE] = 3
 supply[UnitTypeId.MEDIVAC] = 2
 supply[UnitTypeId.VIKING] = 2
-supply[UnitTypeId.VIKINGFIGHTER] = 2
+supply[UnitTypeId.VIKINGFIGHTER] = 3
 supply[UnitTypeId.VIKINGASSAULT] = 2
 supply[UnitTypeId.BANSHEE] = 3
 supply[UnitTypeId.RAVEN] = 2
 supply[UnitTypeId.LIBERATOR] = 3
+supply[UnitTypeId.LIBERATORAG] = 5
 # Tier 3
 supply[UnitTypeId.GHOST] = 3
 supply[UnitTypeId.THOR] = 6
+supply[UnitTypeId.THORAP] = 6
 supply[UnitTypeId.BATTLECRUISER] = 6
 
 
@@ -46,7 +50,7 @@ supply[UnitTypeId.CHANGELINGZEALOT] = 0
 supply[UnitTypeId.CHANGELINGZERGLING] = 0
 supply[UnitTypeId.CHANGELINGZERGLINGWINGS] = 0
 supply[UnitTypeId.SPORECRAWLER] = 0
-supply[UnitTypeId.SPINECRAWLER] = 0
+supply[UnitTypeId.SPINECRAWLER] = 3
 # Tier 1
 supply[UnitTypeId.OVERLORD] = 0
 supply[UnitTypeId.OVERSEER] = 0
@@ -91,6 +95,7 @@ supply[UnitTypeId.ULTRALISKBURROWED] = 6
 # Protoss Units
 # creeps
 supply[UnitTypeId.ADEPTPHASESHIFT] = 0
+supply[UnitTypeId.INTERCEPTOR] = 0.5
 supply[UnitTypeId.PHOTONCANNON] = 3
 
 # Tier 1
@@ -111,6 +116,7 @@ supply[UnitTypeId.ORACLE] = 3
 supply[UnitTypeId.VOIDRAY] = 4
 # Tier 3
 supply[UnitTypeId.DISRUPTOR] = 4
+supply[UnitTypeId.DISRUPTORPHASED] = 4
 supply[UnitTypeId.COLOSSUS] = 6
 supply[UnitTypeId.TEMPEST] = 4
 supply[UnitTypeId.CARRIER] = 6

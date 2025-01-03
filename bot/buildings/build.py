@@ -1,11 +1,11 @@
-
 import math
 from typing import FrozenSet, List, Set
+from bot.utils.ability_tags import AbilityBuild
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2
+from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from ..utils.unit_tags import add_ons
@@ -36,6 +36,8 @@ class Build:
         )
         for incomplete_building in incomplete_buildings:
             closest_worker: Unit = self.bot.workers.closest_to(incomplete_building)
+            if (closest_worker.orders.__len__() and closest_worker.orders[0].target == incomplete_building.position):
+                break
             print("ordering SCV to finish", incomplete_building.name)
             closest_worker.smart(incomplete_building)
 
@@ -47,7 +49,7 @@ class Build:
             self.bot.supply_used == 13
             and workers_mining == self.bot.supply_used
             and self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready.amount == 0
-            and self.bot.minerals >= 50
+            and self.bot.minerals >= 60
         ):
             print("move worker for first depot")
             self.bot.workers.random.move(self.bot.main_base_ramp.depot_in_middle)
@@ -66,7 +68,7 @@ class Build:
             self.bot.supply_cap < 200
             and self.bot.supply_left < 2 + self.bot.supply_used / 10
             and self.bot.can_afford(UnitTypeId.SUPPLYDEPOT)
-            and not self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
+            and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 50
         ) :
             print("Build Supply Depot")
             if (len(supply_placement_positions) >= 1) :
@@ -103,10 +105,10 @@ class Build:
         barracksPosition: Point2 = self.bot.main_base_ramp.barracks_correct_placement
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
         cc_amount: int = self.bot.townhalls.amount
-        max_barracks: int = min(20, cc_amount ** 2 - 2 * cc_amount + 2)
+        max_barracks: int = min(20, cc_amount ** 2 / 2 - cc_amount / 2 + 1)
 
-        # We want 1 rax for 1 base, 2 raxes for 2 bases, 5 raxes for 3 bases, 10 raxes for 4 bases
-        # y = x² - 2x + 2 where x is the number of bases and y the number of raxes
+        # We want 1 rax for 1 base, 2 raxes for 2 bases, 4 raxes for 3 bases, 7 raxes for 4 bases
+        # y = x²/2 - x/2 + 1 where x is the number of bases and y the number of raxes
         # with a max of 20 raxes
 
         if (
@@ -116,9 +118,9 @@ class Build:
             and barracks_amount < max_barracks
             and not self.bot.waitingForOrbital()
         ) :
-            print("Build Barracks", barracks_amount + 1, "/", max_barracks)
+            print(f'Build Barracks [{barracks_amount + 1}/{int(max_barracks)}]')
             if (barracks_amount >= 1 and cc_amount >= 1):
-                cc: Unit = self.bot.townhalls.ready.random
+                cc: Unit =  self.bot.townhalls.ready.random if self.bot.townhalls.ready.amount >= 1 else self.bot.townhalls.random
                 barracksPosition = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.BARRACKS, barracksPosition)
     
@@ -170,6 +172,26 @@ class Build:
             else:
                 starport_position = ccs.random.position.towards(self.bot.game_info.map_center, 2)
             await self.build(UnitTypeId.STARPORT, starport_position)
+
+
+    async def bunker(self):
+        bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
+        bunker_count: float = self.bot.structures(UnitTypeId.BUNKER).ready.amount + self.bot.already_pending(UnitTypeId.BUNKER)
+        
+        # We want a bunker at each base after the first
+        if (bunker_tech_requirements == 1
+            and bunker_count < self.bot.townhalls.amount - 1
+            and self.bot.can_afford(UnitTypeId.BUNKER)
+        ):
+            townhalls: Units = self.bot.townhalls.copy()
+            bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
+            bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 5)
+            bases_without_bunkers.sort(key = lambda unit: unit.distance_to(self.bot.start_location), reverse=True)
+            last_base: Unit = bases_without_bunkers.first
+            second_to_last_base: Unit = bases_without_bunkers[1]
+            enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
+            print("build bunker near last base")
+            await self.build(UnitTypeId.BUNKER, last_base.position.towards(enemy_spawn, 3).towards(second_to_last_base, 3))
 
 
     async def ebays(self):
@@ -354,7 +376,10 @@ class Build:
         location: Point2 = await self.bot.find_placement(unitType, near=position, placement_step=placement_step)
         if (location):
             workers = self.bot.workers.filter(
-                lambda worker: self.scv_build_progress(worker) >= 0.9
+                lambda worker: (
+                    worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9
+                    or worker.orders.__len__() == 0 or worker.orders[0].ability.id not in AbilityBuild
+                )
             )
             if (workers.amount):
                 worker: Unit = workers.closest_to(location)
@@ -401,10 +426,27 @@ class Build:
     
     async def is_buildable(self, building: Unit, points: List[Point2]):
         for point in points:
-            buildable: bool = await bot.can_place_single(building, point)
+            buildable: bool = await self.bot.can_place_single(building, point)
             if not buildable:
                 print(point, False)
                 return False
             else:
                 print(point, True)
         return True
+    
+    def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
+        z_height: float = self.bot.get_terrain_z_height(pos)
+        self.bot.client.debug_sphere_out(
+            Point3((pos.x, pos.y, z_height)), 
+            radius, color=draw_color
+        )
+
+    def draw_text_on_world(self, pos: Point2, text: str, draw_color: tuple = (255, 102, 255), font_size: int = 14) -> None:
+        z_height: float = self.bot.get_terrain_z_height(pos)
+        self.bot.client.debug_text_world(
+            text,
+            Point3((pos.x - 2, pos.y, z_height)),
+            color=draw_color,
+            size=font_size,
+        )
+    

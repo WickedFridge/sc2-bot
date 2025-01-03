@@ -11,6 +11,14 @@ hq_types: List[UnitTypeId] = [
     UnitTypeId.HIVE,
     UnitTypeId.NEXUS
 ]
+
+must_repair: List[UnitTypeId] = [
+    UnitTypeId.COMMANDCENTER,
+    UnitTypeId.ORBITALCOMMAND,
+    UnitTypeId.PLANETARYFORTRESS,
+    UnitTypeId.MISSILETURRET,
+    UnitTypeId.BUNKER
+]
 worker_types: List[UnitTypeId] = [
     UnitTypeId.SCV,
     UnitTypeId.PROBE,
@@ -21,7 +29,8 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.BUNKER,
     UnitTypeId.SPINECRAWLER,
     UnitTypeId.SPORECRAWLER,
-    UnitTypeId.MISSILETURRET
+    UnitTypeId.MISSILETURRET,
+    UnitTypeId.NYDUSCANAL
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -48,4 +57,8 @@ add_ons: List[UnitTypeId] = [
     UnitTypeId.FACTORYTECHLAB,
     UnitTypeId.STARPORTREACTOR,
     UnitTypeId.STARPORTTECHLAB
+]
+bio: List[UnitTypeId] = [
+    UnitTypeId.MARINE,
+    UnitTypeId.MARAUDER
 ]

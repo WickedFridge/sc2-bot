@@ -3,7 +3,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import hq_types
+from ..utils.unit_tags import must_repair
 
 class BuildingsHandler:
     bot: BotAI
@@ -17,13 +17,15 @@ class BuildingsHandler:
         if (available_workers.amount == 0):
             print("no workers to repair o7")
             return
-        burning_buildings = self.bot.structures.ready.filter(lambda unit: unit.health_percentage < 0.6)
+        burning_buildings = self.bot.structures.ready.filter(
+            lambda unit: unit.health_percentage < 0.6 or (unit.type_id == UnitTypeId.BUNKER and unit.health_percentage < 1)
+        )
         for burning_building in burning_buildings:
             repairing_workers: Units = self.bot.workers.filter(
                 lambda unit: unit.is_repairing and unit.order_target == burning_building.tag
             )
             if (
-                (burning_building.type_id in hq_types and repairing_workers.amount < 8)
+                (burning_building.type_id in must_repair and repairing_workers.amount < 8)
                 or repairing_workers.amount < 3
             ):
                 print("pulling worker to repair", burning_building.name)
@@ -38,11 +40,15 @@ class BuildingsHandler:
                     cc(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)
 
     async def drop_mules(self):
+        # find biggest mineral fields near a full base
+        mineral_fields: Units = Units([], self.bot)
+        for townhall in self.bot.townhalls.ready:
+            mineral_fields += self.bot.mineral_field.closer_than(10, townhall)
+        mf: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
+
+        # call down a mule on this guy        
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
-            mineral_fields: Units = self.bot.mineral_field.closer_than(10, orbital_command)
-            if mineral_fields:
-                mf: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
-                orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, mf)
+            orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, mf)
 
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready

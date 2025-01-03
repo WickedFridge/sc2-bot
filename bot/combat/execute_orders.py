@@ -27,7 +27,9 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac(unit, army.units)
                 case UnitTypeId.MARINE:
-                    self.micro.marine(unit)
+                    self.micro.bio(unit)
+                case UnitTypeId.MARAUDER:
+                    self.micro.bio(unit)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
