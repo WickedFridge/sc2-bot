@@ -188,10 +188,10 @@ class Build:
             bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 5)
             bases_without_bunkers.sort(key = lambda unit: unit.distance_to(self.bot.start_location), reverse=True)
             last_base: Unit = bases_without_bunkers.first
-            second_to_last_base: Unit = bases_without_bunkers[1]
+            second_to_last_base: Unit = bases_without_bunkers.first if (bases_without_bunkers.amount == 1) else bases_without_bunkers[1]
             enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
             print("build bunker near last base")
-            await self.build(UnitTypeId.BUNKER, last_base.position.towards(enemy_spawn, 3).towards(second_to_last_base, 3))
+            await self.build(UnitTypeId.BUNKER, last_base.position.towards(enemy_spawn, 2).towards(second_to_last_base, 3))
 
 
     async def ebays(self):

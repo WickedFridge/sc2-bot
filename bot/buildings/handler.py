@@ -42,13 +42,23 @@ class BuildingsHandler:
     async def drop_mules(self):
         # find biggest mineral fields near a full base
         mineral_fields: Units = Units([], self.bot)
-        for townhall in self.bot.townhalls.ready:
+        ready_townhalls: Units = self.bot.structures(UnitTypeId.COMMANDCENTER).ready + self.bot.structures(UnitTypeId.ORBITALCOMMAND) 
+        for townhall in ready_townhalls :
             mineral_fields += self.bot.mineral_field.closer_than(10, townhall)
-        mf: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
 
-        # call down a mule on this guy        
+        if (mineral_fields.amount == 0):
+            return
+        richest_mineral_field: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
+
+        # call down a mule on this guy
+        # also bank a scan
+        scan_to_bank: int = 1
+        scan_banked: int = 0      
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
-            orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, mf)
+            if (orbital_command.energy <= 100 and scan_banked < scan_to_bank):
+                scan_banked += 1
+                break
+            orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, richest_mineral_field)
 
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready

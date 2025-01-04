@@ -1,9 +1,12 @@
 import math
 from typing import List, Set
 from bot.combat.execute_orders import Execute
+from bot.combat.micro import Micro
 from bot.combat.orders import Orders
+from bot.combat.threats import Threat
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
+from bot.utils.base import Base
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -17,10 +20,11 @@ class Combat:
     bot: BotAI
     execute: Execute
     workers_pulled_amount: int = 0
-    enemy_threats_amount: int = 0
-    enemy_towers_amount: int = 0
     known_enemy_army: Army
     armies: List[Army] = []
+    bases: List[Base] = []
+    panic: bool = False
+    # threats: dict[Point2, Threat] = []
     
     def __init__(self, bot) -> None:
         super().__init__()
@@ -87,6 +91,130 @@ class Combat:
             clusters.append(Army(Units(cluster, self.bot), self.bot))
         return clusters
 
+    async def detect_panic(self):
+        panic_mode: bool = False
+        # if enemies in range of a CC, activate panic mode
+        for cc in self.bot.townhalls:
+            threats = (
+                self.bot.enemy_units + self.bot.enemy_structures
+            ).filter(lambda unit: unit.distance_to(cc) <= 10)
+            
+            if (threats.amount >= 1):
+                panic_mode = True
+                break
+        if self.bot.panic_mode != panic_mode:
+            print("Panic mode:", panic_mode)
+            self.bot.panic_mode = panic_mode
+
+    async def detect_threat(self):
+        self.bases = []
+        # if enemies in range of a CC, activate panic mode
+        for cc in self.bot.townhalls:
+            enemy_towers: Units = self.bot.enemy_structures.filter(
+                lambda unit: unit.type_id in tower_types and unit.distance_to(cc) <= 20
+            )
+            if (enemy_towers.amount >= 1):
+                self.bases.append(Base(self.bot, cc, Threat.CANONRUSH))
+                break
+
+            local_enemy_units: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.distance_to(cc) <= 20 and unit.can_attack
+            )
+            if (local_enemy_units.amount == 0):
+                self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
+                break
+
+            if (local_enemy_units.amount == 1 and local_enemy_units.random.type_id in worker_types):
+                self.bases.append(Base(self.bot, cc, Threat.WORKER_SCOUT))
+                break
+
+            local_units: Units = self.bot.units.filter(
+                lambda unit: (
+                    unit.distance_to(cc) <= 20
+                    and unit.type_id not in worker_types
+                    and not unit.is_structure
+                )
+            )
+            local_army: Army = Army(local_units, self.bot)
+            local_enemy_army: Army = Army(local_enemy_units, self.bot)
+
+            if (local_army.supply == 0):
+                self.bases.append(Base(self.bot, cc, Threat.ATTACK))
+                break
+            if (local_enemy_army.supply == 0):
+                self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
+                break
+            if (local_army.supply < local_enemy_army.supply):
+                self.bases.append(Base(self.bot, cc, Threat.ATTACK))
+                break
+            if (local_army.center.distance_to(cc) > local_enemy_army.center.distance_to(cc)):
+                self.bases.append(Base(self.bot, cc, Threat.HARASS))
+                break
+            self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
+
+    async def workers_response_to_threat(self):
+        # if every townhalls is dead, just attack the nearest unit with every worker
+        if (self.bot.townhalls.amount == 0):
+            print("no townhalls left, o7")
+            for worker in self.bot.workers:
+                worker.attack(self.bot.enemy_units.closest_to(worker))
+            return
+        
+        for base in self.bases:
+            workers: Units = self.bot.workers.filter(lambda unit: unit.distance_to(base.position) < 20)
+            if (workers.amount == 0):
+                break
+            local_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(base.position) < 20)
+            
+            match base.threat:
+                case Threat.NO_THREAT:
+                    # ask all chasing SCVs to stop
+                    attacking_workers = workers.filter(lambda unit: unit.is_attacking)
+                    for attacking_worker in attacking_workers:
+                        attacking_worker.stop()
+                case Threat.ATTACK:
+                    if (self.bot.workers.collecting.amount == 0):
+                        print("no workers to pull, o7")
+                        break
+                    for worker in workers.collecting:
+                        worker.attack(local_enemy_units.closest_to(worker))
+                case Threat.WORKER_SCOUT:
+                    enemy_scout = local_enemy_units.random                    
+                    closest_worker: Unit = workers.closest_to(enemy_scout)
+                    # if no scv is already chasing
+                    attacking_workers: Unit = workers.filter(
+                        lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
+                    )
+                    if (attacking_workers.amount == 0):
+                        # pull 1 scv to follow it
+                        closest_worker.attack(enemy_scout)
+                case Threat.HARASS:
+                    for worker in workers:
+                        closest_enemy: Unit = local_enemy_units.closest_to(worker)
+                        if (closest_enemy.distance_to(worker) < closest_enemy.ground_range + 2):
+                            Micro.move_away(worker, local_enemy_units.center, 1)
+                case Threat.CANONRUSH:
+                    enemy_towers: Units = self.bot.enemy_structures.filter(
+                        lambda unit: unit.type_id in tower_types and unit.distance_to(base.position) <= 20
+                    )
+                    # respond to canon/bunker/spine rush
+                    for tower in enemy_towers:
+                        # Pull 3 workers by tower by default, less if we don't have enough
+                        # Only pull workers if we don't have enough workers attacking yet
+                        workers_attacking_tower = workers.filter(
+                            lambda unit: unit.is_attacking and unit.order_target == tower.tag
+                        ).amount
+                        if (workers_attacking_tower >= 3):
+                            break
+
+                        amount_to_pull: int = 3 - workers_attacking_tower
+                        closest_workers: Units = workers.collecting.sorted_by_distance_to(tower)
+
+                        workers_pulled: Units = closest_workers[:amount_to_pull] if closest_workers.amount >= amount_to_pull else closest_workers
+
+                        for worker_pulled in workers_pulled:
+                            worker_pulled.attack(tower)
+    
     async def pull_workers(self):
         if not self.bot.panic_mode:
             # ask all chasing SCVs to stop
@@ -158,7 +286,7 @@ class Combat:
                         closest_worker.attack(threat)
                 # else pull against close units
                 elif (closest_worker.distance_to(threat) <= 10):
-                        closest_worker.attack(threat)
+                    closest_worker.attack(threat)
 
             workers_pulled_amount: int = self.bot.workers.filter(lambda unit: unit.is_attacking).amount
             if (workers_pulled_amount != self.workers_pulled_amount):
@@ -299,16 +427,48 @@ class Combat:
     async def handle_bunkers(self):
         for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
             enemy_units_in_sight: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.distance_to(bunker) <= 10
+                lambda unit: unit.distance_to(bunker) <= 11
             )
             if (enemy_units_in_sight.amount == 0):
                 if(bunker.cargo_used == 0):
-                    self.draw_sphere_on_world(bunker.position, radius=7, draw_color=GREEN)
-                    self.draw_text_on_world(bunker.position, "No unit detected", GREEN)
                     return
                 bunker(AbilityId.UNLOADALL_BUNKER)
                 return
-            if(bunker.cargo_left == 0):
+            enemy_units_in_range: Units = self.bot.enemy_units.filter(
+                lambda unit: bunker.target_in_range(unit)
+            )
+            # Attack the weakest enenmy in range
+            if (enemy_units_in_range.amount >= 1):
+                enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
+                bunker.attack(enemy_units_in_range.first)
+            if (bunker.cargo_left == 0):
+                return
+            bio_close_by: Units = self.bot.units.filter(
+                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 10
+            )
+            if (bio_close_by.amount == 0):
+                return
+            bio_in_range: List[Unit] = bio_close_by.filter(lambda unit: unit.distance_to(bunker) <= 3)[:4]
+            if (bio_in_range.__len__() == 0):
+                bio_close_by.sort(key = lambda unit: unit.distance_to(bunker))
+                bio_moving_towards_bunker: List[Unit] = bio_close_by.copy()[:4]
+                for bio_unit in bio_moving_towards_bunker:
+                    bio_unit.move(bunker)
+                    return
+            print("bio should load")
+            for unit in bio_in_range:
+                bunker(AbilityId.LOAD_BUNKER, unit)
+
+    async def debug_colorize_bunkers(self):
+        for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
+            enemy_units_in_sight: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.distance_to(bunker) <= 11
+            )
+            if (enemy_units_in_sight.amount == 0):
+                self.draw_sphere_on_world(bunker.position, radius=7, draw_color=GREEN)
+                self.draw_text_on_world(bunker.position, "No unit detected", GREEN)
+                return
+            if (bunker.cargo_left == 0):
                 self.draw_sphere_on_world(bunker.position, radius=7, draw_color=WHITE)
                 self.draw_text_on_world(bunker.position, "Bunker Full", WHITE)
                 return
@@ -324,17 +484,11 @@ class Combat:
                 bio_close_by.sort(key = lambda unit: unit.distance_to(bunker))
                 bio_moving_towards_bunker: List[Unit] = bio_close_by.copy()[:4]
                 for bio_unit in bio_moving_towards_bunker:
-                    bio_unit.move(bunker)
                     self.draw_sphere_on_world(bio_unit.position, draw_color=BLUE)
                     self.draw_text_on_world(bio_unit.position, "moving towards bunker", draw_color=BLUE)
                     self.draw_sphere_on_world(bunker.position, radius=7, draw_color=BLUE)
                     self.draw_text_on_world(bunker.position, "Units closeby", BLUE)
                     return
-            print("bio should load")
-            self.draw_sphere_on_world(bunker.position, radius=7, draw_color=YELLOW)
-            self.draw_text_on_world(bunker.position, "Loading Units", YELLOW)
-            for unit in bio_in_range:
-                bunker(AbilityId.LOAD_BUNKER, unit)
 
     async def debug_colorize_army(self):
         color: tuple
@@ -361,10 +515,30 @@ class Combat:
                 case _:
                     color = WHITE
             army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.supply})'
-            # army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.army_supply()}, D: {self.get_closest_army_distance(army)})'
             radius: float = army.supply * 0.15 + 1
             self.draw_sphere_on_world(army.units.center, radius, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
+
+    async def debug_colorize_bases(self):
+        color: tuple
+        for base in self.bases:
+            match base.threat:
+                case Threat.NO_THREAT:
+                    color = GREEN
+                case Threat.ATTACK:
+                    color = RED
+                case Threat.WORKER_SCOUT:
+                    color = YELLOW
+                case Threat.HARASS:
+                    color = BLUE
+                case Threat.CANONRUSH:
+                    color = PURPLE
+                case _:
+                    color = WHITE
+            base_descriptor: str = f'[{base.threat.__repr__()}]'
+            radius: float = 15
+            self.draw_sphere_on_world(base.position, radius, color)
+            self.draw_text_on_world(base.position, base_descriptor, color)
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
@@ -413,21 +587,6 @@ class Combat:
         )
         local_enemy_buildings.sort(key=lambda building: building.health)
         return local_enemy_buildings
-
-    async def detect_panic(self):
-        panic_mode: bool = False
-        # if enemies in range of a CC, activate panic mode
-        for cc in self.bot.townhalls:
-            threats = (
-                self.bot.enemy_units + self.bot.enemy_structures
-            ).filter(lambda unit: unit.distance_to(cc) <= 10)
-            
-            if (threats.amount >= 1):
-                panic_mode = True
-                break
-        if self.bot.panic_mode != panic_mode:
-            print("Panic mode:", panic_mode)
-            self.bot.panic_mode = panic_mode
 
     async def detect_enemy_army(self):
         enemy_units: Units = self.bot.enemy_units

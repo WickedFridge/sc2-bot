@@ -57,8 +57,10 @@ class WickedBot(BotAI):
         await self.distribute_workers()
         await self.saturate_gas()
         await self.combat.detect_enemy_army()
-        await self.combat.detect_panic()
-        await self.combat.pull_workers()
+        await self.combat.detect_threat()
+        await self.combat.workers_response_to_threat()
+        # await self.combat.detect_panic()
+        # await self.combat.pull_workers()
         await self.buildings.repair_buildings()
         await self.builder.finish_construction()
         await self.builder.supplies()
@@ -81,8 +83,9 @@ class WickedBot(BotAI):
         await self.combat.select_orders()
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
-        await self.combat.debug_colorize_army()
-        await self.scout()
+        # await self.combat.debug_colorize_army()
+        # await self.combat.debug_colorize_bases()
+        # await self.scout()
         await self.buildings.handle_supplies()
 
         Armories: Units = self.structures(UnitTypeId.ARMORY).filter(lambda unit: unit.is_selected)
@@ -148,6 +151,9 @@ class WickedBot(BotAI):
         )
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
+    async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
+        return 
+    
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)
 

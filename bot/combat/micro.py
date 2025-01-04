@@ -30,7 +30,14 @@ class Micro:
             unit.move(townhalls.first)
             return
         townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
-        unit.move(townhalls.first.position.towards(townhalls[1].position, 5))
+        retreat_position: Point2 = townhalls.first.position.towards(townhalls[1].position, 5)
+        if (unit.distance_to(retreat_position) < 5):
+            return
+        # if (unit.type_id == UnitTypeId.MEDIVAC):
+        #     unit.attack(retreat_position)
+        # else:
+        #     unit.move(retreat_position)
+        unit.move(retreat_position)
 
     async def medivac(self, medivac: Unit, local_army: Units):
         # TODO: boost only when the target of the order is far away
