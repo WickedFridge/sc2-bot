@@ -344,14 +344,17 @@ class Combat:
                     local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
                     local_enemy_speed: Unit = local_enemy_units.first.real_speed
                     closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
-                    if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
-                        print("enemy too fast, taking the fight")
-                        army.orders = Orders.FIGHT
-                    else:
-                        print(f'not fighting against {local_enemy_supply} supply')
-                        print("local_enemy_army:", local_enemy_army.recap)
-                        print("unseen_enemy_army:", unseen_enemy_army.recap)
-                        army.orders = Orders.RETREAT
+                    army.orders = Orders.RETREAT
+                    
+                    # TODO: fix "enemy too fast"
+                    # if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
+                    #     print("enemy too fast, taking the fight")
+                    #     army.orders = Orders.FIGHT
+                    # else:
+                    #     print(f'not fighting against {local_enemy_supply} supply')
+                    #     print("local_enemy_army:", local_enemy_army.recap)
+                    #     print("unseen_enemy_army:", unseen_enemy_army.recap)
+                    #     army.orders = Orders.RETREAT
                     
             # if we should defend
             elif (
