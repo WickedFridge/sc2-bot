@@ -9,6 +9,7 @@ supply: dict = {}
 supply[UnitTypeId.MULE] = 0
 supply[UnitTypeId.AUTOTURRET] = 0
 supply[UnitTypeId.MISSILETURRET] = 0
+supply[UnitTypeId.BUNKER] = 4
 # Tier 1
 supply[UnitTypeId.SCV] = 1
 supply[UnitTypeId.MARINE] = 1

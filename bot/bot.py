@@ -3,6 +3,7 @@ from typing import FrozenSet, List, Set
 from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
+from bot.macro.macro import Macro
 from bot.train import Train
 from bot.technology.search import Search
 from sc2.bot_ai import BotAI, Race
@@ -29,6 +30,7 @@ class WickedBot(BotAI):
     search: Search
     combat: Combat
     train: Train
+    macro: Macro
 
     def __init__(self) -> None:
         super().__init__()
@@ -37,6 +39,7 @@ class WickedBot(BotAI):
         self.search = Search(self)
         self.combat = Combat(self)
         self.train = Train(self, self.combat)
+        self.macro = Macro(self)
 
     async def on_start(self):
         """
@@ -45,7 +48,7 @@ class WickedBot(BotAI):
         """
 
         print("Game started")
-        await self.chat_send("Good Luck & Have fun !")
+        await self.client.chat_send("Good Luck & Have fun !", False)
         # await self.client.debug_create_unit([[UnitTypeId.ARMORY, 1, self.townhalls.random.position.towards(self._game_info.map_center, 3), 1]])
         # await self.client.debug_all_resources()
 
@@ -83,8 +86,9 @@ class WickedBot(BotAI):
         await self.combat.select_orders()
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
-        # await self.combat.debug_colorize_army()
-        # await self.combat.debug_colorize_bases()
+        # await self.combat.debug_army_orders()
+        # await self.combat.debug_bases_threat()
+        # await self.combat.debug_selection()
         # await self.scout()
         await self.buildings.handle_supplies()
 
@@ -152,6 +156,8 @@ class WickedBot(BotAI):
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
+        if (unit.type_id == UnitTypeId.SCV):
+            self.macro.repair_workers(unit)
         return 
     
     async def on_unit_destroyed(self, unit_tag: int):

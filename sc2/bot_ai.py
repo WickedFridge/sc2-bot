@@ -282,7 +282,7 @@ class BotAI(BotAIInternal):
         :param resource_ratio:"""
         if not self.mineral_field or not self.workers or not self.townhalls.ready:
             return
-        worker_pool = self.workers.idle
+        worker_pool = self.workers.idle + self.units(UnitTypeId.MULE).idle
         bases = self.townhalls.ready
         gas_buildings = self.gas_buildings.ready
 

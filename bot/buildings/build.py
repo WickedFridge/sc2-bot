@@ -1,7 +1,8 @@
 import math
-from typing import FrozenSet, List, Set
+from typing import FrozenSet, List, Literal, Set
 from bot.utils.ability_tags import AbilityBuild
 from sc2.bot_ai import BotAI
+from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -177,9 +178,11 @@ class Build:
     async def bunker(self):
         bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
         bunker_count: float = self.bot.structures(UnitTypeId.BUNKER).ready.amount + self.bot.already_pending(UnitTypeId.BUNKER)
-        
+        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+
         # We want a bunker at each base after the first
         if (bunker_tech_requirements == 1
+            and orbital_count >= 1
             and bunker_count < self.bot.townhalls.amount - 1
             and self.bot.can_afford(UnitTypeId.BUNKER)
         ):
@@ -188,10 +191,16 @@ class Build:
             bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 5)
             bases_without_bunkers.sort(key = lambda unit: unit.distance_to(self.bot.start_location), reverse=True)
             last_base: Unit = bases_without_bunkers.first
+            closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(last_base.position).bottom_center
             second_to_last_base: Unit = bases_without_bunkers.first if (bases_without_bunkers.amount == 1) else bases_without_bunkers[1]
             enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
+            bunker_position: Point2 = last_base.position.towards(enemy_spawn, 3)
+            if (bunker_position.distance_to(closest_ramp_bottom) < 15):
+                bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
+            else:
+                bunker_position = bunker_position.towards(second_to_last_base, 2)
             print("build bunker near last base")
-            await self.build(UnitTypeId.BUNKER, last_base.position.towards(enemy_spawn, 2).towards(second_to_last_base, 3))
+            await self.build(UnitTypeId.BUNKER, bunker_position)
 
 
     async def ebays(self):
@@ -306,11 +315,10 @@ class Build:
             starports_pending_amount = self.bot.already_pending(UnitTypeId.STARPORT)
             starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on)
             if (
-                starports_pending_amount == 0
-                and starports_without_reactor.amount == 0
+                starports_pending_amount >= 1
+                or starports_without_reactor.amount >= 1
             ):
-                break
-            await self.find_land_position(factory)
+                await self.find_land_position(factory)
 
 
     async def switch_addons(self):
@@ -377,8 +385,9 @@ class Build:
         if (location):
             workers = self.bot.workers.filter(
                 lambda worker: (
-                    worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9
-                    or worker.orders.__len__() == 0 or worker.orders[0].ability.id not in AbilityBuild
+                    (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9)
+                    or worker.orders.__len__() == 0
+                    or worker.orders[0].ability.id not in AbilityBuild
                 )
             )
             if (workers.amount):
@@ -450,3 +459,23 @@ class Build:
             size=font_size,
         )
     
+    def find_closest_bottom_ramp(self, position: Point2) -> Ramp:
+        return self._find_closest_ramp(position, "bottom")
+    
+    def find_closest_top_ramp(self, position: Point2) -> Ramp:
+        return self._find_closest_ramp(position, "top")
+    
+    def _find_closest_ramp(self, position: Point2, extremity: Literal["top","bottom"]):
+        closest_ramp: Ramp = self.bot.game_info.map_ramps[0]
+        for ramp in self.bot.game_info.map_ramps:
+            match extremity:
+                case "top":
+                    if (ramp.top_center.distance_to(position) < closest_ramp.top_center.distance_to(position)):
+                        closest_ramp = ramp
+                case "bottom":
+                    if (ramp.bottom_center.distance_to(position) < closest_ramp.bottom_center.distance_to(position)):
+                        closest_ramp = ramp
+                case _:
+                    print("Error : specify top or bottom of the ramp")
+        return closest_ramp
+        

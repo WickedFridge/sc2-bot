@@ -31,12 +31,11 @@ class Micro:
             return
         townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
         retreat_position: Point2 = townhalls.first.position.towards(townhalls[1].position, 5)
+        bunkers_close = self.bot.structures(UnitTypeId.BUNKER).filter(lambda unit: unit.distance_to(retreat_position) <= 10)
+        if (bunkers_close.amount >= 1):
+            retreat_position = retreat_position.towards(bunkers_close.center, 2)
         if (unit.distance_to(retreat_position) < 5):
             return
-        # if (unit.type_id == UnitTypeId.MEDIVAC):
-        #     unit.attack(retreat_position)
-        # else:
-        #     unit.move(retreat_position)
         unit.move(retreat_position)
 
     async def medivac(self, medivac: Unit, local_army: Units):

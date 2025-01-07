@@ -13,7 +13,8 @@ class BuildingsHandler:
         self.bot = bot
 
     async def repair_buildings(self):
-        available_workers: Units = self.bot.workers.collecting
+        workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
+        available_workers: Units = workers.collecting
         if (available_workers.amount == 0):
             print("no workers to repair o7")
             return
@@ -21,7 +22,7 @@ class BuildingsHandler:
             lambda unit: unit.health_percentage < 0.6 or (unit.type_id == UnitTypeId.BUNKER and unit.health_percentage < 1)
         )
         for burning_building in burning_buildings:
-            repairing_workers: Units = self.bot.workers.filter(
+            repairing_workers: Units = workers.filter(
                 lambda unit: unit.is_repairing and unit.order_target == burning_building.tag
             )
             if (
@@ -51,25 +52,31 @@ class BuildingsHandler:
         richest_mineral_field: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
 
         # call down a mule on this guy
-        # also bank a scan
-        scan_to_bank: int = 1
-        scan_banked: int = 0      
+        # also bank a scan if we have 3 or more orbitals
+        orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        # scan_to_bank: int = int(orbital_command_amount / 3)
+        scan_to_bank: int = 0
+        scan_banked: int = 0
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
-            if (orbital_command.energy <= 100 and scan_banked < scan_to_bank):
+            if (
+                orbital_command.energy >= 100
+                or scan_banked >= scan_to_bank
+            ):
+                orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, richest_mineral_field)
+            else:
                 scan_banked += 1
-                break
-            orbital_command(AbilityId.CALLDOWNMULE_CALLDOWNMULE, richest_mineral_field)
 
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready
         supplies_lowered: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOTLOWERED)
         minimal_distance: float = 6
+        ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
         for supply in supplies_raised:
-            if self.bot.enemy_units.amount == 0 or self.bot.enemy_units.closest_distance_to(supply) > minimal_distance:
+            if (ground_enemy_units.amount == 0 or ground_enemy_units.closest_distance_to(supply) > minimal_distance):
                 print("Lower Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
         for supply in supplies_lowered:
-            if self.bot.enemy_units.amount >= 1 and self.bot.enemy_units.closest_distance_to(supply) <= minimal_distance:
+            if (ground_enemy_units.amount >= 1 and ground_enemy_units.closest_distance_to(supply) <= minimal_distance):
                 print("Raise Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 

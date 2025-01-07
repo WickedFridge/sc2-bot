@@ -30,13 +30,14 @@ class Search:
         ]
     
     async def tech(self):
-        for technology in self.tech_tree:
+        technology_to_research: List[Tech] = filter(lambda tech: self.bot.already_pending(tech.upgrade) <= 1, self.tech_tree,)
+        for technology in technology_to_research:
             if (
                 self.bot.structures(technology.building).ready.idle.amount >= 1
                 and self.bot.tech_requirement_progress(technology.upgrade) == 1
-                and all(self.bot.already_pending(requirement) == 1 for requirement in technology.requirements)
+                and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in technology.requirements)
                 and self.bot.can_afford(technology.upgrade)
-                and not self.bot.already_pending(technology.upgrade)
+                and self.bot.already_pending_upgrade(technology.upgrade) == 0
             ):
                 print("Search", technology.upgrade)
                 building: Unit = self.bot.structures(technology.building).ready.idle.random
@@ -44,6 +45,4 @@ class Search:
                     building(technology.upgrade)
                 else:
                     building.research(technology.upgrade)
-
-                # return to avoid double queuing upgrades
                 return

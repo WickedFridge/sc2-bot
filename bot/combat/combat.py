@@ -27,7 +27,6 @@ class Combat:
     # threats: dict[Point2, Threat] = []
     
     def __init__(self, bot) -> None:
-        super().__init__()
         self.bot = bot
         self.execute = Execute(bot)
         self.known_enemy_army = Army(Units([], bot), bot)
@@ -426,10 +425,10 @@ class Combat:
     
     async def handle_bunkers(self):
         for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
-            enemy_units_in_sight: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.distance_to(bunker) <= 11
+            enemy_units_in_range: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.distance_to(bunker) <= 7
             )
-            if (enemy_units_in_sight.amount == 0):
+            if (enemy_units_in_range.amount == 0):
                 if(bunker.cargo_used == 0):
                     return
                 bunker(AbilityId.UNLOADALL_BUNKER)
@@ -490,7 +489,7 @@ class Combat:
                     self.draw_text_on_world(bunker.position, "Units closeby", BLUE)
                     return
 
-    async def debug_colorize_army(self):
+    async def debug_army_orders(self):
         color: tuple
         for army in self.armies:
             match army.orders:
@@ -519,7 +518,7 @@ class Combat:
             self.draw_sphere_on_world(army.units.center, radius, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
 
-    async def debug_colorize_bases(self):
+    async def debug_bases_threat(self):
         color: tuple
         for base in self.bases:
             match base.threat:
@@ -537,8 +536,14 @@ class Combat:
                     color = WHITE
             base_descriptor: str = f'[{base.threat.__repr__()}]'
             radius: float = 15
-            self.draw_sphere_on_world(base.position, radius, color)
+            # self.draw_sphere_on_world(base.position, radius, color)
             self.draw_text_on_world(base.position, base_descriptor, color)
+
+    async def debug_selection(self):
+        selected_units: Units = self.bot.units.selected
+        for unit in selected_units:
+            order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
+            self.draw_text_on_world(unit.position, order)
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
