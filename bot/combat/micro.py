@@ -21,7 +21,8 @@ class Micro:
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
-        if (unit.type_id in bio):
+        enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
+        if (unit.type_id in bio and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         # TODO: handle retreat when opponent is blocking our way
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
@@ -32,6 +33,8 @@ class Micro:
         townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
         retreat_position: Point2 = townhalls.first.position.towards(townhalls[1].position, 5)
         bunkers_close = self.bot.structures(UnitTypeId.BUNKER).filter(lambda unit: unit.distance_to(retreat_position) <= 10)
+        
+        # TODO : does this goes by the bunker ?
         if (bunkers_close.amount >= 1):
             retreat_position = retreat_position.towards(bunkers_close.center, 2)
         if (unit.distance_to(retreat_position) < 5):

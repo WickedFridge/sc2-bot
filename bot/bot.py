@@ -49,6 +49,7 @@ class WickedBot(BotAI):
 
         print("Game started")
         await self.client.chat_send("Good Luck & Have fun !", False)
+        await self.macro.split_workers()
         # await self.client.debug_create_unit([[UnitTypeId.ARMORY, 1, self.townhalls.random.position.towards(self._game_info.map_center, 3), 1]])
         # await self.client.debug_all_resources()
 
@@ -92,12 +93,12 @@ class WickedBot(BotAI):
         # await self.scout()
         await self.buildings.handle_supplies()
 
-        Armories: Units = self.structures(UnitTypeId.ARMORY).filter(lambda unit: unit.is_selected)
-        if (Armories.amount >= 1 and round(self.time) % 2 == 0):
-            Armory: Unit = Armories.random
-            print("Armory", Armory)
-            print("Orders", Armory.orders)
-            Armory.research(UpgradeId.TERRANVEHICLEARMORSVANADIUMPLATINGLEVEL1)
+        # Armories: Units = self.structures(UnitTypeId.ARMORY).filter(lambda unit: unit.is_selected)
+        # if (Armories.amount >= 1 and round(self.time) % 2 == 0):
+        #     Armory: Unit = Armories.random
+        #     print("Armory", Armory)
+        #     print("Orders", Armory.orders)
+        #     Armory.research(UpgradeId.TERRANVEHICLEARMORSVANADIUMPLATINGLEVEL1)
             # Armory(AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1)
                     
     async def saturate_gas(self):

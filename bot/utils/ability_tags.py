@@ -17,3 +17,9 @@ AbilityBuild: List[AbilityId] = [
     AbilityId.TERRANBUILD_STARPORT,
     AbilityId.TERRANBUILD_SUPPLYDEPOT,
 ]
+
+AbilityRepair: List[AbilityId] = [
+    AbilityId.EFFECT_REPAIR,
+    AbilityId.EFFECT_REPAIR_SCV,
+    AbilityId.EFFECT_REPAIR_MULE,
+]

@@ -1,3 +1,4 @@
+from bot.utils.ability_tags import AbilityRepair
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -23,7 +24,11 @@ class BuildingsHandler:
         )
         for burning_building in burning_buildings:
             repairing_workers: Units = workers.filter(
-                lambda unit: unit.is_repairing and unit.order_target == burning_building.tag
+                lambda unit: (
+                    unit.orders.__len__()
+                    and unit.orders[0].ability.id in AbilityRepair
+                    and unit.order_target == burning_building.tag
+                )
             )
             if (
                 (burning_building.type_id in must_repair and repairing_workers.amount < 8)

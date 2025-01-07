@@ -219,7 +219,7 @@ class Build:
             and ebays_count < 2
             and self.bot.townhalls.amount >= 3
             and staport_count >= 1
-            and not self.bot.waitingForOrbital() 
+            and not self.bot.waitingForOrbital()
         ) :
             print("Build EBay")
             ebay_position = await self.bot.find_placement(UnitTypeId.ENGINEERINGBAY, near=self.bot.townhalls.ready.center)

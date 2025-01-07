@@ -117,7 +117,7 @@ class Combat:
                 break
 
             local_enemy_units: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.distance_to(cc) <= 20 and unit.can_attack
+                lambda unit: unit.distance_to(cc) <= 10 and unit.can_attack
             )
             if (local_enemy_units.amount == 0):
                 self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
@@ -175,8 +175,9 @@ class Combat:
                     if (self.bot.workers.collecting.amount == 0):
                         print("no workers to pull, o7")
                         break
+                    attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
                     for worker in workers.collecting:
-                        worker.attack(local_enemy_units.closest_to(worker))
+                        worker.attack(attackable_enemy_units.closest_to(worker))
                 case Threat.WORKER_SCOUT:
                     enemy_scout = local_enemy_units.random                    
                     closest_worker: Unit = workers.closest_to(enemy_scout)
@@ -217,7 +218,7 @@ class Combat:
     async def pull_workers(self):
         if not self.bot.panic_mode:
             # ask all chasing SCVs to stop
-            attacking_workers = self.bot.workers.filter(
+            attacking_workers: Units = self.bot.workers.filter(
                 lambda unit: unit.is_attacking
             )
             for attacking_worker in attacking_workers:
@@ -247,9 +248,6 @@ class Combat:
                 lambda unit: unit.type_id in tower_types and unit.distance_to(cc) <= 20
             )
 
-            if (enemy_threats.amount != self.enemy_threats_amount or enemy_towers.amount != self.enemy_towers_amount):
-                self.enemy_threats_amount = enemy_threats.amount
-                self.enemy_towers_amount = enemy_towers.amount
             # respond to canon/bunker/spine rush
             for tower in enemy_towers:
                 # Pull 3 workers by tower by default, less if we don't have enough
