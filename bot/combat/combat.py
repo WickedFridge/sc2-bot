@@ -177,7 +177,10 @@ class Combat:
                         break
                     attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
                     for worker in workers.collecting:
-                        worker.attack(attackable_enemy_units.closest_to(worker))
+                        if (attackable_enemy_units.amount >= 1):
+                            worker.attack(attackable_enemy_units.closest_to(worker))
+                        else:
+                            Micro.move_away(worker, local_enemy_units.closest_to(worker), 1)
                 case Threat.WORKER_SCOUT:
                     enemy_scout = local_enemy_units.random                    
                     closest_worker: Unit = workers.closest_to(enemy_scout)
@@ -192,7 +195,7 @@ class Combat:
                     for worker in workers:
                         closest_enemy: Unit = local_enemy_units.closest_to(worker)
                         if (closest_enemy.distance_to(worker) < closest_enemy.ground_range + 2):
-                            Micro.move_away(worker, local_enemy_units.center, 1)
+                            Micro.move_away(worker, closest_enemy, 1)
                 case Threat.CANONRUSH:
                     enemy_towers: Units = self.bot.enemy_structures.filter(
                         lambda unit: unit.type_id in tower_types and unit.distance_to(base.position) <= 20
