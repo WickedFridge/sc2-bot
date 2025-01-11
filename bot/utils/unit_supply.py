@@ -128,3 +128,9 @@ def units_supply(army: Units) -> float:
     for unit in army:
         army_supply += supply[unit.type_id]
     return army_supply
+
+def weighted_units_supply(units: Units) -> float:
+    army_supply: float = 0
+    for unit in units:
+        army_supply += supply[unit.type_id] * (unit.health + unit.shield) / (unit.health_max + unit.shield_max)
+    return army_supply

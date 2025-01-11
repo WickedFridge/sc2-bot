@@ -29,19 +29,14 @@ class Build:
                 structure.build_progress < 1
                 and structure.type_id not in add_ons
                 and structure.type_id != UnitTypeId.ORBITALCOMMAND
-                and (
-                    self.bot.workers.closest_to(structure).is_constructing_scv == False
-                    or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
-                )
+                and structure.type_id != UnitTypeId.PLANETARYFORTRESS
+                and self.is_being_constructed(structure) == False
             )
         )
         for incomplete_building in incomplete_buildings:
-            closest_worker: Unit = self.bot.workers.closest_to(incomplete_building)
-            if (closest_worker.orders.__len__() and closest_worker.orders[0].target == incomplete_building.position):
-                break
+            closest_worker: Unit = self.bot.workers.collecting.closest_to(incomplete_building)
             print("ordering SCV to finish", incomplete_building.name)
             closest_worker.smart(incomplete_building)
-
 
     async def supplies(self):
         # move SCV for first depot
@@ -89,7 +84,7 @@ class Build:
             self.bot.can_afford(UnitTypeId.REFINERY)
             and gasCount <= 2 * self.bot.townhalls.ready.amount
             and self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) >= 1
-            and workers_mining >= (gasCount + 1) * 11
+            and workers_mining >= (gasCount + 1) * 11.5
             and (not self.bot.waitingForOrbital() or self.bot.minerals >= 225)
         ):
             for th in self.bot.townhalls.ready:
@@ -432,6 +427,15 @@ class Build:
         building: Unit = self.bot.structures.closest_to(scv)
         return 1 if building.is_ready else building.build_progress
     
+    def is_being_constructed(self, building: Unit) -> bool:
+        return (
+            self.bot.workers.closest_to(building).is_constructing_scv == True
+            or self.bot.workers.closest_distance_to(building) <= building.radius * math.sqrt(2)
+            # or self.bot.workers.in_distance_between(structure.position, 0, structure.radius * math.sqrt(2).filter(
+            #     lambda unit: unit.is_constructing_scv
+            # ).amount == 0
+        )
+
     
     async def is_buildable(self, building: Unit, points: List[Point2]):
         for point in points:

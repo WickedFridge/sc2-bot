@@ -22,8 +22,8 @@ class Search:
             Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.PUNISHERGRENADES, [UpgradeId.SHIELDWALL]),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL1),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL1),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL2),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL3),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL3),
             # Tech(UnitTypeId.ARMORY, AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1, is_ability = True),
@@ -35,7 +35,8 @@ class Search:
             if (
                 self.bot.structures(technology.building).ready.idle.amount >= 1
                 and self.bot.tech_requirement_progress(technology.upgrade) == 1
-                and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in technology.requirements)
+                and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in technology.requirements_ups)
+                and all(self.bot.structures(building).ready.amount >= 1 for building in technology.requirements_buildings)
                 and self.bot.can_afford(technology.upgrade)
                 and self.bot.already_pending_upgrade(technology.upgrade) == 0
             ):

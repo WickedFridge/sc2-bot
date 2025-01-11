@@ -5,7 +5,7 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import worker_types, menacing
-from ..utils.unit_supply import units_supply
+from ..utils.unit_supply import units_supply, weighted_units_supply
 
 
 class Army:
@@ -36,6 +36,10 @@ class Army:
     @property
     def supply(self) -> float:
         return units_supply(self.fighting_units)
+
+    @property
+    def weighted_supply(self) -> float:
+        return weighted_units_supply(self.fighting_units)
 
     @property
     def units_not_in_sight(self) -> Units:

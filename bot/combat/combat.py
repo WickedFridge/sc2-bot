@@ -15,15 +15,17 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
 
-
+BASE_SIZE: int = 20
+THREAT_DISTANCE: int = 10
+    
 class Combat:
     bot: BotAI
     execute: Execute
-    workers_pulled_amount: int = 0
+    # workers_pulled_amount: int = 0
     known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
-    panic: bool = False
+    # panic: bool = False
     # threats: dict[Point2, Threat] = []
     
     def __init__(self, bot) -> None:
@@ -109,27 +111,39 @@ class Combat:
         self.bases = []
         # if enemies in range of a CC, activate panic mode
         for cc in self.bot.townhalls:
+            local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
             enemy_towers: Units = self.bot.enemy_structures.filter(
-                lambda unit: unit.type_id in tower_types and unit.distance_to(cc) <= 20
+                lambda unit: (
+                    unit.type_id in tower_types
+                    and local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                    # and unit.distance_to(cc) <= BASE_SIZE
+                )
             )
             if (enemy_towers.amount >= 1):
                 self.bases.append(Base(self.bot, cc, Threat.CANONRUSH))
                 break
 
             local_enemy_units: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.distance_to(cc) <= 10 and unit.can_attack
+                lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE and unit.can_attack
+            )
+            enemy_workers_harassing: Units = self.bot.enemy_units.filter(
+                lambda unit: (
+                    local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                    and unit.can_attack
+                    and unit.type_id in worker_types
+                )
             )
             if (local_enemy_units.amount == 0):
                 self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
                 break
 
-            if (local_enemy_units.amount == 1 and local_enemy_units.random.type_id in worker_types):
+            if (enemy_workers_harassing.amount >= 1):
                 self.bases.append(Base(self.bot, cc, Threat.WORKER_SCOUT))
                 break
 
             local_units: Units = self.bot.units.filter(
                 lambda unit: (
-                    unit.distance_to(cc) <= 20
+                    local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
                     and unit.type_id not in worker_types
                     and not unit.is_structure
                 )
@@ -137,9 +151,6 @@ class Combat:
             local_army: Army = Army(local_units, self.bot)
             local_enemy_army: Army = Army(local_enemy_units, self.bot)
 
-            if (local_army.supply == 0):
-                self.bases.append(Base(self.bot, cc, Threat.ATTACK))
-                break
             if (local_enemy_army.supply == 0):
                 self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
                 break
@@ -160,10 +171,13 @@ class Combat:
             return
         
         for base in self.bases:
-            workers: Units = self.bot.workers.filter(lambda unit: unit.distance_to(base.position) < 20)
+            local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(base.position) <= BASE_SIZE)
+            in_threat_distance = lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+            workers: Units = self.bot.workers.filter(in_threat_distance)
             if (workers.amount == 0):
                 break
-            local_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(base.position) < 20)
+            local_buildings: Units = self.bot.structures.filter(in_threat_distance)
+            local_enemy_units: Units = self.bot.enemy_units.filter(in_threat_distance)
             
             match base.threat:
                 case Threat.NO_THREAT:
@@ -172,7 +186,7 @@ class Combat:
                     for attacking_worker in attacking_workers:
                         attacking_worker.stop()
                 case Threat.ATTACK:
-                    if (self.bot.workers.collecting.amount == 0):
+                    if (workers.collecting.amount == 0):
                         print("no workers to pull, o7")
                         break
                     attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
@@ -182,15 +196,17 @@ class Combat:
                         else:
                             Micro.move_away(worker, local_enemy_units.closest_to(worker), 1)
                 case Threat.WORKER_SCOUT:
-                    enemy_scout = local_enemy_units.random                    
-                    closest_worker: Unit = workers.closest_to(enemy_scout)
-                    # if no scv is already chasing
-                    attacking_workers: Unit = workers.filter(
-                        lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
-                    )
-                    if (attacking_workers.amount == 0):
-                        # pull 1 scv to follow it
-                        closest_worker.attack(enemy_scout)
+                    for enemy_scout in local_enemy_units:
+                        if (workers.collecting.amount == 0):
+                            break
+                        closest_worker: Unit = workers.collecting.closest_to(enemy_scout)
+                        # if no scv is already chasing
+                        attacking_workers: Unit = workers.filter(
+                            lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
+                        )
+                        if (attacking_workers.amount == 0):
+                            # pull 1 scv to follow it
+                            closest_worker.attack(enemy_scout)
                 case Threat.HARASS:
                     for worker in workers:
                         closest_enemy: Unit = local_enemy_units.closest_to(worker)
@@ -198,7 +214,10 @@ class Combat:
                             Micro.move_away(worker, closest_enemy, 1)
                 case Threat.CANONRUSH:
                     enemy_towers: Units = self.bot.enemy_structures.filter(
-                        lambda unit: unit.type_id in tower_types and unit.distance_to(base.position) <= 20
+                        lambda unit: (
+                            unit.type_id in tower_types
+                            and local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                        )
                     )
                     # respond to canon/bunker/spine rush
                     for tower in enemy_towers:
@@ -319,9 +338,11 @@ class Combat:
                 )
             )
 
-            army_supply: float = army.supply
+            # army_supply: float = army.supply
+            army_supply: float = army.weighted_supply
             local_enemy_army: Army = Army(local_enemy_units, self.bot)
-            local_enemy_supply: float = local_enemy_army.supply
+            # local_enemy_supply: float = local_enemy_army.supply
+            local_enemy_supply: float = local_enemy_army.weighted_supply
             unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
             unseen_enemy_supply: float = unseen_enemy_army.supply
             potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
@@ -383,14 +404,16 @@ class Combat:
             elif (
                 global_enemy_buildings.amount >= 1
                 and army_supply >= 10
+                and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
                 and army_supply >= potential_enemy_supply
             ):
                 army.orders = Orders.CHASE_BUILDINGS
 
-            # if our local_army_supply is higher than known army
+            # if our local_army_supply is higher than known army and we have at least a Medivac
             elif (
                 local_enemy_supply == 0
                 and army_supply >= 10
+                and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
                 and army_supply >= potential_enemy_supply
             ):
                 # move towards closest enemy base
@@ -547,7 +570,8 @@ class Combat:
         selected_units: Units = self.bot.units.selected
         for unit in selected_units:
             order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
-            self.draw_text_on_world(unit.position, order)
+            distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit)
+            self.draw_text_on_world(unit.position, f'{order}, ({round(distance_to_cc, 2)})')
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)

@@ -6,6 +6,7 @@ from bot.combat.combat import Combat
 from bot.macro.macro import Macro
 from bot.train import Train
 from bot.technology.search import Search
+from bot.utils.races import Races
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.game_data import AbilityData, UpgradeData
@@ -48,8 +49,8 @@ class WickedBot(BotAI):
         """
 
         print("Game started")
-        await self.client.chat_send("Good Luck & Have fun !", False)
         await self.macro.split_workers()
+        print(f'Tag: {Races[self.game_info.player_races[1]]}v{Races[self.game_info.player_races[2]]}')
         # await self.client.debug_create_unit([[UnitTypeId.ARMORY, 1, self.townhalls.random.position.towards(self._game_info.map_center, 3), 1]])
         # await self.client.debug_all_resources()
 
@@ -58,6 +59,7 @@ class WickedBot(BotAI):
         This code runs continually throughout the game
         Populate this function with whatever your bot should do!
         """
+        await self.tag_game(iteration)
         await self.distribute_workers()
         await self.saturate_gas()
         await self.combat.detect_enemy_army()
@@ -66,6 +68,7 @@ class WickedBot(BotAI):
         # await self.combat.detect_panic()
         # await self.combat.pull_workers()
         await self.buildings.repair_buildings()
+        await self.buildings.cancel_buildings()
         await self.builder.finish_construction()
         await self.builder.supplies()
         await self.builder.bunker()
@@ -105,7 +108,7 @@ class WickedBot(BotAI):
         # Saturate refineries
         for refinery in self.gas_buildings:
             if refinery.assigned_harvesters < refinery.ideal_harvesters:
-                worker: Units = self.workers.gathering.closer_than(10, refinery)
+                worker: Units = self.workers.collecting.closer_than(10, refinery)
                 if worker:
                     worker.random.gather(refinery)
     
@@ -146,6 +149,15 @@ class WickedBot(BotAI):
         #             print("Send Marine to scout")
         #             closest_marine.move(position_to_scout)
 
+    async def tag_game(self, iteration: int):
+        if (iteration == 2):
+            await self.client.chat_send("Good Luck & Have fun !", False)
+            game_races: List[str] = [
+                Races[self.game_info.player_races[1]],
+                Races[self.game_info.player_races[2]],
+            ]
+            game_races.sort()
+            await self.client.chat_send(f'Tag:{game_races[0]}v{game_races[1]}', False)
 
     def orbitalTechAvailable(self):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
@@ -158,8 +170,7 @@ class WickedBot(BotAI):
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
         if (unit.type_id == UnitTypeId.SCV):
-            self.macro.repair_workers(unit)
-        return 
+            self.macro.repair_workers(unit, amount_damage_taken)
     
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)

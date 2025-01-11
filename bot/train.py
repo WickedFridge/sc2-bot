@@ -1,5 +1,6 @@
 from bot.combat.combat import Combat
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -16,8 +17,17 @@ class Train:
     async def workers(self):
         worker_count: int = self.bot.units(UnitTypeId.SCV).amount + self.bot.already_pending(UnitTypeId.SCV)
         worker_max: int = min(84, self.bot.townhalls.amount * 22)
-        townhalls_type = UnitTypeId.ORBITALCOMMAND if self.bot.orbitalTechAvailable() else UnitTypeId.COMMANDCENTER
-        townhalls = self.bot.townhalls(townhalls_type).ready.idle
+        townhalls_type: UnitTypeId = UnitTypeId.ORBITALCOMMAND if self.bot.orbitalTechAvailable() else UnitTypeId.COMMANDCENTER
+        townhalls: Units = self.bot.townhalls(townhalls_type).ready.filter(
+            lambda unit: (
+                unit.is_idle
+                or (
+                    unit.orders[0].ability.id == AbilityId.COMMANDCENTERTRAIN_SCV
+                    and unit.orders[0].progress >= 0.95
+                    and unit.orders.__len__() == 1
+                )
+            )
+        )
         for th in townhalls:
             if (
                 self.bot.can_afford(UnitTypeId.SCV)
@@ -28,13 +38,16 @@ class Train:
 
     async def medivac(self):
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
+        max_medivac_amount: int = 12
         for starport in starports :
             if (
                 self.bot.can_afford(UnitTypeId.MEDIVAC)
                 and (starport.is_idle or (starport.has_reactor and starport.orders.__len__() < 2))
             ):
-                print("Train Medivac")
-                starport.train(UnitTypeId.MEDIVAC)
+                medivac_amount: int = self.bot.units(UnitTypeId.MEDIVAC).amount
+                if (medivac_amount < max_medivac_amount):
+                    print("Train Medivac")
+                    starport.train(UnitTypeId.MEDIVAC)
 
     @property
     def should_train_marauders(self):

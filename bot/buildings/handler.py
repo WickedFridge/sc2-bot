@@ -1,10 +1,11 @@
+import math
 from bot.utils.ability_tags import AbilityRepair
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import must_repair
+from ..utils.unit_tags import must_repair, add_ons
 
 class BuildingsHandler:
     bot: BotAI
@@ -38,6 +39,22 @@ class BuildingsHandler:
                 
                 available_workers.closest_to(burning_building).repair(burning_building)
     
+    async def cancel_buildings(self):
+        incomplete_buildings: Units = self.bot.structures.filter(
+            lambda structure: (
+                structure.build_progress < 1
+                and structure.type_id not in add_ons
+                and (
+                    self.bot.workers.amount == 0
+                    or self.bot.workers.closest_to(structure).is_constructing_scv == False
+                    or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
+                )
+                and structure.health < 50
+            )
+        )
+        for building in incomplete_buildings:
+            building(AbilityId.CANCEL_BUILDINPROGRESS)
+    
     async def morph_orbitals(self):
         if (self.bot.orbitalTechAvailable()):
             for cc in self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle:
@@ -54,7 +71,14 @@ class BuildingsHandler:
 
         if (mineral_fields.amount == 0):
             return
-        richest_mineral_field: Unit = max(mineral_fields, key=lambda x: x.mineral_contents)
+        enemy_units: Units = self.bot.enemy_units
+        safe_mineral_fields: Units = (
+            mineral_fields if enemy_units.amount == 0 else
+            mineral_fields.filter(lambda unit: self.bot.enemy_units.closest_distance_to(unit) > 15)
+        )
+        if (safe_mineral_fields.amount == 0):
+            return
+        richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
         # call down a mule on this guy
         # also bank a scan if we have 3 or more orbitals

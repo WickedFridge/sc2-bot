@@ -1,6 +1,7 @@
 from typing import List
 
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.unit_typeid import UnitTypeId
 
 AbilityBuild: List[AbilityId] = [
     AbilityId.TERRANBUILD_ARMORY,

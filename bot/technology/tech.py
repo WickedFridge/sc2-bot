@@ -6,11 +6,17 @@ from sc2.ids.upgrade_id import UpgradeId
 class Tech:
     building: UnitTypeId
     upgrade: UpgradeId | AbilityId
-    requirements: List[UpgradeId | UnitTypeId]
+    requirements_ups: List[UpgradeId]
+    requirements_buildings: List[UnitTypeId]
     is_ability: bool
 
-    def __init__(self, building: UnitTypeId, upgrade: UpgradeId, requirements: Optional[List[UpgradeId | UnitTypeId]] = [], is_ability: Optional[bool] = False) -> None:
+    def __init__(self, building: UnitTypeId, upgrade: UpgradeId,
+                 requirements_ups: Optional[List[UpgradeId]] = [],
+                 requirements_buildings: Optional[List[UnitTypeId]] = [],
+                 is_ability: Optional[bool] = False
+            ) -> None:
         self.building = building
         self.upgrade = upgrade
-        self.requirements = requirements
+        self.requirements_ups = requirements_ups
+        self.requirements_buildings = requirements_buildings
         self.is_ability = is_ability
