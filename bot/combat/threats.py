@@ -5,7 +5,8 @@ class Threat(enum.Enum):
     ATTACK = 1
     WORKER_SCOUT = 2
     HARASS = 3
-    CANONRUSH = 4
+    CANON_RUSH = 4
+    BUNKER_RUSH = 5
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

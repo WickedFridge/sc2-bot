@@ -4,6 +4,8 @@ from bot.combat.execute_orders import Execute
 from bot.combat.micro import Micro
 from bot.combat.orders import Orders
 from bot.combat.threats import Threat
+from bot.macro.macro import BASE_SIZE
+from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
@@ -90,10 +92,10 @@ class Combat:
             clusters.append(Army(Units(cluster, self.bot), self.bot))
         return clusters
 
-    async def select_orders(self, iteration: int):
+    async def select_orders(self, iteration: int, situation: Situation):
         # update local armies
         # Scale radius in function of army supply
-        old_armies: List[Army] = self.armies.copy()
+        # old_armies: List[Army] = self.armies.copy()
         self.armies = self.get_army_clusters(self.army_radius)
         
         global_enemy_buildings: Units = self.bot.enemy_structures
@@ -102,116 +104,116 @@ class Combat:
                 unit.can_be_attacked
                 and unit.type_id not in dont_attack
             )
-        )        
+        )
         
         for army in self.armies:
-            # TODO : fix this ?
-            # if previous order was retreat or regroup, update it only every 4 frame
-            # if (
-            #     old_armies.__len__() >= 1
-            #     and iteration % 4 != 0
-            # ):
-            #     old_armies.sort(key=lambda old_army: old_army.center.distance_to(army.center))
-            #     closest_army: Army = old_armies[0]
-            #     if (closest_army.orders in [Orders.REGROUP, Orders.RETREAT]):
-            #         army.orders = closest_army.orders
-            #         break
+            army.orders = self.get_army_orders(army, situation, global_enemy_buildings, global_enemy_units)
 
-            # define local enemies
-            local_enemy_units: Units = self.get_local_enemy_units(army.units.center)
-            local_enemy_buildings = self.get_local_enemy_buildings(army.units.center)
-            local_enemy_workers: Units = self.bot.enemy_units.filter(
-                lambda unit: (
-                    unit.distance_to(army.units.center) <= 30
-                    and unit.can_be_attacked
-                    and unit.type_id in worker_types
-                )
+    def get_army_orders(self, army: Army, situation: Situation, global_enemy_buildings: Units, global_enemy_units: Units) -> Orders:
+        # TODO : fix this ?
+        # if previous order was retreat or regroup, update it only every 4 frame
+        # if (
+        #     old_armies.__len__() >= 1
+        #     and iteration % 4 != 0
+        # ):
+        #     old_armies.sort(key=lambda old_army: old_army.center.distance_to(army.center))
+        #     closest_army: Army = old_armies[0]
+        #     if (closest_army.orders in [Orders.REGROUP, Orders.RETREAT]):
+        #         army.orders = closest_army.orders
+        #         break
+
+        # define local enemies
+        local_enemy_units: Units = self.get_local_enemy_units(army.units.center)
+        local_enemy_buildings = self.get_local_enemy_buildings(army.units.center)
+        local_enemy_workers: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.distance_to(army.units.center) <= 30
+                and unit.can_be_attacked
+                and unit.type_id in worker_types
             )
+        )
 
-            # army_supply: float = army.supply
-            army_supply: float = army.weighted_supply
-            local_enemy_army: Army = Army(local_enemy_units, self.bot)
-            # local_enemy_supply: float = local_enemy_army.supply
-            local_enemy_supply: float = local_enemy_army.weighted_supply
-            unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
-            unseen_enemy_supply: float = unseen_enemy_army.supply
-            potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
-            closest_building_to_enemies: Unit = None if global_enemy_units.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units)
-            distance_building_to_enemies: float = 1000 if global_enemy_units.amount == 0 else global_enemy_units.closest_distance_to(closest_building_to_enemies)
-            closest_army_distance: float = self.get_closest_army_distance(army)
+        army_supply: float = army.weighted_supply
+        local_enemy_army: Army = Army(local_enemy_units, self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply
+        unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
+        unseen_enemy_supply: float = unseen_enemy_army.supply
+        potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
+        closest_building_to_enemies: Unit = None if global_enemy_units.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units)
+        distance_building_to_enemies: float = 1000 if global_enemy_units.amount == 0 else global_enemy_units.closest_distance_to(closest_building_to_enemies)
+        
+        # TODO: turn this into get closest army
+        closest_army_distance: float = self.get_closest_army_distance(army)
+        
+        # if local_army_supply > local threat
+        # attack local_threat if it exists
+        if (local_enemy_supply + local_enemy_buildings.amount >= 1):
             
-            # if local_army_supply > local threat
-            # attack local_threat if it exists
-            if (local_enemy_supply + local_enemy_buildings.amount >= 1):
-                
-                
-                # if enemy is a threat, micro if we win or we panic, retreat if we don't
-                if (
-                    army_supply >= local_enemy_supply
-                    or self.bot.panic_mode
-                    or distance_building_to_enemies <= 10
-                ):
-                    army.orders = Orders.FIGHT
-                else:
-                    local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
-                    local_enemy_speed: Unit = local_enemy_units.first.real_speed
-                    closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
-                    army.orders = Orders.RETREAT
-                    
-                    # TODO: fix "enemy too fast"
-                    # if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
-                    #     print("enemy too fast, taking the fight")
-                    #     army.orders = Orders.FIGHT
-                    # else:
-                    #     print(f'not fighting against {local_enemy_supply} supply')
-                    #     print("local_enemy_army:", local_enemy_army.recap)
-                    #     print("unseen_enemy_army:", unseen_enemy_army.recap)
-                    #     army.orders = Orders.RETREAT
-                    
-            # if we should defend
-            elif (
-                self.bot.panic_mode
-                or distance_building_to_enemies <= 10
-            ):
-                army.orders = Orders.DEFEND
+            if (situation == Situation.BUNKER_RUSH):
+                return Orders.DEFEND_BUNKER_RUSH
+            if (situation == Situation.CANON_RUSH):
+                return Orders.DEFEND_CANON_RUSH
 
-            # if enemy is a workers, focus them
-            elif (local_enemy_workers.amount >= 1):
-                army.orders = Orders.HARASS
-                
-            # if another army is close, we should regroup
-            elif (
-                self.armies.__len__() >= 2
-                and closest_army_distance <= self.army_radius * 1.2
+            # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
+            if (
+                army_supply >= local_enemy_supply
+                or distance_building_to_enemies <= BASE_SIZE
             ):
-                army.orders = Orders.REGROUP
+                return Orders.FIGHT
+            local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
+            return Orders.RETREAT
             
-            # if enemy is buildings, focus the lowest on life among those in range
-            elif (local_enemy_buildings.amount >= 1):
-                army.orders = Orders.KILL_BUILDINGS
+            # TODO: fix "enemy too fast"
+            # local_enemy_speed: Unit = local_enemy_units.first.real_speed
+            # closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
+            # if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
+            #     print("enemy too fast, taking the fight")
+            #     army.orders = Orders.FIGHT
+            # else:
+            #     print(f'not fighting against {local_enemy_supply} supply')
+            #     print("local_enemy_army:", local_enemy_army.recap)
+            #     print("unseen_enemy_army:", unseen_enemy_army.recap)
+            #     army.orders = Orders.RETREAT
+                
+        # if we should defend
+        if (distance_building_to_enemies <= 10):
+            return Orders.DEFEND
+
+        # if enemy is a workers, focus them
+        if (local_enemy_workers.amount >= 1):
+            return Orders.HARASS
             
-            # else find next building
-            elif (
-                global_enemy_buildings.amount >= 1
-                and army_supply >= 10
-                and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
-                and army_supply >= potential_enemy_supply
-            ):
-                army.orders = Orders.CHASE_BUILDINGS
+        # if another army is close, we should regroup
+        if (
+            self.armies.__len__() >= 2
+            and closest_army_distance <= self.army_radius * 1.2
+        ):
+            return Orders.REGROUP
+        
+        # if enemy is buildings, focus the lowest on life among those in range
+        if (local_enemy_buildings.amount >= 1):
+            return Orders.KILL_BUILDINGS
+        
+        # else find next building
+        if (
+            global_enemy_buildings.amount >= 1
+            and army_supply >= 10
+            and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
+            and army_supply >= potential_enemy_supply
+        ):
+            return Orders.CHASE_BUILDINGS
 
-            # if our local_army_supply is higher than known army and we have at least a Medivac
-            elif (
-                local_enemy_supply == 0
-                and army_supply >= 10
-                and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
-                and army_supply >= potential_enemy_supply
-            ):
-                # move towards closest enemy base
-                army.orders = Orders.ATTACK_NEAREST_BASE
-                # army.orders = Orders.RETREAT
+        # if our local_army_supply is higher than known army and we have at least a Medivac
+        if (
+            local_enemy_supply == 0
+            and army_supply >= 10
+            and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
+            and army_supply >= potential_enemy_supply
+        ):
+            # move towards closest enemy base
+            return Orders.ATTACK_NEAREST_BASE
 
-            else:
-                army.orders = Orders.RETREAT
+        return Orders.RETREAT
 
     async def execute_orders(self):
         for army in self.armies:            
@@ -225,6 +227,11 @@ class Combat:
                 case Orders.DEFEND:
                     self.execute.defend(army)
 
+                case Orders.DEFEND_BUNKER_RUSH:
+                    self.execute.defend_bunker_rush(army)
+
+                case Orders.DEFEND_CANON_RUSH:
+                    self.execute.defend_canon_rush(army)
                 case Orders.HARASS:
                     await self.execute.harass(army)            
                      
@@ -242,7 +249,7 @@ class Combat:
     
     async def handle_bunkers(self):
         for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
-            enemy_units_in_range: Units = self.bot.enemy_units.filter(
+            enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )
             enemy_units_around: Units = self.bot.enemy_units.filter(
@@ -348,7 +355,7 @@ class Combat:
                     color = YELLOW
                 case Threat.HARASS:
                     color = BLUE
-                case Threat.CANONRUSH:
+                case Threat.CANON_RUSH:
                     color = PURPLE
                 case _:
                     color = WHITE
@@ -381,6 +388,7 @@ class Combat:
             size=font_size,
         )
     
+    # TODO : turn this into get closest army so we can use the army data
     def get_closest_army_distance(self, army: Army):
         if (self.armies.__len__() < 2):
             return -1

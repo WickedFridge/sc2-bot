@@ -1,3 +1,4 @@
+from typing import List
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
 from bot.utils.ability_tags import AbilityRepair
@@ -14,67 +15,72 @@ THREAT_DISTANCE: int = 8
 
 class Macro:
     bot: BotAI
+    bases: List[Base]
 
     def __init__(self, bot) -> None:
         self.bot = bot
-
-    async def detect_threat(self):
         self.bases = []
-        # if enemies in range of a CC, activate panic mode
+
+    async def update_threat_level(self):
+        self.bases = self.threat_detection()
+
+    def threat_detection(self) -> List[Base]:
+        bases: List[Base] = []
         for cc in self.bot.townhalls:
-            local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
-            enemy_towers: Units = self.bot.enemy_structures.filter(
-                lambda unit: (
-                    unit.type_id in tower_types
-                    and local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
-                    # and unit.distance_to(cc) <= BASE_SIZE
-                )
+            bases.append(Base(self.bot, cc, self.local_threat_detection(cc)))
+        return bases
+
+    def local_threat_detection(self, cc: Unit) -> Threat:
+        local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
+        enemy_towers: Units = self.bot.enemy_structures.filter(
+            lambda unit: (
+                unit.type_id in tower_types
+                and local_buildings.closest_distance_to(unit) <= BASE_SIZE
             )
-            if (enemy_towers.amount >= 1):
-                self.bases.append(Base(self.bot, cc, Threat.CANONRUSH))
-                break
+        )
+        if (enemy_towers.amount >= 1):
+            match(enemy_towers.random.type_id):
+                case UnitTypeId.PHOTONCANNON:
+                    return Threat.CANON_RUSH
+                case UnitTypeId.BUNKER:
+                    return Threat.BUNKER_RUSH
+                case _:
+                    return Threat.HARASS
 
-            local_enemy_units: Units = self.bot.enemy_units.filter(
-                lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE and unit.can_attack
+        local_enemy_units: Units = self.bot.enemy_units.filter(
+            lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE and unit.can_attack
+        )
+        enemy_workers_harassing: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                and unit.can_attack
+                and unit.type_id in worker_types
             )
-            enemy_workers_harassing: Units = self.bot.enemy_units.filter(
-                lambda unit: (
-                    local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
-                    and unit.can_attack
-                    and unit.type_id in worker_types
-                )
+        )
+        if (local_enemy_units.amount == 0):
+            return Threat.NO_THREAT
+
+        if (enemy_workers_harassing.amount >= 1):
+            return Threat.WORKER_SCOUT
+
+        local_units: Units = self.bot.units.filter(
+            lambda unit: (
+                local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                and unit.type_id not in worker_types
+                and not unit.is_structure
             )
-            if (local_enemy_units.amount == 0):
-                self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
-                break
+        )
+        local_army: Army = Army(local_units, self.bot)
+        local_enemy_army: Army = Army(local_enemy_units, self.bot)
 
-            if (enemy_workers_harassing.amount >= 1):
-                self.bases.append(Base(self.bot, cc, Threat.WORKER_SCOUT))
-                break
+        if (local_enemy_army.supply == 0):
+            return Threat.NO_THREAT
+        if (local_army.supply < local_enemy_army.supply):
+            return Threat.ATTACK
+        if (local_army.center.distance_to(cc) > local_enemy_army.center.distance_to(cc)):
+            return Threat.HARASS
+        return Threat.NO_THREAT
 
-            local_units: Units = self.bot.units.filter(
-                lambda unit: (
-                    local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
-                    and unit.type_id not in worker_types
-                    and not unit.is_structure
-                )
-            )
-            local_army: Army = Army(local_units, self.bot)
-            local_enemy_army: Army = Army(local_enemy_units, self.bot)
-
-            if (local_enemy_army.supply == 0):
-                self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
-                break
-            if (local_army.supply < local_enemy_army.supply):
-                self.bases.append(Base(self.bot, cc, Threat.ATTACK))
-                break
-            if (local_army.center.distance_to(cc) > local_enemy_army.center.distance_to(cc)):
-                self.bases.append(Base(self.bot, cc, Threat.HARASS))
-                break
-            self.bases.append(Base(self.bot, cc, Threat.NO_THREAT))
-
-
-    
     async def workers_response_to_threat(self):
         # if every townhalls is dead, just attack the nearest unit with every worker
         if (self.bot.townhalls.amount == 0):
@@ -103,6 +109,7 @@ class Macro:
                         lambda unit: (unit.is_mechanical and unit.health_percentage < 1)
                     )
                     self.repair_units(workers + mules, damaged_mechanical_units)
+                
                 case Threat.ATTACK:
                     if (workers.collecting.amount == 0):
                         print("no workers to pull, o7")
@@ -113,48 +120,81 @@ class Macro:
                             worker.attack(attackable_enemy_units.closest_to(worker))
                         else:
                             Micro.move_away(worker, local_enemy_units.closest_to(worker), 1)
+                
                 case Threat.WORKER_SCOUT:
-                    for enemy_scout in local_enemy_units:
-                        if (workers.collecting.amount == 0):
-                            break
-                        closest_worker: Unit = workers.collecting.closest_to(enemy_scout)
-                        # if no scv is already chasing
-                        attacking_workers: Unit = workers.filter(
-                            lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
-                        )
-                        if (attacking_workers.amount == 0):
-                            # pull 1 scv to follow it
-                            closest_worker.attack(enemy_scout)
+                    self.track_enemy_scout(workers, local_enemy_units, 1)
+                
                 case Threat.HARASS:
                     for worker in workers:
                         closest_enemy: Unit = local_enemy_units.closest_to(worker)
                         if (closest_enemy.distance_to(worker) < closest_enemy.ground_range + 2):
                             Micro.move_away(worker, closest_enemy, 1)
-                case Threat.CANONRUSH:
-                    enemy_towers: Units = self.bot.enemy_structures.filter(
+                
+                case Threat.CANON_RUSH:
+                    canons: Units = self.bot.enemy_structures.filter(
                         lambda unit: (
-                            unit.type_id in tower_types
-                            and local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
+                            unit.type_id == UnitTypeId.PHOTONCANNON
+                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE
                         )
                     )
-                    # respond to canon/bunker/spine rush
-                    for tower in enemy_towers:
-                        # Pull 3 workers by tower by default, less if we don't have enough
-                        # Only pull workers if we don't have enough workers attacking yet
-                        workers_attacking_tower = workers.filter(
-                            lambda unit: unit.is_attacking and unit.order_target == tower.tag
-                        ).amount
-                        if (workers_attacking_tower >= 3):
-                            break
+                    pylons: Units = self.bot.enemy_structures.filter(
+                        lambda unit: (
+                            unit.type_id == UnitTypeId.PYLON
+                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE
+                        )
+                    )
+                    # track the probes with 3 workers each
+                    self.track_enemy_scout(workers, local_enemy_units, 3)
+                    
+                    # respond to canon rush
+                    # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
+                    for canon in canons:
+                        self.pull_workers(workers, canon, 3)
+                    for pylon in pylons:
+                        self.pull_workers(workers, pylon, 4)
+                
+                case Threat.BUNKER_RUSH:
+                    bunkers: Units = self.bot.enemy_structures.filter(
+                        lambda unit: (
+                            unit.type_id == UnitTypeId.BUNKER
+                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE
+                        )
+                    )
+                    # track the SCVs with 3 workers each
+                    self.track_enemy_scout(workers, local_enemy_units, 4)
+                    
+                    # try to destroy the constructing bunkers and give up on finished ones
+                    for bunker in bunkers.filter(lambda unit: unit.build_progress < 1):
+                        self.pull_workers(workers, bunker, 8)
 
-                        amount_to_pull: int = 3 - workers_attacking_tower
-                        closest_workers: Units = workers.collecting.sorted_by_distance_to(tower)
+    def pull_workers(self, workers: Units, target: Unit, amount: 8):
+        workers_attacking_tower = workers.filter(
+            lambda unit: unit.is_attacking and unit.order_target == target.tag
+        ).amount
+        if (workers_attacking_tower >= 3):
+            return
 
-                        workers_pulled: Units = closest_workers[:amount_to_pull] if closest_workers.amount >= amount_to_pull else closest_workers
+        amount_to_pull: int = amount - workers_attacking_tower
+        closest_workers: Units = workers.collecting.sorted_by_distance_to(target)
 
-                        for worker_pulled in workers_pulled:
-                            worker_pulled.attack(tower)
+        workers_pulled: Units = closest_workers[:amount_to_pull] if closest_workers.amount >= amount_to_pull else closest_workers
+
+        for worker_pulled in workers_pulled:
+            worker_pulled.attack(target)
+
     
+    def track_enemy_scout(self, workers: Units, local_enemy_units: Units, max_scv_attacking = 1):
+        for enemy_scout in local_enemy_units:
+            if (workers.collecting.amount == 0):
+                break
+            closest_worker: Unit = workers.collecting.closest_to(enemy_scout)
+            # if no scv is already chasing
+            attacking_workers: Unit = workers.filter(
+                lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
+            )
+            if (attacking_workers.amount < max_scv_attacking):
+                # pull 1 scv to follow it
+                closest_worker.attack(enemy_scout)
 
     def repair_units(self, workers: Units, damaged_mechanical_units: Units):
         if(damaged_mechanical_units.amount == 0):

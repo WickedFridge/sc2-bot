@@ -1,31 +1,25 @@
-from math import pi, sqrt
-from typing import FrozenSet, List, Set
+from typing import List
 from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
 from bot.macro.macro import Macro
+from bot.strategy.handler import StrategyHandler
 from bot.train import Train
 from bot.technology.search import Search
 from bot.utils.races import Races
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
-from sc2.game_data import AbilityData, UpgradeData
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2
-from sc2.unit import Unit, UnitOrder
+from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
-from sc2.dicts.unit_abilities import UNIT_ABILITIES
 
-VERSION: str = "v1.6.0"
+VERSION: str = "1.7.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
-    panic_mode: bool = False
     
     builder: Build
     buildings: BuildingsHandler
@@ -33,6 +27,7 @@ class WickedBot(BotAI):
     combat: Combat
     train: Train
     macro: Macro
+    strategy: StrategyHandler
 
     def __init__(self) -> None:
         super().__init__()
@@ -42,6 +37,7 @@ class WickedBot(BotAI):
         self.combat = Combat(self)
         self.train = Train(self, self.combat)
         self.macro = Macro(self)
+        self.strategy = StrategyHandler(self)
 
     async def on_start(self):
         """
@@ -58,27 +54,40 @@ class WickedBot(BotAI):
         This code runs continually throughout the game
         Populate this function with whatever your bot should do!
         """
+        # General Game Stuff
         await self.tag_game(iteration)
         await self.check_surrend_condition()
+        
+        # General Worker management
         await self.distribute_workers()
         await self.macro.mule_idle()
         await self.saturate_gas()
+        
+        # Assement of the situation
         await self.combat.detect_enemy_army()
-        await self.macro.detect_threat()
+        await self.macro.update_threat_level()
+        await self.strategy.update_situation()
+        
+        # Specific Worker Management
         await self.macro.workers_response_to_threat()
         await self.buildings.repair_buildings()
         await self.buildings.cancel_buildings()
         await self.builder.finish_construction()
+
+        # Control buildings
+        await self.buildings.drop_mules()
+        await self.builder.switch_addons()
+        await self.buildings.handle_supplies()
+        
+        # Spend Money
         await self.builder.supplies()
         await self.builder.bunker()
-        await self.buildings.morph_orbitals()
-        await self.buildings.drop_mules()
+        await self.buildings.morph_orbitals()        
         await self.train.workers()
         await self.search.tech()
         await self.builder.gas()
         await self.builder.armory()
         await self.builder.starport()
-        await self.builder.switch_addons()
         await self.train.medivac()
         await self.builder.ebays()
         await self.builder.factory()
@@ -86,15 +95,19 @@ class WickedBot(BotAI):
         await self.builder.addons()
         await self.builder.expand()
         await self.train.infantry()
-        await self.combat.select_orders(iteration)
+        
+        # Control Attacking Units
+        await self.combat.select_orders(iteration, self.strategy.situation)
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
-        await self.combat.debug_army_orders()
-        # await self.combat.debug_bases_threat()
-        await self.combat.debug_selection()
-        # await self.scout()
-        await self.buildings.handle_supplies()
 
+        # Debug stuff
+        # await self.combat.debug_army_orders()
+        # await self.combat.debug_bases_threat()
+        # await self.combat.debug_selection()
+        
+        # TODO
+        # await self.scout()
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
@@ -159,7 +172,7 @@ class WickedBot(BotAI):
     async def tag_game(self, iteration: int):
         if (iteration == 2):
             await self.client.chat_send("Good Luck & Have fun !", False)
-            await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})')
+            await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})', False)
             game_races: List[str] = [
                 Races[self.game_info.player_races[1]],
                 Races[self.game_info.player_races[2]],

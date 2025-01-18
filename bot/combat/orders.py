@@ -9,6 +9,8 @@ class Orders(enum.Enum):
     CHASE_BUILDINGS = 5
     ATTACK_NEAREST_BASE = 6
     REGROUP = 7
+    DEFEND_BUNKER_RUSH = 8
+    DEFEND_CANON_RUSH = 9
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"
