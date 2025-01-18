@@ -59,7 +59,7 @@ class Execute:
     def defend_bunker_rush(self, army: Army):
         bunkers: Units = self.bot.enemy_structures(UnitTypeId.BUNKER).filter(
             lambda unit: (
-                unit.distance_to(army.units.center <= 30)
+                unit.distance_to(army.units.center) <= 30
             )
         )
         enemy_bunkers_completed: Units = bunkers.ready

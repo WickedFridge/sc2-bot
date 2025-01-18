@@ -15,7 +15,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "1.7.0"
+VERSION: str = "1.7.1"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -111,10 +111,7 @@ class WickedBot(BotAI):
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
-        if (
-            self.units.amount == 0
-            and landed_buildings.amount == 0
-        ):
+        if (landed_buildings.amount == 0):
             await self.client.chat_send("gg !", False)
             await self.client.leave()
     
