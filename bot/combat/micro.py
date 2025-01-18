@@ -88,31 +88,32 @@ class Micro:
         elif(enemy_buildings_in_sight.amount >= 1):
             enemy_buildings_in_sight.sort(key = lambda building: building.health)
             bio.attack(enemy_buildings_in_sight.first)
-        else:
+        elif(enemy_buildings.amount >= 1):
             # print("[Error] no enemy units to attack")
             bio.attack(enemy_buildings.closest_to(bio))
-    
+        else:
+            self.retreat(bio)
 
-    def stim_bio(self, marine: Unit):
+    def stim_bio(self, bio_unit: Unit):
         if (self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1):
             return
 
-        local_enemy_units: Units = self.get_local_enemy_units(marine.position)
-        local_enemy_buildings: Units = self.get_local_enemy_buildings(marine.position)
+        local_enemy_units: Units = self.get_local_enemy_units(bio_unit.position)
+        local_enemy_buildings: Units = self.get_local_enemy_buildings(bio_unit.position)
 
-        match marine.type_id:
+        match bio_unit.type_id:
             case UnitTypeId.MARINE:
                 if (
-                    (local_enemy_units.amount >= 1 and marine.health >= 25 or (local_enemy_buildings.amount >= 1 and marine.health >= 45))
-                    and not marine.has_buff(BuffId.STIMPACK)
+                    (local_enemy_units.amount >= 1 and bio_unit.health >= 25 or (local_enemy_buildings.amount >= 1 and bio_unit.health >= 40))
+                    and not bio_unit.has_buff(BuffId.STIMPACK)
                 ):
-                    marine(AbilityId.EFFECT_STIM)
+                    bio_unit(AbilityId.EFFECT_STIM)
             case UnitTypeId.MARAUDER:
                 if (
-                    (local_enemy_units.amount >= 1 and marine.health >= 25 or (local_enemy_buildings.amount >= 1 and marine.health >= 45))
-                    and not marine.has_buff(BuffId.STIMPACKMARAUDER)
+                    (local_enemy_units.amount >= 1 and bio_unit.health >= 35 or (local_enemy_buildings.amount >= 1 and bio_unit.health >= 55))
+                    and not bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
                 ):
-                    marine(AbilityId.EFFECT_STIM)
+                    bio_unit(AbilityId.EFFECT_STIM)
 
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
         if (enemy_units_in_range.amount == 0):
@@ -167,11 +168,13 @@ class Micro:
         selected.move(selected_position.towards(target, distance))
 
     def get_enemy_units(self) -> Units:
-        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: not unit.is_structure and unit.can_be_attacked and unit.type_id not in dont_attack)
+        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
         enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
         return enemy_units + enemy_towers
     
     def get_enemy_units_in_range(self, unit: Unit) -> Units:
+        if (unit is None):
+            return Units([], self.bot)
         enemy_units_in_range: Units = self.get_enemy_units().filter(
             lambda enemy: unit.target_in_range(enemy)
         )

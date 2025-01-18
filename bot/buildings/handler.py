@@ -17,6 +17,8 @@ class BuildingsHandler:
     async def repair_buildings(self):
         workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
         available_workers: Units = workers.collecting
+        if (self.bot.minerals < 50):
+            return
         if (available_workers.amount == 0):
             print("no workers to repair o7")
             return

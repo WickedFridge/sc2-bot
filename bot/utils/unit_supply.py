@@ -111,6 +111,7 @@ supply[UnitTypeId.DARKTEMPLAR] = 2
 supply[UnitTypeId.ARCHON] = 4
 supply[UnitTypeId.OBSERVER] = 1
 supply[UnitTypeId.WARPPRISM] = 2
+supply[UnitTypeId.WARPPRISMPHASING] = 2
 supply[UnitTypeId.IMMORTAL] = 4
 supply[UnitTypeId.PHOENIX] = 2
 supply[UnitTypeId.ORACLE] = 3

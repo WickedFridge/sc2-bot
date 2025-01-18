@@ -15,16 +15,17 @@ class Train:
         self.combat = combat
 
     async def workers(self):
-        worker_count: int = self.bot.units(UnitTypeId.SCV).amount + self.bot.already_pending(UnitTypeId.SCV)
+        workers_pending: float = self.bot.already_pending(UnitTypeId.SCV)
+        worker_count: float = self.bot.supply_workers + workers_pending
         worker_max: int = min(84, self.bot.townhalls.amount * 22)
         townhalls_type: UnitTypeId = UnitTypeId.ORBITALCOMMAND if self.bot.orbitalTechAvailable() else UnitTypeId.COMMANDCENTER
         townhalls: Units = self.bot.townhalls(townhalls_type).ready.filter(
             lambda unit: (
                 unit.is_idle
                 or (
-                    unit.orders[0].ability.id == AbilityId.COMMANDCENTERTRAIN_SCV
+                    unit.orders.__len__() == 1
+                    and unit.orders[0].ability.id == AbilityId.COMMANDCENTERTRAIN_SCV
                     and unit.orders[0].progress >= 0.95
-                    and unit.orders.__len__() == 1
                 )
             )
         )

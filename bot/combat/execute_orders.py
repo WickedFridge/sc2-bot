@@ -92,6 +92,8 @@ class Execute:
 
     def regroup(self, army: Army, armies: List[Army]):
         other_armies = list(filter(lambda other_army: other_army.center != army.center, armies))
+        if (other_armies.__len__() == 0):
+            return
         closest_army_position: Point2 = other_armies[0].center
         for other_army in other_armies:
             if (army.center.distance_to(other_army.center) < army.center.distance_to(closest_army_position)):

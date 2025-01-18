@@ -20,7 +20,7 @@ class Army:
     @property
     def center(self) -> Point2:
         return self.units.center
-    
+
     @property
     def speed(self) -> float:
         if (self.units.amount == 0):

@@ -1,5 +1,5 @@
 import math
-from typing import FrozenSet, List, Literal, Set
+from typing import FrozenSet, List, Literal, Optional, Set
 from bot.utils.ability_tags import AbilityBuild
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
@@ -183,8 +183,11 @@ class Build:
         ):
             townhalls: Units = self.bot.townhalls.copy()
             bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
-            bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 5)
+            bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 10)
             bases_without_bunkers.sort(key = lambda unit: unit.distance_to(self.bot.start_location), reverse=True)
+            if (bases_without_bunkers.amount == 0):
+                # most likely we have the whole map
+                return
             last_base: Unit = bases_without_bunkers.first
             closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(last_base.position).bottom_center
             second_to_last_base: Unit = bases_without_bunkers.first if (bases_without_bunkers.amount == 1) else bases_without_bunkers[1]
@@ -366,13 +369,13 @@ class Build:
 
 
     async def expand(self):
-        next_expansion: Point2 = await self.bot.get_next_expansion()
+        next_expansion: Point2 = await self.get_next_expansion()
         if (
             self.bot.can_afford(UnitTypeId.COMMANDCENTER)
             and next_expansion
         ):
             print("Expand")
-            await self.bot.expand_now()
+            await self.bot.expand_now(location=next_expansion)
 
 
     async def build(self, unitType: UnitTypeId, position: Point2, placement_step: int = 2):
@@ -483,3 +486,35 @@ class Build:
                     print("Error : specify top or bottom of the ramp")
         return closest_ramp
         
+
+    async def get_next_expansion(self) -> Optional[Point2]:
+        """Find next expansion location."""
+        
+        # get all expansions on the map that are available
+        # get the pathing distance between start location and the base
+        # get the pathing distance between enemy starting location and the base
+        # get location that has smaller distance - enemy_distance
+
+        closest = None
+        distance: float = math.inf
+        for el in self.bot.expansion_locations_list:
+            def is_near_to_expansion(t: Unit):
+                return t.distance_to(el) < self.bot.EXPANSION_GAP_THRESHOLD
+
+            
+            if any(map(is_near_to_expansion, self.bot.townhalls)):
+                # already taken
+                continue
+
+            startp: Point2 = self.bot.game_info.player_start_location
+            enemy_start: Point2 = self.bot.enemy_start_locations[0]
+            d = await self.bot.client.query_pathing(startp, el)
+            enemy_d = await self.bot.client.query_pathing(enemy_start, el)
+            if (d is None or enemy_d is None):
+                continue
+
+            if (d - enemy_d < distance):
+                distance = d - enemy_d
+                closest = el
+
+        return closest

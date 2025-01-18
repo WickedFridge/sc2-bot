@@ -30,7 +30,8 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.SPINECRAWLER,
     UnitTypeId.SPORECRAWLER,
     UnitTypeId.MISSILETURRET,
-    UnitTypeId.NYDUSCANAL
+    UnitTypeId.NYDUSCANAL,
+    UnitTypeId.AUTOTURRET
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -44,7 +45,7 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.SWARMHOSTMP,
     UnitTypeId.SWARMHOSTBURROWEDMP,
     UnitTypeId.LURKER,
-    UnitTypeId.VIPER,
+    UnitTypeId.VIPER
 ]
 dont_attack: List[UnitTypeId] = [
     UnitTypeId.EGG,

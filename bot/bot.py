@@ -20,6 +20,7 @@ from sc2.units import Units
 from .utils.unit_tags import *
 from sc2.dicts.unit_abilities import UNIT_ABILITIES
 
+VERSION: str = "v1.6.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -50,8 +51,6 @@ class WickedBot(BotAI):
 
         print("Game started")
         await self.macro.split_workers()
-        print(f'Tag: {Races[self.game_info.player_races[1]]}v{Races[self.game_info.player_races[2]]}')
-        # await self.client.debug_create_unit([[UnitTypeId.ARMORY, 1, self.townhalls.random.position.towards(self._game_info.map_center, 3), 1]])
         # await self.client.debug_all_resources()
 
     async def on_step(self, iteration: int):
@@ -60,13 +59,13 @@ class WickedBot(BotAI):
         Populate this function with whatever your bot should do!
         """
         await self.tag_game(iteration)
+        await self.check_surrend_condition()
         await self.distribute_workers()
+        await self.macro.mule_idle()
         await self.saturate_gas()
         await self.combat.detect_enemy_army()
-        await self.combat.detect_threat()
-        await self.combat.workers_response_to_threat()
-        # await self.combat.detect_panic()
-        # await self.combat.pull_workers()
+        await self.macro.detect_threat()
+        await self.macro.workers_response_to_threat()
         await self.buildings.repair_buildings()
         await self.buildings.cancel_buildings()
         await self.builder.finish_construction()
@@ -79,38 +78,46 @@ class WickedBot(BotAI):
         await self.builder.gas()
         await self.builder.armory()
         await self.builder.starport()
-        await self.builder.ebays()
-        await self.builder.barracks()
-        await self.builder.factory()
         await self.builder.switch_addons()
         await self.train.medivac()
+        await self.builder.ebays()
+        await self.builder.factory()
+        await self.builder.barracks()
         await self.builder.addons()
         await self.builder.expand()
         await self.train.infantry()
-        await self.combat.select_orders()
+        await self.combat.select_orders(iteration)
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
-        # await self.combat.debug_army_orders()
+        await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
-        # await self.combat.debug_selection()
+        await self.combat.debug_selection()
         # await self.scout()
         await self.buildings.handle_supplies()
 
-        # Armories: Units = self.structures(UnitTypeId.ARMORY).filter(lambda unit: unit.is_selected)
-        # if (Armories.amount >= 1 and round(self.time) % 2 == 0):
-        #     Armory: Unit = Armories.random
-        #     print("Armory", Armory)
-        #     print("Orders", Armory.orders)
-        #     Armory.research(UpgradeId.TERRANVEHICLEARMORSVANADIUMPLATINGLEVEL1)
-            # Armory(AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1)
                     
+    async def check_surrend_condition(self):
+        landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
+        if (
+            self.units.amount == 0
+            and landed_buildings.amount == 0
+        ):
+            await self.client.chat_send("gg !", False)
+            await self.client.leave()
+    
     async def saturate_gas(self):
         # Saturate refineries
         for refinery in self.gas_buildings:
-            if refinery.assigned_harvesters < refinery.ideal_harvesters:
-                worker: Units = self.workers.collecting.closer_than(10, refinery)
-                if worker:
-                    worker.random.gather(refinery)
+            if (
+                refinery.assigned_harvesters < refinery.ideal_harvesters
+                and self.vespene <= self.minerals + 300
+            ):
+                workers: Units = self.workers.collecting.closer_than(10, refinery).filter(
+                    lambda unit: unit.orders[0].target != refinery.tag
+                )
+                if workers:
+                    closest_worker = workers.closest_to(refinery)
+                    closest_worker.gather(refinery)
     
     async def scout(self):
         # Use the reaper to scout
@@ -152,6 +159,7 @@ class WickedBot(BotAI):
     async def tag_game(self, iteration: int):
         if (iteration == 2):
             await self.client.chat_send("Good Luck & Have fun !", False)
+            await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})')
             game_races: List[str] = [
                 Races[self.game_info.player_races[1]],
                 Races[self.game_info.player_races[2]],
@@ -169,8 +177,9 @@ class WickedBot(BotAI):
         return self.orbitalTechAvailable() and ccs.amount >= 1
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
-        if (unit.type_id == UnitTypeId.SCV):
-            self.macro.repair_workers(unit, amount_damage_taken)
+        pass
+        # if (unit.type_id == UnitTypeId.SCV):
+        #     self.macro.repair_workers(unit, amount_damage_taken)
     
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)
