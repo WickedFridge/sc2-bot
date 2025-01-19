@@ -195,7 +195,7 @@ class Macro:
                 and self.bot.workers.amount >= 5 * self.bot.townhalls.amount
             ):
                 workers: Units = self.bot.workers.gathering.closer_than(10, refinery).filter(
-                    lambda unit: unit.orders[0].target != refinery.tag
+                    lambda unit: self.bot.gas_buildings.find_by_tag(unit.orders[0].target) is None
                 )
                 if workers:
                     closest_worker = workers.closest_to(refinery)

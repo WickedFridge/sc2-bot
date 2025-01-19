@@ -32,9 +32,8 @@ class Micro:
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
-        if (unit.type_id == UnitTypeId.MEDIVAC):
-            unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
+        enemy_units_in_sight: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(unit) <= 10)
         if (unit.type_id in bio and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         # TODO: handle retreat when opponent is blocking our way
@@ -43,11 +42,20 @@ class Micro:
         # TODO : does this goes by the bunker ?
         if (bunkers_close.amount >= 1):
             retreat_position = retreat_position.towards(bunkers_close.center, 2)
+        if (
+            unit.type_id == UnitTypeId.MEDIVAC
+            and unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
+            and enemy_units_in_sight.amount == 0
+        ):
+            unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
         if (unit.distance_to(retreat_position) < 5):
             return
         unit.move(retreat_position)
     
     async def medivac(self, medivac: Unit, local_army: Units):
+        if (medivac.cargo_used >= 1):
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+
         if (medivac.is_active):
             medivac_target: Point2|int = medivac.orders[0].target 
             target_position: Point2|None = None

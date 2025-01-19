@@ -74,7 +74,10 @@ class Execute:
                     await self.micro.medivac(unit, army.units)
                 case _:
                     nearest_base_target: Point2 = self.micro.get_nearest_base_target(unit)
-                    self.micro.attack_position(unit, nearest_base_target)
+                    if (unit.distance_to(army.center) >= army.radius - 2):
+                        unit.move(army.center)
+                    else:
+                        self.micro.attack_position(unit, nearest_base_target)
 
     def defend(self, army: Army):
         main_position: Point2 = self.bot.start_location
@@ -215,6 +218,8 @@ class Execute:
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac(unit, army.units)
+            elif (unit.distance_to(army.center) >= army.radius - 2):
+                unit.move(army.center)
             else:
                 self.micro.attack_position(unit, self.bot.enemy_structures.closest_to(unit).position)
 

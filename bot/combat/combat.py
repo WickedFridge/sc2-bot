@@ -1,5 +1,5 @@
 import math
-from typing import List, Set
+from typing import List, Set, Tuple
 from bot.combat.execute_orders import Execute
 from bot.combat.micro import Micro
 from bot.combat.orders import Orders
@@ -111,8 +111,8 @@ class Combat:
 
     def get_army_orders(self, army: Army, situation: Situation, global_enemy_buildings: Units, global_enemy_units: Units) -> Orders:
         # define local enemies
-        local_enemy_units: Units = self.get_local_enemy_units(army.units.center)
-        local_enemy_buildings = self.get_local_enemy_buildings(army.units.center)
+        local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
+        local_enemy_buildings = self.get_local_enemy_buildings(army.units.center, self.army_radius)
         local_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.distance_to(army.units.center) <= 30
@@ -130,7 +130,7 @@ class Combat:
         closest_building_to_enemies: Unit = None if global_enemy_units.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units)
         distance_building_to_enemies: float = 1000 if global_enemy_units.amount == 0 else global_enemy_units.closest_distance_to(closest_building_to_enemies)
         
-        # TODO: turn this into get closest army
+        closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
         
         # debug info
@@ -138,7 +138,7 @@ class Combat:
 
         # if local_army_supply > local threat
         # attack local_threat if it exists
-        if (local_enemy_supply + local_enemy_buildings.amount >= 1):
+        if (local_enemy_supply + local_enemy_buildings.amount > 0):
             
             if (situation == Situation.BUNKER_RUSH):
                 return Orders.DEFEND_BUNKER_RUSH
@@ -151,10 +151,11 @@ class Combat:
                 or distance_building_to_enemies <= BASE_SIZE
             ):
                 return Orders.FIGHT
-            local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
+            print("army too strong, not taking the fight")
             return Orders.PICKUP_LEAVE
             
             # TODO: fix "enemy too fast"
+            # local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
             # local_enemy_speed: Unit = local_enemy_units.first.real_speed
             # closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
             # if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
@@ -178,6 +179,7 @@ class Combat:
         if (
             self.armies.__len__() >= 2
             and closest_army_distance <= self.army_radius * 1.2
+            and 2/3 < closest_army.supply / army.supply < 3/2
         ):
             return Orders.REGROUP
         
@@ -185,24 +187,17 @@ class Combat:
         if (local_enemy_buildings.amount >= 1):
             return Orders.KILL_BUILDINGS
         
-        # else find next building
+        # if we have enough army we attack
         if (
-            global_enemy_buildings.amount >= 1
-            and army_supply >= 10
+            army_supply >= 10
             and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
             and army_supply >= potential_enemy_supply
         ):
-            return Orders.CHASE_BUILDINGS
-
-        # if our local_army_supply is higher than known army and we have at least a Medivac
-        if (
-            local_enemy_supply == 0
-            and army_supply >= 10
-            and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
-            and army_supply >= potential_enemy_supply
-        ):
-            # move towards closest enemy base
-            return Orders.ATTACK_NEAREST_BASE
+            # the next building if we know where it is, the nearest base if we don't
+            if (global_enemy_buildings.amount >= 1):
+                return Orders.CHASE_BUILDINGS
+            else:
+                return Orders.ATTACK_NEAREST_BASE
 
         return Orders.RETREAT
 
@@ -384,7 +379,18 @@ class Combat:
             size=font_size,
         )
     
-    # TODO : turn this into get closest army so we can use the army data
+    def get_closest_army(self, army: Army) -> Army:
+        if (self.armies.__len__() < 2):
+            return -1
+        other_armies: List[Army] = list(filter(lambda other_army: other_army.center != army.center, self.armies))
+        closest_army: Army = other_armies[0]
+        closest_distance_to_other: float = army.center.distance_to(other_armies[0].center)
+        for other_army in other_armies:
+            if (army.center.distance_to(other_army.center) < closest_distance_to_other):
+                closest_distance_to_other = army.center.distance_to(other_army.center)
+                closest_army = other_army
+        return closest_army
+    
     def get_closest_army_distance(self, army: Army):
         if (self.armies.__len__() < 2):
             return -1
@@ -395,7 +401,7 @@ class Combat:
                 closest_distance_to_other = army.center.distance_to(other_army.center)
         return round(closest_distance_to_other, 1)
                 
-    def get_local_enemy_units(self, position: Point2) -> Units:
+    def get_local_enemy_units(self, position: Point2, radius: int = 15) -> Units:
         global_enemy_units: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.can_be_attacked
@@ -403,16 +409,16 @@ class Combat:
             )
         )
         local_enemy_units: Units = global_enemy_units.filter(
-            lambda unit: unit.distance_to(position) <= 25
+            lambda unit: unit.distance_to(position) <= (10 + radius)
         )
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: unit.type_id in tower_types and unit.can_be_attacked
         )
         return local_enemy_units + local_enemy_towers
 
-    def get_local_enemy_buildings(self, position: Point2) -> Units:
+    def get_local_enemy_buildings(self, position: Point2, radius: int = 10) -> Units:
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.distance_to(position) <= 10 and unit.can_be_attacked
+            lambda unit: unit.distance_to(position) <= radius and unit.can_be_attacked
         )
         local_enemy_buildings.sort(key=lambda building: building.health)
         return local_enemy_buildings

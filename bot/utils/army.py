@@ -18,6 +18,10 @@ class Army:
         self.bot = bot
     
     @property
+    def radius(self) -> float:
+        return self.supply * 0.2 + 10
+    
+    @property
     def center(self) -> Point2:
         return self.units.center
 

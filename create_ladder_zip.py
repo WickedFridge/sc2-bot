@@ -94,6 +94,7 @@ def create_ladder_zip():
         zipf.write(file)
     for directory in directories_to_zip:
         zipdir(directory, zipf)
+    zipdir("publish/cython_extensions", zipf, "publish/")
     zipf.close()
 
     os.remove("ladderbots.json")
