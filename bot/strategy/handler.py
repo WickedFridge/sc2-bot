@@ -40,7 +40,7 @@ class StrategyHandler:
             enemy_towers: Units = self.bot.enemy_structures.filter(
                 lambda unit: (
                     unit.type_id in tower_types
-                    and local_buildings.closest_distance_to(unit) <= 30
+                    and local_buildings.closest_distance_to(unit) <= 10
                 )
             )
             if (enemy_towers.amount >= 1):

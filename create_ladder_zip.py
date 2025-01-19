@@ -9,12 +9,14 @@ from bot import WickedBot as bot
 
 # Ignore the annoying resource warning from importing sc2 when an SC2 instance isn't running.
 import warnings
+
+from bot.bot import VERSION
 warnings.simplefilter("ignore", ResourceWarning)
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 
 # the name of the generated zip file
-zip_archive_name = "bot.zip"
+zip_archive_name = f'bot v{VERSION}.zip'
 
 # the folder to put the zip file in
 copy_zip_to_folder = "publish"
@@ -65,8 +67,10 @@ def create_ladder_zip():
 
     # Remove previous archive
     if os.path.isfile(os.path.join(copy_zip_to_folder, zip_archive_name)):
-        print(f"{os.linesep}Deleting {os.path.join(copy_zip_to_folder, zip_archive_name)}")
-        os.remove(os.path.join(copy_zip_to_folder, zip_archive_name))
+        print('Warning, bump version before publishing !')
+        return
+        # print(f"{os.linesep}Deleting {os.path.join(copy_zip_to_folder, zip_archive_name)}")
+        # os.remove(os.path.join(copy_zip_to_folder, zip_archive_name))
 
     files_to_zip = []
     directories_to_zip = []

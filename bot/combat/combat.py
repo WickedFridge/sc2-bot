@@ -110,18 +110,6 @@ class Combat:
             army.orders = self.get_army_orders(army, situation, global_enemy_buildings, global_enemy_units)
 
     def get_army_orders(self, army: Army, situation: Situation, global_enemy_buildings: Units, global_enemy_units: Units) -> Orders:
-        # TODO : fix this ?
-        # if previous order was retreat or regroup, update it only every 4 frame
-        # if (
-        #     old_armies.__len__() >= 1
-        #     and iteration % 4 != 0
-        # ):
-        #     old_armies.sort(key=lambda old_army: old_army.center.distance_to(army.center))
-        #     closest_army: Army = old_armies[0]
-        #     if (closest_army.orders in [Orders.REGROUP, Orders.RETREAT]):
-        #         army.orders = closest_army.orders
-        #         break
-
         # define local enemies
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center)
         local_enemy_buildings = self.get_local_enemy_buildings(army.units.center)
@@ -145,6 +133,9 @@ class Combat:
         # TODO: turn this into get closest army
         closest_army_distance: float = self.get_closest_army_distance(army)
         
+        # debug info
+        # self.draw_text_on_world(army.center, f'{local_enemy_army.recap}')
+
         # if local_army_supply > local threat
         # attack local_threat if it exists
         if (local_enemy_supply + local_enemy_buildings.amount >= 1):
@@ -161,7 +152,7 @@ class Combat:
             ):
                 return Orders.FIGHT
             local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
-            return Orders.RETREAT
+            return Orders.PICKUP_LEAVE
             
             # TODO: fix "enemy too fast"
             # local_enemy_speed: Unit = local_enemy_units.first.real_speed
@@ -218,6 +209,9 @@ class Combat:
     async def execute_orders(self):
         for army in self.armies:            
             match army.orders:
+                case Orders.PICKUP_LEAVE:
+                    await self.execute.pickup_leave(army)
+                
                 case Orders.RETREAT:
                     self.execute.retreat_army(army)
                 
@@ -252,7 +246,7 @@ class Combat:
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )
-            enemy_units_around: Units = self.bot.enemy_units.filter(
+            enemy_units_around: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: unit.distance_to(bunker) <= 8.5
             )
                 
@@ -319,6 +313,8 @@ class Combat:
         color: tuple
         for army in self.armies:
             match army.orders:
+                case Orders.PICKUP_LEAVE:
+                    color = RED
                 case Orders.RETREAT:
                     color = GREEN
                 case Orders.FIGHT:
@@ -369,7 +365,7 @@ class Combat:
         for unit in selected_units:
             order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
             order_target = "" if unit.is_idle else unit.orders[0].target
-            distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit)
+            distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
             self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):

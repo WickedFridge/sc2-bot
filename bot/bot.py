@@ -15,7 +15,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "1.7.1"
+VERSION: str = "2.0.1"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -55,13 +55,16 @@ class WickedBot(BotAI):
         Populate this function with whatever your bot should do!
         """
         # General Game Stuff
-        await self.tag_game(iteration)
+        if (iteration == 2):
+            await self.tag_game()
+            await self.macro.speed_mining.start()
         await self.check_surrend_condition()
         
         # General Worker management
         await self.distribute_workers()
         await self.macro.mule_idle()
-        await self.saturate_gas()
+        await self.macro.saturate_gas()
+        await self.macro.speed_mining.execute()
         
         # Assement of the situation
         await self.combat.detect_enemy_army()
@@ -115,20 +118,6 @@ class WickedBot(BotAI):
             await self.client.chat_send("gg !", False)
             await self.client.leave()
     
-    async def saturate_gas(self):
-        # Saturate refineries
-        for refinery in self.gas_buildings:
-            if (
-                refinery.assigned_harvesters < refinery.ideal_harvesters
-                and self.vespene <= self.minerals + 300
-            ):
-                workers: Units = self.workers.collecting.closer_than(10, refinery).filter(
-                    lambda unit: unit.orders[0].target != refinery.tag
-                )
-                if workers:
-                    closest_worker = workers.closest_to(refinery)
-                    closest_worker.gather(refinery)
-    
     async def scout(self):
         # Use the reaper to scout
         if(self.units(UnitTypeId.REAPER).amount == 0):
@@ -166,16 +155,15 @@ class WickedBot(BotAI):
         #             print("Send Marine to scout")
         #             closest_marine.move(position_to_scout)
 
-    async def tag_game(self, iteration: int):
-        if (iteration == 2):
-            await self.client.chat_send("Good Luck & Have fun !", False)
-            await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})', False)
-            game_races: List[str] = [
-                Races[self.game_info.player_races[1]],
-                Races[self.game_info.player_races[2]],
-            ]
-            game_races.sort()
-            await self.client.chat_send(f'Tag:{game_races[0]}v{game_races[1]}', False)
+    async def tag_game(self):
+        await self.client.chat_send("Good Luck & Have fun !", False)
+        await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})', False)
+        game_races: List[str] = [
+            Races[self.game_info.player_races[1]],
+            Races[self.game_info.player_races[2]],
+        ]
+        game_races.sort()
+        await self.client.chat_send(f'Tag:{game_races[0]}v{game_races[1]}', False)
 
     def orbitalTechAvailable(self):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9

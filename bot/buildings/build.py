@@ -21,7 +21,6 @@ class Build:
 
     async def finish_construction(self):
         if (self.bot.workers.collecting.amount == 0):
-            print("no workers to finish buildings o7")
             return
         
         incomplete_buildings: Units = self.bot.structures.filter(
@@ -61,7 +60,7 @@ class Build:
             }
             
         if (
-            self.bot.supply_cap < 200
+            self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 < 200
             and self.bot.supply_left < 2 + self.bot.supply_used / 10
             and self.bot.can_afford(UnitTypeId.SUPPLYDEPOT)
             and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 50
@@ -209,6 +208,7 @@ class Build:
             + self.bot.structures(UnitTypeId.STARPORTFLYING).amount
             + self.bot.already_pending(UnitTypeId.STARPORT)
         )
+        medivac_count: float = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
 
         # We want 2 ebays once we have a 3rd CC and a Starport
         if (
@@ -217,6 +217,7 @@ class Build:
             and ebays_count < 2
             and self.bot.townhalls.amount >= 3
             and staport_count >= 1
+            and medivac_count >= 2
             and not self.bot.waitingForOrbital()
         ) :
             print("Build EBay")

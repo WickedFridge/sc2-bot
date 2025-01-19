@@ -18,33 +18,48 @@ class Micro:
     def __init__(self, bot) -> None:
         self.bot = bot
 
+    @property
+    def retreat_position(self) -> Point2:
+        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
+        townhalls: Units = self.bot.townhalls
+        if (townhalls.amount == 0):
+            return self.bot.start_location
+        if (townhalls.amount == 1):
+            return townhalls.first.position
+        townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
+        return townhalls.first.position.towards(townhalls[1].position, 5)
+    
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
+        if (unit.type_id == UnitTypeId.MEDIVAC):
+            unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         if (unit.type_id in bio and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         # TODO: handle retreat when opponent is blocking our way
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        townhalls: Units = self.bot.townhalls
-        if (townhalls.amount == 1):
-            unit.move(townhalls.first)
-            return
-        townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
-        retreat_position: Point2 = townhalls.first.position.towards(townhalls[1].position, 5)
+        retreat_position = self.retreat_position
         bunkers_close = self.bot.structures(UnitTypeId.BUNKER).filter(lambda unit: unit.distance_to(retreat_position) <= 10)
-        
         # TODO : does this goes by the bunker ?
         if (bunkers_close.amount >= 1):
             retreat_position = retreat_position.towards(bunkers_close.center, 2)
         if (unit.distance_to(retreat_position) < 5):
             return
         unit.move(retreat_position)
-
+    
     async def medivac(self, medivac: Unit, local_army: Units):
-        # TODO: boost only when the target of the order is far away
-        # if not boosting, boost
-        await self.medivac_boost(medivac)
+        if (medivac.is_active):
+            medivac_target: Point2|int = medivac.orders[0].target 
+            target_position: Point2|None = None
+            if (type(medivac_target) is Point2):
+                target_position = medivac_target
+            else:
+                target_unit = self.bot.units.find_by_tag(medivac_target)
+                if (target_unit):
+                    target_position = target_unit.position
+                
+            if (target_position and target_position.distance_to(medivac) > 10):
+                await self.medivac_boost(medivac)
         
         # heal damaged ally in local army
         damaged_allies: Units = local_army.filter(
@@ -55,9 +70,8 @@ class Micro:
         )
 
         if (damaged_allies.amount >= 1):
-            damaged_allies.sort(key = lambda unit: unit.health)
+            damaged_allies.sort(key = lambda unit: (unit.health, unit.distance_to(medivac)))
             medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies.first)
-            # medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies.closest_to(medivac))
         else:
             local_ground_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             if (local_ground_units.amount >= 1):
@@ -67,12 +81,13 @@ class Micro:
 
     async def medivac_boost(self, medivac: Unit):
         available_abilities = (await self.bot.get_available_abilities([medivac]))[0]
-        if AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities:
+        if (AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
     def bio(self, bio: Unit):
         enemy_units_in_range = self.get_enemy_units_in_range(bio)
         other_enemy_units: Units = self.get_enemy_units()
+        other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         enemy_buildings_in_sight = self.bot.enemy_structures.filter(
             lambda building: building.distance_to(bio) <= 12
         )
@@ -119,8 +134,8 @@ class Micro:
         if (enemy_units_in_range.amount == 0):
             return
         enemy_units_in_range.sort(
-            key=lambda unit: (
-                unit.shield + unit.health
+            key=lambda enemy_unit: (
+                enemy_unit.shield + enemy_unit.health
             )
         )
         if (unit.weapon_ready):
@@ -138,28 +153,37 @@ class Micro:
             #     marine.move(closest_enemy)
 
     def attack_nearest_base(self, unit: Unit):
+        target_position: Point2 = self.get_nearest_base_target(unit)
+        if (unit.distance_to(target_position) > 50):
+            target_position = unit.position.towards(target_position, 50)
+        unit.attack(target_position)
+
+    def attack_position(self, unit: Unit, target_position: Point2):
+        if (unit.distance_to(target_position) > 50):
+            target_position = unit.position.towards(target_position, 50)
+        unit.attack(target_position)
+
+    def get_nearest_base_target(self, unit: Unit) -> Point2:
+        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
         enemy_bases: Units = self.bot.enemy_structures.filter(
             lambda structure: structure.type_id in hq_types
         )
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
         possible_enemy_expansion_positions: List[Point2] = self.bot.expansion_locations_list
         possible_enemy_expansion_positions.sort(
             key = lambda position: position.distance_to(enemy_main_position)
         )
-
+        
         if (enemy_bases.amount >= 1):
-            unit.attack(enemy_bases.closest_to(unit))
+            return enemy_bases.closest(unit)
         else:
             for possible_expansion in possible_enemy_expansion_positions:
                 if (self.bot.state.visibility[possible_expansion.rounded] == 0):
-                    unit.attack(possible_expansion)
-                    return
+                    return possible_expansion
             for possible_expansion in possible_enemy_expansion_positions:
                 if (self.bot.state.visibility[possible_expansion.rounded] == 1):
-                    unit.attack(possible_expansion)
-                    return
+                    return possible_expansion
             print("Error : A building is hidden somewhere ?")
-
+            return enemy_main_position
 
     def move_away(selected: Unit, enemy: Unit, distance: int = 2):
         selected_position: Point2 = selected.position

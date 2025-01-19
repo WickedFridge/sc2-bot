@@ -1,6 +1,7 @@
 from typing import List
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
+from bot.macro.speed_mining import SpeedMining
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.base import Base
@@ -9,6 +10,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types
+from cython_extensions import cy_closest_to
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
@@ -16,10 +18,12 @@ THREAT_DISTANCE: int = 8
 class Macro:
     bot: BotAI
     bases: List[Base]
+    speed_mining: SpeedMining
 
     def __init__(self, bot) -> None:
         self.bot = bot
         self.bases = []
+        self.speed_mining = SpeedMining(bot)
 
     async def update_threat_level(self):
         self.bases = self.threat_detection()
@@ -161,13 +165,13 @@ class Macro:
                         )
                     )
                     # track the SCVs with 3 workers each
-                    self.track_enemy_scout(workers, local_enemy_units, 4)
+                    self.track_enemy_scout(workers, local_enemy_units, 3)
                     
                     # try to destroy the constructing bunkers and give up on finished ones
                     for bunker in bunkers.filter(lambda unit: unit.build_progress < 1):
-                        self.pull_workers(workers, bunker, 8)
+                        self.pull_workers(workers, bunker, 4)
 
-    def pull_workers(self, workers: Units, target: Unit, amount: 8):
+    def pull_workers(self, workers: Units, target: Unit, amount: int):
         workers_attacking_tower = workers.filter(
             lambda unit: unit.is_attacking and unit.order_target == target.tag
         ).amount
@@ -182,7 +186,21 @@ class Macro:
         for worker_pulled in workers_pulled:
             worker_pulled.attack(target)
 
-    
+    async def saturate_gas(self):
+        # Saturate refineries
+        for refinery in self.bot.gas_buildings:
+            if (
+                refinery.assigned_harvesters < refinery.ideal_harvesters
+                and self.bot.vespene <= self.bot.minerals + 300
+                and self.bot.workers.amount >= 5 * self.bot.townhalls.amount
+            ):
+                workers: Units = self.bot.workers.gathering.closer_than(10, refinery).filter(
+                    lambda unit: unit.orders[0].target != refinery.tag
+                )
+                if workers:
+                    closest_worker = workers.closest_to(refinery)
+                    closest_worker.gather(refinery)
+
     def track_enemy_scout(self, workers: Units, local_enemy_units: Units, max_scv_attacking = 1):
         for enemy_scout in local_enemy_units:
             if (workers.collecting.amount == 0):
@@ -211,9 +229,8 @@ class Macro:
                     and unit.order_target == damaged_unit.tag
                 )
             )
-            max_workers_repairing: int = 1
+            max_workers_repairing: int = 0.5 + (self.bot.townhalls.amount / 2).__round__()
             if (workers_repairing_unit.amount >= max_workers_repairing):
-                print("max worker repairing already")
                 return
             
             close_workers: Units = workers.filter(
@@ -241,3 +258,17 @@ class Macro:
         for mule in mules_idle:
             closest_mineral_field: Unit = self.bot.mineral_field.closest_to(mule)
             mule.gather(closest_mineral_field)
+
+    # async def speed_mining(self):
+    #     if (self.bot.townhalls.amount == 0):
+    #         return
+    #     if (self.bot.mineral_field.amount == 0):
+    #         return
+        
+    #     for worker in self.bot.workers.collecting:
+    #         len_orders: int = len(worker.orders)
+    #         if (len_orders == 2):
+    #             return
+    #         if (worker.is_returning or worker.is_carrying_resource) and len_orders < 2:
+    #             if (not self.townhall):
+    #                 self.townhall = cy_closest_to(self.worker_position, ai.townhalls)
