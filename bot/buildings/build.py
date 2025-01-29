@@ -1,5 +1,6 @@
 import math
 from typing import FrozenSet, List, Literal, Optional, Set
+from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityBuild
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
@@ -13,11 +14,11 @@ from ..utils.unit_tags import add_ons
 
 class Build:
     bot: BotAI
+    expansions: Expansions
     
-    def __init__(self, bot) -> None:
-        super().__init__()
+    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-
+        self.expansions = expansions
 
     async def finish_construction(self):
         if (self.bot.workers.collecting.amount == 0):
@@ -172,32 +173,25 @@ class Build:
     async def bunker(self):
         bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
         bunker_count: float = self.bot.structures(UnitTypeId.BUNKER).ready.amount + self.bot.already_pending(UnitTypeId.BUNKER)
-        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        expansions_count: int = self.expansions.amount_taken
 
         # We want a bunker at each base after the first
         if (bunker_tech_requirements == 1
-            and orbital_count >= 1
-            and bunker_count < self.bot.townhalls.amount - 1
+            and expansions_count >= 1
+            and bunker_count < expansions_count - 1
             and self.bot.can_afford(UnitTypeId.BUNKER)
         ):
-            townhalls: Units = self.bot.townhalls.copy()
-            bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
-            bases_without_bunkers = townhalls.filter(lambda unit: bunkers.amount == 0 or bunkers.closest_distance_to(unit) > 10)
-            bases_without_bunkers.sort(key = lambda unit: unit.distance_to(self.bot.start_location), reverse=True)
-            if (bases_without_bunkers.amount == 0):
-                # most likely we have the whole map
-                return
-            last_base: Unit = bases_without_bunkers.first
-            closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(last_base.position).bottom_center
-            second_to_last_base: Unit = bases_without_bunkers.first if (bases_without_bunkers.amount == 1) else bases_without_bunkers[1]
-            enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
-            bunker_position: Point2 = last_base.position.towards(enemy_spawn, 3)
-            if (bunker_position.distance_to(closest_ramp_bottom) < 15):
-                bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
-            else:
-                bunker_position = bunker_position.towards(second_to_last_base, 2)
-            print("build bunker near last base")
-            await self.build(UnitTypeId.BUNKER, bunker_position)
+            for expansion_not_defended in self.expansions.not_defended:
+                closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(expansion_not_defended.position).bottom_center
+                enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
+                bunker_position: Point2 = self.expansions.last.position.towards(enemy_spawn, 3)
+                closest_taken_base_position: Point2 = self.expansions.taken.closest_to(expansion_not_defended.position).position
+                if (bunker_position.distance_to(closest_ramp_bottom) < 15):
+                    bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
+                else:
+                    bunker_position = bunker_position.towards(closest_taken_base_position, 2)
+                print("build bunker near last base")
+                await self.build(UnitTypeId.BUNKER, bunker_position)
 
 
     async def ebays(self):
@@ -310,9 +304,9 @@ class Build:
         
         # Loop over each flying Factory
         for factory in self.bot.structures(UnitTypeId.FACTORYFLYING).idle:
-            starports: Units = self.bot.units(UnitTypeId.STARPORT).ready + self.bot.units(UnitTypeId.STARPORTFLYING)
-            starports_pending_amount = self.bot.already_pending(UnitTypeId.STARPORT)
-            starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on)
+            starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
+            starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
+            starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on == False)
             if (
                 starports_pending_amount >= 1
                 or starports_without_reactor.amount >= 1
@@ -369,16 +363,14 @@ class Build:
                     print("no free reactor")
 
 
-    async def expand(self):
-        next_expansion: Point2 = await self.get_next_expansion()
-        if (
-            self.bot.can_afford(UnitTypeId.COMMANDCENTER)
-            and next_expansion
-        ):
+    async def build_expand(self):
+        if (self.bot.can_afford(UnitTypeId.COMMANDCENTER)):
             print("Expand")
-            await self.bot.expand_now(location=next_expansion)
-
-
+            next_expansion: Point2 = self.expansions.next.position
+            if (self.bot.townhalls.amount >= 2):
+                next_expansion = self.bot.townhalls.closest_to(next_expansion).position.towards(next_expansion, 2)
+            await self.build(UnitTypeId.COMMANDCENTER, next_expansion)
+    
     async def build(self, unitType: UnitTypeId, position: Point2, placement_step: int = 2):
         location: Point2 = await self.bot.find_placement(unitType, near=position, placement_step=placement_step)
         if (location):
@@ -435,9 +427,6 @@ class Build:
         return (
             self.bot.workers.closest_to(building).is_constructing_scv == True
             or self.bot.workers.closest_distance_to(building) <= building.radius * math.sqrt(2)
-            # or self.bot.workers.in_distance_between(structure.position, 0, structure.radius * math.sqrt(2).filter(
-            #     lambda unit: unit.is_constructing_scv
-            # ).amount == 0
         )
 
     
@@ -486,36 +475,3 @@ class Build:
                 case _:
                     print("Error : specify top or bottom of the ramp")
         return closest_ramp
-        
-
-    async def get_next_expansion(self) -> Optional[Point2]:
-        """Find next expansion location."""
-        
-        # get all expansions on the map that are available
-        # get the pathing distance between start location and the base
-        # get the pathing distance between enemy starting location and the base
-        # get location that has smaller distance - enemy_distance
-
-        closest = None
-        distance: float = math.inf
-        for el in self.bot.expansion_locations_list:
-            def is_near_to_expansion(t: Unit):
-                return t.distance_to(el) < self.bot.EXPANSION_GAP_THRESHOLD
-
-            
-            if any(map(is_near_to_expansion, self.bot.townhalls)):
-                # already taken
-                continue
-
-            startp: Point2 = self.bot.game_info.player_start_location
-            enemy_start: Point2 = self.bot.enemy_start_locations[0]
-            d = await self.bot.client.query_pathing(startp, el)
-            enemy_d = await self.bot.client.query_pathing(enemy_start, el)
-            if (d is None or enemy_d is None):
-                continue
-
-            if (d - enemy_d < distance):
-                distance = d - enemy_d
-                closest = el
-
-        return closest

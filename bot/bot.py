@@ -1,7 +1,10 @@
-from typing import List
+import math
+from typing import List, Tuple
 from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
+from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from bot.macro.macro import Macro
 from bot.strategy.handler import StrategyHandler
 from bot.train import Train
@@ -11,11 +14,12 @@ from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.1.0"
+VERSION: str = "2.2.1"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -28,16 +32,19 @@ class WickedBot(BotAI):
     train: Train
     macro: Macro
     strategy: StrategyHandler
+    expansions: Expansions
 
     def __init__(self) -> None:
         super().__init__()
-        self.builder = Build(self)
-        self.buildings = BuildingsHandler(self)
+        self.expansions = Expansions(self)
+        self.builder = Build(self, self.expansions)
+        self.buildings = BuildingsHandler(self, self.expansions)
         self.search = Search(self)
         self.combat = Combat(self)
         self.train = Train(self, self.combat)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
+        self.expansions = Expansions(self)
 
     async def on_start(self):
         """
@@ -47,17 +54,24 @@ class WickedBot(BotAI):
 
         print("Game started")
         await self.macro.split_workers()
-        # await self.client.debug_all_resources()
-
+    
     async def on_step(self, iteration: int):
         """
         This code runs continually throughout the game
         Populate this function with whatever your bot should do!
         """
+        if (iteration < 1):
+            return
         # General Game Stuff
-        if (iteration == 2):
+        if (iteration == 1):
             await self.tag_game()
             await self.macro.speed_mining.start()
+            await self.expansions.set_expansion_list()
+            self.builder = Build(self, self.expansions)
+            self.buildings = BuildingsHandler(self, self.expansions)
+            # await self.client.debug_all_resources()
+            # await self.client.debug_create_unit([[UnitTypeId.FACTORYFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
         await self.check_surrend_condition()
         
         # General Worker management
@@ -77,10 +91,13 @@ class WickedBot(BotAI):
         await self.buildings.cancel_buildings()
         await self.builder.finish_construction()
 
+        self.expansion_locations
         # Control buildings
         await self.buildings.drop_mules()
         await self.builder.switch_addons()
         await self.buildings.handle_supplies()
+        await self.buildings.lift_orbital()
+        await self.buildings.land_orbital()
         
         # Spend Money
         await self.builder.supplies()
@@ -96,7 +113,7 @@ class WickedBot(BotAI):
         await self.builder.factory()
         await self.builder.barracks()
         await self.builder.addons()
-        await self.builder.expand()
+        await self.builder.build_expand()
         await self.train.infantry()
         
         # Control Attacking Units
@@ -105,9 +122,15 @@ class WickedBot(BotAI):
         await self.combat.handle_bunkers()
 
         # Debug stuff
-        # await self.combat.debug_army_orders()
-        # await self.combat.debug_bases_threat()
-        # await self.combat.debug_selection()
+        await self.combat.debug_army_orders()
+        await self.combat.debug_bases_threat()
+        await self.combat.debug_selection()
+
+        last_expansion: Expansion = self.expansions.last
+        for expansion in self.expansions.taken:
+            is_last: bool = last_expansion and expansion.position == last_expansion.position
+            text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
+            self.combat.draw_text_on_world(expansion.position, text)
         
         # TODO
         # await self.scout()

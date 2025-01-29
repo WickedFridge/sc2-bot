@@ -1,18 +1,23 @@
 import math
+from typing import List
+from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityRepair
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import must_repair, add_ons
 
 class BuildingsHandler:
     bot: BotAI
+    expansions: Expansions
     
-    def __init__(self, bot) -> None:
+    def __init__(self, bot, expansions) -> None:
         super().__init__()
         self.bot = bot
+        self.expansions = expansions
 
     async def repair_buildings(self):
         workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
@@ -111,4 +116,27 @@ class BuildingsHandler:
                 print("Raise Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
-    
+    async def lift_orbital(self):
+        orbitals_not_on_slot = self.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
+        for orbital in orbitals_not_on_slot:
+            landing_spot: Point2 = self.expansions.next.position
+            enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+            optimal_worker_count: int = 16 * self.expansions.amount_taken + 3 * self.bot.structures(UnitTypeId.REFINERY).amount
+            if (enemy_units_around_spot.amount >= 1):
+                print("too many enemies")
+                return
+            if (self.bot.supply_workers >= optimal_worker_count):
+                print("Lift Orbital")
+                print(f'workers : [{self.bot.supply_workers}/{optimal_worker_count}]')
+                orbital(AbilityId.LIFT_ORBITALCOMMAND)
+
+    async def land_orbital(self):
+        flying_orbitals: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).ready.idle
+        for orbital in flying_orbitals:
+            landing_spot: Point2 = (
+                self.expansions.next.position if flying_orbitals.amount == 1
+                else self.expansions.free.closest_to(orbital.position)
+            )
+            enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+            if (enemy_units_around_spot.amount == 0):
+                orbital(AbilityId.LAND_ORBITALCOMMAND, landing_spot)

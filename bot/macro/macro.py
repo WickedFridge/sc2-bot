@@ -1,6 +1,7 @@
 from typing import List
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
+from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
@@ -14,6 +15,7 @@ from cython_extensions import cy_closest_to
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
+REPAIR_THRESHOLD: float = 0.8
 
 class Macro:
     bot: BotAI
@@ -110,7 +112,7 @@ class Macro:
                         attacking_worker.stop()
                     mules: Units = self.bot.units(UnitTypeId.MULE).collecting
                     damaged_mechanical_units = self.bot.units.filter(in_threat_distance).filter(
-                        lambda unit: (unit.is_mechanical and unit.health_percentage < 1)
+                        lambda unit: (unit.is_mechanical and unit.health_percentage < REPAIR_THRESHOLD)
                     )
                     self.repair_units(workers + mules, damaged_mechanical_units)
                 
@@ -258,17 +260,3 @@ class Macro:
         for mule in mules_idle:
             closest_mineral_field: Unit = self.bot.mineral_field.closest_to(mule)
             mule.gather(closest_mineral_field)
-
-    # async def speed_mining(self):
-    #     if (self.bot.townhalls.amount == 0):
-    #         return
-    #     if (self.bot.mineral_field.amount == 0):
-    #         return
-        
-    #     for worker in self.bot.workers.collecting:
-    #         len_orders: int = len(worker.orders)
-    #         if (len_orders == 2):
-    #             return
-    #         if (worker.is_returning or worker.is_carrying_resource) and len_orders < 2:
-    #             if (not self.townhall):
-    #                 self.townhall = cy_closest_to(self.worker_position, ai.townhalls)

@@ -178,7 +178,7 @@ class Execute:
     def defend_canon_rush(self, army: Army):
         canons: Units = self.bot.enemy_structures(UnitTypeId.PHOTONCANNON).filter(
             lambda unit: (
-                unit.distance_to(army.units.center <= 30)
+                unit.distance_to(army.units.center) <= 30
             )
         )
         #TODO improve this
