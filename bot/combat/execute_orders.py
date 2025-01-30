@@ -183,7 +183,7 @@ class Execute:
         )
         #TODO improve this
         canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.start_location)))
-        for unit in army:
+        for unit in army.units:
             unit.attack(canons.first)
 
     async def harass(self, army: Army):

@@ -19,7 +19,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.2.1"
+VERSION: str = "2.2.2"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -52,7 +52,7 @@ class WickedBot(BotAI):
         Do things here before the game starts
         """
 
-        print("Game started")
+        print(f'Game started, version {VERSION}')
         await self.macro.split_workers()
     
     async def on_step(self, iteration: int):

@@ -140,7 +140,7 @@ class Build:
             and not self.bot.waitingForOrbital()
         ) :
             print("Build Factory")
-            cc: Unit = self.bot.townhalls.ready.random
+            cc: Unit =  self.bot.townhalls.ready.random if self.bot.townhalls.ready.amount >= 1 else self.bot.townhalls.random
             factory_position = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.FACTORY, factory_position)
 
