@@ -101,7 +101,8 @@ class Macro:
             workers: Units = self.bot.workers.filter(in_threat_distance)
             if (workers.amount == 0):
                 break
-            local_buildings: Units = self.bot.structures.filter(in_threat_distance)
+            # local_buildings: Units = self.bot.structures.filter(in_threat_distance)
+            local_enemy_buildings: Units = self.bot.structures.filter(in_threat_distance)
             local_enemy_units: Units = self.bot.enemy_units.filter(in_threat_distance)
             
             match base.threat:
@@ -132,7 +133,7 @@ class Macro:
                 
                 case Threat.HARASS:
                     for worker in workers:
-                        closest_enemy: Unit = local_enemy_units.closest_to(worker)
+                        closest_enemy: Unit = (local_enemy_units + local_enemy_buildings).closest_to(worker)
                         if (closest_enemy.distance_to(worker) < closest_enemy.ground_range + 2):
                             Micro.move_away(worker, closest_enemy, 1)
                 
@@ -154,10 +155,15 @@ class Macro:
                     
                     # respond to canon rush
                     # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
+                    if (canons.amount == 0):
+                        for pylon in pylons:
+                            self.pull_workers(workers, pylon, 4)
+
                     for canon in canons:
-                        self.pull_workers(workers, canon, 3)
-                    for pylon in pylons:
-                        self.pull_workers(workers, pylon, 4)
+                        if (canon.build_progress <= 0.5):
+                            self.pull_workers(workers, canon, 3)
+                        else:
+                            self.pull_workers(workers, canon, (canon.build_progress * 8).__round__())
                 
                 case Threat.BUNKER_RUSH:
                     bunkers: Units = self.bot.enemy_structures.filter(

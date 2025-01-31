@@ -17,7 +17,11 @@ class Expansion:
         self.distance_from_main = distance
 
     @property
-    def taken(self) -> bool:
+    def is_main(self) -> bool:
+        return self.position == self.bot.start_location
+    
+    @property
+    def is_taken(self) -> bool:
         townhalls: Units = self.bot.townhalls
         if (townhalls.amount == 0):
             return False
@@ -30,7 +34,7 @@ class Expansion:
 
     @property
     def cc(self) -> Optional[Unit]:
-        if (not self.taken):
+        if (not self.is_taken):
             return None
         townhalls: Units = self.bot.townhalls
         for townhall in townhalls:

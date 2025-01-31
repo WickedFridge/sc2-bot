@@ -32,7 +32,7 @@ class Expansions(List):
     def amount_taken(self) -> int:
         expansion_count: int = 0
         for expansion in self.expansions:
-            if (expansion.taken):
+            if (expansion.is_taken):
                 expansion_count += 1
         return expansion_count
     
@@ -45,11 +45,11 @@ class Expansions(List):
     
     @property
     def taken(self) -> Expansions:
-        return self.filter(lambda expansion: expansion.taken == True)
+        return self.filter(lambda expansion: expansion.is_taken == True)
     
     @property
     def free(self) -> Expansions:
-        return self.filter(lambda expansion: expansion.taken == False)
+        return self.filter(lambda expansion: expansion.is_taken == False)
 
     @property
     def defended(self) -> Expansions:
@@ -58,6 +58,10 @@ class Expansions(List):
     @property
     def not_defended(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_defended == False)
+    
+    @property
+    def without_main(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_main == False)
     
     @property
     def last(self) -> Optional[Expansion]:

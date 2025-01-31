@@ -62,7 +62,7 @@ class Build:
             
         if (
             self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 < 200
-            and self.bot.supply_left < 2 + self.bot.supply_used / 10
+            and self.bot.supply_left < self.bot.supply_used / 9 + 2.5
             and self.bot.can_afford(UnitTypeId.SUPPLYDEPOT)
             and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 50
         ) :
@@ -79,12 +79,13 @@ class Build:
 
     async def gas(self):
         gasCount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount + self.bot.already_pending(UnitTypeId.REFINERY)
-        workers_mining: int = self.bot.workers.collecting.amount
+        workers_mining: int = self.bot.supply_workers
+        barracks_count: int = self.bot.structures(UnitTypeId.BARRACKS).amount
         if(
             self.bot.can_afford(UnitTypeId.REFINERY)
             and gasCount <= 2 * self.bot.townhalls.ready.amount
             and self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) >= 1
-            and workers_mining >= (gasCount + 1) * 11.5
+            and (workers_mining >= (gasCount + 1) * 11.5 or gasCount == 1 and barracks_count == 2)
             and (not self.bot.waitingForOrbital() or self.bot.minerals >= 225)
         ):
             for th in self.bot.townhalls.ready:
@@ -100,12 +101,13 @@ class Build:
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracksPosition: Point2 = self.bot.main_base_ramp.barracks_correct_placement
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
-        cc_amount: int = self.bot.townhalls.amount
-        max_barracks: int = min(20, cc_amount ** 2 / 2 - cc_amount / 2 + 1)
+        # base_amount: int = self.bot.townhalls.amount
+        base_amount: int = self.expansions.amount_taken
+        max_barracks: int = min(12, base_amount ** 2 / 2 - base_amount / 2 + 1)
 
         # We want 1 rax for 1 base, 2 raxes for 2 bases, 4 raxes for 3 bases, 7 raxes for 4 bases
         # y = x²/2 - x/2 + 1 where x is the number of bases and y the number of raxes
-        # with a max of 20 raxes
+        # with a max of 12 raxes
 
         if (
             barracks_tech_requirement == 1
@@ -115,7 +117,7 @@ class Build:
             and not self.bot.waitingForOrbital()
         ) :
             print(f'Build Barracks [{barracks_amount + 1}/{int(max_barracks)}]')
-            if (barracks_amount >= 1 and cc_amount >= 1):
+            if (barracks_amount >= 1 and base_amount >= 1):
                 cc: Unit =  self.bot.townhalls.ready.random if self.bot.townhalls.ready.amount >= 1 else self.bot.townhalls.random
                 barracksPosition = cc.position.towards(self.bot.game_info.map_center, 4)
             await self.build(UnitTypeId.BARRACKS, barracksPosition)
@@ -181,7 +183,7 @@ class Build:
             and bunker_count < expansions_count - 1
             and self.bot.can_afford(UnitTypeId.BUNKER)
         ):
-            for expansion_not_defended in self.expansions.not_defended:
+            for expansion_not_defended in self.expansions.taken.without_main.not_defended:
                 closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(expansion_not_defended.position).bottom_center
                 enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
                 bunker_position: Point2 = self.expansions.last.position.towards(enemy_spawn, 3)
@@ -264,7 +266,7 @@ class Build:
             techlab_amount = self.bot.structures(UnitTypeId.BARRACKSTECHLAB).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKSTECHLAB)
             reactor_amount = self.bot.structures(UnitTypeId.BARRACKSREACTOR).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKSREACTOR)
             if (
-                techlab_amount <= reactor_amount):
+                techlab_amount <= reactor_amount // 2):
                 if (self.bot.can_afford(UnitTypeId.BARRACKSTECHLAB)):
                     barrack.build(UnitTypeId.BARRACKSTECHLAB)
                     print("Build Techlab")
@@ -290,6 +292,7 @@ class Build:
                     + self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount
                     + self.bot.already_pending(UnitTypeId.STARPORT)
                 ) < 1
+                or (self.bot.structures(UnitTypeId.STARPORT).ready.filter(lambda starport: starport.has_add_on).amount >= 1)
             ):
                 # print("Start Starport before add-on")
                 break
@@ -307,9 +310,13 @@ class Build:
             starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
             starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
             starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on == False)
+            free_reactors: Units = self.bot.structures(UnitTypeId.REACTOR).filter(
+                lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
+            )
             if (
                 starports_pending_amount >= 1
                 or starports_without_reactor.amount >= 1
+                and free_reactors.amount <= 1
             ):
                 await self.find_land_position(factory)
 

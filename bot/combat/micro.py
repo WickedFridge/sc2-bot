@@ -79,7 +79,12 @@ class Micro:
 
         if (damaged_allies.amount >= 1):
             damaged_allies.sort(key = lambda unit: (unit.health, unit.distance_to(medivac)))
-            medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies.first)
+            # start with allies in range
+            damaged_allies_in_range: Units = damaged_allies.filter(lambda unit: unit.distance_to(medivac) <= 3)
+            if (damaged_allies_in_range.amount):
+                medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies_in_range.first)
+            else:
+                medivac(AbilityId.MEDIVACHEAL_HEAL, damaged_allies.first)
         else:
             local_ground_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             if (local_ground_units.amount >= 1):

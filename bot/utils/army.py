@@ -24,6 +24,10 @@ class Army:
     @property
     def center(self) -> Point2:
         return self.units.center
+    
+    @property
+    def ground_center(self) -> Point2:
+        return self.units.filter(lambda unit: unit.is_flying != False).center
 
     @property
     def speed(self) -> float:

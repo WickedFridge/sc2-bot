@@ -67,18 +67,6 @@ class Execute:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
-    async def attack_nearest_base(self, army: Army):
-        for unit in army.units:
-            match unit.type_id:
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac(unit, army.units)
-                case _:
-                    nearest_base_target: Point2 = self.micro.get_nearest_base_target(unit)
-                    if (unit.distance_to(army.center) >= army.radius - 2):
-                        unit.move(army.center)
-                    else:
-                        self.micro.attack_position(unit, nearest_base_target)
-
     def defend(self, army: Army):
         main_position: Point2 = self.bot.start_location
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
@@ -214,14 +202,31 @@ class Execute:
             else:
                 unit.attack(local_enemy_buildings.first)
 
+    async def attack_nearest_base(self, army: Army):
+        for unit in army.units:
+            match unit.type_id:
+                case UnitTypeId.MEDIVAC:
+                    await self.micro.medivac(unit, army.units)
+                case _:
+                    nearest_base_target: Point2 = self.micro.get_nearest_base_target(unit)
+                    if (
+                        unit.distance_to(army.center) >= army.radius - 2
+                    ):
+                        unit.move(army.ground_center)
+                    else:
+                        self.micro.attack_position(unit, nearest_base_target)
+
     async def chase_buildings(self, army: Army):
         for unit in army.units:
+            attack_position: Point2 = self.bot.enemy_structures.closest_to(unit).position
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac(unit, army.units)
-            elif (unit.distance_to(army.center) >= army.radius - 2):
-                unit.move(army.center)
+            elif (
+                unit.distance_to(army.ground_center) >= army.radius - 2
+            ):
+                unit.move(army.ground_center)
             else:
-                self.micro.attack_position(unit, self.bot.enemy_structures.closest_to(unit).position)
+                self.micro.attack_position(unit, attack_position)
 
     def regroup(self, army: Army, armies: List[Army]):
         other_armies = list(filter(lambda other_army: other_army.center != army.center, armies))

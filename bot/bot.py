@@ -19,7 +19,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.2.2"
+VERSION: str = "2.3.3"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -41,7 +41,7 @@ class WickedBot(BotAI):
         self.buildings = BuildingsHandler(self, self.expansions)
         self.search = Search(self)
         self.combat = Combat(self)
-        self.train = Train(self, self.combat)
+        self.train = Train(self, self.combat, self.expansions)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
         self.expansions = Expansions(self)
@@ -69,6 +69,7 @@ class WickedBot(BotAI):
             await self.expansions.set_expansion_list()
             self.builder = Build(self, self.expansions)
             self.buildings = BuildingsHandler(self, self.expansions)
+            self.train = Train(self, self.combat, self.expansions)
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.FACTORYFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])

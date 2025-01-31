@@ -1,4 +1,5 @@
 from bot.combat.combat import Combat
+from bot.macro.expansion_manager import Expansions
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -9,15 +10,16 @@ class Train:
     bot: BotAI
     combat: Combat
     
-    def __init__(self, bot: BotAI, combat: Combat) -> None:
+    def __init__(self, bot: BotAI, combat: Combat, expansions: Expansions) -> None:
         super().__init__()
         self.bot = bot
         self.combat = combat
+        self.expansions = expansions
 
     async def workers(self):
         workers_pending: float = self.bot.already_pending(UnitTypeId.SCV)
         worker_count: float = self.bot.supply_workers + workers_pending
-        worker_max: int = min(84, self.bot.townhalls.amount * 22)
+        worker_max: int = min(84, self.expansions.amount_taken * 22)
         townhalls_type: UnitTypeId = UnitTypeId.ORBITALCOMMAND if self.bot.orbitalTechAvailable() else UnitTypeId.COMMANDCENTER
         townhalls: Units = self.bot.townhalls(townhalls_type).ready.filter(
             lambda unit: (
