@@ -1,6 +1,7 @@
 from typing import List
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
 from bot.utils.ability_tags import AbilityRepair
@@ -22,8 +23,9 @@ class Macro:
     bases: List[Base]
     speed_mining: SpeedMining
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
+        self.expansions = expansions
         self.bases = []
         self.speed_mining = SpeedMining(bot)
 
@@ -123,6 +125,18 @@ class Macro:
                         break
                     attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
                     for worker in workers.collecting:
+                        enemy_units_on_main_ramp: Units = attackable_enemy_units.filter(
+                            lambda unit: (
+                                unit.position.distance_to(self.bot.main_base_ramp.top_center) <= 5
+                                and unit.position.distance_to(self.bot.main_base_ramp.bottom_center) <= 5
+                            )
+                        )
+                        # Don't pull workers from the main if the wall is up and units are outside
+                        if (
+                            self.expansions.closest_to(worker).position == self.expansions.main.position
+                            and enemy_units_on_main_ramp.amount >= 1
+                        ):
+                            return
                         if (attackable_enemy_units.amount >= 1):
                             worker.attack(attackable_enemy_units.closest_to(worker))
                         else:

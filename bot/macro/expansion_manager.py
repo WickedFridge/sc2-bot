@@ -64,6 +64,40 @@ class Expansions(List):
         return self.filter(lambda expansion: expansion.is_main == False)
     
     @property
+    def main(self) -> Optional[Expansion]:
+        return self.expansions[0]
+    
+    @property
+    def b2(self) -> Optional[Expansion]:
+        return self.expansions[1]
+
+    @property
+    def b3(self) -> Optional[Expansion]:
+        return self.expansions[2]
+
+    @property
+    def b4(self) -> Optional[Expansion]:
+        return self.expansions[3]
+    
+    @property
+    def enemy_main(self) -> Optional[Expansion]:
+        return self.expansions[self.expansions.__len__() - 1]
+    
+    @property
+    def enemy_b2(self) -> Optional[Expansion]:
+        return self.expansions[self.expansions.__len__() - 2]
+    
+    @property
+    def enemy_b3(self) -> Optional[Expansion]:
+        return self.expansions[self.expansions.__len__() - 3]
+
+    @property
+    def enemy_b4(self) -> Optional[Expansion]:
+        return self.expansions[self.expansions.__len__() - 4]
+    
+
+    
+    @property
     def last(self) -> Optional[Expansion]:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == 0):

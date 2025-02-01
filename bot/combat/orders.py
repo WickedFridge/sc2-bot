@@ -1,17 +1,18 @@
 import enum
 
 class Orders(enum.Enum):
-    FIGHT = 0
-    RETREAT = 1
-    DEFEND = 2
-    HARASS = 3
-    KILL_BUILDINGS = 4
-    CHASE_BUILDINGS = 5
-    ATTACK_NEAREST_BASE = 6
-    REGROUP = 7
+    FIGHT_OFFENSE = 0
+    FIGHT_DEFENSE = 1
+    RETREAT = 2
+    DEFEND = 3
+    HARASS = 4
+    KILL_BUILDINGS = 5
+    CHASE_BUILDINGS = 6
+    ATTACK_NEAREST_BASE = 7
     DEFEND_BUNKER_RUSH = 8
     DEFEND_CANON_RUSH = 9
     PICKUP_LEAVE = 10
+    REGROUP = 11
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

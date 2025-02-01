@@ -48,3 +48,9 @@ class Expansion:
         if (bunkers.amount == 0):
             return False
         return (bunkers.closest_distance_to(self.position) <= 10)
+    
+    @property
+    def defending_bunker(self) -> Optional[Unit]:
+        if (self.is_defended == False):
+            return None
+        return self.bot.structures(UnitTypeId.BUNKER).closest_to(self.position)

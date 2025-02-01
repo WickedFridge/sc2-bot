@@ -1,5 +1,6 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
+from bot.macro.expansion_manager import Expansions
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
@@ -14,10 +15,12 @@ PICKUP_RANGE: int = 3
 class Execute:
     bot: BotAI
     micro: Micro
+    expansions: Expansions
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-        self.micro = Micro(bot)
+        self.expansions = expansions
+        self.micro = Micro(bot, expansions)
 
     async def pickup_leave(self, army: Army):
         ground_army: Units = army.units.filter(lambda unit: unit.is_flying == False)
@@ -48,7 +51,6 @@ class Execute:
                 medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
             else:
                 self.micro.retreat(medivac)
-
 
     def retreat_army(self, army: Army):
         for unit in army.units:

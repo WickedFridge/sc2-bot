@@ -19,7 +19,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.3.3"
+VERSION: str = "2.3.4"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -40,9 +40,9 @@ class WickedBot(BotAI):
         self.builder = Build(self, self.expansions)
         self.buildings = BuildingsHandler(self, self.expansions)
         self.search = Search(self)
-        self.combat = Combat(self)
+        self.combat = Combat(self, self.expansions)
         self.train = Train(self, self.combat, self.expansions)
-        self.macro = Macro(self)
+        self.macro = Macro(self, self.expansions)
         self.strategy = StrategyHandler(self)
         self.expansions = Expansions(self)
 
@@ -69,7 +69,9 @@ class WickedBot(BotAI):
             await self.expansions.set_expansion_list()
             self.builder = Build(self, self.expansions)
             self.buildings = BuildingsHandler(self, self.expansions)
+            self.combat = Combat(self, self.expansions)
             self.train = Train(self, self.combat, self.expansions)
+            self.macro = Macro(self, self.expansions)
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.FACTORYFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
@@ -200,8 +202,6 @@ class WickedBot(BotAI):
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
         pass
-        # if (unit.type_id == UnitTypeId.SCV):
-        #     self.macro.repair_workers(unit, amount_damage_taken)
     
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)

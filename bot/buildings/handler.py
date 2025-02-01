@@ -125,7 +125,10 @@ class BuildingsHandler:
             if (enemy_units_around_spot.amount >= 1):
                 print("too many enemies")
                 return
-            if (self.bot.supply_workers >= optimal_worker_count):
+            if (
+                self.bot.supply_workers >= optimal_worker_count
+                or orbitals_not_on_slot.amount >= 2
+            ):
                 print("Lift Orbital")
                 print(f'workers : [{self.bot.supply_workers}/{optimal_worker_count}]')
                 orbital(AbilityId.LIFT_ORBITALCOMMAND)

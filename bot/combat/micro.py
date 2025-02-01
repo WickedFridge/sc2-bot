@@ -1,5 +1,7 @@
 import math
 from typing import List
+from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from sc2.bot_ai import BotAI
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
@@ -14,20 +16,20 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, 
 
 class Micro:
     bot: BotAI
+    expansions: Expansions
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
+        self.expansions = expansions
 
     @property
     def retreat_position(self) -> Point2:
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        townhalls: Units = self.bot.townhalls
-        if (townhalls.amount == 0):
-            return self.bot.start_location
-        if (townhalls.amount == 1):
-            return townhalls.first.position
-        townhalls.sort(key = lambda unit: unit.distance_to(enemy_main_position))
-        return townhalls.first.position.towards(townhalls[1].position, 5)
+        last_expansion: Expansion = self.expansions.last
+        if (last_expansion):
+            if (last_expansion.is_defended):
+                return last_expansion.defending_bunker.position.towards(last_expansion.position, 1)
+            return last_expansion.position.towards(self.expansions.main, 5)
+        return self.expansions.main.position
     
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
@@ -36,12 +38,9 @@ class Micro:
         enemy_units_in_sight: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(unit) <= 10)
         if (unit.type_id in bio and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
+        
         # TODO: handle retreat when opponent is blocking our way
         retreat_position = self.retreat_position
-        bunkers_close = self.bot.structures(UnitTypeId.BUNKER).filter(lambda unit: unit.distance_to(retreat_position) <= 10)
-        # TODO : does this goes by the bunker ?
-        if (bunkers_close.amount >= 1):
-            retreat_position = retreat_position.towards(bunkers_close.center, 2)
         if (
             unit.type_id == UnitTypeId.MEDIVAC
             and unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])

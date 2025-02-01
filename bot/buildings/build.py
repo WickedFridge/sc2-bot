@@ -2,6 +2,7 @@ import math
 from typing import FrozenSet, List, Literal, Optional, Set
 from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityBuild
+from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
@@ -64,7 +65,7 @@ class Build:
             self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 < 200
             and self.bot.supply_left < self.bot.supply_used / 9 + 2.5
             and self.bot.can_afford(UnitTypeId.SUPPLYDEPOT)
-            and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 50
+            and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 70
         ) :
             print("Build Supply Depot")
             if (len(supply_placement_positions) >= 1) :
@@ -185,11 +186,14 @@ class Build:
         ):
             for expansion_not_defended in self.expansions.taken.without_main.not_defended:
                 closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(expansion_not_defended.position).bottom_center
-                enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
+                enemy_spawn: Point2 = self.expansions.enemy_main.position
                 bunker_position: Point2 = self.expansions.last.position.towards(enemy_spawn, 3)
                 closest_taken_base_position: Point2 = self.expansions.taken.closest_to(expansion_not_defended.position).position
                 if (bunker_position.distance_to(closest_ramp_bottom) < 15):
-                    bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
+                    bunker_position = center([expansion_not_defended.position, closest_ramp_bottom])
+                    if (bunker_position):
+                        bunker_position = bunker_position.towards(enemy_spawn)
+                    # bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
                 else:
                     bunker_position = bunker_position.towards(closest_taken_base_position, 2)
                 print("build bunker near last base")

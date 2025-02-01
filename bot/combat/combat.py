@@ -4,11 +4,13 @@ from bot.combat.execute_orders import Execute
 from bot.combat.micro import Micro
 from bot.combat.orders import Orders
 from bot.combat.threats import Threat
+from bot.macro.expansion_manager import Expansions
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
+from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -20,13 +22,15 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
 class Combat:
     bot: BotAI
     execute: Execute
+    expansions: Expansions
     known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
     
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-        self.execute = Execute(bot)
+        self.expansions = expansions
+        self.execute = Execute(bot, expansions)
         self.known_enemy_army = Army(Units([], bot), bot)
 
     @property
@@ -146,11 +150,11 @@ class Combat:
                 return Orders.DEFEND_CANON_RUSH
 
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
-            if (
-                army_supply >= local_enemy_supply
-                or distance_building_to_enemies <= BASE_SIZE
-            ):
-                return Orders.FIGHT
+            if (army_supply >= local_enemy_supply):
+                return Orders.FIGHT_OFFENSE
+            if (distance_building_to_enemies <= BASE_SIZE):
+                return Orders.FIGHT_DEFENSE
+            
             print("army too strong, not taking the fight")
             return Orders.PICKUP_LEAVE
             
@@ -210,7 +214,10 @@ class Combat:
                 case Orders.RETREAT:
                     self.execute.retreat_army(army)
                 
-                case Orders.FIGHT:
+                case Orders.FIGHT_OFFENSE:
+                    await self.execute.fight(army)
+                
+                case Orders.FIGHT_DEFENSE:
                     await self.execute.fight(army)
                                  
                 case Orders.DEFEND:
@@ -305,31 +312,22 @@ class Combat:
                     return
 
     async def debug_army_orders(self):
-        color: tuple
+        color: tuple = WHITE
+        colors: dict = {
+            Orders.PICKUP_LEAVE: RED,
+            Orders.RETREAT: GREEN,
+            Orders.FIGHT_OFFENSE: RED,
+            Orders.FIGHT_DEFENSE: YELLOW,
+            Orders.DEFEND: YELLOW,
+            Orders.HARASS: BLUE,
+            Orders.CHASE_BUILDINGS: LIGHTBLUE,
+            Orders.ATTACK_NEAREST_BASE: PURPLE,
+            Orders.KILL_BUILDINGS: PURPLE,
+            Orders.CHASE_BUILDINGS: PURPLE,
+            Orders.REGROUP: WHITE,
+        }
         for army in self.armies:
-            match army.orders:
-                case Orders.PICKUP_LEAVE:
-                    color = RED
-                case Orders.RETREAT:
-                    color = GREEN
-                case Orders.FIGHT:
-                    color = RED
-                case Orders.DEFEND:
-                    color = YELLOW
-                case Orders.HARASS:
-                    color = BLUE
-                case Orders.CHASE_BUILDINGS:
-                    color = LIGHTBLUE
-                case Orders.ATTACK_NEAREST_BASE:
-                    color = PURPLE
-                case Orders.KILL_BUILDINGS:
-                    color = PURPLE
-                case Orders.CHASE_BUILDINGS:
-                    color = PURPLE
-                case Orders.REGROUP:
-                    color = WHITE
-                case _:
-                    color = WHITE
+            color = colors[army.orders]
             army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.weighted_supply.__round__(2)})'
             self.draw_sphere_on_world(army.units.center, self.army_radius * 0.7, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
@@ -357,11 +355,17 @@ class Combat:
 
     async def debug_selection(self):
         selected_units: Units = self.bot.units.selected
+        selected_positions: List[Point2] = []
         for unit in selected_units:
-            order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
-            order_target = "" if unit.is_idle else unit.orders[0].target
-            distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
-            self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
+            selected_positions.append(unit.position)
+        if (selected_units.amount >= 1):
+            center_point: Point2 = center(selected_positions)
+            self.draw_sphere_on_world(center_point)
+        # for unit in selected_units:
+        #     order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
+        #     order_target = "" if unit.is_idle else unit.orders[0].target
+        #     distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
+        #     self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
