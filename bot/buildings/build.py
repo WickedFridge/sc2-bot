@@ -104,7 +104,7 @@ class Build:
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
         # base_amount: int = self.bot.townhalls.amount
         base_amount: int = self.expansions.amount_taken
-        max_barracks: int = min(12, base_amount ** 2 / 2 - base_amount / 2 + 1)
+        max_barracks: int = min(14, base_amount ** 2 / 2 - base_amount / 2 + 1)
 
         # We want 1 rax for 1 base, 2 raxes for 2 bases, 4 raxes for 3 bases, 7 raxes for 4 bases
         # y = x²/2 - x/2 + 1 where x is the number of bases and y the number of raxes

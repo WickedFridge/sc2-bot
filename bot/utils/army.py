@@ -30,6 +30,10 @@ class Army:
         return self.units.filter(lambda unit: unit.is_flying != False).center
 
     @property
+    def ground_units(self) -> Units:
+        return self.units.not_flying
+    
+    @property
     def speed(self) -> float:
         if (self.units.amount == 0):
             return 0
@@ -37,9 +41,11 @@ class Army:
         return self.units.first.real_speed
     
     @property
-    def armored_supply(self) -> float:
-        armored_units: Units = self.units.filter(lambda unit: unit.is_armored)
-        return units_supply(armored_units)
+    def armored_ground_supply(self) -> float:
+        armored_ground_units: Units = self.ground_units.filter(
+            lambda unit: unit.is_armored
+        )
+        return units_supply(armored_ground_units)
     
     @property
     def supply(self) -> float:

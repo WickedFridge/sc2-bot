@@ -56,7 +56,7 @@ class Train:
     def should_train_marauders(self):
         enemy_armored_ratio: float = (
             0 if self.combat.known_enemy_army.supply == 0
-            else self.combat.known_enemy_army.armored_supply / self.combat.known_enemy_army.supply
+            else self.combat.known_enemy_army.armored_ground_supply / self.combat.known_enemy_army.supply
         )
         armored_ratio: float = (
             0 if self.combat.army_supply == 0

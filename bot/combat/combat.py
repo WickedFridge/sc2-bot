@@ -48,7 +48,7 @@ class Combat:
     def armored_supply(self) -> float:
         result: float = 0
         for army in self.armies:
-            result += army.armored_supply
+            result += army.armored_ground_supply
         return result
 
     def debug_cluster(self) -> None:
