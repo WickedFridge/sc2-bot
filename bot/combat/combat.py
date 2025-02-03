@@ -218,7 +218,7 @@ class Combat:
                     await self.execute.fight(army)
                 
                 case Orders.FIGHT_DEFENSE:
-                    await self.execute.fight(army)
+                    await self.execute.fight_defense(army)
                                  
                 case Orders.DEFEND:
                     self.execute.defend(army)
@@ -270,12 +270,6 @@ class Combat:
             if (bio_close_by.amount == 0):
                 return
             bio_in_range: Units = Units(bio_close_by.filter(lambda unit: unit.distance_to(bunker) <= 3)[:4], self.bot)
-            if (bio_in_range.amount == 0):
-                bio_close_by.sort(key = lambda unit: unit.distance_to(bunker))
-                bio_moving_towards_bunker: Units = Units(bio_close_by.copy()[:4], self.bot)
-                for bio_unit in bio_moving_towards_bunker:
-                    bio_unit.move(bunker)
-                    return
             print("bio should load")
             for unit in bio_in_range:
                 bunker(AbilityId.LOAD_BUNKER, unit)

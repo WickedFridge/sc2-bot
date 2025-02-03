@@ -2,6 +2,7 @@ import math
 from typing import List
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
 from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
@@ -96,6 +97,23 @@ class Micro:
         if (AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
+    def bio_defense(self, bio: Unit):
+        enemy_units: Units = self.get_enemy_units().sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
+        if (enemy_units.amount == 0):
+            print("[Error] no enemy units to attack")
+            self.bio(bio)
+            return
+        
+        close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(bio) <= 10)
+        closest_bunker: Unit = close_bunkers.closest_to(bio) if close_bunkers else None
+        if (closest_bunker):
+            # handle stim
+            self.stim_bio(bio)
+            self.defend_around_bunker(bio, enemy_units, closest_bunker)
+        else:
+            self.bio(bio)
+            
+    
     def bio(self, bio: Unit):
         enemy_units_in_range = self.get_enemy_units_in_range(bio)
         other_enemy_units: Units = self.get_enemy_units()
@@ -142,6 +160,45 @@ class Micro:
                 ):
                     bio_unit(AbilityId.EFFECT_STIM)
 
+    # TODO if enemy units are menacing something else than the bunker, get out and fight
+    def defend_around_bunker(self, unit: Unit, enemy_units: Units, bunker: Unit):
+        if (not bunker):
+            return
+        close_townhalls: Units = self.bot.townhalls.filter(lambda townhall: townhall.distance_to(unit) <= 10)
+        closest_townhall: Unit = close_townhalls.closest_to(unit) if close_townhalls.amount >= 1 else None
+        retreat_position: Point2 = bunker if close_townhalls.amount == 0 else center([bunker.position, closest_townhall.position])
+
+        if (enemy_units.amount == 0):
+            unit.move(retreat_position)
+                
+        enemy_units.sort(
+            key=lambda enemy_unit: (
+                enemy_unit.shield + enemy_unit.health
+            )
+        )
+        enemy_units_in_range: Units = enemy_units.filter(lambda enemy_unit: unit.target_in_range(enemy_unit))
+            
+        if (unit.weapon_ready and enemy_units_in_range.amount >= 1):
+            unit.attack(enemy_units_in_range.first)
+        else:
+            # if no enemy units are menacing something else than the bunker
+            # defend by the bunker
+            # otherwise get out and fight
+            other_structures_than_bunkers: Units = self.bot.structures.filter(lambda structure: structure.type_id != UnitTypeId.BUNKER)
+            menacing_enemy_units: Units = enemy_units.filter(lambda enemy_unit: other_structures_than_bunkers.in_attack_range_of(enemy_unit))
+            if (menacing_enemy_units.amount == 0 or menacing_enemy_units.closest_distance_to(bunker) <= 8):
+                if (bunker.cargo_left >= 1):
+                    unit.move(bunker)
+                elif (unit.distance_to(retreat_position) > 2):
+                    unit.move(retreat_position)
+                else:
+                    Micro.move_away(unit, enemy_units.closest_to(unit))
+            else:
+                if (unit.weapon_ready):
+                    unit.attack(enemy_units.closest_to(unit))
+                else:
+                    Micro.move_away(unit, enemy_units.closest_to(unit))
+    
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
         if (enemy_units_in_range.amount == 0):
             return
@@ -161,8 +218,6 @@ class Micro:
                 and closest_enemy.ground_range < unit.ground_range
             ):
                 Micro.move_away(unit, closest_enemy)
-            # else:
-            #     marine.move(closest_enemy)
 
     def attack_nearest_base(self, unit: Unit):
         target_position: Point2 = self.get_nearest_base_target(unit)

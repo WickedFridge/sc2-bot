@@ -193,7 +193,6 @@ class Build:
                     bunker_position = center([expansion_not_defended.position, closest_ramp_bottom])
                     if (bunker_position):
                         bunker_position = bunker_position.towards(enemy_spawn)
-                    # bunker_position = bunker_position.towards(closest_ramp_bottom, 3)
                 else:
                     bunker_position = bunker_position.towards(closest_taken_base_position, 2)
                 print("build bunker near last base")

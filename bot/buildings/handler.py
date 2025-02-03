@@ -127,7 +127,7 @@ class BuildingsHandler:
                 return
             if (
                 self.bot.supply_workers >= optimal_worker_count
-                or orbitals_not_on_slot.amount >= 2
+                or self.expansions.townhalls_not_on_slot().amount >= 2
             ):
                 print("Lift Orbital")
                 print(f'workers : [{self.bot.supply_workers}/{optimal_worker_count}]')

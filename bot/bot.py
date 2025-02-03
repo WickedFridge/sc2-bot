@@ -19,7 +19,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.3.7"
+VERSION: str = "2.4.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -81,6 +81,7 @@ class WickedBot(BotAI):
         await self.distribute_workers()
         await self.macro.mule_idle()
         await self.macro.saturate_gas()
+        await self.macro.unbug_workers()
         await self.macro.speed_mining.execute()
         
         # Assement of the situation
@@ -94,7 +95,6 @@ class WickedBot(BotAI):
         await self.buildings.cancel_buildings()
         await self.builder.finish_construction()
 
-        self.expansion_locations
         # Control buildings
         await self.buildings.drop_mules()
         await self.builder.switch_addons()

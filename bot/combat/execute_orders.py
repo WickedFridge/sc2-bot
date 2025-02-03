@@ -69,6 +69,19 @@ class Execute:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
+    async def fight_defense(self, army: Army):
+        for unit in army.units:
+            match unit.type_id:
+                case UnitTypeId.MEDIVAC:
+                    await self.micro.medivac(unit, army.units)
+                case UnitTypeId.MARINE:
+                    self.micro.bio_defense(unit)
+                case UnitTypeId.MARAUDER:
+                    self.micro.bio_defense(unit)
+                case _:
+                    closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
+                    unit.attack(closest_enemy_unit)
+
     def defend(self, army: Army):
         main_position: Point2 = self.bot.start_location
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]

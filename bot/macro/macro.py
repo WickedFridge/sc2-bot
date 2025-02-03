@@ -8,8 +8,9 @@ from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.base import Base
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.unit import Unit
+from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types
 from cython_extensions import cy_closest_to
@@ -32,6 +33,14 @@ class Macro:
     async def update_threat_level(self):
         self.bases = self.threat_detection()
 
+    # due to speedmining, some workers sometimes bug
+    async def unbug_workers(self):
+        for worker in self.bot.workers.filter(lambda worker: worker.is_idle == False):
+            order: UnitOrder = worker.orders[0]
+            townhall_ids: List[int] = [townhall.tag for townhall in self.bot.townhalls]
+            if (order.ability.id == AbilityId.MOVE and order.target in townhall_ids):
+                worker.stop()
+    
     def threat_detection(self) -> List[Base]:
         bases: List[Base] = []
         for cc in self.bot.townhalls:
@@ -71,11 +80,12 @@ class Macro:
         if (enemy_workers_harassing.amount >= 1):
             return Threat.WORKER_SCOUT
 
-        local_units: Units = self.bot.units.filter(
+        local_units: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE 
+        ) + self.bot.units.filter(
             lambda unit: (
                 local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
                 and unit.type_id not in worker_types
-                and not unit.is_structure
             )
         )
         local_army: Army = Army(local_units, self.bot)
