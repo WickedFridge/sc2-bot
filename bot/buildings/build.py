@@ -288,16 +288,21 @@ class Build:
         for factory in self.bot.structures(UnitTypeId.FACTORY).ready.idle.filter(
             lambda factory: factory.has_add_on == False
         ):
+            starport_amount: int = (
+                self.bot.structures(UnitTypeId.STARPORT).ready.amount
+                + self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount
+                + self.bot.already_pending(UnitTypeId.STARPORT)
+            )
+            free_reactors: Units = self.bot.structures(UnitTypeId.REACTOR).ready.filter(
+                lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
+            )
+
             if (
                 not self.bot.can_afford(UnitTypeId.FACTORYREACTOR)
-                or (
-                    self.bot.structures(UnitTypeId.STARPORT).ready.amount
-                    + self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount
-                    + self.bot.already_pending(UnitTypeId.STARPORT)
-                ) < 1
+                or starport_amount < 1
                 or (self.bot.structures(UnitTypeId.STARPORT).ready.filter(lambda starport: starport.has_add_on).amount >= 1)
+                or free_reactors.amount >= 1
             ):
-                # print("Start Starport before add-on")
                 break
             
             if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, factory.add_on_position)):

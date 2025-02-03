@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from bot.combat.orders import Orders
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
@@ -82,6 +82,18 @@ class Army:
                 and unit.type_id not in worker_types
             )
         )
+
+    @property
+    def leader(self) -> Optional[Unit]:
+        if (self.ground_units.amount == 0):
+            return None
+        return self.ground_units.sorted(lambda unit: unit.tag, True).first
+    
+    @property
+    def followers(self) -> Units:
+        if (not self.leader):
+            return self.units
+        return self.units.filter(lambda unit: unit.tag != self.leader.tag)
 
     def detect_units(self, enemy_units: Units) -> None:
         for enemy in enemy_units:
