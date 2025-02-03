@@ -327,7 +327,8 @@ class Combat:
             Orders.REGROUP: WHITE,
         }
         for army in self.armies:
-            color = colors[army.orders]
+            if (army.orders in colors):
+                color = colors[army.orders]
             army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.weighted_supply.__round__(2)})'
             self.draw_sphere_on_world(army.units.center, self.army_radius * 0.7, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)

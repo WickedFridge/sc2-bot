@@ -107,6 +107,8 @@ class Expansions(List):
     @property
     def next(self) -> Expansion:
         taken_expansions: Expansions = self.taken
+        if (taken_expansions.amount == self.amount):
+            return self.last
         return self.expansions[taken_expansions.amount]
 
     @property
