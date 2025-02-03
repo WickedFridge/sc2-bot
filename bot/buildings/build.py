@@ -102,8 +102,8 @@ class Build:
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracksPosition: Point2 = self.bot.main_base_ramp.barracks_correct_placement
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
-        # base_amount: int = self.bot.townhalls.amount
-        base_amount: int = self.expansions.amount_taken
+        base_amount: int = self.bot.townhalls.amount
+        # base_amount: int = self.expansions.amount_taken
         max_barracks: int = min(14, base_amount ** 2 / 2 - base_amount / 2 + 1)
 
         # We want 1 rax for 1 base, 2 raxes for 2 bases, 4 raxes for 3 bases, 7 raxes for 4 bases
