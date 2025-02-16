@@ -164,13 +164,13 @@ class Micro:
     def defend_around_bunker(self, unit: Unit, enemy_units: Units, bunker: Unit):
         if (not bunker):
             return
-        close_townhalls: Units = self.bot.townhalls.filter(lambda townhall: townhall.distance_to(unit) <= 10)
+        close_townhalls: Units = self.bot.townhalls.filter(lambda townhall: townhall.distance_to(unit) <= 20)
         closest_townhall: Unit = close_townhalls.closest_to(unit) if close_townhalls.amount >= 1 else None
         retreat_position: Point2 = bunker if close_townhalls.amount == 0 else center([bunker.position, closest_townhall.position])
 
         if (enemy_units.amount == 0):
             unit.move(retreat_position)
-                
+
         enemy_units.sort(
             key=lambda enemy_unit: (
                 enemy_unit.shield + enemy_unit.health

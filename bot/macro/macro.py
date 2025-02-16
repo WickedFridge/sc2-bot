@@ -13,7 +13,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types
-from cython_extensions import cy_closest_to
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
@@ -104,7 +103,7 @@ class Macro:
         if (self.bot.townhalls.amount == 0):
             print("no townhalls left, o7")
             for worker in self.bot.workers:
-                worker.attack(self.bot.enemy_units.closest_to(worker))
+                worker.attack(self.bot.enemy_units.filter(lambda unit: unit.is_flying == False).closest_to(worker))
             return
         
         for base in self.bases:

@@ -117,6 +117,8 @@ class BuildingsHandler:
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
     async def lift_orbital(self):
+        if (self.expansions.free.amount == 0):
+            return
         orbitals_not_on_slot = self.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
         for orbital in orbitals_not_on_slot:
             landing_spot: Point2 = self.expansions.next.position
@@ -130,7 +132,6 @@ class BuildingsHandler:
                 or self.expansions.townhalls_not_on_slot().amount >= 2
             ):
                 print("Lift Orbital")
-                print(f'workers : [{self.bot.supply_workers}/{optimal_worker_count}]')
                 orbital(AbilityId.LIFT_ORBITALCOMMAND)
 
     async def land_orbital(self):
@@ -138,7 +139,8 @@ class BuildingsHandler:
         for orbital in flying_orbitals:
             landing_spot: Point2 = (
                 self.expansions.next.position if flying_orbitals.amount == 1
-                else self.expansions.free.closest_to(orbital.position)
+                else self.expansions.free.closest_to(orbital.position).position if self.expansions.free.amount >= 1
+                else self.expansions.last.position
             )
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             if (enemy_units_around_spot.amount == 0):

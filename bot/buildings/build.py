@@ -2,6 +2,7 @@ import math
 from typing import FrozenSet, List, Literal, Optional, Set
 from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityBuild
+from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
@@ -21,6 +22,10 @@ class Build:
         self.bot = bot
         self.expansions = expansions
 
+    @property
+    def matchup(self) -> Matchup:
+        return get_matchup(self.bot)
+    
     async def finish_construction(self):
         if (self.bot.workers.collecting.amount == 0):
             return
@@ -101,7 +106,8 @@ class Build:
     async def barracks(self):
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracksPosition: Point2 = self.bot.main_base_ramp.barracks_correct_placement
-        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
+        barracks_pending_amount: int = max(self.bot.structures(UnitTypeId.BARRACKS).not_ready.amount, self.bot.already_pending(UnitTypeId.BARRACKS))
+        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount + barracks_pending_amount + self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount
         base_amount: int = self.bot.townhalls.amount
         # base_amount: int = self.expansions.amount_taken
         max_barracks: int = min(14, base_amount ** 2 / 2 - base_amount / 2 + 1)
@@ -113,7 +119,7 @@ class Build:
         if (
             barracks_tech_requirement == 1
             and self.bot.can_afford(UnitTypeId.BARRACKS)
-            and self.bot.already_pending(UnitTypeId.BARRACKS) < self.bot.townhalls.amount
+            and barracks_pending_amount < self.bot.townhalls.amount
             and barracks_amount < max_barracks
             and not self.bot.waitingForOrbital()
         ) :
@@ -322,9 +328,8 @@ class Build:
                 lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
             )
             if (
-                starports_pending_amount >= 1
-                or starports_without_reactor.amount >= 1
-                and free_reactors.amount <= 1
+                free_reactors.amount <= 1 and
+                (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
             ):
                 await self.find_land_position(factory)
 

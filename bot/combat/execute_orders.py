@@ -159,7 +159,11 @@ class Execute:
                     unit.move(closest_ally_bunker)
                     closest_ally_bunker(AbilityId.LOAD_BUNKER, unit)
                     return True
-            unit.attack(menacing_bunkers)
+            menacing_bunkers_in_range: Units = menacing_bunkers.in_attack_range_of(unit)
+            if (menacing_bunkers_in_range.amount == 0):
+                unit.attack(menacing_bunkers.closest_to(unit))
+                return True
+            unit.attack(menacing_bunkers_in_range.sorted(lambda bunker: bunker.health).first)
             return True
         return False
 
@@ -181,11 +185,15 @@ class Execute:
     def defend_canon_rush(self, army: Army):
         canons: Units = self.bot.enemy_structures(UnitTypeId.PHOTONCANNON).filter(
             lambda unit: (
-                unit.distance_to(army.units.center) <= 30
+                unit.distance_to(army.center) <= 30
             )
         )
+        if (canons.amount == 0):
+            print("Error : no canons detected")
+            return
+
         #TODO improve this
-        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.start_location)))
+        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.expansions.main.position)))
         for unit in army.units:
             unit.attack(canons.first)
 

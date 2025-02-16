@@ -11,6 +11,7 @@ from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import center
+from bot.utils.unit_functions import find_by_tag
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -228,6 +229,7 @@ class Combat:
 
                 case Orders.DEFEND_CANON_RUSH:
                     self.execute.defend_canon_rush(army)
+
                 case Orders.HARASS:
                     await self.execute.harass(army)            
                      
@@ -353,20 +355,44 @@ class Combat:
         selected_positions: List[Point2] = []
         for unit in selected_units:
             selected_positions.append(unit.position)
-        if (selected_units.amount >= 1):
+        if (selected_units.amount > 1):
             center_point: Point2 = center(selected_positions)
             self.draw_sphere_on_world(center_point)
+        else:
+            for unit in selected_units:
+                if (unit.is_idle):
+                    break
+                target: int|Point2 = unit.orders[0].target
+                if (target is Point2):
+                    self.draw_box_on_world(target)
+                else:
+                    # find target unit
+                    target_unit: Unit = find_by_tag(self.bot, target)
+                    if (target_unit):
+                        self.draw_box_on_world(target_unit.position)
         # for unit in selected_units:
         #     order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
         #     order_target = "" if unit.is_idle else unit.orders[0].target
         #     distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
         #     self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
+    async def debug_unscouted_b2(self):
+        for point in self.expansions.b2.unscouted_points:
+            self.draw_box_on_world(point, 0.5)
+    
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(
             Point3((pos.x, pos.y, z_height)), 
             radius, color=draw_color
+        )
+
+    def draw_box_on_world(self, pos: Point2, size: float = 0.25, draw_color: tuple = (255, 0, 0)):
+        z_height: float = self.bot.get_terrain_z_height(pos)
+        self.bot.client.debug_box2_out(
+            Point3((pos.x, pos.y, z_height)),
+            size,
+            draw_color,
         )
 
     def draw_text_on_world(self, pos: Point2, text: str, draw_color: tuple = (255, 102, 255), font_size: int = 14) -> None:

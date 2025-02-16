@@ -11,7 +11,6 @@ class Train:
     combat: Combat
     
     def __init__(self, bot: BotAI, combat: Combat, expansions: Expansions) -> None:
-        super().__init__()
         self.bot = bot
         self.combat = combat
         self.expansions = expansions

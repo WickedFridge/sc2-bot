@@ -1,15 +1,16 @@
 import math
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from bot.buildings.build import Build
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.macro import Macro
+from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
 from bot.train import Train
 from bot.technology.search import Search
-from bot.utils.races import Races
+from bot.utils.matchup import Matchup, define_matchup, get_matchup
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.ids.ability_id import AbilityId
@@ -19,7 +20,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.4.1"
+VERSION: str = "2.5.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -44,8 +45,12 @@ class WickedBot(BotAI):
         self.train = Train(self, self.combat, self.expansions)
         self.macro = Macro(self, self.expansions)
         self.strategy = StrategyHandler(self)
-        self.expansions = Expansions(self)
+        self.scout = Scout(self, self.expansions)
 
+    @property
+    def matchup(self) -> Matchup:
+        return get_matchup(self)
+    
     async def on_start(self):
         """
         This code runs once at the start of the game
@@ -72,6 +77,7 @@ class WickedBot(BotAI):
             self.combat = Combat(self, self.expansions)
             self.train = Train(self, self.combat, self.expansions)
             self.macro = Macro(self, self.expansions)
+            
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.REACTOR, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
@@ -124,10 +130,14 @@ class WickedBot(BotAI):
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
 
+        # Scout with some SCV
+        await self.scout.b2_against_proxy()
+
         # Debug stuff
         await self.combat.debug_army_orders()
         await self.combat.debug_bases_threat()
         await self.combat.debug_selection()
+        await self.combat.debug_unscouted_b2()
 
         last_expansion: Expansion = self.expansions.last
         for expansion in self.expansions.taken:
@@ -135,61 +145,18 @@ class WickedBot(BotAI):
             text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
             self.combat.draw_text_on_world(expansion.position, text)
         
-        # TODO
-        # await self.scout()
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
         if (landed_buildings.amount == 0):
             await self.client.chat_send("gg !", False)
             await self.client.leave()
-    
-    async def scout(self):
-        # Use the reaper to scout
-        if(self.units(UnitTypeId.REAPER).amount == 0):
-            return
-        
-        reaper: Unit = self.units(UnitTypeId.REAPER).random
-
-        # if enemy unit in range, move away
-        if (self.enemy_units.amount >= 1):
-            closest_enemy_unit: Unit = self.enemy_units.closest_to(reaper)
-            if (
-                closest_enemy_unit.distance_to(reaper) <= 7
-                and closest_enemy_unit.can_attack_ground
-            ):
-                print("distance between reaper and", closest_enemy_unit.name, ":", closest_enemy_unit.distance_to(reaper))
-                self.move_away(reaper, closest_enemy_unit)
-
-        # otherwise, move to a random spot around the enemy start location
-        else:
-            reaper.move(self.enemy_start_locations[0])
-
-        # # Scout every 30 seconds with closest marine
-        # if (not int(self.time) % 30  and self.time - int(self.time) <= 0.1):
-
-        #     # determine what we have to scout
-        #     possible_enemy_expansion_positions: List[Point2] = self.expansion_locations_list.sort(
-        #         key = lambda position: position.distance_to(self.enemy_start_locations[0])
-        #     )[:self.townhalls.amount]
-            
-        #     for position_to_scout in possible_enemy_expansion_positions:
-        #         # determine which unit is our scouting unit
-        #         if (self.units(UnitTypeId.MARINE).amount >= 1):
-        #             # select the unit that is the closest to stuff we don't know
-        #             closest_marine: Unit = self.units(UnitTypeId.MARINE).closest_to(position_to_scout)
-        #             print("Send Marine to scout")
-        #             closest_marine.move(position_to_scout)
 
     async def tag_game(self):
         await self.client.chat_send("Good Luck & Have fun !", False)
         await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})', False)
-        game_races: List[str] = [
-            Races[self.game_info.player_races[1]],
-            Races[self.game_info.player_races[2]],
-        ]
-        game_races.sort()
-        await self.client.chat_send(f'Tag:{game_races[0]}v{game_races[1]}', False)
+        await self.client.chat_send(f'Tag:{self.matchup}', False)
+        print(f'Matchup : {self.matchup}')
 
     def orbitalTechAvailable(self):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
