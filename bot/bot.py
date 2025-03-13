@@ -11,6 +11,7 @@ from bot.strategy.handler import StrategyHandler
 from bot.train import Train
 from bot.technology.search import Search
 from bot.utils.matchup import Matchup, define_matchup, get_matchup
+from bot.utils.point2_functions import grid_offsets
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.ids.ability_id import AbilityId
@@ -20,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.5.0"
+VERSION: str = "2.6.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -77,7 +78,6 @@ class WickedBot(BotAI):
             self.combat = Combat(self, self.expansions)
             self.train = Train(self, self.combat, self.expansions)
             self.macro = Macro(self, self.expansions)
-            
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.REACTOR, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
@@ -137,7 +137,8 @@ class WickedBot(BotAI):
         await self.combat.debug_army_orders()
         await self.combat.debug_bases_threat()
         await self.combat.debug_selection()
-        await self.combat.debug_unscouted_b2()
+        # await self.combat.debug_unscouted_b2()
+        await self.combat.debug_bunker_positions()
 
         last_expansion: Expansion = self.expansions.last
         for expansion in self.expansions.taken:

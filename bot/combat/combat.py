@@ -1,5 +1,5 @@
 import math
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 from bot.combat.execute_orders import Execute
 from bot.combat.micro import Micro
 from bot.combat.orders import Orders
@@ -10,7 +10,7 @@ from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
-from bot.utils.point2_functions import center
+from bot.utils.point2_functions import center, grid_offsets
 from bot.utils.unit_functions import find_by_tag
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
@@ -351,7 +351,7 @@ class Combat:
             self.draw_text_on_world(base.position, base_descriptor, color)
 
     async def debug_selection(self):
-        selected_units: Units = self.bot.units.selected
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
         for unit in selected_units:
             selected_positions.append(unit.position)
@@ -360,6 +360,7 @@ class Combat:
             self.draw_sphere_on_world(center_point)
         else:
             for unit in selected_units:
+                self.draw_text_on_world(unit.position, f'{unit.position}')
                 if (unit.is_idle):
                     break
                 target: int|Point2 = unit.orders[0].target
@@ -379,7 +380,18 @@ class Combat:
     async def debug_unscouted_b2(self):
         for point in self.expansions.b2.unscouted_points:
             self.draw_box_on_world(point, 0.5)
-    
+
+    async def debug_bunker_positions(self):
+        for expansion in self.expansions:
+            bunker_forward_in_pathing: Optional[Point2] = expansion.bunker_forward_in_pathing
+            bunker_ramp: Optional[Point2] = expansion.bunker_ramp
+            if (expansion.is_defended or expansion.is_main):
+                continue
+            if (bunker_forward_in_pathing):
+                self.draw_grid_on_world(bunker_forward_in_pathing, 3, "forward in pathing")
+            if (bunker_ramp):
+                self.draw_grid_on_world(bunker_ramp, 3, "ramp")
+            
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(
@@ -390,16 +402,33 @@ class Combat:
     def draw_box_on_world(self, pos: Point2, size: float = 0.25, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_box2_out(
-            Point3((pos.x, pos.y, z_height)),
+            Point3((pos.x, pos.y, z_height-0.45)),
             size,
             draw_color,
         )
+
+    def draw_grid_on_world(self, pos: Point2, size: int = 3, text: str = ""):
+        # if the grid is even, a 2x2 should be rounded first
+        point_positions: List[Point2] = []
+        self.draw_text_on_world(pos.rounded_half, text, font_size=10)
+        match(size):
+            case 2:
+                point_positions = grid_offsets(0.5, initial_position = pos.rounded)
+            case 3:
+                point_positions = grid_offsets(1, initial_position = pos.rounded_half)
+            case 5:
+                point_positions = grid_offsets(2, initial_position = pos.rounded_half)
+        for i, point_position in enumerate(point_positions):
+            draw_color = GREEN if (self.bot.in_pathing_grid(point_position)) else RED
+            self.draw_box_on_world(point_position, 0.5, draw_color)
+            self.draw_text_on_world(point_position, f'{i}', draw_color, 10)
+
 
     def draw_text_on_world(self, pos: Point2, text: str, draw_color: tuple = (255, 102, 255), font_size: int = 14) -> None:
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_text_world(
             text,
-            Point3((pos.x - 2, pos.y, z_height)),
+            Point3((pos.x, pos.y, z_height)),
             color=draw_color,
             size=font_size,
         )

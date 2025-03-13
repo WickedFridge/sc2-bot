@@ -162,6 +162,10 @@ class Point2(Pointlike):
         return Point2((math.floor(self[0]), math.floor(self[1])))
 
     @property
+    def rounded_half(self) -> Point2:
+        return Point2((round(self[0] - 0.5) + 0.5, round(self[1] - 0.5) + 0.5))
+
+    @property
     def length(self) -> float:
         """ This property exists in case Point2 is used as a vector. """
         return math.hypot(self[0], self[1])

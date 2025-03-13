@@ -68,7 +68,7 @@ class Build:
             
         if (
             self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 < 200
-            and self.bot.supply_left < self.bot.supply_used / 9 + 2.5
+            and self.bot.supply_left < self.bot.supply_used / 9 + 2
             and self.bot.can_afford(UnitTypeId.SUPPLYDEPOT)
             and self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) <= self.bot.supply_used / 70
         ) :
@@ -191,16 +191,11 @@ class Build:
             and self.bot.can_afford(UnitTypeId.BUNKER)
         ):
             for expansion_not_defended in self.expansions.taken.without_main.not_defended:
-                closest_ramp_bottom: Point2 = self.find_closest_bottom_ramp(expansion_not_defended.position).bottom_center
-                enemy_spawn: Point2 = self.expansions.enemy_main.position
-                bunker_position: Point2 = self.expansions.last.position.towards(enemy_spawn, 3)
-                closest_taken_base_position: Point2 = self.expansions.taken.closest_to(expansion_not_defended.position).position
-                if (bunker_position.distance_to(closest_ramp_bottom) < 15):
-                    bunker_position = center([expansion_not_defended.position, closest_ramp_bottom])
-                    if (bunker_position):
-                        bunker_position = bunker_position.towards(enemy_spawn)
-                else:
-                    bunker_position = bunker_position.towards(closest_taken_base_position, 2)
+                bunker_position: Point2 = (
+                    expansion_not_defended.bunker_ramp
+                    if self.matchup == Matchup.TvZ and expansion_not_defended.bunker_ramp is not None
+                    else expansion_not_defended.bunker_forward_in_pathing
+                )
                 print("build bunker near last base")
                 await self.build(UnitTypeId.BUNKER, bunker_position)
 
