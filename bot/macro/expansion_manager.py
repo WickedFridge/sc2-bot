@@ -95,8 +95,6 @@ class Expansions(List):
     def enemy_b4(self) -> Optional[Expansion]:
         return self.expansions[self.expansions.__len__() - 4]
     
-
-    
     @property
     def last(self) -> Optional[Expansion]:
         taken_expansions: Expansions = self.taken
@@ -118,7 +116,28 @@ class Expansions(List):
             ccs.append(expo.cc)
         return Units(ccs, self.bot)
     
+    @property
+    def mineral_fields(self) -> Units:
+        mineral_fields: List[Unit] = []
+        for expo in self.taken.expansions:
+            mineral_fields.append(expo.mineral_fields)
+        return Units(mineral_fields, self.bot)
     
+    @property
+    def minerals(self) -> int:
+        return sum(expansion.minerals for expansion in self.expansions)
+
+    @property
+    def vespene(self) -> int:
+        return sum(expansion.vespene for expansion in self.expansions)
+
+    @property
+    def vespene_geysers(self) -> Units:
+        vespene_geysers: List[Unit] = []
+        for expo in self.taken.expansions:
+            vespene_geysers.append(expo.vespene_geyser)
+        return Units(vespene_geysers, self.bot)
+
     def townhalls_not_on_slot(self, type_id: Optional[UnitTypeId] = None) -> Units:
         townhalls: Units = self.bot.townhalls
         all_townhalls: Units = (

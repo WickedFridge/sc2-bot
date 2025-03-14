@@ -4,6 +4,7 @@ from bot.combat.execute_orders import Execute
 from bot.combat.micro import Micro
 from bot.combat.orders import Orders
 from bot.combat.threats import Threat
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Situation
@@ -11,7 +12,7 @@ from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import center, grid_offsets
-from bot.utils.unit_functions import find_by_tag
+from bot.utils.unit_functions import find_by_tag, worker_amount_vespene_geyser, worker_amount_mineral_field
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -346,9 +347,22 @@ class Combat:
                 case _:
                     color = WHITE
             base_descriptor: str = f'[{base.threat.__repr__()}]'
-            radius: float = 15
+            # radius: float = 15
             # self.draw_sphere_on_world(base.position, radius, color)
             self.draw_text_on_world(base.position, base_descriptor, color)
+
+    async def debug_bases_content(self):
+        for expansion in self.expansions.taken:
+            below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
+            self.draw_text_on_world(expansion.position, f'Minerals[{expansion.mineral_fields.amount}]: {expansion.minerals} ({expansion.optimal_mineral_workers})', LIGHTBLUE)
+            self.draw_text_on_world(below_expansion_point, f'Gas[{expansion.vespene_geysers_refinery.amount}]: {expansion.vespene} ({expansion.optimal_vespene_workers})', GREEN)
+
+    async def debug_bases_distance(self):
+        last_expansion: Expansion = self.expansions.last
+        for expansion in self.expansions.taken:
+            is_last: bool = last_expansion and expansion.position == last_expansion.position
+            text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
+            self.combat.draw_text_on_world(expansion.position, text)
 
     async def debug_selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected

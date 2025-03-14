@@ -342,8 +342,11 @@ class Build:
         
         # if factory is complete with a reactor, lift it
         if (
-            self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1
-            and self.bot.structures(UnitTypeId.FACTORYREACTOR).ready.amount >= 1
+            (
+                self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1
+                and self.bot.structures(UnitTypeId.FACTORYREACTOR).ready.amount >= 1
+            )
+            or self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1
         ):
             for factory in self.bot.structures(UnitTypeId.FACTORY).ready:
                 if (factory.has_add_on):

@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.6.0"
+VERSION: str = "2.7.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -71,13 +71,13 @@ class WickedBot(BotAI):
         # General Game Stuff
         if (iteration == 1):
             await self.tag_game()
-            await self.macro.speed_mining.start()
             await self.expansions.set_expansion_list()
             self.builder = Build(self, self.expansions)
             self.buildings = BuildingsHandler(self, self.expansions)
             self.combat = Combat(self, self.expansions)
             self.train = Train(self, self.combat, self.expansions)
             self.macro = Macro(self, self.expansions)
+            await self.macro.speed_mining.start()
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.REACTOR, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
@@ -135,17 +135,12 @@ class WickedBot(BotAI):
 
         # Debug stuff
         await self.combat.debug_army_orders()
-        await self.combat.debug_bases_threat()
-        await self.combat.debug_selection()
+        # await self.combat.debug_bases_threat()
+        await self.combat.debug_bases_content()
+        # await self.combat.debug_bases_distance()
+        # await self.combat.debug_selection()
         # await self.combat.debug_unscouted_b2()
         await self.combat.debug_bunker_positions()
-
-        last_expansion: Expansion = self.expansions.last
-        for expansion in self.expansions.taken:
-            is_last: bool = last_expansion and expansion.position == last_expansion.position
-            text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
-            self.combat.draw_text_on_world(expansion.position, text)
-        
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)

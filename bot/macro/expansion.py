@@ -3,6 +3,7 @@ import math
 from typing import List, Optional
 
 from bot.utils.point2_functions import dfs_in_pathing, center, find_closest_bottom_ramp, grid_offsets
+from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -47,6 +48,55 @@ class Expansion:
                 return townhall
         return None
     
+    @property
+    def mineral_fields(self) -> Units:
+        return self.bot.mineral_field.closer_than(10, self.position)
+    
+    @property
+    def refineries(self) -> Units:
+        return self.bot.structures(UnitTypeId.REFINERY).ready.closer_than(10, self.position).filter(
+            lambda refinery: self.bot.vespene_geyser.filter(
+                lambda unit: unit.position == refinery.position and unit.has_vespene
+            ).amount == 1
+        )
+    
+    @property
+    def vespene_geysers_refinery(self) -> Units:
+        return self.bot.vespene_geyser.filter(
+            lambda geyser: geyser.has_vespene and self.bot.structures(UnitTypeId.REFINERY).ready.closer_than(10, self.position).filter(
+                lambda refinery: refinery.position == geyser.position
+            ).amount == 1
+        )
+    
+    @property
+    def minerals(self) -> int:
+        minerals: int = 0
+        for mf in self.mineral_fields:
+            minerals += mf.mineral_contents
+        return minerals
+    
+    @property
+    def vespene(self) -> int:
+        vespene: int = 0
+        for vg in self.vespene_geysers_refinery:
+            vespene += vg.vespene_contents
+        return vespene
+
+    @property
+    def optimal_mineral_workers(self) -> float:
+        if self.mineral_fields.amount == 0:
+            return 0
+        # optimal_worker_amount: float = 0
+        # for mf in self.mineral_fields:
+        #     optimal_worker_amount += worker_amount_mineral_field(mf.mineral_contents)
+        return sum(worker_amount_mineral_field(mf.mineral_contents) for mf in self.mineral_fields)
+
+    @property
+    def optimal_vespene_workers(self) -> float:
+        if self.refineries.amount == 0:
+            return 0
+        return sum(worker_amount_vespene_geyser(vg.vespene_contents) for vg in self.vespene_geysers_refinery)
+
     @property
     def is_defended(self) -> bool:
         bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)

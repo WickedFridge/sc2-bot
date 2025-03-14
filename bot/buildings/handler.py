@@ -2,6 +2,7 @@ import math
 from typing import List
 from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityRepair
+from bot.utils.unit_functions import worker_amount_vespene_geyser, worker_amount_mineral_field
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -123,12 +124,17 @@ class BuildingsHandler:
         for orbital in orbitals_not_on_slot:
             landing_spot: Point2 = self.expansions.next.position
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
-            optimal_worker_count: int = 16 * self.expansions.amount_taken + 3 * self.bot.structures(UnitTypeId.REFINERY).amount
+            
+            # calculate the optimal worker count based on mineral field left in bases
+            optimal_worker_count: int = (
+                sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
+                + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
+            )
             if (enemy_units_around_spot.amount >= 1):
                 print("too many enemies")
                 return
             if (
-                self.bot.supply_workers >= optimal_worker_count
+                self.bot.supply_workers >= optimal_worker_count - 5
                 or self.expansions.townhalls_not_on_slot().amount >= 2
             ):
                 print("Lift Orbital")

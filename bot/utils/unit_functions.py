@@ -10,3 +10,9 @@ def find_by_tag(bot: BotAI, tag: int):
         bot.mineral_field.find_by_tag(tag) or
         bot.vespene_geyser.find_by_tag(tag)
     )
+
+def worker_amount_mineral_field(mineral_contents: float) -> float:
+    return min(2, 2 * mineral_contents / 200)
+
+def worker_amount_vespene_geyser(gas_contents: float) -> float:
+    return min(3, 3 * gas_contents / 150)
