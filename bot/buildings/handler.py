@@ -146,7 +146,7 @@ class BuildingsHandler:
             landing_spot: Point2 = (
                 self.expansions.next.position if flying_orbitals.amount == 1
                 else self.expansions.free.closest_to(orbital.position).position if self.expansions.free.amount >= 1
-                else self.expansions.last.position
+                else self.expansions.last_taken.position
             )
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             if (enemy_units_around_spot.amount == 0):

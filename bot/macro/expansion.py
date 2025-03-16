@@ -37,6 +37,10 @@ class Expansion:
             if (townhall.order_target == self.position):
                 return True
         return False
+    
+    @property
+    def is_ready(self) -> bool:
+        return self.is_taken and self.cc.is_ready and not self.cc.is_flying
 
     @property
     def cc(self) -> Optional[Unit]:
@@ -83,12 +87,40 @@ class Expansion:
         return vespene
 
     @property
+    def mineral_workers(self) -> Units:
+        return self.bot.workers.filter(
+            lambda worker: (
+                worker.order_target in self.mineral_fields.tags
+                or (worker.is_returning and worker.distance_to(self.position) <= 8)
+                or (
+                    worker.is_moving
+                    and isinstance(worker.order_target, Point2)
+                    and worker.order_target.distance_to(self.mineral_line) <= 5
+                )
+            )
+        )
+    
+    @property
+    def vespene_workers(self) -> Units:
+        return self.bot.workers.closer_than(10, self.position).filter(
+            lambda worker: (
+                worker.is_carrying_vespene
+                or worker.order_target in self.refineries.tags
+            )
+        )
+
+    @property
+    def mineral_worker_count(self) -> int:
+        return self.mineral_workers.amount
+
+    @property
+    def vespene_worker_count(self) -> int:
+        return sum(refinery.assigned_harvesters for refinery in self.refineries)
+    
+    @property
     def optimal_mineral_workers(self) -> float:
         if self.mineral_fields.amount == 0:
             return 0
-        # optimal_worker_amount: float = 0
-        # for mf in self.mineral_fields:
-        #     optimal_worker_amount += worker_amount_mineral_field(mf.mineral_contents)
         return sum(worker_amount_mineral_field(mf.mineral_contents) for mf in self.mineral_fields)
 
     @property
@@ -98,11 +130,57 @@ class Expansion:
         return sum(worker_amount_vespene_geyser(vg.vespene_contents) for vg in self.vespene_geysers_refinery)
 
     @property
+    def mineral_saturation(self) -> float:
+        if (self.optimal_mineral_workers == 0):
+            return -1
+        return self.mineral_worker_count / self.optimal_mineral_workers
+
+    @property
+    def vespene_saturation(self) -> float:
+        if (self.optimal_vespene_workers == 0):
+            return -1
+        return self.vespene_worker_count / self.optimal_vespene_workers
+
+    @property
+    def desired_vespene_saturation(self) -> float:
+        """
+        Returns desired gas saturation between 0 and 1 based on mineral saturation:
+        - 0 when mineral saturation <= 0.5
+        - 1 when mineral saturation >= 0.75
+        - Linear in-between
+        """
+        ms: float = self.mineral_saturation
+
+        if (ms <= 0.5):
+            return 0
+        if (ms >= 0.75):
+            return 1
+        # Linear interpolation
+        saturation: float = (ms - 0.5) / 0.25
+        saturation = min(1.0, max(0.0, saturation))
+
+        # Deprioritize gas if floating too much
+        if self.bot.vespene >= 200:
+            saturation *= 0.5  # or 0 if you want hard stop
+
+        return saturation
+    
+    @property
+    def mineral_line(self) -> Point2:
+        return self.mineral_fields.center
+
+    @property
     def is_defended(self) -> bool:
         bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
         if (bunkers.amount == 0):
             return False
         return (bunkers.closest_distance_to(self.position) <= 10)
+    
+    @property
+    def retreat_position(self) -> Point2:
+        if (self.is_defended):
+            return self.defending_bunker.position.towards(self.mineral_line, 1.5)
+        return self.bunker_ramp or self.bunker_forward
     
     @property
     def bunker_forward_in_pathing(self) -> Point2 | None:
@@ -114,8 +192,7 @@ class Expansion:
         opponent_position: Point2 = self.bot.enemy_start_locations[0]
         direction_vector = opponent_position - self.position
         preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
-        return dfs_in_pathing(self.bot, start, preferred_direction)
-        
+        return dfs_in_pathing(self.bot, start, preferred_direction)     
 
     @property
     def bunker_forward(self) -> Point2:

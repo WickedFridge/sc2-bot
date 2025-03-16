@@ -25,11 +25,9 @@ class Micro:
 
     @property
     def retreat_position(self) -> Point2:
-        last_expansion: Expansion = self.expansions.last
+        last_expansion: Expansion = self.expansions.last_taken
         if (last_expansion):
-            if (last_expansion.is_defended):
-                return last_expansion.defending_bunker.position.towards(last_expansion.position, 1)
-            return last_expansion.position.towards(self.expansions.main, 5)
+            return last_expansion.retreat_position
         return self.expansions.main.position
     
     def retreat(self, unit: Unit):

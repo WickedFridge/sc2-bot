@@ -16,6 +16,7 @@ from bot.utils.unit_functions import find_by_tag, worker_amount_vespene_geyser, 
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
@@ -152,12 +153,15 @@ class Combat:
                 return Orders.DEFEND_CANON_RUSH
 
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
-            if (army_supply >= local_enemy_supply):
+            if (
+                army_supply >= local_enemy_supply
+                and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+            ):
                 return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             
-            print("army too strong, not taking the fight")
+            print(f'army too strong [{army_supply.__round__(1)} vs {local_enemy_supply.__round__(1)}], not taking the fight')
             return Orders.PICKUP_LEAVE
             
             # TODO: fix "enemy too fast"
@@ -247,7 +251,8 @@ class Combat:
                     self.execute.regroup(army, self.armies)
     
     async def handle_bunkers(self):
-        for bunker in self.bot.structures(UnitTypeId.BUNKER).ready:
+        for expansion in self.expansions.defended:
+            bunker: Unit = expansion.defending_bunker
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )
@@ -257,8 +262,16 @@ class Combat:
                 
             # unload bunker if no unit around
             if (enemy_units_around.amount == 0):
-                if(bunker.cargo_used >= 1):
+                if (len(bunker.rally_targets) == 0):
+                    rally_point: Point2 = bunker.position.towards(expansion.retreat_position, 3)
+                    bunker(AbilityId.RALLY_UNITS, rally_point)
+                if (bunker.cargo_used >= 1):
                     bunker(AbilityId.UNLOADALL_BUNKER)
+                return
+            
+            # If bunker under 20 hp, unload
+            if (bunker.health <= 20):
+                bunker(AbilityId.UNLOADALL_BUNKER)
                 return
             
             # Attack the weakest enenmy in range
@@ -354,11 +367,11 @@ class Combat:
     async def debug_bases_content(self):
         for expansion in self.expansions.taken:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
-            self.draw_text_on_world(expansion.position, f'Minerals[{expansion.mineral_fields.amount}]: {expansion.minerals} ({expansion.optimal_mineral_workers})', LIGHTBLUE)
-            self.draw_text_on_world(below_expansion_point, f'Gas[{expansion.vespene_geysers_refinery.amount}]: {expansion.vespene} ({expansion.optimal_vespene_workers})', GREEN)
+            self.draw_text_on_world(expansion.position, f'[{expansion.mineral_worker_count}/{expansion.optimal_mineral_workers.__round__(1)}] Minerals', LIGHTBLUE)
+            self.draw_text_on_world(below_expansion_point, f'[{expansion.vespene_worker_count}/{expansion.optimal_vespene_workers.__round__(1)}] Gas[{expansion.vespene_geysers_refinery.amount}]', GREEN)
 
     async def debug_bases_distance(self):
-        last_expansion: Expansion = self.expansions.last
+        last_expansion: Expansion = self.expansions.last_taken
         for expansion in self.expansions.taken:
             is_last: bool = last_expansion and expansion.position == last_expansion.position
             text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'

@@ -91,7 +91,7 @@ class Build:
             self.bot.can_afford(UnitTypeId.REFINERY)
             and gasCount <= 2 * self.bot.townhalls.ready.amount
             and self.bot.structures(UnitTypeId.BARRACKS).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKS) >= 1
-            and (workers_mining >= (gasCount + 1) * 11.5 or gasCount == 1 and barracks_count == 2)
+            and (workers_mining >= (gasCount + 1) * 12.5 or gasCount == 1 and barracks_count == 2)
             and (not self.bot.waitingForOrbital() or self.bot.minerals >= 225)
         ):
             for th in self.bot.townhalls.ready:
@@ -349,7 +349,11 @@ class Build:
             or self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1
         ):
             for factory in self.bot.structures(UnitTypeId.FACTORY).ready:
-                if (factory.has_add_on):
+                reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
+                free_reactors: Units = reactors.filter(
+                    lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
+                )
+                if (factory.has_add_on or free_reactors.amount >= 1):
                     print ("Lift Factory")
                     factory(AbilityId.LIFT_FACTORY)
 
@@ -394,9 +398,12 @@ class Build:
         if (location):
             workers = self.bot.workers.filter(
                 lambda worker: (
-                    (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9)
-                    or worker.orders.__len__() == 0
-                    or worker.orders[0].ability.id not in AbilityBuild
+                    worker.is_carrying_resource == False
+                    and (
+                        (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9)
+                        or worker.orders.__len__() == 0
+                        or worker.orders[0].ability.id not in AbilityBuild
+                    )
                 )
             )
             if (workers.amount):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from collections.abc import Iterator
 import math
-from typing import Any, Callable, Generator, List, Optional
+from typing import Any, Callable, Generator, List, Optional, overload
 from bot.macro.expansion import Expansion
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -10,7 +10,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 
 
-class Expansions(List):
+class Expansions:
     bot: BotAI
     expansions: List[Expansion]
 
@@ -21,12 +21,37 @@ class Expansions(List):
     def __iter__(self) -> Generator[Expansion, None, None]:
         return (item for item in self.expansions)
 
+    def __getitem__(self, index: int) -> Expansion:
+        return self.expansions[index]
+
+    def __len__(self) -> int:
+        return len(self.expansions)
+
     def filter(self, pred: Callable[[Expansion], Any]) -> Expansions:
         return Expansions(self.bot, list(filter(pred, self)))
+    
+    def copy(self) -> Expansions:
+        return Expansions(self.bot, self.expansions.copy())
+
+    def sort(self, key: Optional[Callable[[Expansion], Any]] = None, reverse: bool = False) -> None:
+        self.expansions.sort(key=key, reverse=reverse)
+    
+    def sorted(self, key: Optional[Callable[[Expansion], Any]] = None, reverse: bool = False) -> Expansions:
+        # Return a new Expansions object with the list sorted, without mutating the original.
+        sorted_expansions = sorted(self.expansions, key=key, reverse=reverse)
+        return Expansions(self.bot, sorted_expansions)
     
     @property
     def amount(self) -> int:
         return self.expansions.__len__()
+    
+    @property
+    def first(self) -> Expansion:
+        return self.expansions[0]
+    
+    @property
+    def last(self) -> Expansion:
+        return self.expansions[self.amount -1]
     
     @property
     def amount_taken(self) -> int:
@@ -47,6 +72,10 @@ class Expansions(List):
     def taken(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == True)
     
+    @property
+    def ready(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_ready == True)
+
     @property
     def free(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == False)
@@ -96,7 +125,7 @@ class Expansions(List):
         return self.expansions[self.expansions.__len__() - 4]
     
     @property
-    def last(self) -> Optional[Expansion]:
+    def last_taken(self) -> Optional[Expansion]:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == 0):
             return None
@@ -106,7 +135,7 @@ class Expansions(List):
     def next(self) -> Expansion:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == self.amount):
-            return self.last
+            return self.last_taken
         return self.expansions[taken_expansions.amount]
 
     @property
@@ -137,7 +166,7 @@ class Expansions(List):
         for expo in self.taken.expansions:
             vespene_geysers.append(expo.vespene_geyser)
         return Units(vespene_geysers, self.bot)
-
+    
     def townhalls_not_on_slot(self, type_id: Optional[UnitTypeId] = None) -> Units:
         townhalls: Units = self.bot.townhalls
         all_townhalls: Units = (

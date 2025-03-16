@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.7.0"
+VERSION: str = "2.8.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -78,13 +78,14 @@ class WickedBot(BotAI):
             self.train = Train(self, self.combat, self.expansions)
             self.macro = Macro(self, self.expansions)
             await self.macro.speed_mining.start()
+            # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.REACTOR, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
         await self.check_surrend_condition()
         
         # General Worker management
-        await self.distribute_workers()
+        await self.macro.distribute_workers()
         await self.macro.mule_idle()
         await self.macro.saturate_gas()
         await self.macro.unbug_workers()

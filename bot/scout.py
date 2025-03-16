@@ -56,7 +56,7 @@ class Scout:
             unscouted_points: List[Point2] = self.expansions.b2.unscouted_points
             target: Point2 = closest_point(self.scout, unscouted_points)
             self.scout.move(target)
-            print(f'[{self.bot.time}] Scouting, {unscouted_points.__len__()} unscouted points left')
+            print(f'[{self.bot.time.__round__(1)}] Scouting, {unscouted_points.__len__()} unscouted points left')
         else:
             if (self.scout_tag):
                 self.scout_tag = None

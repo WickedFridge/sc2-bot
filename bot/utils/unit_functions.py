@@ -12,7 +12,7 @@ def find_by_tag(bot: BotAI, tag: int):
     )
 
 def worker_amount_mineral_field(mineral_contents: float) -> float:
-    return min(2, 2 * mineral_contents / 200)
+    return min(2, 2 * mineral_contents / 500)
 
 def worker_amount_vespene_geyser(gas_contents: float) -> float:
-    return min(3, 3 * gas_contents / 150)
+    return min(3, 3 * gas_contents / 250)
