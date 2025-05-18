@@ -1,6 +1,8 @@
 from bot.combat.combat import Combat
 from bot.macro.expansion_manager import Expansions
+from bot.macro.resources import Resources
 from sc2.bot_ai import BotAI
+from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -15,7 +17,9 @@ class Train:
         self.combat = combat
         self.expansions = expansions
 
-    async def workers(self):
+    async def workers(self, resources: Resources):
+        if (self.bot.supply_used >= self.bot.supply_cap):
+            return resources
         workers_pending: float = self.bot.already_pending(UnitTypeId.SCV)
         worker_count: float = self.bot.supply_workers + workers_pending
         worker_max: int = min(84, self.expansions.amount_taken * 22)
@@ -30,26 +34,51 @@ class Train:
                 )
             )
         )
+        
+        resources_updated: Resources = resources
         for th in townhalls:
-            if (
-                self.bot.can_afford(UnitTypeId.SCV)
-                and worker_count < worker_max
-            ) :
-                print(f'Train SCV [{worker_count + 1}/{worker_max}]')
-                th.train(UnitTypeId.SCV)
+            if (worker_count >= worker_max) :
+                return resources_updated
+            training_cost: Cost = self.bot.calculate_cost(UnitTypeId.SCV)
+            can_build: bool
+            resources_updated: Resources
+            can_build, resources_updated = resources.update(training_cost)
+            if (can_build == False):
+                return resources_updated            
+            worker_count += 1
+            print(f'Train SCV [{worker_count}/{worker_max}]')
+            th.train(UnitTypeId.SCV)
+        return resources_updated
 
-    async def medivac(self):
+    async def medivac(self, resources: Resources):
+        if (self.bot.supply_used >= self.bot.supply_cap):
+            return resources
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         max_medivac_amount: int = 12
+        medivac_amount: int = self.bot.units(UnitTypeId.MEDIVAC).amount
+        resources_updated: Resources = resources
         for starport in starports :
             if (
-                self.bot.can_afford(UnitTypeId.MEDIVAC)
-                and (starport.is_idle or (starport.has_reactor and starport.orders.__len__() < 2))
+                medivac_amount >= max_medivac_amount
+                or (
+                    starport.is_active
+                    and (
+                        not starport.has_reactor
+                        or len(starport.orders) == 2
+                    )
+                )
             ):
-                medivac_amount: int = self.bot.units(UnitTypeId.MEDIVAC).amount
-                if (medivac_amount < max_medivac_amount):
-                    print("Train Medivac")
-                    starport.train(UnitTypeId.MEDIVAC)
+                return resources_updated
+
+            training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MEDIVAC)
+            can_build: bool
+            resources_updated: Resources
+            can_build, resources_updated = resources.update(training_cost)
+            if (can_build == False):
+                return resources_updated
+            print("Train Medivac")
+            starport.train(UnitTypeId.MEDIVAC)
+        return resources_updated
 
     @property
     def should_train_marauders(self):
@@ -65,32 +94,34 @@ class Train:
             return True
         return False
     
-    async def infantry(self):
-        barracks: Units = self.bot.structures(UnitTypeId.BARRACKS).ready
-        for barrack in barracks :
-            if (barrack.is_idle or (barrack.has_reactor and barrack.orders.__len__() < 2)):
-                # train reaper if we don't have any
-                # if (
-                #     self.bot.can_afford(UnitTypeId.REAPER)
-                #     and self.bot.units(UnitTypeId.REAPER).amount == 0
-                # ):
-                #     print("Train Reaper")
-                #     barrack.train(UnitTypeId.REAPER)
-                #     break
+    async def infantry(self, resources: Resources):
+        if (self.bot.supply_used >= self.bot.supply_cap):
+            return resources
+        barracks_ready: Units = self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
+            lambda rax: rax.is_idle or (rax.has_reactor and rax.orders.__len__() < 2)
+        )
+        resources_updated: Resources = resources
+        for barrack in barracks_ready :
+            # if we have a techlab and should train mauraders, train them
+            if (barrack.has_techlab and self.should_train_marauders):
+                training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MARAUDER)
+                can_build: bool
+                resources_updated: Resources
+                can_build, resources_updated = resources.update(training_cost)
+                if (can_build == False):
+                    continue  # Skip to the next Barracks if we can't afford it
 
-                # if we have a techlab
-                if (barrack.has_techlab and self.should_train_marauders):
-                    if(
-                        self.bot.can_afford(UnitTypeId.MARAUDER)
-                        and (not self.bot.waitingForOrbital() or self.bot.minerals >= 250)
-                    ):
-                        print("Train Marauder")
-                        barrack.train(UnitTypeId.MARAUDER)
-                    break
+                print("Train Marauder")
+                barrack.train(UnitTypeId.MARAUDER)
+            # otherwise train marine
+            else:                
+                training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MARINE)
+                can_build: bool
+                resources_updated: Resources
+                can_build, resources_updated = resources.update(training_cost)
+                if (can_build == False):
+                    return resources_updated  # Skip if we can't afford it
 
-                # otherwise train marine
-                if (self.bot.can_afford(UnitTypeId.MARINE)
-                    and (not self.bot.waitingForOrbital() or self.bot.minerals >= 200)
-                ):
-                    print("Train Marine")
-                    barrack.train(UnitTypeId.MARINE)
+                print("Train Marine")
+                barrack.train(UnitTypeId.MARINE)
+        return resources_updated

@@ -1,15 +1,18 @@
 import math
-from typing import Dict, List, Tuple
-from bot.buildings.build import Build
+from typing import Awaitable, Callable, Dict, List, Tuple
+from bot.buildings.builder import Builder
+from bot.buildings.builder_old import BuilderOld
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
 from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions
+from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
+from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
 from bot.train import Train
 from bot.technology.search import Search
+from bot.utils.colors import LIGHTBLUE
 from bot.utils.matchup import Matchup, define_matchup, get_matchup
 from bot.utils.point2_functions import grid_offsets
 from sc2.bot_ai import BotAI, Race
@@ -21,25 +24,25 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "2.8.0"
+VERSION: str = "3.0.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
     
-    builder: Build
+    builder: Builder
+    builder_old: BuilderOld
     buildings: BuildingsHandler
     search: Search
     combat: Combat
     train: Train
     macro: Macro
     strategy: StrategyHandler
-    expansions: Expansions
 
     def __init__(self) -> None:
         super().__init__()
-        self.expansions = Expansions(self)
-        self.builder = Build(self, self.expansions)
+        self.builder = Builder(self, self.expansions)
+        self.builder_old = BuilderOld(self, self.expansions)
         self.buildings = BuildingsHandler(self, self.expansions)
         self.search = Search(self)
         self.combat = Combat(self, self.expansions)
@@ -51,6 +54,10 @@ class WickedBot(BotAI):
     @property
     def matchup(self) -> Matchup:
         return get_matchup(self)
+    
+    @property
+    def expansions(self) -> Expansions:
+        return get_expansions(self)
     
     async def on_start(self):
         """
@@ -72,7 +79,7 @@ class WickedBot(BotAI):
         if (iteration == 1):
             await self.tag_game()
             await self.expansions.set_expansion_list()
-            self.builder = Build(self, self.expansions)
+            self.builder = Builder(self, self.expansions)
             self.buildings = BuildingsHandler(self, self.expansions)
             self.combat = Combat(self, self.expansions)
             self.train = Train(self, self.combat, self.expansions)
@@ -85,7 +92,7 @@ class WickedBot(BotAI):
         await self.check_surrend_condition()
         
         # General Worker management
-        await self.macro.distribute_workers()
+        await self.macro.distribute_workers(iteration)
         await self.macro.mule_idle()
         await self.macro.saturate_gas()
         await self.macro.unbug_workers()
@@ -100,31 +107,93 @@ class WickedBot(BotAI):
         await self.macro.workers_response_to_threat()
         await self.buildings.repair_buildings()
         await self.buildings.cancel_buildings()
-        await self.builder.finish_construction()
+        await self.buildings.finish_construction()
+        await self.builder.supply_depot.move_worker_first()
 
         # Control buildings
         await self.buildings.drop_mules()
-        await self.builder.switch_addons()
         await self.buildings.handle_supplies()
         await self.buildings.lift_orbital()
         await self.buildings.land_orbital()
+        await self.buildings.reposition_buildings()
         
         # Spend Money
-        await self.builder.supplies()
-        await self.builder.bunker()
-        await self.buildings.morph_orbitals()        
-        await self.train.workers()
-        await self.search.tech()
-        await self.builder.gas()
-        await self.builder.armory()
-        await self.builder.starport()
-        await self.train.medivac()
-        await self.builder.ebays()
-        await self.builder.factory()
-        await self.builder.barracks()
-        await self.builder.addons()
-        await self.builder.build_expand()
-        await self.train.infantry()
+        
+        money_spender_names: List[str] = [
+            'orbital_command',
+            'supply_depot',
+            'workers',
+            'barracks_techlab',
+            'barracks_reactor',
+            'factory_reactor',
+            'tech',
+            'armory',
+            'medivac',
+            'infantry',
+            'ebay',
+            'bunker',
+            'starport',
+            'factory',
+            'barracks',
+            'refinery',
+            'command_center',
+        ]
+
+        money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
+            self.builder.orbital_command.upgrade,
+            self.builder.supply_depot.build,
+            self.train.workers,
+            self.builder.barracks_techlab.build,
+            self.builder.barracks_reactor.build,
+            self.builder.factory_reactor.build,
+            self.search.tech,
+            self.builder.armory.build,
+            self.train.medivac,
+            self.train.infantry,
+            self.builder.ebay.build,
+            self.builder.bunker.build,
+            self.builder.starport.build,
+            self.builder.factory.build,
+            self.builder.barracks.build,
+            self.builder.refinery.build,
+            self.builder.command_center.build,
+        ]
+        resources: Resources = Resources.from_tuples(
+            (self.minerals, False),
+            (self.vespene, False)
+        )
+        for i, money_spender in enumerate(money_spenders):
+            if (resources.is_short_both):
+                break
+            resources = await money_spender(resources)            
+            # self.client.debug_text_screen(
+            #     f'{money_spender_names[i]}:',
+            #     (0.55,0.05 + 0.02 * i),
+            #     LIGHTBLUE,
+            #     14,
+            # )
+            # self.client.debug_text_screen(
+            #     f'{resources.minerals.amount}|{resources.minerals.short}/{resources.vespene.amount}|{resources.vespene.short}',
+            #     (0.7,0.05 + 0.02 * i),
+            #     LIGHTBLUE,
+            #     14,
+            # )
+
+        # await self.builder_old.supplies()
+        # await self.builder_old.bunker()
+        # await self.buildings.morph_orbitals()        
+        # await self.train.workers(Resources.from_tuples((1000, False), (1000, False)))
+        # await self.search.tech()
+        # await self.builder_old.gas()
+        # await self.builder_old.armory()
+        # await self.builder_old.starport()
+        # await self.train.medivac()
+        # await self.builder_old.ebays()
+        # await self.builder_old.factory()
+        # await self.builder_old.barracks()
+        # await self.builder_old.addons()
+        # await self.builder_old.build_expand()
+        # await self.train.infantry(Resources.from_tuples((1000, False), (1000, False)))
         
         # Control Attacking Units
         await self.combat.select_orders(iteration, self.strategy.situation)
@@ -137,11 +206,12 @@ class WickedBot(BotAI):
         # Debug stuff
         await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
-        await self.combat.debug_bases_content()
+        # await self.combat.debug_bases_content()
         # await self.combat.debug_bases_distance()
         # await self.combat.debug_selection()
         # await self.combat.debug_unscouted_b2()
-        await self.combat.debug_bunker_positions()
+        # await self.combat.debug_bunker_positions()
+        self.combat.debug_barracks_correct_placement()
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)

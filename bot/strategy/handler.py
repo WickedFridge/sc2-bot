@@ -47,6 +47,8 @@ class StrategyHandler:
                 match (enemy_towers.first.type_id):
                     case UnitTypeId.PHOTONCANNON:
                         return Situation.CANON_RUSH
+                    case UnitTypeId.PYLON:
+                        return Situation.CANON_RUSH
                     case UnitTypeId.BUNKER:
                         return Situation.BUNKER_RUSH
                     case _:

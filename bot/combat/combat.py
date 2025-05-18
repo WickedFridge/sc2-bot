@@ -5,7 +5,7 @@ from bot.combat.micro import Micro
 from bot.combat.orders import Orders
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions
+from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
@@ -25,17 +25,21 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
 class Combat:
     bot: BotAI
     execute: Execute
-    expansions: Expansions
+    # expansions: Expansions
     known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
     
     def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-        self.expansions = expansions
+        # self.expansions = expansions
         self.execute = Execute(bot, expansions)
         self.known_enemy_army = Army(Units([], bot), bot)
 
+    @property
+    def expansions(self) -> Expansions:
+        return get_expansions(self.bot)
+    
     @property
     def army_supply(self) -> float:
         result: float = 0
@@ -127,6 +131,8 @@ class Combat:
                 and unit.type_id in worker_types
             )
         )
+        # useful in case of canon/bunker rush
+        global_enemy_units_buildings: Units = global_enemy_units + global_enemy_buildings
 
         army_supply: float = army.weighted_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
@@ -134,8 +140,8 @@ class Combat:
         unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
         unseen_enemy_supply: float = unseen_enemy_army.supply
         potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
-        closest_building_to_enemies: Unit = None if global_enemy_units.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units)
-        distance_building_to_enemies: float = 1000 if global_enemy_units.amount == 0 else global_enemy_units.closest_distance_to(closest_building_to_enemies)
+        closest_building_to_enemies: Unit = None if global_enemy_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units_buildings)
+        distance_building_to_enemies: float = 1000 if global_enemy_units_buildings.amount == 0 else global_enemy_units_buildings.closest_distance_to(closest_building_to_enemies)
         
         closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
@@ -375,7 +381,7 @@ class Combat:
         for expansion in self.expansions.taken:
             is_last: bool = last_expansion and expansion.position == last_expansion.position
             text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
-            self.combat.draw_text_on_world(expansion.position, text)
+            self.draw_text_on_world(expansion.position, text)
 
     async def debug_selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
@@ -419,6 +425,9 @@ class Combat:
             if (bunker_ramp):
                 self.draw_grid_on_world(bunker_ramp, 3, "ramp")
             
+    def debug_barracks_correct_placement(self):
+        self.draw_grid_on_world(self.bot.main_base_ramp.barracks_correct_placement, 3, "Barracks")
+    
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(

@@ -235,7 +235,8 @@ class Execute:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac(unit, army.units)
             else:
-                unit.move(army.leader.position)
+                if (unit.position.distance_to(army.leader.position) >= 3):
+                    unit.move(army.leader.position)
         
     async def chase_buildings(self, army: Army):
         # if army is purely air

@@ -65,6 +65,10 @@ class Expansion:
         )
     
     @property
+    def vespene_geysers(self) -> Units:
+        return self.bot.vespene_geyser.closer_than(10, self.position)
+    
+    @property
     def vespene_geysers_refinery(self) -> Units:
         return self.bot.vespene_geyser.filter(
             lambda geyser: geyser.has_vespene and self.bot.structures(UnitTypeId.REFINERY).ready.closer_than(10, self.position).filter(
@@ -88,6 +92,8 @@ class Expansion:
 
     @property
     def mineral_workers(self) -> Units:
+        if (self.mineral_fields.amount == 0):
+            return Units([], self.bot)
         return self.bot.workers.filter(
             lambda worker: (
                 worker.order_target in self.mineral_fields.tags
@@ -167,7 +173,7 @@ class Expansion:
     
     @property
     def mineral_line(self) -> Point2:
-        return self.mineral_fields.center
+        return self.mineral_fields.center if self.mineral_fields.amount >= 1 else self.position
 
     @property
     def is_defended(self) -> bool:

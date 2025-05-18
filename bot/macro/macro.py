@@ -104,8 +104,13 @@ class Macro:
         # if every townhalls is dead, just attack the nearest unit with every worker
         if (self.bot.townhalls.amount == 0):
             print("no townhalls left, o7")
+            attackable_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
+            attackable_enemy_buildings: Units = self.bot.enemy_structures.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
             for worker in self.bot.workers:
-                worker.attack(self.bot.enemy_units.filter(lambda unit: unit.is_flying == False).closest_to(worker))
+                if (attackable_enemy_units.amount >= 1):
+                    worker.attack(attackable_enemy_units.closest_to(worker))
+                elif(attackable_enemy_buildings.amount >= 1):
+                    worker.attack(attackable_enemy_buildings.closest_to(worker))
             return
         
         for base in self.bases:
@@ -114,6 +119,7 @@ class Macro:
             workers: Units = self.bot.workers.filter(in_threat_distance)
             if (workers.amount == 0):
                 break
+            available_workers: Units = workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
             # local_buildings: Units = self.bot.structures.filter(in_threat_distance)
             local_enemy_buildings: Units = self.bot.structures.filter(in_threat_distance)
             local_enemy_units: Units = self.bot.enemy_units.filter(in_threat_distance)
@@ -131,11 +137,11 @@ class Macro:
                     self.repair_units(workers + mules, damaged_mechanical_units)
                 
                 case Threat.ATTACK:
-                    if (workers.collecting.amount == 0):
+                    if (available_workers.amount == 0):
                         print("no workers to pull, o7")
                         break
                     attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
-                    for worker in workers.collecting:
+                    for worker in available_workers:
                         enemy_units_on_main_ramp: Units = attackable_enemy_units.filter(
                             lambda unit: (
                                 unit.position.distance_to(self.bot.main_base_ramp.top_center) <= 5
@@ -166,13 +172,13 @@ class Macro:
                     canons: Units = self.bot.enemy_structures.filter(
                         lambda unit: (
                             unit.type_id == UnitTypeId.PHOTONCANNON
-                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE
+                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE + 10
                         )
                     )
                     pylons: Units = self.bot.enemy_structures.filter(
                         lambda unit: (
                             unit.type_id == UnitTypeId.PYLON
-                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE
+                            and local_buildings.closest_distance_to(unit) <= BASE_SIZE + 10
                         )
                     )
                     # track the probes with 3 workers each
@@ -205,6 +211,7 @@ class Macro:
                         self.pull_workers(workers, bunker, 4)
 
     def pull_workers(self, workers: Units, target: Unit, amount: int):
+        available_workers: Units = workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
         workers_attacking_tower = workers.filter(
             lambda unit: unit.is_attacking and unit.order_target == target.tag
         ).amount
@@ -212,7 +219,7 @@ class Macro:
             return
 
         amount_to_pull: int = amount - workers_attacking_tower
-        closest_workers: Units = workers.collecting.sorted_by_distance_to(target)
+        closest_workers: Units = available_workers.sorted_by_distance_to(target)
 
         workers_pulled: Units = closest_workers[:amount_to_pull] if closest_workers.amount >= amount_to_pull else closest_workers
 
@@ -235,10 +242,11 @@ class Macro:
                     closest_worker.gather(refinery)
 
     def track_enemy_scout(self, workers: Units, local_enemy_units: Units, max_scv_attacking = 1):
+        available_workers: Units = workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
         for enemy_scout in local_enemy_units:
-            if (workers.collecting.amount == 0):
+            if (available_workers.amount == 0):
                 break
-            closest_worker: Unit = workers.collecting.closest_to(enemy_scout)
+            closest_worker: Unit = available_workers.closest_to(enemy_scout)
             # if no scv is already chasing
             attacking_workers: Unit = workers.filter(
                 lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
@@ -292,8 +300,13 @@ class Macro:
             closest_mineral_field: Unit = self.bot.mineral_field.closest_to(mule)
             mule.gather(closest_mineral_field)
 
-    async def distribute_workers(self):
-        if (not self.bot.mineral_field or not self.bot.workers or not self.bot.townhalls.ready):
+    async def distribute_workers(self, iteration: int):
+        worker_count = self.bot.workers.amount
+        frequency = min(40 + worker_count * 2, 200)  # Scale up to a max of 200 iterations
+
+        if (iteration % frequency != 0 and self.bot.workers.idle.amount == 0):
+            return
+        if (not self.bot.mineral_field or not self.bot.workers or self.expansions.ready.amount == 0):
             return
         expansions_sorted_by_deficit_in_mining: Expansions = self.expansions.ready.sorted(
             key = lambda expansion: expansion.mineral_worker_count - expansion.optimal_mineral_workers,
@@ -302,10 +315,16 @@ class Macro:
         most_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.last
         least_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.first
         for th in self.bot.townhalls.ready:
-            if (len(th.rally_targets) >= 1 and th.rally_targets[0].tag not in least_saturated_expansion.mineral_fields.tags):
+            if (
+                len(th.rally_targets) >= 1
+                and th.rally_targets[0].tag not in least_saturated_expansion.mineral_fields.tags
+                and least_saturated_expansion.mineral_fields.amount >= 1
+            ):
                 th(AbilityId.RALLY_COMMANDCENTER, least_saturated_expansion.mineral_fields.random)
         
         for worker in self.bot.workers.idle:
+            if (least_saturated_expansion.mineral_fields.amount == 0):
+                break
             mineral_field_target: Unit = least_saturated_expansion.mineral_fields.random
             worker.gather(mineral_field_target)
 
@@ -373,7 +392,7 @@ class Macro:
         #         break
         
         #v0
-        expansion_sorted_by_vespene_mining: Expansions = self.expansions.filter(
+        expansion_sorted_by_vespene_mining: Expansions = self.expansions.ready.filter(
             lambda expansion: expansion.refineries.amount >= 1
         ).sorted(
             key = lambda expansion: expansion.vespene_saturation,
@@ -381,7 +400,11 @@ class Macro:
         )
         
         # we want 0 gas if saturation of any base is under 1/2 and we have 200 or more gas in bank
-        if (least_saturated_expansion.mineral_saturation <= 1/2 and self.bot.vespene >= 200):
+        if (
+            expansion_sorted_by_vespene_mining.amount >= 1 and 
+            least_saturated_expansion.mineral_saturation <= 1/2 and
+            self.bot.vespene >= 200
+        ):
             # find a vespene worker and ask it to stop
             vespene_workers: Units = expansion_sorted_by_vespene_mining.first.vespene_workers
             if (vespene_workers.amount >= 1):
@@ -394,18 +417,20 @@ class Macro:
             harvesters: Units = self.bot.workers.filter(
                 lambda worker: worker.order_target == oversaturated_ref.tag and not worker.is_carrying_vespene
             )
-            harvesters.random.stop()
+            if (harvesters.amount >= 1):
+                harvesters.random.stop()
 
         # we want saturation in gas if every mineral line is over 2/3rd saturation
-        for expansion in self.expansions.taken:
-            if (expansion.mineral_saturation <= 0.6):
-                return
+        if (least_saturated_expansion.mineral_saturation <= 0.6):
+            return
         
-        expansions_not_saturated_in_vespene: Expansions = self.expansions.filter(
-            lambda expansion: expansion.refineries.amount >= 1 and math.floor(expansion.vespene_saturation * 3) < expansion.desired_vespene_saturation * 3
-        ).sorted(lambda expansion: expansion.vespene_saturation)
+        # expansions_not_saturated_in_vespene: Expansions = self.expansions.filter(
+        #     lambda expansion: expansion.refineries.amount >= 1 and math.floor(expansion.vespene_saturation * 3) < expansion.desired_vespene_saturation * 3
+        # ).sorted(lambda expansion: expansion.vespene_saturation)
         
-        for expansion in expansions_not_saturated_in_vespene:
+        for expansion in expansion_sorted_by_vespene_mining:
+            if (expansion.refineries.amount == 0 or math.floor(expansion.vespene_saturation * 3) >= expansion.desired_vespene_saturation * 3):
+                continue
             least_saturated_refinery: Unit = expansion.refineries.sorted(lambda unit: unit.assigned_harvesters).first
             mineral_workers: Units = expansion.mineral_workers.filter(
                 lambda unit: unit.is_carrying_minerals == False

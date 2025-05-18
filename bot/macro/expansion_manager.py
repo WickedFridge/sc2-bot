@@ -1,6 +1,7 @@
 from __future__ import annotations
 from collections.abc import Iterator
 import math
+import random
 from typing import Any, Callable, Generator, List, Optional, overload
 from bot.macro.expansion import Expansion
 from sc2.bot_ai import BotAI
@@ -9,6 +10,7 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 
+expansions: Expansions | None = None
 
 class Expansions:
     bot: BotAI
@@ -93,6 +95,10 @@ class Expansions:
         return self.filter(lambda expansion: expansion.is_main == False)
     
     @property
+    def random(self) -> Optional[Expansion]:
+        return random.choice(self.expansions)
+    
+    @property
     def main(self) -> Optional[Expansion]:
         return self.expansions[0]
     
@@ -136,7 +142,7 @@ class Expansions:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == self.amount):
             return self.last_taken
-        return self.expansions[taken_expansions.amount]
+        return self.free[0]
 
     @property
     def townhalls(self) -> Units:
@@ -195,3 +201,9 @@ class Expansions:
         expansions.sort(key = lambda expansion: expansion.distance_from_main)
         
         self.expansions = expansions
+
+def get_expansions(bot: BotAI) -> Expansions:
+    global expansions
+    if (expansions is None):
+        expansions = Expansions(bot)
+    return expansions

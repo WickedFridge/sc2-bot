@@ -14,7 +14,7 @@ from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from ..utils.unit_tags import add_ons
 
-class Build:
+class BuilderOld:
     bot: BotAI
     expansions: Expansions
     
