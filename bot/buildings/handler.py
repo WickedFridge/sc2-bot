@@ -41,7 +41,7 @@ class BuildingsHandler:
     async def repair_buildings(self):
         workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
         available_workers: Units = workers.filter(
-            lambda worker: worker.is_moving or worker.is_collecting
+            lambda worker: worker.is_moving or worker.is_collecting or worker.is_idle
         )
         if (self.bot.minerals < 50):
             return

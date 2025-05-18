@@ -7,6 +7,7 @@ from bot.combat.combat import Combat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
+from bot.macro.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
@@ -24,14 +25,13 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.0.0"
+VERSION: str = "3.0.1"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
     
     builder: Builder
-    builder_old: BuilderOld
     buildings: BuildingsHandler
     search: Search
     combat: Combat
@@ -42,7 +42,6 @@ class WickedBot(BotAI):
     def __init__(self) -> None:
         super().__init__()
         self.builder = Builder(self, self.expansions)
-        self.builder_old = BuilderOld(self, self.expansions)
         self.buildings = BuildingsHandler(self, self.expansions)
         self.search = Search(self)
         self.combat = Combat(self, self.expansions)
@@ -59,6 +58,10 @@ class WickedBot(BotAI):
     def expansions(self) -> Expansions:
         return get_expansions(self)
     
+    @property
+    def map(self) -> MapData:
+        return get_map(self)
+
     async def on_start(self):
         """
         This code runs once at the start of the game
@@ -79,6 +82,7 @@ class WickedBot(BotAI):
         if (iteration == 1):
             await self.tag_game()
             await self.expansions.set_expansion_list()
+            self.map.initialize()
             self.builder = Builder(self, self.expansions)
             self.buildings = BuildingsHandler(self, self.expansions)
             self.combat = Combat(self, self.expansions)
@@ -87,7 +91,8 @@ class WickedBot(BotAI):
             await self.macro.speed_mining.start()
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
-            # await self.client.debug_create_unit([[UnitTypeId.REACTOR, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 8, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
         await self.check_surrend_condition()
         
@@ -165,7 +170,8 @@ class WickedBot(BotAI):
         for i, money_spender in enumerate(money_spenders):
             if (resources.is_short_both):
                 break
-            resources = await money_spender(resources)            
+            resources = await money_spender(resources)
+
             # self.client.debug_text_screen(
             #     f'{money_spender_names[i]}:',
             #     (0.55,0.05 + 0.02 * i),
@@ -178,22 +184,6 @@ class WickedBot(BotAI):
             #     LIGHTBLUE,
             #     14,
             # )
-
-        # await self.builder_old.supplies()
-        # await self.builder_old.bunker()
-        # await self.buildings.morph_orbitals()        
-        # await self.train.workers(Resources.from_tuples((1000, False), (1000, False)))
-        # await self.search.tech()
-        # await self.builder_old.gas()
-        # await self.builder_old.armory()
-        # await self.builder_old.starport()
-        # await self.train.medivac()
-        # await self.builder_old.ebays()
-        # await self.builder_old.factory()
-        # await self.builder_old.barracks()
-        # await self.builder_old.addons()
-        # await self.builder_old.build_expand()
-        # await self.train.infantry(Resources.from_tuples((1000, False), (1000, False)))
         
         # Control Attacking Units
         await self.combat.select_orders(iteration, self.strategy.situation)
@@ -207,8 +197,11 @@ class WickedBot(BotAI):
         await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
         # await self.combat.debug_bases_content()
+        await self.combat.debug_bases_bunkers()
         # await self.combat.debug_bases_distance()
-        # await self.combat.debug_selection()
+        await self.combat.debug_selection()
+        await self.combat.debug_drop_path()
+        # await self.combat.debug_loaded_stuff(iteration)
         # await self.combat.debug_unscouted_b2()
         # await self.combat.debug_bunker_positions()
         self.combat.debug_barracks_correct_placement()

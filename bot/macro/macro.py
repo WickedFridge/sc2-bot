@@ -304,7 +304,10 @@ class Macro:
         worker_count = self.bot.workers.amount
         frequency = min(40 + worker_count * 2, 200)  # Scale up to a max of 200 iterations
 
-        if (iteration % frequency != 0 and self.bot.workers.idle.amount == 0):
+        # Check if one gas is oversaturated
+        oversaturated_ref: Units = self.bot.gas_buildings.filter(lambda unit: unit.assigned_harvesters >= 4)
+
+        if (iteration % frequency != 0 and self.bot.workers.idle.amount == 0 and oversaturated_ref.amount == 0):
             return
         if (not self.bot.mineral_field or not self.bot.workers or self.expansions.ready.amount == 0):
             return

@@ -35,6 +35,8 @@ class StrategyHandler:
         return Situation.STABLE
     
     def detect_tower_rush(self) -> Optional[Situation]:
+        if self.bot.townhalls.amount >= 3:
+            return None
         for cc in self.bot.townhalls:
             local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
             enemy_towers: Units = self.bot.enemy_structures.filter(

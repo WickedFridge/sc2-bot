@@ -1,6 +1,7 @@
 from typing import List, Optional
 from bot.combat.orders import Orders
 from sc2.bot_ai import BotAI
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -49,8 +50,12 @@ class Army:
     
     @property
     def supply(self) -> float:
-        return units_supply(self.fighting_units)
+        return units_supply(self.units)
 
+    @property
+    def potential_supply(self) -> float:
+        return units_supply(self.potential_fighting_units)
+    
     @property
     def weighted_supply(self) -> float:
         return weighted_units_supply(self.fighting_units)
@@ -75,13 +80,30 @@ class Army:
         return Army.get_composition(self.fighting_units)
 
     @property
+    def potential_fighting_units(self) -> Units:
+        passengers: Units = Units([], self.bot)
+        medivacs: Units = self.units(UnitTypeId.MEDIVAC)
+        for medivac in medivacs:
+            if (medivac.cargo_used == 0):
+                break
+            passengers += Units(medivac.passengers, self.bot)
+        return self.fighting_units + passengers
+    
+    
+    @property
     def fighting_units(self) -> Units:
-        return self.units.filter(
+        attacking_units: Units = self.units.filter(
             lambda unit: (
                 (unit.can_attack or unit.type_id in menacing)
                 and unit.type_id not in worker_types
+                and unit.type_id != UnitTypeId.MEDIVAC
             )
         )
+        healing_medivacs: Units = self.units(UnitTypeId.MEDIVAC).filter(
+            lambda unit: unit.energy >= 25
+        )
+        usable_medivacs: Units = healing_medivacs.take(attacking_units.amount)
+        return attacking_units + usable_medivacs
 
     @property
     def leader(self) -> Optional[Unit]:

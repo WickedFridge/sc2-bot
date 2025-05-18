@@ -16,7 +16,8 @@ class CommandCenter(Building):
     def conditions(self) -> bool:
         base_count: int = self.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
-        return townhalls_count <= base_count + 2
+        pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
+        return townhalls_count <= base_count + 2 and pending_cc_count <= 4
             
     @override
     @property

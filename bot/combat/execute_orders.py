@@ -1,11 +1,12 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
 from bot.macro.expansion_manager import Expansions
+from bot.macro.map import MapData, get_map
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
+from sc2.position import Point2, Rect
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, menacing
@@ -22,35 +23,62 @@ class Execute:
         self.expansions = expansions
         self.micro = Micro(bot, expansions)
 
+    @property
+    def map(self) -> MapData:
+        return get_map(self)
+
+    async def drop(self, army: Army):
+        # await self.pickup_leave(army)
+        # define which base to drop
+        # we'll start with the natural
+        
+        drop_target: Point2 = self.expansions.enemy_b2.position
+        closest_center: Point2 = self.map.closest_center(drop_target)
+        
+        medivacs: Units = army.units(UnitTypeId.MEDIVAC)
+        medivacs_with_room: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1)
+        medivacs_full: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
+        ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
+        await self.pickup(medivacs_with_room, ground_units)
+        for medivac in medivacs_full:
+            distance_medivac_to_target = medivac.position.distance_to(drop_target)
+            distance_edge_to_target = closest_center.distance_to(drop_target)
+            
+            # If the edge is closer to the target than we are, take the detour
+            if (distance_edge_to_target < distance_medivac_to_target):
+                # Optional: Only go to edge if not already very close to it
+                if medivac.position.distance_to(closest_center) > 5:
+                    medivac.move(closest_center)
+                else:
+                    medivac.move(drop_target)
+            else:
+                # Direct path is better
+                medivac.move(drop_target)
+
+    async def pickup(self, medivacs: Units, ground_units: Units):
+        # units get closer to medivacs
+        for unit in ground_units:
+            if (medivacs.amount == 0):
+                self.micro.retreat(unit)
+                break
+            unit.move(medivacs.closest_to(unit))
+        
+        # medivacs boost and pickup
+        for medivac in medivacs:
+            await self.micro.medivac_pickup(medivac, ground_units)
+
+
     async def pickup_leave(self, army: Army):
-        ground_army: Units = army.units.filter(lambda unit: unit.is_flying == False)
-        if (army.center.distance_to(self.micro.retreat_position) <= 20 or ground_army.amount == 0):
+        ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
+        if (army.center.distance_to(self.micro.retreat_position) <= 20 or ground_units.amount == 0):
             self.retreat_army(army)
             return
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         medivacs_with_room: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1)
-        
-        # units get closer to medivacs
-        for unit in ground_army:
-            if (medivacs_with_room.amount == 0):
-                self.micro.retreat(unit)
-                break
-            unit.move(medivacs_with_room.closest_to(unit))
-        
-        # medivacs boost and leave
-        for medivac in medivacs:
-            await self.micro.medivac_boost(medivac)
-            if (medivac.cargo_left == 0):
-                self.micro.retreat(medivac)
-                break
-            units_to_pickup: Units = ground_army.in_distance_between(medivac, 0, 3)
-            for unit in units_to_pickup:
-                medivac(AbilityId.LOAD_MEDIVAC, unit)
-            units_next: Units = ground_army.in_distance_between(medivac, 3, 10)
-            if (units_next):
-                medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
-            else:
-                self.micro.retreat(medivac)
+        medivacs_full: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
+        await self.pickup(medivacs_with_room, ground_units)
+        for medivac in medivacs_full:
+            self.micro.retreat(medivac)
 
     def retreat_army(self, army: Army):
         for unit in army.units:
@@ -60,7 +88,7 @@ class Execute:
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac(unit, army.units)
+                    await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
                     self.micro.bio(unit)
                 case UnitTypeId.MARAUDER:
@@ -73,7 +101,7 @@ class Execute:
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac(unit, army.units)
+                    await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
                     self.micro.bio_defense(unit)
                 case UnitTypeId.MARAUDER:
@@ -210,7 +238,7 @@ class Execute:
             return
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac(unit, army.units)
+                await self.micro.medivac_fight(unit, army.units)
             else:
                 unit.attack(enemy_workers_close.closest_to(unit))
     
@@ -221,7 +249,7 @@ class Execute:
         local_enemy_buildings.sort(key=lambda building: building.health)
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac(unit, army.units)
+                await self.micro.medivac_fight(unit, army.units)
             else:
                 unit.attack(local_enemy_buildings.first)
 
@@ -233,7 +261,7 @@ class Execute:
         self.micro.attack_position(army.leader, nearest_base_target)
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac(unit, army.units)
+                await self.micro.medivac_fight(unit, army.units)
             else:
                 if (unit.position.distance_to(army.leader.position) >= 3):
                     unit.move(army.leader.position)
@@ -246,7 +274,7 @@ class Execute:
         self.micro.attack_position(army.leader, attack_position)
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac(unit, army.units)
+                await self.micro.medivac_fight(unit, army.units)
             else:
                 unit.move(army.leader.position)
 

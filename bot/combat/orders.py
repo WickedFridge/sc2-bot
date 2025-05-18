@@ -13,6 +13,7 @@ class Orders(enum.Enum):
     DEFEND_CANON_RUSH = 9
     PICKUP_LEAVE = 10
     REGROUP = 11
+    DROP = 12
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

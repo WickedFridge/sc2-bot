@@ -79,6 +79,7 @@ supply[UnitTypeId.LURKERMP] = 3
 supply[UnitTypeId.LURKERMPBURROWED] = 3
 supply[UnitTypeId.LURKERBURROWED] = 3
 supply[UnitTypeId.LURKEREGG] = 3
+supply[UnitTypeId.LURKERMPEGG] = 3
 supply[UnitTypeId.INFESTOR] = 2
 supply[UnitTypeId.INFESTORBURROWED] = 2
 supply[UnitTypeId.SWARMHOSTMP] = 3

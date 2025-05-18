@@ -48,11 +48,29 @@ class Micro:
             unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
         if (unit.distance_to(retreat_position) < 5):
             return
-        unit.move(retreat_position)
+        if (enemy_units_in_range.amount >= 1):
+            Micro.move_away(unit, enemy_units_in_range.closest_to(unit), 5)
+        else:
+            unit.move(retreat_position)
     
-    async def medivac(self, medivac: Unit, local_army: Units):
+    async def medivac_pickup(self, medivac: Unit, local_army: Units):
+        await self.medivac_boost(medivac)
+        units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3)
+        for unit in units_to_pickup:
+            medivac(AbilityId.LOAD_MEDIVAC, unit)
+        units_next: Units = local_army.in_distance_between(medivac, 3, 10)
+        if (units_next.amount == 0):
+            return
+        medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
+    
+    async def medivac_fight(self, medivac: Unit, local_army: Units):
         if (medivac.cargo_used >= 1):
             medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+            # if (self.bot.in_pathing_grid(medivac.position)):
+            #     medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+            # else:
+            #     # find a better implementation
+            #     medivac.move(medivac.position.towards(self.expansions.enemy_main.position, 2))
 
         if (medivac.is_active):
             medivac_target: Point2|int = medivac.orders[0].target 
@@ -87,8 +105,8 @@ class Micro:
             local_ground_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             if (local_ground_units.amount >= 1):
                 medivac.move(local_ground_units.center)
-            elif (self.bot.townhalls.amount >= 1):
-                self.retreat(medivac)
+            # elif (self.bot.townhalls.amount >= 1):
+            #     self.retreat(medivac)
 
     async def medivac_boost(self, medivac: Unit):
         available_abilities = (await self.bot.get_available_abilities([medivac]))[0]
@@ -116,10 +134,13 @@ class Micro:
         enemy_units_in_range = self.get_enemy_units_in_range(bio)
         other_enemy_units: Units = self.get_enemy_units()
         other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
-        enemy_buildings_in_sight = self.bot.enemy_structures.filter(
+        enemy_buildings: Units = self.bot.enemy_structures
+        enemy_buildings_in_sight = enemy_buildings.filter(
             lambda building: building.distance_to(bio) <= 12
         )
-        enemy_buildings: Units = self.bot.enemy_structures
+        enemy_buildings_in_range = enemy_buildings.filter(
+            lambda building: bio.target_in_range(building)
+        )
         
         # handle stim
         self.stim_bio(bio)
@@ -127,7 +148,10 @@ class Micro:
         if (enemy_units_in_range.amount >= 1):
             self.hit_n_run(bio, enemy_units_in_range)
         elif(other_enemy_units.amount >= 1):
-            bio.attack(other_enemy_units.closest_to(bio))
+            if (enemy_buildings_in_range.amount >= 1 and bio.weapon_ready):
+                bio.attack(enemy_buildings_in_range.closest_to(bio))
+            else:
+                bio.attack(other_enemy_units.closest_to(bio))
         elif(enemy_buildings_in_sight.amount >= 1):
             enemy_buildings_in_sight.sort(key = lambda building: building.health)
             bio.attack(enemy_buildings_in_sight.first)

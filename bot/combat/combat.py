@@ -7,9 +7,10 @@ from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import BASE_SIZE
+from bot.macro.map import MapData, get_map
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
-from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, PURPLE, RED, WHITE, YELLOW
+from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import center, grid_offsets
 from bot.utils.unit_functions import find_by_tag, worker_amount_vespene_geyser, worker_amount_mineral_field
@@ -17,7 +18,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2, Point3
+from sc2.position import Point2, Point3, Rect
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
@@ -25,20 +26,22 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
 class Combat:
     bot: BotAI
     execute: Execute
-    # expansions: Expansions
     known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
     
     def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-        # self.expansions = expansions
         self.execute = Execute(bot, expansions)
         self.known_enemy_army = Army(Units([], bot), bot)
 
     @property
     def expansions(self) -> Expansions:
         return get_expansions(self.bot)
+    
+    @property
+    def map(self) -> MapData:
+        return get_map(self)
     
     @property
     def army_supply(self) -> float:
@@ -132,16 +135,19 @@ class Combat:
             )
         )
         # useful in case of canon/bunker rush
-        global_enemy_units_buildings: Units = global_enemy_units + global_enemy_buildings
+        global_enemy_menacing_units_buildings: Units = global_enemy_units + global_enemy_buildings.filter(
+            lambda unit: unit.type_id in tower_types
+        )
 
-        army_supply: float = army.weighted_supply
+        fighting_army_supply: float = army.weighted_supply
+        potential_army_supply: float = army.potential_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_enemy_supply: float = local_enemy_army.weighted_supply
         unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
         unseen_enemy_supply: float = unseen_enemy_army.supply
         potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
-        closest_building_to_enemies: Unit = None if global_enemy_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_units_buildings)
-        distance_building_to_enemies: float = 1000 if global_enemy_units_buildings.amount == 0 else global_enemy_units_buildings.closest_distance_to(closest_building_to_enemies)
+        closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
+        distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         
         closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
@@ -160,28 +166,18 @@ class Combat:
 
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
             if (
-                army_supply >= local_enemy_supply
+                (
+                    fighting_army_supply >= local_enemy_supply
+                    or potential_army_supply >= local_enemy_supply * 1.5
+                )
                 and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
             ):
                 return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             
-            print(f'army too strong [{army_supply.__round__(1)} vs {local_enemy_supply.__round__(1)}], not taking the fight')
+            print(f'army too strong [{fighting_army_supply.__round__(1)} vs {local_enemy_supply.__round__(1)}], not taking the fight')
             return Orders.PICKUP_LEAVE
-            
-            # TODO: fix "enemy too fast"
-            # local_enemy_units.sort(key=lambda unit: unit.real_speed, reverse=True)
-            # local_enemy_speed: Unit = local_enemy_units.first.real_speed
-            # closest_unit: Unit = army.units.closest_to(local_enemy_units.first)
-            # if (local_enemy_speed > army.speed and local_enemy_units.first.is_facing(closest_unit, math.pi / 2)):
-            #     print("enemy too fast, taking the fight")
-            #     army.orders = Orders.FIGHT
-            # else:
-            #     print(f'not fighting against {local_enemy_supply} supply')
-            #     print("local_enemy_army:", local_enemy_army.recap)
-            #     print("unseen_enemy_army:", unseen_enemy_army.recap)
-            #     army.orders = Orders.RETREAT
                 
         # if we should defend
         if (distance_building_to_enemies <= 10):
@@ -190,7 +186,7 @@ class Combat:
         # if enemy is a workers, focus them
         if (local_enemy_workers.amount >= 1):
             return Orders.HARASS
-            
+        
         # if another army is close, we should regroup
         if (
             self.armies.__len__() >= 2
@@ -205,15 +201,20 @@ class Combat:
         
         # if we have enough army we attack
         if (
-            army_supply >= 10
+            potential_army_supply >= 8
             and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
-            and army_supply >= potential_enemy_supply
         ):
-            # the next building if we know where it is, the nearest base if we don't
-            if (global_enemy_buildings.amount >= 1):
-                return Orders.CHASE_BUILDINGS
+            # if we would lose a fight, we drop
+            if (potential_army_supply < potential_enemy_supply):
+                return Orders.DROP
+            
+            # if we would win a fight, we attack front
             else:
-                return Orders.ATTACK_NEAREST_BASE
+                # the next building if we know where it is, the nearest base if we don't
+                if (global_enemy_buildings.amount >= 1):
+                    return Orders.CHASE_BUILDINGS
+                else:
+                    return Orders.ATTACK_NEAREST_BASE
 
         return Orders.RETREAT
 
@@ -241,6 +242,9 @@ class Combat:
                 case Orders.DEFEND_CANON_RUSH:
                     self.execute.defend_canon_rush(army)
 
+                case Orders.DROP:
+                    await self.execute.drop(army)
+                
                 case Orders.HARASS:
                     await self.execute.harass(army)            
                      
@@ -272,25 +276,28 @@ class Combat:
                     rally_point: Point2 = bunker.position.towards(expansion.retreat_position, 3)
                     bunker(AbilityId.RALLY_UNITS, rally_point)
                 if (bunker.cargo_used >= 1):
+                    print("unload bunker")
                     bunker(AbilityId.UNLOADALL_BUNKER)
-                return
+                continue
             
             # If bunker under 20 hp, unload
             if (bunker.health <= 20):
                 bunker(AbilityId.UNLOADALL_BUNKER)
-                return
+                continue
             
             # Attack the weakest enenmy in range
             if (enemy_units_in_range.amount >= 1):
                 enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
                 bunker.attack(enemy_units_in_range.first)
             if (bunker.cargo_left == 0):
-                return
+                continue
+            
             bio_close_by: Units = self.bot.units.filter(
                 lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 10
             )
             if (bio_close_by.amount == 0):
-                return
+                print("no bio closeby")
+                continue
             bio_in_range: Units = Units(bio_close_by.filter(lambda unit: unit.distance_to(bunker) <= 3)[:4], self.bot)
             print("bio should load")
             for unit in bio_in_range:
@@ -333,9 +340,10 @@ class Combat:
             Orders.PICKUP_LEAVE: RED,
             Orders.RETREAT: GREEN,
             Orders.FIGHT_OFFENSE: RED,
-            Orders.FIGHT_DEFENSE: YELLOW,
+            Orders.FIGHT_DEFENSE: ORANGE,
             Orders.DEFEND: YELLOW,
-            Orders.HARASS: BLUE,
+            Orders.HARASS: LIGHTBLUE,
+            Orders.DROP: LIGHTBLUE,
             Orders.CHASE_BUILDINGS: LIGHTBLUE,
             Orders.ATTACK_NEAREST_BASE: PURPLE,
             Orders.KILL_BUILDINGS: PURPLE,
@@ -345,7 +353,7 @@ class Combat:
         for army in self.armies:
             if (army.orders in colors):
                 color = colors[army.orders]
-            army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.weighted_supply.__round__(2)})'
+            army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.weighted_supply.__round__(2)}/{army.potential_supply.__round__(2)})'
             self.draw_sphere_on_world(army.units.center, self.army_radius * 0.7, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
 
@@ -375,6 +383,15 @@ class Combat:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
             self.draw_text_on_world(expansion.position, f'[{expansion.mineral_worker_count}/{expansion.optimal_mineral_workers.__round__(1)}] Minerals', LIGHTBLUE)
             self.draw_text_on_world(below_expansion_point, f'[{expansion.vespene_worker_count}/{expansion.optimal_vespene_workers.__round__(1)}] Gas[{expansion.vespene_geysers_refinery.amount}]', GREEN)
+
+    async def debug_bases_bunkers(self):
+        for expansion in self.expansions.taken:
+            below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
+            self.draw_text_on_world(expansion.position, f'defended [{expansion.is_defended}]', LIGHTBLUE)
+            defending_bunker: Unit = expansion.defending_bunker
+            if (defending_bunker):
+                self.draw_text_on_world(below_expansion_point, f'[{defending_bunker.position}]', GREEN)
+                self.draw_grid_on_world(defending_bunker.position, 3, "Bunker")
 
     async def debug_bases_distance(self):
         last_expansion: Expansion = self.expansions.last_taken
@@ -410,6 +427,21 @@ class Combat:
         #     distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
         #     self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
+    async def debug_loaded_stuff(self, iteration: int):
+        if (iteration % 10 != 0):
+            return
+        print("units amount: ", self.bot.units.amount)
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            if (unit.has_cargo):
+                passengers: Units = Units(unit.passengers, self.bot)
+                print("loaded units: ", passengers)
+
+
+    async def debug_drop_path(self):
+        for center in self.map.centers:
+            self.draw_flying_box(center, 5)
+
     async def debug_unscouted_b2(self):
         for point in self.expansions.b2.unscouted_points:
             self.draw_box_on_world(point, 0.5)
@@ -435,6 +467,13 @@ class Combat:
             radius, color=draw_color
         )
 
+    def draw_flying_box(self, pos: Point2, size: float = 0.25, draw_color: tuple = (255, 0, 0)):
+        self.bot.client.debug_box2_out(
+            Point3((pos.x, pos.y, 5)),
+            size,
+            draw_color,
+        )
+    
     def draw_box_on_world(self, pos: Point2, size: float = 0.25, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_box2_out(

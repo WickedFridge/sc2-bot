@@ -20,8 +20,8 @@ class Bunker(Building):
         expansions_count: int = self.expansions.amount_taken
 
         # We want a bunker at each base after the first
-        return (bunker_tech_requirements == 1
-            and expansions_count >= 1
+        return (
+            bunker_tech_requirements == 1
             and bunker_count < expansions_count - 1
         )
     
