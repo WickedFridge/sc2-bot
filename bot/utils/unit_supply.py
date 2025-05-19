@@ -18,6 +18,7 @@ supply[UnitTypeId.MARAUDER] = 2
 supply[UnitTypeId.HELLION] = 2
 supply[UnitTypeId.HELLIONTANK] = 2
 supply[UnitTypeId.WIDOWMINE] = 2
+supply[UnitTypeId.WIDOWMINEBURROWED] = 2
 # Tier 2
 supply[UnitTypeId.SIEGETANK] = 2
 supply[UnitTypeId.SIEGETANKSIEGED] = 5

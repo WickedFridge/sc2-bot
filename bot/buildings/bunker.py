@@ -26,6 +26,7 @@ class Bunker(Building):
         return (
             bunker_tech_requirements == 1
             and bunker_count < expansions_count - 1
+            and self.expansions.taken.without_main.not_defended.amount >= 1
         )
     
     @override

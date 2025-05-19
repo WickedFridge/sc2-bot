@@ -223,7 +223,7 @@ class Expansion:
     def defending_bunker(self) -> Optional[Unit]:
         if (self.is_defended == False):
             return None
-        return self.bot.structures(UnitTypeId.BUNKER).closest_to(self.position)
+        return self.bot.structures(UnitTypeId.BUNKER).ready.closest_to(self.position)
     
     @property
     def is_scouted(self) -> bool:
