@@ -54,6 +54,9 @@ class Micro:
             unit.move(retreat_position)
     
     async def medivac_pickup(self, medivac: Unit, local_army: Units):
+        # stop unloading if we are
+        if (medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
+            medivac.stop()
         await self.medivac_boost(medivac)
         units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3)
         for unit in units_to_pickup:
@@ -64,16 +67,17 @@ class Micro:
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
     async def medivac_fight(self, medivac: Unit, local_army: Units):
-        if (medivac.cargo_used >= 1):
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
-            # if (self.bot.in_pathing_grid(medivac.position)):
-            #     medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
-            # else:
-            #     # find a better implementation
-            #     medivac.move(medivac.position.towards(self.expansions.enemy_main.position, 2))
+        # if our medivac is filled and not unloading, unload
+        if (medivac.cargo_used >= 1 and not medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
+            # unload if we can, otherwise move towards the closest ground unit
+            if (self.bot.in_pathing_grid(medivac.position)):
+                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+            else:
+                closest_ground_unit: Unit = local_army.closest_to(medivac)
+                medivac.move(medivac.position.towards(closest_ground_unit))
 
         if (medivac.is_active):
-            medivac_target: Point2|int = medivac.orders[0].target 
+            medivac_target: Point2|int = medivac.orders[0].target
             target_position: Point2|None = None
             if (type(medivac_target) is Point2):
                 target_position = medivac_target

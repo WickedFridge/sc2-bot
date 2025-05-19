@@ -149,6 +149,8 @@ class Combat:
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         
+        stim_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+
         closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
         
@@ -166,17 +168,16 @@ class Combat:
 
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
             if (
-                (
+                stim_completed and (
                     fighting_army_supply >= local_enemy_supply
                     or potential_army_supply >= local_enemy_supply * 1.5
                 )
-                and self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
             ):
                 return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             
-            print(f'army too strong [{fighting_army_supply.__round__(1)} vs {local_enemy_supply.__round__(1)}], not taking the fight')
+            print(f'army too strong [{round(fighting_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.5, 1)}], not taking the fight')
             return Orders.PICKUP_LEAVE
                 
         # if we should defend
@@ -203,6 +204,7 @@ class Combat:
         if (
             potential_army_supply >= 8
             and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
+            and stim_completed
         ):
             # if we would lose a fight, we drop
             if (potential_army_supply < potential_enemy_supply):
