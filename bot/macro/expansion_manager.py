@@ -96,6 +96,8 @@ class Expansions:
     
     @property
     def random(self) -> Optional[Expansion]:
+        if (len(self.expansions) == 0):
+            return None
         return random.choice(self.expansions)
     
     @property

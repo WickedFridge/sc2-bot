@@ -14,11 +14,11 @@ class Barracks(Building):
         self.name = "Barracks"
 
     def _barracks_info(self) -> tuple[int, int, int]:
-        barracks_pending_amount: int = max(
+        barracks_pending_amount: float = max(
             self.bot.structures(UnitTypeId.BARRACKS).not_ready.amount,
             self.bot.already_pending(UnitTypeId.BARRACKS)
         )
-        barracks_amount: int = (
+        barracks_amount: float = (
             self.bot.structures(UnitTypeId.BARRACKS).ready.amount +
             barracks_pending_amount +
             self.bot.structures(UnitTypeId.BARRACKSFLYING).ready.amount

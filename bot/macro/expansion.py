@@ -166,7 +166,7 @@ class Expansion:
         saturation = min(1.0, max(0.0, saturation))
 
         # Deprioritize gas if floating too much
-        if self.bot.vespene >= 200:
+        if self.bot.vespene >= 200 and self.bot.minerals <= 800:
             saturation *= 0.5  # or 0 if you want hard stop
 
         return saturation
@@ -177,7 +177,7 @@ class Expansion:
 
     @property
     def is_defended(self) -> bool:
-        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
+        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready
         if (bunkers.amount == 0):
             return False
         return (bunkers.closest_distance_to(self.position) <= 10)
