@@ -58,15 +58,16 @@ class Execute:
                 medivac.move(drop_target)
 
     async def pickup(self, medivacs: Units, ground_units: Units):
+        usable_medivacs: Units = medivacs.filter(lambda unit: unit.health_percentage >= 0.5)
         # units get closer to medivacs
         for unit in ground_units:
-            if (medivacs.amount == 0):
+            if (usable_medivacs.amount == 0):
                 self.micro.retreat(unit)
                 break
-            unit.move(medivacs.closest_to(unit))
+            unit.move(usable_medivacs.closest_to(unit))
         
         # medivacs boost and pickup
-        for medivac in medivacs:
+        for medivac in usable_medivacs:
             await self.micro.medivac_pickup(medivac, ground_units)
 
 

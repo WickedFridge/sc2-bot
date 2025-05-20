@@ -1,5 +1,6 @@
 from typing import override
 from bot.buildings.building import Building
+from bot.macro.expansion_manager import Expansions
 from bot.macro.resources import Resources
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
@@ -29,6 +30,7 @@ class Barracks(Building):
     @override
     @property
     def conditions(self) -> bool:
+        townhall_amount: int = self.bot.townhalls.ready.amount
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracks_pending, barracks_total, base_amount = self._barracks_info()
         max_barracks: int = min(14, base_amount ** 2 / 2 - base_amount / 2 + 1)
@@ -38,7 +40,8 @@ class Barracks(Building):
         # with a max of 12 raxes
 
         return (
-            barracks_tech_requirement == 1
+            townhall_amount >= 1
+            and barracks_tech_requirement == 1
             and barracks_pending < base_amount
             and barracks_total < max_barracks
         )
@@ -50,5 +53,11 @@ class Barracks(Building):
         if (barracks_total == 0):
             return self.bot.main_base_ramp.barracks_correct_placement
         
-        cc: Unit =  self.bot.townhalls.ready.random if self.bot.townhalls.ready.amount >= 1 else self.bot.townhalls.random
-        return cc.position.towards(self.bot.game_info.map_center, 4)
+        # select only expansions that have less than 5 raxes around them
+        expansions: Expansions = self.expansions.ready.filter(
+            lambda expansion: (
+                self.bot.structures(UnitTypeId.BARRACKS).closer_than(5, expansion.position).amount < 5
+            )
+        )
+        
+        return expansions.random.position.towards(self.bot.game_info.map_center, 4)

@@ -209,8 +209,11 @@ class Combat:
         ):
             # return Orders.DROP
 
-            # if we would lose a fight, we drop
-            if (potential_army_supply < potential_enemy_supply):
+            # if we would lose a fight and our medivac are above 40% life, we drop
+            if (
+                potential_army_supply < potential_enemy_supply
+                and army.units.of_type(UnitTypeId.MEDIVAC).filter(lambda unit: unit.health_percentage < 0.5).amount == 0
+            ):
                 return Orders.DROP
             
             # if we would win a fight, we attack front
