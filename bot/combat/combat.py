@@ -32,7 +32,7 @@ class Combat:
     
     def __init__(self, bot: BotAI, expansions: Expansions) -> None:
         self.bot = bot
-        self.execute = Execute(bot, expansions)
+        self.execute = Execute(bot)
         self.known_enemy_army = Army(Units([], bot), bot)
 
     @property
@@ -203,9 +203,12 @@ class Combat:
         # if we have enough army we attack
         if (
             potential_army_supply >= 8
+            and potential_army_supply >= army.supply * 0.7
             and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
             and stim_completed
         ):
+            # return Orders.DROP
+
             # if we would lose a fight, we drop
             if (potential_army_supply < potential_enemy_supply):
                 return Orders.DROP

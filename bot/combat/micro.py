@@ -1,7 +1,7 @@
 import math
 from typing import List
 from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions
+from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
 from sc2.data import Race
@@ -17,12 +17,14 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, 
 
 class Micro:
     bot: BotAI
-    expansions: Expansions
 
-    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.expansions = expansions
 
+    @property
+    def expansions(self) -> Expansions:
+        return get_expansions(self.bot)
+    
     @property
     def retreat_position(self) -> Point2:
         last_expansion: Expansion = self.expansions.last_taken
@@ -73,8 +75,17 @@ class Micro:
             if (self.bot.in_pathing_grid(medivac.position)):
                 medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
             else:
-                closest_ground_unit: Unit = local_army.closest_to(medivac)
-                medivac.move(medivac.position.towards(closest_ground_unit))
+                ground_allied_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
+                ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
+                ground_enemy_buildings: Units = self.bot.enemy_structures
+                if (ground_allied_units.amount >= 1):
+                    medivac.move(medivac.position.towards(ground_allied_units.closest_to(medivac)))
+                elif(ground_enemy_units.amount >= 1):
+                    medivac.move(medivac.position.towards(ground_enemy_units.closest_to(medivac)))
+                elif(ground_enemy_buildings.amount >= 1):
+                    medivac.move(medivac.position.towards(ground_enemy_buildings.closest_to(medivac)))
+                else:
+                    medivac.move(medivac.position.towards(self.expansions.enemy_main.position))            
 
         if (medivac.is_active):
             medivac_target: Point2|int = medivac.orders[0].target

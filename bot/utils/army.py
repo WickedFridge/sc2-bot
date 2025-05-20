@@ -82,10 +82,8 @@ class Army:
     @property
     def potential_fighting_units(self) -> Units:
         passengers: Units = Units([], self.bot)
-        medivacs: Units = self.units(UnitTypeId.MEDIVAC)
-        for medivac in medivacs:
-            if (medivac.cargo_used == 0):
-                break
+        medivacs_filled: Units = self.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.cargo_used > 0)
+        for medivac in medivacs_filled:
             passengers += Units(medivac.passengers, self.bot)
         return self.fighting_units + passengers
     

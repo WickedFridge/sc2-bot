@@ -1,6 +1,6 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
-from bot.macro.expansion_manager import Expansions
+from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.map import MapData, get_map
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
@@ -16,19 +16,20 @@ PICKUP_RANGE: int = 3
 class Execute:
     bot: BotAI
     micro: Micro
-    expansions: Expansions
 
-    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.expansions = expansions
-        self.micro = Micro(bot, expansions)
+        self.micro = Micro(bot)
+
+    @property
+    def expansions(self) -> Expansions:
+        return get_expansions(self.bot)
 
     @property
     def map(self) -> MapData:
         return get_map(self)
 
     async def drop(self, army: Army):
-        # await self.pickup_leave(army)
         # define which base to drop
         # we'll start with the natural
         
@@ -40,7 +41,8 @@ class Execute:
         medivacs_full: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
         await self.pickup(medivacs_with_room, ground_units)
-        for medivac in medivacs_full:
+        medivacs_dropping: Units = medivacs if army.ground_units.amount == 0 else medivacs_full
+        for medivac in medivacs_dropping:
             distance_medivac_to_target = medivac.position.distance_to(drop_target)
             distance_edge_to_target = closest_center.distance_to(drop_target)
             
