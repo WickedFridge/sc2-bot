@@ -16,7 +16,10 @@ class CommandCenter(Building):
     def conditions(self) -> bool:
         base_count: int = self.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
-        factory_count: int = self.bot.structures(UnitTypeId.FACTORY).amount
+        factory_count: int = (
+            self.bot.structures(UnitTypeId.FACTORY) + 
+            self.bot.structures(UnitTypeId.FACTORYFLYING)
+        ).amount
         pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
         return (
             (townhalls_count <= 2 or factory_count >= 1) and
@@ -30,7 +33,7 @@ class CommandCenter(Building):
         cc_position: Point2 = self.expansions.next.position
         match (townhall_amount):
             case 0:
-                return self.expansions.main
+                return self.expansions.main.position
             case 1:
                 return self.expansions.next.position
             case 2:

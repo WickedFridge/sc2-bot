@@ -101,9 +101,14 @@ class Train:
             lambda rax: rax.is_idle or (rax.has_reactor and rax.orders.__len__() < 2)
         )
         resources_updated: Resources = resources
-        for barrack in barracks_ready :
+        
+        barracks_with_techlabs: Units = barracks_ready.filter(lambda unit: unit.has_techlab)
+        other_barracks: Units = barracks_ready.filter(lambda unit: not unit.has_techlab)
+
+        # start with barracks with techlabs
+        for barrack in barracks_with_techlabs :
             # if we have a techlab and should train mauraders, train them
-            if (barrack.has_techlab and self.should_train_marauders):
+            if (self.should_train_marauders):
                 training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MARAUDER)
                 can_build: bool
                 resources_updated: Resources
@@ -124,4 +129,16 @@ class Train:
 
                 print("Train Marine")
                 barrack.train(UnitTypeId.MARINE)
+        
+        # then do other barracks
+        for barrack in other_barracks:
+            training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MARINE)
+            can_build: bool
+            resources_updated: Resources
+            can_build, resources_updated = resources.update(training_cost)
+            if (can_build == False):
+                return resources_updated  # Skip if we can't afford it
+
+            print("Train Marine")
+            barrack.train(UnitTypeId.MARINE)
         return resources_updated

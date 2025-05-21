@@ -1,10 +1,35 @@
-from typing import override
+from typing import Dict, List, override
 from bot.buildings.building import Building
 from bot.macro.resources import Resources
+from bot.utils.matchup import Matchup, get_matchup
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
+addon_sequence = {
+    Matchup.TvP: [
+        UnitTypeId.BARRACKSREACTOR,
+        UnitTypeId.BARRACKSTECHLAB,
+        UnitTypeId.BARRACKSTECHLAB,
+        UnitTypeId.BARRACKSREACTOR,
+    ],
+    Matchup.TvZ: [
+        UnitTypeId.BARRACKSREACTOR,
+        UnitTypeId.BARRACKSTECHLAB,
+        UnitTypeId.BARRACKSREACTOR,
+        UnitTypeId.BARRACKSTECHLAB,
+    ],
+    Matchup.TvT: [
+        UnitTypeId.BARRACKSREACTOR,
+        UnitTypeId.BARRACKSTECHLAB,
+        UnitTypeId.BARRACKSREACTOR,
+    ],
+    Matchup.TvZ: [
+        UnitTypeId.BARRACKSREACTOR,
+        UnitTypeId.BARRACKSTECHLAB,
+        UnitTypeId.BARRACKSREACTOR,
+    ]
+}
 
 class BarracksAddon(Building):
     def __init__(self, build):
@@ -12,6 +37,42 @@ class BarracksAddon(Building):
         self.unitId = UnitTypeId.BARRACKSTECHREACTOR
         self.name = "Barracks Addon"
 
+    @property
+    def matchup(self) -> Matchup:
+        return get_matchup(self.bot)
+
+    @property
+    def sequence(self) -> List[UnitTypeId]:
+        match (self.matchup):
+            case Matchup.TvP:        
+                return [
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                ]
+            case Matchup.TvZ:        
+                return [
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                ]
+            case Matchup.TvT:        
+                return [
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSREACTOR,
+                ]
+            case _:
+                return [
+                    UnitTypeId.BARRACKSREACTOR,
+                    UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSREACTOR,
+                ]
+    
+    
     @property
     def barracks_without_addon(self) -> Units:
         """Returns barracks that are idle and do not have an addon."""
@@ -28,12 +89,32 @@ class BarracksAddon(Building):
         return self.bot.structures(UnitTypeId.BARRACKSREACTOR).ready.amount + self.bot.already_pending(UnitTypeId.BARRACKSREACTOR)
     
     @property
+    def current_addons(self) -> List[UnitTypeId]:
+        return self.techlab_count * [UnitTypeId.BARRACKSTECHLAB] + self.reactor_count * [UnitTypeId.BARRACKSREACTOR]
+    
+    @property
     def next_addon(self) -> UnitTypeId:
-        """Ensures the 2:1 Reactor-to-Techlab ratio is maintained dynamically."""
-        if self.techlab_count * 2 < self.reactor_count:
-            return UnitTypeId.BARRACKSTECHLAB
-        else:
-            return UnitTypeId.BARRACKSREACTOR    
+        """
+        Return the next addon type to build based on a repeating sequence.
+        Automatically skips fulfilled steps if an addon was destroyed or delayed.
+        """
+        techlabs: int = self.techlab_count
+        reactors: int = self.reactor_count
+
+        for i in range(techlabs + reactors):
+            if (self.sequence[i % len(self.sequence)] == UnitTypeId.BARRACKSTECHLAB):
+                if (techlabs >= 1):
+                    techlabs -= 1
+                else:
+                    return UnitTypeId.BARRACKSTECHLAB
+            elif (self.sequence[i % len(self.sequence)] == UnitTypeId.BARRACKSREACTOR):
+                if (reactors >= 1):
+                    reactors -= 1
+                else:
+                    return UnitTypeId.BARRACKSREACTOR
+                
+        # If we reach here, we continue the sequence
+        return self.sequence[techlabs + reactors % len(self.sequence)]
     
     @override
     @property
@@ -57,6 +138,7 @@ class BarracksAddon(Building):
             if (can_build == False):
                 continue  # Skip if we can't afford it
 
+            print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')
             print(f'Build {self.name}')
             barracks.build(self.unitId)
         return resources_updated

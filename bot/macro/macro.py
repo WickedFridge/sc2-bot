@@ -58,6 +58,8 @@ class Macro:
         )
         if (enemy_towers.amount >= 1):
             match(enemy_towers.random.type_id):
+                case UnitTypeId.PYLON:
+                    return Threat.CANON_RUSH
                 case UnitTypeId.PHOTONCANNON:
                     return Threat.CANON_RUSH
                 case UnitTypeId.BUNKER:

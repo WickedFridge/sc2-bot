@@ -25,7 +25,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.0.5"
+VERSION: str = "3.1.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"

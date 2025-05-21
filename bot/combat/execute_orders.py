@@ -37,12 +37,21 @@ class Execute:
         closest_center: Point2 = self.map.closest_center(drop_target)
         
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
-        medivacs_with_room: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1)
-        medivacs_full: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
+        
+        # select dropping medivacs
+        usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
+        full_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
+        
+        if ((usable_medivacs + full_medivacs).amount > 2):
+            sorted_usable_medivacs: Units = usable_medivacs.sorted(lambda unit: (-unit.health, unit.tag))
+            droppable_medivac: Units = sorted_usable_medivacs.take(max(0, usable_medivacs.amount - full_medivacs.amount))
+        else:
+            droppable_medivac: Units = usable_medivacs
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
-        await self.pickup(medivacs_with_room, ground_units)
-        medivacs_dropping: Units = medivacs if army.ground_units.amount == 0 else medivacs_full
-        for medivac in medivacs_dropping:
+        await self.pickup(droppable_medivac, ground_units)
+        dropping_medivac: Units = droppable_medivac + full_medivacs if army.ground_units.amount == 0 else full_medivacs
+        
+        for medivac in dropping_medivac:
             distance_medivac_to_target = medivac.position.distance_to(drop_target)
             distance_edge_to_target = closest_center.distance_to(drop_target)
             
@@ -58,16 +67,15 @@ class Execute:
                 medivac.move(drop_target)
 
     async def pickup(self, medivacs: Units, ground_units: Units):
-        usable_medivacs: Units = medivacs.filter(lambda unit: unit.health_percentage >= 0.5)
         # units get closer to medivacs
         for unit in ground_units:
-            if (usable_medivacs.amount == 0):
+            if (medivacs.amount == 0):
                 self.micro.retreat(unit)
                 break
-            unit.move(usable_medivacs.closest_to(unit))
+            unit.move(medivacs.closest_to(unit))
         
         # medivacs boost and pickup
-        for medivac in usable_medivacs:
+        for medivac in medivacs:
             await self.micro.medivac_pickup(medivac, ground_units)
 
 
@@ -77,12 +85,24 @@ class Execute:
             self.retreat_army(army)
             return
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
-        medivacs_with_room: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1)
-        medivacs_full: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
-        await self.pickup(medivacs_with_room, ground_units)
-        for medivac in medivacs_full:
+        usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
+        retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left == 0 or unit.health_percentage < 0.4)
+        await self.pickup(usable_medivacs, ground_units)
+        for medivac in retreating_medivacs:
             self.micro.retreat(medivac)
 
+    def heal_up(self, army: Army):
+        # drop units
+        for unit in army.units:
+            if (unit.type_id == UnitTypeId.MEDIVAC):
+                if (not unit.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
+                    unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
+                self.micro.medivac_fight(unit, army.units)
+            # group units that aren't near the center
+            else:
+                if (unit.distance_to(army.center) > 5):
+                    unit.move(army.center)
+    
     def retreat_army(self, army: Army):
         for unit in army.units:
             self.micro.retreat(unit)

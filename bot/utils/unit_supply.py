@@ -90,6 +90,7 @@ supply[UnitTypeId.CORRUPTOR] = 2
 # Tier 3
 supply[UnitTypeId.BROODLORDEGG] = 4
 supply[UnitTypeId.BROODLORD] = 4
+supply[UnitTypeId.BROODLORDCOCOON] = 4
 supply[UnitTypeId.VIPER] = 3
 supply[UnitTypeId.ULTRALISK] = 6
 supply[UnitTypeId.ULTRALISKBURROWED] = 6

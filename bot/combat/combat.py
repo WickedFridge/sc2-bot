@@ -139,6 +139,9 @@ class Combat:
             lambda unit: unit.type_id in tower_types
         )
 
+        usable_medivacs: Units = army.units.of_type(UnitTypeId.MEDIVAC).filter(
+            lambda unit: unit.health_percentage >= 0.5
+        )
         fighting_army_supply: float = army.weighted_supply
         potential_army_supply: float = army.potential_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
@@ -170,7 +173,7 @@ class Combat:
             if (
                 stim_completed and (
                     fighting_army_supply >= local_enemy_supply
-                    or potential_army_supply >= local_enemy_supply * 1.5
+                    or potential_army_supply >= local_enemy_supply * 1.25
                 )
             ):
                 return Orders.FIGHT_OFFENSE
@@ -204,17 +207,18 @@ class Combat:
         if (
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
-            and army.units.of_type(UnitTypeId.MEDIVAC).amount >= 1
+            and usable_medivacs.amount >= 1
             and stim_completed
         ):
-            # return Orders.DROP
-
-            # if we would lose a fight and our medivac are above 40% life, we drop
+            # if we would lose a fight
             if (
                 potential_army_supply < potential_enemy_supply
-                and army.units.of_type(UnitTypeId.MEDIVAC).filter(lambda unit: unit.health_percentage < 0.5).amount == 0
             ):
-                return Orders.DROP
+                # if our bio is too low, heal up
+                if (army.bio_health_percentage < 0.6):
+                    return Orders.HEAL_UP
+                else:
+                    return Orders.DROP
             
             # if we would win a fight, we attack front
             else:
@@ -234,6 +238,9 @@ class Combat:
                 
                 case Orders.RETREAT:
                     self.execute.retreat_army(army)
+
+                case Orders.HEAL_UP:
+                    self.execute.heal_up(army)
                 
                 case Orders.FIGHT_OFFENSE:
                     await self.execute.fight(army)
@@ -347,6 +354,7 @@ class Combat:
         colors: dict = {
             Orders.PICKUP_LEAVE: RED,
             Orders.RETREAT: GREEN,
+            Orders.HEAL_UP: GREEN,
             Orders.FIGHT_OFFENSE: RED,
             Orders.FIGHT_DEFENSE: ORANGE,
             Orders.DEFEND: YELLOW,

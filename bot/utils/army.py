@@ -5,7 +5,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, menacing
+from ..utils.unit_tags import worker_types, menacing, bio
 from ..utils.unit_supply import units_supply, weighted_units_supply
 
 
@@ -80,12 +80,37 @@ class Army:
         return Army.get_composition(self.fighting_units)
 
     @property
-    def potential_fighting_units(self) -> Units:
+    def bio_health_percentage(self) -> float:
+        bio_units: Units = (self.units + self.passengers).filter(
+            lambda unit: unit.type_id in bio
+        )
+        if (bio_units.amount == 0):
+            return 0
+        
+        bio_health: float = 0
+        total_health: float = 0
+        for unit in bio_units:
+            bio_health += unit.health + unit.shield
+            total_health += unit.health_max + unit.shield_max
+
+        return bio_health / total_health
+    
+    @property
+    def passengers(self) -> Units:
+        medivacs: Units = self.units(UnitTypeId.MEDIVAC)
+        if (medivacs.amount == 0):
+            return Units([], self.bot)
         passengers: Units = Units([], self.bot)
-        medivacs_filled: Units = self.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.cargo_used > 0)
-        for medivac in medivacs_filled:
+        for medivac in medivacs:
             passengers += Units(medivac.passengers, self.bot)
-        return self.fighting_units + passengers
+        return passengers
+
+    @property
+    def potential_fighting_units(self) -> Units:
+        medivacs_filled: Units = self.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.cargo_used >= 1)
+        if (self.fighting_units.amount >= 1):
+            return self.fighting_units + self.passengers
+        return medivacs_filled + self.passengers
     
     
     @property

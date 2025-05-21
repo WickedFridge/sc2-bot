@@ -44,7 +44,7 @@ class SupplyDepot(Building):
         expansion: Expansion = self.expansions.taken.random
         if (not expansion):
             return self.expansions.main.position
-        mineral_field: Unit = expansion.mineral_fields.random
+        mineral_field: Unit = expansion.mineral_fields.random if expansion.mineral_fields else expansion.position
         selected_position: Point2 = mineral_field.position
         offset: Point2 = selected_position.negative_offset(expansion.position)
         target: Point2 = selected_position.__add__(offset)
