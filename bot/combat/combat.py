@@ -426,7 +426,7 @@ class Combat:
             self.draw_sphere_on_world(center_point)
         else:
             for unit in selected_units:
-                self.draw_text_on_world(unit.position, f'{unit.position}')
+                self.draw_text_on_world(unit.position, f'Cloaked {unit.is_cloaked}, Burrowed {unit.is_burrowed}')
                 if (unit.is_idle):
                     break
                 target: int|Point2 = unit.orders[0].target
@@ -443,6 +443,18 @@ class Combat:
         #     distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
         #     self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
+    async def debug_invisible_units(self):
+        invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+            lambda unit: (
+                unit.is_visible
+                and (unit.is_burrowed or unit.is_cloaked)
+            )
+        )
+        for unit in invisible_units:
+            self.draw_sphere_on_world(unit.position, radius=1, draw_color=YELLOW)
+            self.draw_text_on_world(unit.position, f'{unit.type_id.name} [{unit.health}/{unit.health_max}]', YELLOW)
+
+    
     async def debug_loaded_stuff(self, iteration: int):
         if (iteration % 10 != 0):
             return

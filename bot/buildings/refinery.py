@@ -40,6 +40,7 @@ class Refinery(Building):
                     lambda geyser: (
                         geyser.has_vespene
                         and self.bot.structures(UnitTypeId.REFINERY).closer_than(1, geyser).amount == 0
+                        and self.bot.enemy_structures.of_type({UnitTypeId.REFINERY, UnitTypeId.EXTRACTOR, UnitTypeId.ASSIMILATOR}).closer_than(1, geyser).amount == 0
                     )
                 )
                 if (free_geyser.amount >= 1):

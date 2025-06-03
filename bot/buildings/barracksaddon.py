@@ -114,7 +114,7 @@ class BarracksAddon(Building):
                     return UnitTypeId.BARRACKSREACTOR
                 
         # If we reach here, we continue the sequence
-        return self.sequence[techlabs + reactors % len(self.sequence)]
+        return self.sequence[(self.techlab_count + self.reactor_count) % len(self.sequence)]
     
     @override
     @property
@@ -136,8 +136,8 @@ class BarracksAddon(Building):
             can_build, resources_updated = resources_updated.update(building_cost)
 
             if (can_build == False):
-                continue  # Skip if we can't afford it
-
+                continue
+            
             print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')
             print(f'Build {self.name}')
             barracks.build(self.unitId)

@@ -56,6 +56,8 @@ class Train:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         max_medivac_amount: int = 12
         medivac_amount: int = self.bot.units(UnitTypeId.MEDIVAC).amount
+        bio_amount: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.units(UnitTypeId.MARAUDER).amount
+        barracks_inactive: Units = self.bot.structures(UnitTypeId.BARRACKS).ready.filter(lambda rax: not rax.is_active)
         resources_updated: Resources = resources
         for starport in starports :
             if (
@@ -66,6 +68,10 @@ class Train:
                         not starport.has_reactor
                         or len(starport.orders) == 2
                     )
+                )
+                or (
+                    bio_amount < 10
+                    and barracks_inactive.amount > 0
                 )
             ):
                 return resources_updated

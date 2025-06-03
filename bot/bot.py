@@ -25,7 +25,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.1.1"
+VERSION: str = "3.2.0"
 
 class WickedBot(BotAI):
     NAME: str = "WickedBot"
@@ -91,9 +91,11 @@ class WickedBot(BotAI):
             await self.macro.speed_mining.start()
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
-            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 8, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.STARPORTFLYING, 1, self.townhalls.random.position.towards(self._game_info.map_center, 7), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ORBITALCOMMAND, 3, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.SUPPLYDEPOT, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.HELLION, 3, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.CREEPTUMOR, 3, self.expansions.b2.position, 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
         await self.check_surrend_condition()
         
         # General Worker management
@@ -117,6 +119,7 @@ class WickedBot(BotAI):
 
         # Control buildings
         await self.buildings.drop_mules()
+        await self.buildings.scan()
         await self.buildings.handle_supplies()
         await self.buildings.lift_orbital()
         await self.buildings.land_orbital()
@@ -197,9 +200,10 @@ class WickedBot(BotAI):
         await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
         # await self.combat.debug_bases_content()
-        await self.combat.debug_bases_bunkers()
+        # await self.combat.debug_bases_bunkers()
         # await self.combat.debug_bases_distance()
         await self.combat.debug_selection()
+        await self.combat.debug_invisible_units()
         await self.combat.debug_drop_path()
         # await self.combat.debug_loaded_stuff(iteration)
         # await self.combat.debug_unscouted_b2()

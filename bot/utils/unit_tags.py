@@ -22,7 +22,8 @@ must_repair: List[UnitTypeId] = [
 worker_types: List[UnitTypeId] = [
     UnitTypeId.SCV,
     UnitTypeId.PROBE,
-    UnitTypeId.DRONE
+    UnitTypeId.DRONE,
+    UnitTypeId.MULE
 ]
 tower_types: List[UnitTypeId] = [
     UnitTypeId.PHOTONCANNON,

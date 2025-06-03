@@ -1,15 +1,18 @@
 import math
-from typing import List
+from typing import List, Set
 from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityRepair
+from bot.utils.point2_functions import center
 from bot.utils.unit_functions import worker_amount_vespene_geyser, worker_amount_mineral_field
 from sc2.bot_ai import BotAI
+from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import must_repair, add_ons
+from ..utils.unit_tags import must_repair, add_ons, worker_types
 
 class BuildingsHandler:
     bot: BotAI
@@ -112,7 +115,7 @@ class BuildingsHandler:
         # also bank a scan if we have 3 or more orbitals
         orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
         # scan_to_bank: int = int(orbital_command_amount / 3)
-        scan_to_bank: int = 0
+        scan_to_bank: int = 3
         scan_banked: int = 0
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
             if (
@@ -123,6 +126,65 @@ class BuildingsHandler:
             else:
                 scan_banked += 1
 
+    async def scan(self):
+        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0):
+            return
+        
+        # find invisible enemy unit that we should kill
+        invisible_enemy_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+            lambda unit: unit.is_visible and not unit.is_revealed and (unit.is_cloaked or unit.is_burrowed) 
+        )
+        
+        # if we have a unit close to it that can attack it
+        fighting_units: Units = self.bot.units.filter(
+            lambda unit: (unit.type_id not in worker_types)
+        )
+
+        # find fighting units that are on creep without a building in 5 range
+        on_creep_fighting_units: Units = fighting_units.filter(
+            lambda unit: (
+                self.bot.has_creep(unit.position)
+                and not self.bot.enemy_structures.closer_than(10, unit.position).amount
+            )
+        )
+
+        # scan units that are on creep
+        for unit in on_creep_fighting_units:
+            # get ongoing scans
+            scans: Set[EffectData] = set(filter(lambda effect: effect.id == EffectId.SCANNERSWEEP, self.bot.state.effects))
+            # if there is no scan on this unit, scan it
+            scanned: bool = False
+            for scan in scans:
+                scan_center: Point2 = center(list(scan.positions))
+                if (scan_center.distance_to(unit.position) < 10):
+                    scanned = True
+                    break
+            if (not scanned):
+                print("scan unit on creep", unit.name)
+                # find an orbital command with enough energy
+                orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
+                if (orbitals_with_energy.amount == 0):
+                    print("No orbital command with enough energy to scan")
+                    return
+                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, unit.position)
+                # scan only once per frame
+                return
+            else:        
+                print("Unit is already scanned", unit.name)
+
+        
+        # # invisible enemy units we should scan are in range of our fighting units
+        # for enemy_unit in invisible_enemy_units.in_distance_of_group(fighting_units, 10):
+        #     print("Should scan enemy unit", enemy_unit.name)
+        #     # find an orbital command with enough energy
+        #     orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
+        #     if (orbitals_with_energy.amount == 0):
+        #         print("No orbital command with enough energy to scan")
+        #         return
+        #     print("scan enemy unit", enemy_unit.name)
+        #     orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, enemy_unit.position)
+
+    
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready
         supplies_lowered: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOTLOWERED)
