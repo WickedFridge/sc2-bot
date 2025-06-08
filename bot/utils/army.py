@@ -14,7 +14,7 @@ class Army:
     bot: BotAI
     orders: Orders = Orders.RETREAT
 
-    def __init__(self, units, bot) -> None:
+    def __init__(self, units, bot: BotAI) -> None:
         self.units = units
         self.bot = bot
     

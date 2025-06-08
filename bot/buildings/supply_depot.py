@@ -41,9 +41,9 @@ class SupplyDepot(Building):
         if (len(supply_placement_positions) >= 1) :
             return supply_placement_positions.pop()
         
-        expansion: Expansion = self.expansions.taken.random
+        expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):
-            return self.expansions.main.position
+            return self.bot.expansions.main.position
         mineral_field: Unit = expansion.mineral_fields.random if expansion.mineral_fields else expansion.position
         selected_position: Point2 = mineral_field.position
         offset: Point2 = selected_position.negative_offset(expansion.position)

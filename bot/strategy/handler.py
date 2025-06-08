@@ -1,5 +1,5 @@
 from typing import List, Optional
-from bot.macro.macro import BASE_SIZE, THREAT_DISTANCE
+from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -12,7 +12,7 @@ class StrategyHandler:
     strategy: Strategy
     priorities: List[Priority]
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
         self.situation = Situation.STABLE
         self.strategy = Strategy.MACRO_SAFE

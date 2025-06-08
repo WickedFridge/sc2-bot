@@ -1,8 +1,7 @@
 from __future__ import annotations
-from collections.abc import Iterator
 import math
 import random
-from typing import Any, Callable, Generator, List, Optional, overload
+from typing import Any, Callable, Generator, List, Optional
 from bot.macro.expansion import Expansion
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -16,9 +15,9 @@ class Expansions:
     bot: BotAI
     expansions: List[Expansion]
 
-    def __init__(self, bot: BotAI, expansions: List[Expansion] = []) -> None:
+    def __init__(self, bot: BotAI, expansions: Optional[List[Expansion]] = None) -> None:
         self.bot = bot
-        self.expansions = expansions
+        self.expansions = expansions if expansions is not None else []
 
     def __iter__(self) -> Generator[Expansion, None, None]:
         return (item for item in self.expansions)
@@ -65,10 +64,7 @@ class Expansions:
     
     @property
     def positions(self) -> List[Point2]:
-        positions: List[Point2] = []
-        for expansion in self.expansions:
-            positions.append(expansion.position)
-        return positions
+        return [expansion.position for expansion in self.expansions]
     
     @property
     def taken(self) -> Expansions:
@@ -148,18 +144,16 @@ class Expansions:
 
     @property
     def townhalls(self) -> Units:
-        ccs: List[Unit] = []
-        for expo in self.taken.expansions:
-            ccs.append(expo.cc)
-        return Units(ccs, self.bot)
+        return Units([expansion.cc for expansion in self.taken.expansions], self.bot)
     
     @property
     def mineral_fields(self) -> Units:
-        mineral_fields: List[Unit] = []
-        for expo in self.taken.expansions:
-            mineral_fields.append(expo.mineral_fields)
-        return Units(mineral_fields, self.bot)
-    
+        return Units([expansion.mineral_fields for expansion in self.taken.expansions], self.bot)
+
+    @property
+    def vespene_geysers(self) -> Units:
+        return Units([expansion.vespene_geysers for expansion in self.taken.expansions], self.bot)
+
     @property
     def minerals(self) -> int:
         return sum(expansion.minerals for expansion in self.expansions)
@@ -167,13 +161,6 @@ class Expansions:
     @property
     def vespene(self) -> int:
         return sum(expansion.vespene for expansion in self.expansions)
-
-    @property
-    def vespene_geysers(self) -> Units:
-        vespene_geysers: List[Unit] = []
-        for expo in self.taken.expansions:
-            vespene_geysers.append(expo.vespene_geyser)
-        return Units(vespene_geysers, self.bot)
     
     def townhalls_not_on_slot(self, type_id: Optional[UnitTypeId] = None) -> Units:
         townhalls: Units = self.bot.townhalls
@@ -184,9 +171,9 @@ class Expansions:
         return all_townhalls.filter(lambda townhall: townhall.tag not in self.townhalls.tags)
 
     def closest_to(self, unit: Unit | Point2) -> Expansion:
-        positions: List[Point2] = self.positions.copy()
-        positions.sort(key = lambda point: point.distance_to(unit))
-        return positions[0]
+        expansions: List[Expansion] = self.expansions.copy()
+        expansions.sort(key = lambda expo: expo.position.distance_to(unit))
+        return expansions[0]
 
     async def set_expansion_list(self):
         expansions: List[Expansion] = []
@@ -204,7 +191,7 @@ class Expansions:
         
         self.expansions = expansions
 
-def get_expansions(bot: BotAI) -> Expansions:
+def get_expansions(bot: WickedBot) -> Expansions:
     global expansions
     if (expansions is None):
         expansions = Expansions(bot)

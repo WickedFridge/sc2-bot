@@ -1,11 +1,8 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion_manager import Expansions
-from bot.macro.resources import Resources
-from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
-from sc2.unit import Unit
 
 
 class Barracks(Building):
@@ -54,10 +51,11 @@ class Barracks(Building):
             return self.bot.main_base_ramp.barracks_correct_placement
         
         # select only expansions that have less than 5 raxes around them
-        expansions: Expansions = self.expansions.ready.filter(
+        expansions: Expansions = self.bot.expansions.ready.filter(
             lambda expansion: (
                 self.bot.structures(UnitTypeId.BARRACKS).closer_than(5, expansion.position).amount < 5
             )
         )
-        
-        return expansions.random.position.towards(self.bot.game_info.map_center, 4)
+        if (expansions.amount >= 1):    
+            return expansions.random.position.towards(self.bot.game_info.map_center, 4)
+        return self.bot.expansions.main.position.towards(self.bot.game_info.map_center, 8)

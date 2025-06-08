@@ -1,9 +1,7 @@
 from bot.combat.threats import Threat
-from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.unit import Unit
-from sc2.units import Units
 
 
 class Base:

@@ -2,8 +2,8 @@ import math
 from typing import List, Set
 from bot.macro.expansion_manager import Expansions
 from bot.utils.ability_tags import AbilityRepair
-from bot.utils.point2_functions import center
-from bot.utils.unit_functions import worker_amount_vespene_geyser, worker_amount_mineral_field
+from bot.utils.matchup import Matchup, get_matchup
+from bot.utils.point2_functions import center, points_to_build_addon
 from sc2.bot_ai import BotAI
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
@@ -16,13 +16,11 @@ from ..utils.unit_tags import must_repair, add_ons, worker_types
 
 class BuildingsHandler:
     bot: BotAI
-    expansions: Expansions
     
-    def __init__(self, bot, expansions) -> None:
+    def __init__(self, bot) -> None:
         super().__init__()
         self.bot = bot
-        self.expansions = expansions
-
+    
     async def finish_construction(self):
         if (self.bot.workers.collecting.amount == 0):
             return
@@ -111,12 +109,11 @@ class BuildingsHandler:
             return
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
-        # call down a mule on this guy
-        # also bank a scan if we have 3 or more orbitals
+        # bank scans if we have 3 or more orbitals
         orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        # scan_to_bank: int = int(orbital_command_amount / 3)
-        scan_to_bank: int = 3
+        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ else 1
         scan_banked: int = 0
+        # call down a mule on this guy
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
             if (
                 orbital_command.energy >= 100
@@ -127,45 +124,37 @@ class BuildingsHandler:
                 scan_banked += 1
 
     async def scan(self):
-        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0):
+        orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
+        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
             return
-        
-        # find invisible enemy unit that we should kill
-        invisible_enemy_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-            lambda unit: unit.is_visible and not unit.is_revealed and (unit.is_cloaked or unit.is_burrowed) 
-        )
         
         # if we have a unit close to it that can attack it
         fighting_units: Units = self.bot.units.filter(
             lambda unit: (unit.type_id not in worker_types)
         )
 
-        # find fighting units that are on creep without a building in 5 range
+        # find fighting units that are on creep without a building in 15 range
         on_creep_fighting_units: Units = fighting_units.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
-                and not self.bot.enemy_structures.closer_than(10, unit.position).amount
+                and not self.bot.enemy_structures.closer_than(15, unit.position).amount
+                and not self.bot.enemy_units(UnitTypeId.BROODLING).closer_than(15, unit.position).amount
             )
         )
 
-        # scan units that are on creep
+        # scan for creep tumors    
         for unit in on_creep_fighting_units:
             # get ongoing scans
             scans: Set[EffectData] = set(filter(lambda effect: effect.id == EffectId.SCANNERSWEEP, self.bot.state.effects))
-            # if there is no scan on this unit, scan it
+            # if theres no scan on this unit, scan it
             scanned: bool = False
             for scan in scans:
                 scan_center: Point2 = center(list(scan.positions))
-                if (scan_center.distance_to(unit.position) < 10):
+                if (scan_center.distance_to(unit.position) < 13):
                     scanned = True
                     break
             if (not scanned):
                 print("scan unit on creep", unit.name)
-                # find an orbital command with enough energy
-                orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
-                if (orbitals_with_energy.amount == 0):
-                    print("No orbital command with enough energy to scan")
-                    return
                 orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, unit.position)
                 # scan only once per frame
                 return
@@ -173,18 +162,21 @@ class BuildingsHandler:
                 print("Unit is already scanned", unit.name)
 
         
-        # # invisible enemy units we should scan are in range of our fighting units
-        # for enemy_unit in invisible_enemy_units.in_distance_of_group(fighting_units, 10):
-        #     print("Should scan enemy unit", enemy_unit.name)
-        #     # find an orbital command with enough energy
-        #     orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
-        #     if (orbitals_with_energy.amount == 0):
-        #         print("No orbital command with enough energy to scan")
-        #         return
-        #     print("scan enemy unit", enemy_unit.name)
-        #     orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, enemy_unit.position)
-
-    
+        # find invisible enemy unit that we should kill
+        enemy_units_to_scan: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.is_visible and
+                # unit.is_revealed == False and
+                (unit.is_cloaked or unit.is_burrowed) and
+                fighting_units.closest_distance_to(unit) < 10
+            )
+        )
+        
+        # invisible enemy units we should scan are in range of our fighting units
+        for enemy_unit in enemy_units_to_scan:
+            print("scan enemy unit", enemy_unit.name)
+            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, enemy_unit.position)
+   
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready
         supplies_lowered: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOTLOWERED)
@@ -200,24 +192,24 @@ class BuildingsHandler:
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
     async def lift_orbital(self):
-        if (self.expansions.free.amount == 0):
+        if (self.bot.expansions.free.amount == 0):
             return
-        orbitals_not_on_slot = self.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
+        orbitals_not_on_slot = self.bot.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
         for orbital in orbitals_not_on_slot:
-            landing_spot: Point2 = self.expansions.next.position
+            landing_spot: Point2 = self.bot.expansions.next.position
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             
             # calculate the optimal worker count based on mineral field left in bases
             optimal_worker_count: int = (
-                sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
-                + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
+                sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
+                + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
             )
             if (enemy_units_around_spot.amount >= 1):
                 print("too many enemies")
                 return
             if (
                 self.bot.supply_workers >= optimal_worker_count - 5
-                or self.expansions.townhalls_not_on_slot().amount >= 2
+                or self.bot.expansions.townhalls_not_on_slot().amount >= 2
             ):
                 print("Lift Orbital")
                 orbital(AbilityId.LIFT_ORBITALCOMMAND)
@@ -226,9 +218,9 @@ class BuildingsHandler:
         flying_orbitals: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).ready.idle
         for orbital in flying_orbitals:
             landing_spot: Point2 = (
-                self.expansions.next.position if flying_orbitals.amount == 1
-                else self.expansions.free.closest_to(orbital.position).position if self.expansions.free.amount >= 1
-                else self.expansions.last_taken.position
+                self.bot.expansions.next.position if flying_orbitals.amount == 1
+                else self.bot.expansions.free.closest_to(orbital.position).position if self.bot.expansions.free.amount >= 1
+                else self.bot.expansions.last_taken.position
             )
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             if (enemy_units_around_spot.amount == 0):
@@ -339,17 +331,8 @@ class BuildingsHandler:
     def building_land_positions(self, sp_position: Point2) -> List[Point2]:
         """ Return all points that need to be checked when trying to land at a location where there is enough space to build an addon. Returns 13 points. """
         land_positions = [(sp_position + Point2((x, y))).rounded for x in range(-1, 2) for y in range(-1, 2)]
-        return land_positions + self.points_to_build_addon(sp_position)
-    
-    
-    def points_to_build_addon(self, building_position: Point2) -> List[Point2]:
-        """ Return all points that need to be checked when trying to build an addon. Returns 4 points. """
-        addon_offset: Point2 = Point2((2.5, -0.5))
-        addon_position: Point2 = building_position + addon_offset
-        addon_points = [
-            (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
-        ]
-        return addon_points
+        return land_positions + points_to_build_addon(sp_position)
+ 
     
     def scv_build_progress(self, scv: Unit) -> float:
         if (not scv.is_constructing_scv):

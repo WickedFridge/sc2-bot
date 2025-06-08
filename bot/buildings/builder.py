@@ -1,5 +1,6 @@
+from __future__ import annotations
 import math
-from typing import FrozenSet, List, Literal, Optional, Set
+from typing import List, Literal
 from bot.buildings.armory import Armory
 from bot.buildings.barracksaddon import BarracksReactor, BarracksTechlab
 from bot.buildings.barracks import Barracks
@@ -12,25 +13,16 @@ from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.starport import Starport
 from bot.buildings.supply_depot import SupplyDepot
-from bot.macro.expansion_manager import Expansions
-from bot.macro.resources import Resources
 from bot.utils.ability_tags import AbilityBuild
-from bot.utils.matchup import Matchup, get_matchup
-from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
-from sc2.game_data import Cost
 from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
-from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
-from ..utils.unit_tags import add_ons
 
 class Builder:
     bot: BotAI
-    expansions: Expansions
     supply_depot: SupplyDepot
     barracks: Barracks
     factory: Factory
@@ -45,9 +37,8 @@ class Builder:
     bunker: Bunker
     refinery: Refinery
     
-    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.expansions = expansions
         self.supply_depot = SupplyDepot(self)
         self.barracks = Barracks(self)
         self.factory = Factory(self)
@@ -61,11 +52,6 @@ class Builder:
         self.armory = Armory(self)
         self.bunker = Bunker(self)
         self.refinery = Refinery(self)
-
-    @property
-    def matchup(self) -> Matchup:
-        return get_matchup(self.bot)
-
 
     async def switch_addons(self):
         # if starport is complete and has no reactor, lift it

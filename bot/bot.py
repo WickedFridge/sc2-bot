@@ -1,33 +1,29 @@
-import math
-from typing import Awaitable, Callable, Dict, List, Tuple
+from typing import Awaitable, Callable, List
 from bot.buildings.builder import Builder
-from bot.buildings.builder_old import BuilderOld
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
-from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
 from bot.macro.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
+from bot.superbot import Superbot
 from bot.train import Train
 from bot.technology.search import Search
 from bot.utils.colors import LIGHTBLUE
-from bot.utils.matchup import Matchup, define_matchup, get_matchup
-from bot.utils.point2_functions import grid_offsets
+from bot.utils.matchup import Matchup, get_matchup
 from sc2.bot_ai import BotAI, Race
 from sc2.data import Result
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.2.0"
+VERSION: str = "3.3.0"
 
-class WickedBot(BotAI):
+class WickedBot(Superbot):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
     
@@ -41,14 +37,14 @@ class WickedBot(BotAI):
 
     def __init__(self) -> None:
         super().__init__()
-        self.builder = Builder(self, self.expansions)
-        self.buildings = BuildingsHandler(self, self.expansions)
+        self.builder = Builder(self)
+        self.buildings = BuildingsHandler(self)
         self.search = Search(self)
-        self.combat = Combat(self, self.expansions)
-        self.train = Train(self, self.combat, self.expansions)
-        self.macro = Macro(self, self.expansions)
+        self.combat = Combat(self)
+        self.train = Train(self, self.combat)
+        self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
-        self.scout = Scout(self, self.expansions)
+        self.scout = Scout(self)
 
     @property
     def matchup(self) -> Matchup:
@@ -83,17 +79,18 @@ class WickedBot(BotAI):
             await self.tag_game()
             await self.expansions.set_expansion_list()
             self.map.initialize()
-            self.builder = Builder(self, self.expansions)
-            self.buildings = BuildingsHandler(self, self.expansions)
-            self.combat = Combat(self, self.expansions)
-            self.train = Train(self, self.combat, self.expansions)
-            self.macro = Macro(self, self.expansions)
+            # self.builder = Builder(self, self.expansions)
+            # self.buildings = BuildingsHandler(self, self.expansions)
+            # self.combat = Combat(self, self.expansions)
+            # self.train = Train(self, self.combat, self.expansions)
+            # self.macro = Macro(self, self.expansions)
             await self.macro.speed_mining.start()
+
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
             # await self.client.debug_create_unit([[UnitTypeId.ORBITALCOMMAND, 3, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.SUPPLYDEPOT, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.HELLION, 3, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.HELLION, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.CREEPTUMOR, 3, self.expansions.b2.position, 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
         await self.check_surrend_condition()
@@ -207,7 +204,7 @@ class WickedBot(BotAI):
         await self.combat.debug_drop_path()
         # await self.combat.debug_loaded_stuff(iteration)
         # await self.combat.debug_unscouted_b2()
-        # await self.combat.debug_bunker_positions()
+        await self.combat.debug_bunker_positions()
         self.combat.debug_barracks_correct_placement()
                     
     async def check_surrend_condition(self):

@@ -1,10 +1,8 @@
 import math
 from typing import List
 from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.utils.point2_functions import center
 from sc2.bot_ai import BotAI
-from sc2.data import Race
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -12,7 +10,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, menacing, bio
+from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio
 
 
 class Micro:
@@ -20,17 +18,13 @@ class Micro:
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-
-    @property
-    def expansions(self) -> Expansions:
-        return get_expansions(self.bot)
     
     @property
     def retreat_position(self) -> Point2:
-        last_expansion: Expansion = self.expansions.last_taken
+        last_expansion: Expansion = self.bot.expansions.last_taken
         if (last_expansion):
             return last_expansion.retreat_position
-        return self.expansions.main.position
+        return self.bot.expansions.main.position
     
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
@@ -85,7 +79,7 @@ class Micro:
                 elif(ground_enemy_buildings.amount >= 1):
                     medivac.move(medivac.position.towards(ground_enemy_buildings.closest_to(medivac)))
                 else:
-                    medivac.move(medivac.position.towards(self.expansions.enemy_main.position))
+                    medivac.move(medivac.position.towards(self.bot.expansions.enemy_main.position))
 
         # boost if we need to
         if (medivac.is_active):

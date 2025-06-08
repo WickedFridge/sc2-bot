@@ -159,11 +159,11 @@ class Point2(Pointlike):
 
     @property
     def rounded(self) -> Point2:
-        return Point2((math.floor(self[0]), math.floor(self[1])))
+        return Point2((math.floor(self.x), math.floor(self.y)))
 
     @property
     def rounded_half(self) -> Point2:
-        return Point2((round(self[0] - 0.5) + 0.5, round(self[1] - 0.5) + 0.5))
+        return Point2((round(self.x - 0.5) + 0.5, round(self.y - 0.5) + 0.5))
 
     @property
     def length(self) -> float:

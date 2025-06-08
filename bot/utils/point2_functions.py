@@ -1,6 +1,7 @@
 from collections import deque
 import math
 from typing import List, Literal, Optional, Tuple
+from bot.macro.map import get_map
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.position import Point2
@@ -53,10 +54,21 @@ def grid_offsets(radius: float, step: float = 1.0, initial_position: Point2 = Po
     offsets = [Point2((dx + initial_position.x, dy + initial_position.y)) for dx in values for dy in values]
     return offsets
 
-def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, radius: int = 1) -> Point2:
+
+def points_to_build_addon(building_position: Point2) -> List[Point2]:
+    """ Return all points that need to be checked when trying to build an addon. Returns 4 points. """
+    addon_offset: Point2 = Point2((2.5, -0.5))
+    addon_position: Point2 = building_position + addon_offset
+    addon_points = [
+        (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
+    ]
+    return addon_points
+
+def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, radius: int = 1, has_addon: bool = False) -> Point2:
+    map = get_map(bot)
     # If already valid, return it
     start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)
-    if all((bot.in_placement_grid(pos) and bot.in_pathing_grid(pos)) for pos in start_placement_grid):
+    if all((bot.in_placement_grid(pos) and map.in_building_grid(pos)) for pos in start_placement_grid):
         return position
     
     # Normalize to get step direction (either -1, 0, or 1)
@@ -84,7 +96,9 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, ra
 
             # If it's a valid buildable position, return it
             neighbor_grid: List[Point2] = grid_offsets(radius, initial_position = neighbor)
-            if all((bot.in_placement_grid(neighbor_point) and bot.in_pathing_grid(neighbor_point)) for neighbor_point in neighbor_grid):
+            if (has_addon):
+                neighbor_grid += points_to_build_addon(neighbor)
+            if all((bot.in_placement_grid(neighbor_point) and map.in_building_grid(neighbor_point)) for neighbor_point in neighbor_grid):
                 return neighbor
 
             # Otherwise, continue expanding

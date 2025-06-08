@@ -34,7 +34,7 @@ class Refinery(Building):
     
     @property
     def target_geyser(self) -> Unit:
-        for expansion in self.expansions.taken:
+        for expansion in self.bot.expansions.taken:
             if (expansion.refineries.amount <= 2):
                 free_geyser: Units = expansion.vespene_geysers.filter(
                     lambda geyser: (

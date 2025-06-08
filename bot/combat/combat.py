@@ -1,24 +1,21 @@
 import math
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 from bot.combat.execute_orders import Execute
-from bot.combat.micro import Micro
 from bot.combat.orders import Orders
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import BASE_SIZE
-from bot.macro.map import MapData, get_map
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
-from bot.utils.point2_functions import center, grid_offsets
-from bot.utils.unit_functions import find_by_tag, worker_amount_vespene_geyser, worker_amount_mineral_field
+from bot.utils.point2_functions import grid_offsets
+from bot.utils.unit_functions import find_by_tag
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2, Point3, Rect
+from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
@@ -30,18 +27,10 @@ class Combat:
     armies: List[Army] = []
     bases: List[Base] = []
     
-    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
         self.execute = Execute(bot)
         self.known_enemy_army = Army(Units([], bot), bot)
-
-    @property
-    def expansions(self) -> Expansions:
-        return get_expansions(self.bot)
-    
-    @property
-    def map(self) -> MapData:
-        return get_map(self)
     
     @property
     def army_supply(self) -> float:
@@ -240,7 +229,7 @@ class Combat:
                     self.execute.retreat_army(army)
 
                 case Orders.HEAL_UP:
-                    self.execute.heal_up(army)
+                    await self.execute.heal_up(army)
                 
                 case Orders.FIGHT_OFFENSE:
                     await self.execute.fight(army)
@@ -276,7 +265,7 @@ class Combat:
                     self.execute.regroup(army, self.armies)
     
     async def handle_bunkers(self):
-        for expansion in self.expansions.defended:
+        for expansion in self.bot.expansions.defended:
             bunker: Unit = expansion.defending_bunker
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
@@ -395,13 +384,13 @@ class Combat:
             self.draw_text_on_world(base.position, base_descriptor, color)
 
     async def debug_bases_content(self):
-        for expansion in self.expansions.taken:
+        for expansion in self.bot.expansions.taken:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
             self.draw_text_on_world(expansion.position, f'[{expansion.mineral_worker_count}/{expansion.optimal_mineral_workers.__round__(1)}] Minerals', LIGHTBLUE)
             self.draw_text_on_world(below_expansion_point, f'[{expansion.vespene_worker_count}/{expansion.optimal_vespene_workers.__round__(1)}] Gas[{expansion.vespene_geysers_refinery.amount}]', GREEN)
 
     async def debug_bases_bunkers(self):
-        for expansion in self.expansions.taken:
+        for expansion in self.bot.expansions.taken:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
             self.draw_text_on_world(expansion.position, f'defended [{expansion.is_defended}]', LIGHTBLUE)
             defending_bunker: Unit = expansion.defending_bunker
@@ -410,8 +399,8 @@ class Combat:
                 self.draw_grid_on_world(defending_bunker.position, 3, "Bunker")
 
     async def debug_bases_distance(self):
-        last_expansion: Expansion = self.expansions.last_taken
-        for expansion in self.expansions.taken:
+        last_expansion: Expansion = self.bot.expansions.last_taken
+        for expansion in self.bot.expansions.taken:
             is_last: bool = last_expansion and expansion.position == last_expansion.position
             text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
             self.draw_text_on_world(expansion.position, text)
@@ -421,12 +410,40 @@ class Combat:
         selected_positions: List[Point2] = []
         for unit in selected_units:
             selected_positions.append(unit.position)
-        if (selected_units.amount > 1):
-            center_point: Point2 = center(selected_positions)
-            self.draw_sphere_on_world(center_point)
+        if (selected_units.amount == 2):
+            # draw the pathing grid between the two selected units
+            
+            min_x, max_x = sorted([pos.x for pos in selected_positions])
+            min_y, max_y = sorted([pos.y for pos in selected_positions])
+
+            start_x = math.ceil(min_x) - 0.5
+            end_x = math.floor(max_x) + 0.5
+            start_y = math.ceil(min_y) - 0.5
+            end_y = math.floor(max_y) + 0.5
+
+            x = start_x
+            while x <= end_x:
+                y = start_y
+                while y <= end_y:
+                    color = GREEN if self.bot.map.in_building_grid(Point2((x, y))) else RED
+                    self.draw_box_on_world(Point2((x, y)), 0.5, color)
+                    y += 1.0
+                x += 1.0
+            
+            # for x in range(0, right.x - left.x + 1):
+            #     for y in range(0, up.y - bottom.y + 1):
+            #         point: Point2 = Point2((left.x + x, bottom.y + y))
+            #         color = GREEN if (self.bot.in_pathing_grid(point)) else RED
+            #         self.draw_box_on_world(point, 0.5, color)
+                    # if (self.bot.in_pathing_grid(point)):
+                    #     self.draw_box_on_world(point, 0.25, GREEN)
+                    # else:
+                    #     self.draw_box_on_world(point, 0.25, RED)
         else:
             for unit in selected_units:
                 self.draw_text_on_world(unit.position, f'Cloaked {unit.is_cloaked}, Burrowed {unit.is_burrowed}')
+                
+                # draw target
                 if (unit.is_idle):
                     break
                 target: int|Point2 = unit.orders[0].target
@@ -437,11 +454,6 @@ class Combat:
                     target_unit: Unit = find_by_tag(self.bot, target)
                     if (target_unit):
                         self.draw_box_on_world(target_unit.position)
-        # for unit in selected_units:
-        #     order = "Idle" if unit.is_idle else unit.orders[0].ability.id.__str__()
-        #     order_target = "" if unit.is_idle else unit.orders[0].target
-        #     distance_to_cc: float = self.bot.townhalls.closest_distance_to(unit) if self.bot.townhalls else 0
-        #     self.draw_text_on_world(unit.position, f'{order}[{order_target}], ({round(distance_to_cc, 2)})')
 
     async def debug_invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
@@ -467,15 +479,15 @@ class Combat:
 
 
     async def debug_drop_path(self):
-        for center in self.map.centers:
+        for center in self.bot.map.centers:
             self.draw_flying_box(center, 5)
 
     async def debug_unscouted_b2(self):
-        for point in self.expansions.b2.unscouted_points:
+        for point in self.bot.expansions.b2.unscouted_points:
             self.draw_box_on_world(point, 0.5)
 
     async def debug_bunker_positions(self):
-        for expansion in self.expansions:
+        for expansion in self.bot.expansions:
             bunker_forward_in_pathing: Optional[Point2] = expansion.bunker_forward_in_pathing
             bunker_ramp: Optional[Point2] = expansion.bunker_ramp
             if (expansion.is_defended or expansion.is_main):

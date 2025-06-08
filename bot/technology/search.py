@@ -15,7 +15,7 @@ class Search:
     concussive_shells_researched: bool = False
     tech_tree: List[Tech] = []
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: BotAI) -> None:
         super().__init__()
         self.bot = bot
         self.tech_tree = [

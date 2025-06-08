@@ -1,9 +1,8 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
-from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.resources import Resources
-from bot.utils.matchup import Matchup, get_matchup
+from bot.superbot import Superbot
 from bot.utils.point2_functions import dfs_in_pathing
 from sc2.bot_ai import BotAI
 from sc2.game_data import Cost
@@ -15,7 +14,7 @@ if TYPE_CHECKING:
     from .builder import Builder
 
 class Building:
-    bot: BotAI
+    bot: Superbot
     builder: Builder
     unitId: UnitTypeId
     abilityId: Optional[AbilityId] = None
@@ -25,14 +24,6 @@ class Building:
     def __init__(self, build: Builder):
         self.bot = build.bot
         self.builder = build
-
-    @property
-    def matchup(self) -> Matchup:
-        return get_matchup(self.bot)
-    
-    @property
-    def expansions(self) -> Expansions:
-        return get_expansions(self.bot)
     
     @property
     def conditions(self) -> bool:
@@ -41,6 +32,14 @@ class Building:
     @property
     def position(self) -> Point2:
         pass
+
+    @property
+    def has_addon(self) -> bool:
+        return self.unitId in [
+            UnitTypeId.BARRACKS,
+            UnitTypeId.FACTORY,
+            UnitTypeId.STARPORT,
+        ]
 
     async def build(self, resources: Resources) -> Resources:
         if (not self.conditions):
@@ -54,6 +53,6 @@ class Building:
             return resources_updated
         
         print(f'Build {self.name}')
-        position: Point2 = dfs_in_pathing(self.bot, self.position, self.bot.game_info.map_center, self.radius)
+        position: Point2 = dfs_in_pathing(self.bot, self.position, self.bot.game_info.map_center, self.radius, self.has_addon)
         await self.builder.build(self.unitId, position)
         return resources_updated

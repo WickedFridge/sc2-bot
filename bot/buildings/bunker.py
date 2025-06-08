@@ -20,22 +20,22 @@ class Bunker(Building):
             self.bot.already_pending(UnitTypeId.BUNKER),
             self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
         )
-        expansions_count: int = self.expansions.amount_taken
+        expansions_count: int = self.bot.expansions.amount_taken
 
         # We want a bunker at each base after the first
         return (
             bunker_tech_requirements == 1
             and bunker_count < expansions_count - 1
-            and self.expansions.taken.without_main.not_defended.amount >= 1
+            and self.bot.expansions.taken.without_main.not_defended.amount >= 1
         )
     
     @override
     @property
     def position(self) -> Point2:
-        expansion_not_defended: Expansion = self.expansions.taken.without_main.not_defended.first
+        expansion_not_defended: Expansion = self.bot.expansions.taken.without_main.not_defended.first
         bunker_position: Point2 = (
             expansion_not_defended.bunker_ramp
-            if self.matchup == Matchup.TvZ and expansion_not_defended.bunker_ramp is not None
+            if self.bot.matchup == Matchup.TvZ and expansion_not_defended.bunker_ramp is not None
             else expansion_not_defended.bunker_forward_in_pathing
         )
         return bunker_position

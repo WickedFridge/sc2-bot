@@ -1,6 +1,6 @@
 from __future__ import annotations
 import enum
-from typing import Dict, Optional
+from typing import Dict
 from sc2.bot_ai import BotAI
 from sc2.data import Race
 

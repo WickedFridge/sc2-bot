@@ -25,9 +25,8 @@ class Macro:
     bases: List[Base]
     speed_mining: SpeedMining
 
-    def __init__(self, bot: BotAI, expansions: Expansions) -> None:
+    def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.expansions = expansions
         self.bases = []
         self.speed_mining = SpeedMining(bot)
 
@@ -152,7 +151,7 @@ class Macro:
                         )
                         # Don't pull workers from the main if the wall is up and units are outside
                         if (
-                            self.expansions.closest_to(worker).position == self.expansions.main.position
+                            self.bot.expansions.closest_to(worker).position == self.bot.expansions.main.position
                             and enemy_units_on_main_ramp.amount >= 1
                         ):
                             return
@@ -311,9 +310,9 @@ class Macro:
 
         if (iteration % frequency != 0 and self.bot.workers.idle.amount == 0 and oversaturated_ref.amount == 0):
             return
-        if (not self.bot.mineral_field or not self.bot.workers or self.expansions.ready.amount == 0):
+        if (not self.bot.mineral_field or not self.bot.workers or self.bot.expansions.ready.amount == 0):
             return
-        expansions_sorted_by_deficit_in_mining: Expansions = self.expansions.ready.sorted(
+        expansions_sorted_by_deficit_in_mining: Expansions = self.bot.expansions.ready.sorted(
             key = lambda expansion: expansion.mineral_worker_count - expansion.optimal_mineral_workers,
         )
 
@@ -342,7 +341,7 @@ class Macro:
 
         # saturate gas
         # v2
-        # for expansion in self.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
+        # for expansion in self.bot.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
         #     # Calculate the ideal number of gas workers per refinery
         #     total_vespene_workers_needed: int = expansion.desired_vespene_saturation * 3
         #     actual_vespene_workers: int = expansion.vespene_worker_count
@@ -381,7 +380,7 @@ class Macro:
         #                 break
 
         # v1
-        # for expansion in self.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
+        # for expansion in self.bot.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
         #     # if we're oversaturated
         #     if (expansion.vespene_worker_count > expansion.desired_vespene_workers):
         #         vespene_workers: Units = expansion.vespene_workers.filter(lambda unit: unit.is_carrying_vespene == False)
@@ -397,7 +396,7 @@ class Macro:
         #         break
         
         #v0
-        expansion_sorted_by_vespene_mining: Expansions = self.expansions.ready.filter(
+        expansion_sorted_by_vespene_mining: Expansions = self.bot.expansions.ready.filter(
             lambda expansion: expansion.refineries.amount >= 1
         ).sorted(
             key = lambda expansion: expansion.vespene_saturation,
@@ -429,7 +428,7 @@ class Macro:
         if (least_saturated_expansion.mineral_saturation <= 0.6):
             return
         
-        # expansions_not_saturated_in_vespene: Expansions = self.expansions.filter(
+        # expansions_not_saturated_in_vespene: Expansions = self.bot.expansions.filter(
         #     lambda expansion: expansion.refineries.amount >= 1 and math.floor(expansion.vespene_saturation * 3) < expansion.desired_vespene_saturation * 3
         # ).sorted(lambda expansion: expansion.vespene_saturation)
         

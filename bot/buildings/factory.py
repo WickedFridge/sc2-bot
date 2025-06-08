@@ -36,4 +36,4 @@ class Factory(Building):
     @override
     @property
     def position(self) -> Point2:
-        return self.expansions.main.position.towards(self.bot.game_info.map_center, 4)            
+        return self.bot.expansions.main.position.towards(self.bot.game_info.map_center, 4)            

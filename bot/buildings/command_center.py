@@ -14,7 +14,7 @@ class CommandCenter(Building):
     @override
     @property
     def conditions(self) -> bool:
-        base_count: int = self.expansions.amount
+        base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
         factory_count: int = (
             self.bot.structures(UnitTypeId.FACTORY) + 
@@ -30,13 +30,13 @@ class CommandCenter(Building):
     @property
     def position(self) -> Point2:
         townhall_amount: int = self.bot.townhalls.amount
-        cc_position: Point2 = self.expansions.next.position
+        cc_position: Point2 = self.bot.expansions.next.position
         match (townhall_amount):
             case 0:
-                return self.expansions.main.position
+                return self.bot.expansions.main.position
             case 1:
-                return self.expansions.next.position
+                return self.bot.expansions.next.position
             case 2:
-                return self.expansions.main.position.towards(cc_position, 2)
+                return self.bot.expansions.main.position.towards(cc_position, 2)
             case _:
                 return self.bot.townhalls.closest_to(cc_position).position.towards(cc_position, 2)

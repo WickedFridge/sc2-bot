@@ -1,15 +1,13 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
-from bot.macro.expansion_manager import Expansions, get_expansions
-from bot.macro.map import MapData, get_map
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2, Rect
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, hq_types, menacing
+from ..utils.unit_tags import worker_types
 
 PICKUP_RANGE: int = 3
 
@@ -21,20 +19,12 @@ class Execute:
         self.bot = bot
         self.micro = Micro(bot)
 
-    @property
-    def expansions(self) -> Expansions:
-        return get_expansions(self.bot)
-
-    @property
-    def map(self) -> MapData:
-        return get_map(self)
-
     async def drop(self, army: Army):
         # define which base to drop
         # we'll start with the natural
         
-        drop_target: Point2 = self.expansions.enemy_b2.position
-        closest_center: Point2 = self.map.closest_center(drop_target)
+        drop_target: Point2 = self.bot.expansions.enemy_b2.position
+        closest_center: Point2 = self.bot.map.closest_center(drop_target)
         
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         
@@ -91,13 +81,13 @@ class Execute:
         for medivac in retreating_medivacs:
             self.micro.retreat(medivac)
 
-    def heal_up(self, army: Army):
+    async def heal_up(self, army: Army):
         # drop units
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 if (not unit.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
                     unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
-                self.micro.medivac_fight(unit, army.units)
+                await self.micro.medivac_fight(unit, army.units)
             # group units that aren't near the center
             else:
                 if (unit.distance_to(army.center) > 5):
@@ -244,7 +234,7 @@ class Execute:
             return
 
         #TODO improve this
-        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.expansions.main.position)))
+        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.main.position)))
         for unit in army.units:
             unit.attack(canons.first)
 
