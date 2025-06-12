@@ -1,7 +1,7 @@
 from typing import List
 from bot.macro.resources import Resources
+from bot.superbot import Superbot
 from bot.technology.tech import Tech
-from sc2.bot_ai import BotAI
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -10,12 +10,12 @@ from sc2.unit import Unit
 
 
 class Search:
-    bot: BotAI
+    bot: Superbot
     shield_researched: bool = False
     concussive_shells_researched: bool = False
     tech_tree: List[Tech] = []
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         super().__init__()
         self.bot = bot
         self.tech_tree = [

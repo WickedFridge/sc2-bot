@@ -1,6 +1,6 @@
 from typing import List, Optional
 from bot.combat.orders import Orders
-from sc2.bot_ai import BotAI
+from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -11,10 +11,10 @@ from ..utils.unit_supply import units_supply, weighted_units_supply
 
 class Army:
     units: Units
-    bot: BotAI
+    bot: Superbot
     orders: Orders = Orders.RETREAT
 
-    def __init__(self, units, bot: BotAI) -> None:
+    def __init__(self, units, bot: Superbot) -> None:
         self.units = units
         self.bot = bot
     

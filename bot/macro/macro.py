@@ -5,11 +5,11 @@ from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
+from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.base import Base
 from bot.utils.point2_functions import center
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit, UnitOrder
@@ -21,11 +21,11 @@ THREAT_DISTANCE: int = 8
 REPAIR_THRESHOLD: float = 0.8
 
 class Macro:
-    bot: BotAI
+    bot: Superbot
     bases: List[Base]
     speed_mining: SpeedMining
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.bases = []
         self.speed_mining = SpeedMining(bot)

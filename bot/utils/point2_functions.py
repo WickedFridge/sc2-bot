@@ -65,6 +65,8 @@ def points_to_build_addon(building_position: Point2) -> List[Point2]:
     return addon_points
 
 def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, radius: int = 1, has_addon: bool = False) -> Point2:
+    """ Find a valid buildable position around the given position using BFS.
+        The radius in tiles around the position to search for valid buildable positions."""
     map = get_map(bot)
     # If already valid, return it
     start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)

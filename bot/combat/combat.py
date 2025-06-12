@@ -6,12 +6,12 @@ from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Situation
+from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import grid_offsets
 from bot.utils.unit_functions import find_by_tag
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -21,13 +21,13 @@ from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
     
 class Combat:
-    bot: BotAI
+    bot: Superbot
     execute: Execute
     known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
     
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.execute = Execute(bot)
         self.known_enemy_army = Army(Units([], bot), bot)

@@ -13,8 +13,8 @@ from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.starport import Starport
 from bot.buildings.supply_depot import SupplyDepot
+from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityBuild
-from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -22,7 +22,7 @@ from sc2.position import Point2, Point3
 from sc2.units import Units
 
 class Builder:
-    bot: BotAI
+    bot: Superbot
     supply_depot: SupplyDepot
     barracks: Barracks
     factory: Factory
@@ -37,7 +37,7 @@ class Builder:
     bunker: Bunker
     refinery: Refinery
     
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.supply_depot = SupplyDepot(self)
         self.barracks = Barracks(self)

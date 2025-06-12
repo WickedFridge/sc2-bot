@@ -31,9 +31,9 @@ class Expansion:
         townhalls: Units = self.bot.townhalls
         if (townhalls.amount == 0):
             return False
-        if (townhalls.closest_distance_to(self.position) == 0):
+        if (townhalls.not_flying.amount >= 1 and townhalls.not_flying.closest_distance_to(self.position) == 0):
             return True
-        for townhall in townhalls:
+        for townhall in townhalls.flying:
             if (townhall.order_target == self.position):
                 return True
         return False

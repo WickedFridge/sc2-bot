@@ -1,7 +1,7 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
+from bot.superbot import Superbot
 from bot.utils.army import Army
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -12,10 +12,10 @@ from ..utils.unit_tags import worker_types
 PICKUP_RANGE: int = 3
 
 class Execute:
-    bot: BotAI
+    bot: Superbot
     micro: Micro
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.micro = Micro(bot)
 

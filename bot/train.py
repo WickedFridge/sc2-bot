@@ -94,6 +94,7 @@ class Train:
             Matchup.TvT: 0,
             Matchup.TvZ: 0.1,
             Matchup.TvP: 0.3,
+            Matchup.TvR: 0.2, # TODO fix this
         }
         enemy_armored_ratio: float = (
             0 if self.combat.known_enemy_army.supply == 0
@@ -103,7 +104,7 @@ class Train:
             0 if self.combat.army_supply == 0
             else self.combat.armored_supply / self.combat.army_supply
         )
-        if (armored_ratio > default_marauder_ratio[self.bot.matchup] or enemy_armored_ratio > armored_ratio):
+        if (armored_ratio < max(default_marauder_ratio[self.bot.matchup], enemy_armored_ratio)):
             return True
         return False
     

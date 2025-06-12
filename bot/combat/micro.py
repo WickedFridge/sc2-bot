@@ -1,8 +1,8 @@
 import math
 from typing import List
 from bot.macro.expansion import Expansion
+from bot.superbot import Superbot
 from bot.utils.point2_functions import center
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -14,9 +14,9 @@ from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio
 
 
 class Micro:
-    bot: BotAI
+    bot: Superbot
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
     
     @property

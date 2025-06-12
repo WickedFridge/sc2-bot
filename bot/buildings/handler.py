@@ -1,10 +1,9 @@
 import math
 from typing import List, Set
-from bot.macro.expansion_manager import Expansions
+from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
-from bot.utils.matchup import Matchup, get_matchup
-from bot.utils.point2_functions import center, points_to_build_addon
-from sc2.bot_ai import BotAI
+from bot.utils.matchup import Matchup
+from bot.utils.point2_functions import center, dfs_in_pathing, points_to_build_addon
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -15,7 +14,7 @@ from sc2.units import Units
 from ..utils.unit_tags import must_repair, add_ons, worker_types
 
 class BuildingsHandler:
-    bot: BotAI
+    bot: Superbot
     
     def __init__(self, bot) -> None:
         super().__init__()
@@ -281,7 +280,8 @@ class BuildingsHandler:
         for flying_building in flying_buildings:
             match (flying_building.type_id):
                 case UnitTypeId.BARRACKSFLYING:
-                    await self.find_land_position(flying_building)
+                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                    flying_building(AbilityId.LAND, land_position)    
                 case UnitTypeId.FACTORYFLYING:
                     starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
                     starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
@@ -293,7 +293,8 @@ class BuildingsHandler:
                         free_reactors.amount <= 1 and
                         (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
                     ):
-                        await self.find_land_position(flying_building)
+                        land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                        flying_building(AbilityId.LAND, land_position)
                 case UnitTypeId.STARPORTFLYING:
                     reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
                 

@@ -28,12 +28,13 @@ worker_types: List[UnitTypeId] = [
 tower_types: List[UnitTypeId] = [
     UnitTypeId.PHOTONCANNON,
     UnitTypeId.BUNKER,
+    UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.SPINECRAWLER,
     UnitTypeId.SPORECRAWLER,
     UnitTypeId.MISSILETURRET,
     UnitTypeId.NYDUSCANAL,
     UnitTypeId.AUTOTURRET,
-    UnitTypeId.PYLON
+    UnitTypeId.PYLON,
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -47,7 +48,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.SWARMHOSTMP,
     UnitTypeId.SWARMHOSTBURROWEDMP,
     UnitTypeId.LURKER,
-    UnitTypeId.VIPER
+    UnitTypeId.VIPER,
+    UnitTypeId.CREEPTUMOR,
 ]
 dont_attack: List[UnitTypeId] = [
     UnitTypeId.EGG,
