@@ -90,6 +90,10 @@ class Train:
 
     @property
     def should_train_marauders(self):
+        marine_count: int = self.bot.units(UnitTypeId.MARINE).amount
+        if (marine_count < 8):
+            return False
+        
         default_marauder_ratio: Dict[Matchup, float] = {
             Matchup.TvT: 0,
             Matchup.TvZ: 0.1,

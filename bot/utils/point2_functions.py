@@ -70,6 +70,8 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, ra
     map = get_map(bot)
     # If already valid, return it
     start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)
+    if (has_addon):
+        start_placement_grid += points_to_build_addon(position)
     if all((bot.in_placement_grid(pos) and map.in_building_grid(pos)) for pos in start_placement_grid):
         return position
     
