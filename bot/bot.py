@@ -2,6 +2,7 @@ from typing import Awaitable, Callable, List
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
+from bot.debug import Debug
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
 from bot.macro.map import MapData, get_map
@@ -21,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.3.4"
+VERSION: str = "3.4.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -34,6 +35,7 @@ class WickedBot(Superbot):
     train: Train
     macro: Macro
     strategy: StrategyHandler
+    debug: Debug
 
     def __init__(self) -> None:
         super().__init__()
@@ -45,6 +47,7 @@ class WickedBot(Superbot):
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
         self.scout = Scout(self)
+        self.debug = Debug(self)
 
     @property
     def matchup(self) -> Matchup:
@@ -79,11 +82,6 @@ class WickedBot(Superbot):
             await self.tag_game()
             await self.expansions.set_expansion_list()
             self.map.initialize()
-            # self.builder = Builder(self, self.expansions)
-            # self.buildings = BuildingsHandler(self, self.expansions)
-            # self.combat = Combat(self, self.expansions)
-            # self.train = Train(self, self.combat, self.expansions)
-            # self.macro = Macro(self, self.expansions)
             await self.macro.speed_mining.start()
 
             # await self.client.debug_fast_build()
@@ -194,18 +192,23 @@ class WickedBot(Superbot):
         await self.scout.b2_against_proxy()
 
         # Debug stuff
-        await self.combat.debug_army_orders()
+        await self.debug.drop_path()
+        # await self.debug.unscouted_b2()
+        # await self.debug.colorize_bunkers()
+        # await self.debug.placement_grid()
+        # await self.debug.pathing_grid()
+        await self.debug.building_grid()
+        
+        # await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
-        # await self.combat.debug_bases_content()
-        # await self.combat.debug_bases_bunkers()
-        # await self.combat.debug_bases_distance()
-        await self.combat.debug_selection()
-        await self.combat.debug_invisible_units()
-        await self.combat.debug_drop_path()
-        # await self.combat.debug_loaded_stuff(iteration)
-        # await self.combat.debug_unscouted_b2()
-        await self.combat.debug_bunker_positions()
-        self.combat.debug_barracks_correct_placement()
+        # await self.debug.bases_content()
+        # await self.debug.bases_bunkers()
+        # await self.debug.bases_distance()
+        # await self.debug.selection()
+        await self.debug.invisible_units()
+        # await self.debug.loaded_stuff(iteration)
+        await self.debug.bunker_positions()
+        await self.debug.barracks_correct_placement()
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
@@ -233,6 +236,9 @@ class WickedBot(Superbot):
     
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)
+
+    # async def on_building_construction_started(self, unit):
+        # self.map.update_building_grid(unit)
 
     async def on_end(self, result: Result):
         """

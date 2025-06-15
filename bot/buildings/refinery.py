@@ -32,6 +32,8 @@ class Refinery(Building):
             and workers_amount >= (refinery_amount + 1) * 12.5 + 1
         )
     
+    
+    
     @property
     def target_geyser(self) -> Unit:
         for expansion in self.bot.expansions.taken:

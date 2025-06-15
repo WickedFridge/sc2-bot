@@ -2,8 +2,8 @@ from typing import Dict
 from bot.combat.combat import Combat
 from bot.macro.expansion_manager import Expansions
 from bot.macro.resources import Resources
-from bot.utils.matchup import Matchup, get_matchup
-from sc2.bot_ai import BotAI
+from bot.superbot import Superbot
+from bot.utils.matchup import Matchup
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -11,10 +11,10 @@ from sc2.units import Units
 
 
 class Train:
-    bot: BotAI
+    bot: Superbot
     combat: Combat
     
-    def __init__(self, bot: BotAI, combat: Combat) -> None:
+    def __init__(self, bot: Superbot, combat: Combat) -> None:
         self.bot = bot
         self.combat = combat
     
@@ -90,9 +90,7 @@ class Train:
 
     @property
     def should_train_marauders(self):
-        marine_count: int = self.bot.units(UnitTypeId.MARINE).amount
-        if (marine_count < 8):
-            return False
+        marine_count: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
         
         default_marauder_ratio: Dict[Matchup, float] = {
             Matchup.TvT: 0,
@@ -108,7 +106,10 @@ class Train:
             0 if self.combat.army_supply == 0
             else self.combat.armored_supply / self.combat.army_supply
         )
-        if (armored_ratio < max(default_marauder_ratio[self.bot.matchup], enemy_armored_ratio)):
+        if (
+            armored_ratio < enemy_armored_ratio or
+            (armored_ratio < default_marauder_ratio[self.bot.matchup] and marine_count >= 8)
+        ):
             return True
         return False
     

@@ -1,8 +1,9 @@
 from __future__ import annotations
 import enum
-from typing import Dict
+from typing import Dict, List
 from sc2.bot_ai import BotAI
 from sc2.data import Race
+from sc2.unit import Unit
 
 matchup: Matchup | None = None
 
@@ -26,11 +27,18 @@ def get_matchup(bot: BotAI) -> Matchup:
     global matchup
     if (matchup is None):
         matchup = define_matchup(bot.game_info.player_races)
+    if (matchup == Matchup.TvR):
+        if (bot.enemy_units.amount >= 1):
+            enemy_unit: Unit = bot.enemy_units.first
+            matchup = compute_matchup(bot.race, enemy_unit.race)
     return matchup
 
 def define_matchup(player_races: Dict[int, Race]) -> Matchup:
     race1: Race = player_races[1]
     race2: Race = player_races[2]
+    return compute_matchup(race1, race2)
+        
+def compute_matchup(race1: Race, race2: Race) -> Matchup:
     if (race1 == race2):
         return Matchup.TvT
 
