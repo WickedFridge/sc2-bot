@@ -2,7 +2,7 @@ import math
 from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.superbot import Superbot
-from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, RED, WHITE
+from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.point2_functions import grid_offsets
 from bot.utils.unit_functions import find_by_tag
 from sc2.ids.unit_typeid import UnitTypeId
@@ -239,7 +239,7 @@ class Debug:
                     point = Point2((x, y))
                     if (not self.bot.in_placement_grid(point)):
                         center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
-                        self.draw_box_on_world(center, 0.5, RED)
+                        self.draw_box_on_world(center, 0.5, PURPLE)
 
     async def building_grid(self):
         radius: float = 12

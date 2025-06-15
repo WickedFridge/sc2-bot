@@ -39,7 +39,7 @@ class MapData:
         Initializes the building grid from the game info.
         This should be called after the game info is available.
         """
-        self.building_grid = self.bot.game_info.placement_grid
+        self.building_grid = self.bot.game_info.placement_grid.copy()
         for unit in self.bot.destructables:
             print(f'destructible : {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
             self._clear_building_grid_for_unit(unit, round(unit.radius * 2))
