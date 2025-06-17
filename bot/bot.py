@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.4.1"
+VERSION: str = "3.4.3"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -36,6 +36,7 @@ class WickedBot(Superbot):
     macro: Macro
     strategy: StrategyHandler
     debug: Debug
+    townhalls_memory: Units
 
     def __init__(self) -> None:
         super().__init__()
@@ -48,6 +49,7 @@ class WickedBot(Superbot):
         self.strategy = StrategyHandler(self)
         self.scout = Scout(self)
         self.debug = Debug(self)
+        self.townhalls_memory: Units = Units([], self)
 
     @property
     def matchup(self) -> Matchup:
@@ -86,12 +88,16 @@ class WickedBot(Superbot):
 
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
-            # await self.client.debug_create_unit([[UnitTypeId.ORBITALCOMMAND, 3, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ORBITALCOMMAND, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.THOR, 4, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.SUPPLYDEPOT, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.HELLION, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.CREEPTUMOR, 3, self.expansions.b2.position, 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
         await self.check_surrend_condition()
+        
+        # Update Building grid
+        self.townhalls_memory = self.townhalls.copy()
+        await self.map.update()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)
@@ -195,19 +201,18 @@ class WickedBot(Superbot):
         await self.debug.drop_path()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
-        await self.debug.placement_grid()
-        await self.debug.pathing_grid()
+        # await self.debug.placement_grid()
+        # await self.debug.pathing_grid()
         # await self.debug.building_grid()
-        
         # await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
         # await self.debug.selection()
-        await self.debug.invisible_units()
+        # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
-        await self.debug.bunker_positions()
+        # await self.debug.bunker_positions()
         await self.debug.barracks_correct_placement()
                     
     async def check_surrend_condition(self):
@@ -236,9 +241,14 @@ class WickedBot(Superbot):
     
     async def on_unit_destroyed(self, unit_tag: int):
         self.combat.unit_died(unit_tag)
+        if (unit_tag in self.townhalls_memory.tags):
+            print('Townhall destroyed - Removing it from grid')
+            dead_cc: Unit = self.townhalls_memory.find_by_tag(unit_tag)
+            self.map.update_building_grid(dead_cc, enable=True)
 
-    # async def on_building_construction_started(self, unit):
-        # self.map.update_building_grid(unit)
+
+    async def on_building_construction_started(self, unit):
+        self.map.update_building_grid(unit)
 
     async def on_end(self, result: Result):
         """

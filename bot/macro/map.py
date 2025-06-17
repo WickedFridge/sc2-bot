@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 from typing import List, Union
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.pixel_map import PixelMap
 from sc2.position import Point2, Rect
 from sc2.unit import Unit
@@ -40,13 +41,8 @@ class MapData:
         This should be called after the game info is available.
         """
         self.building_grid = self.bot.game_info.placement_grid.copy()
-        for unit in self.bot.destructables:
-            print(f'destructible : {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
-            self._clear_building_grid_for_unit(unit, round(unit.radius * 2))
-
-        for structure in self.bot.structures:
-            print(f'structure : {structure.type_id} [{structure.position}] ({structure.radius} / {structure.footprint_radius})')
-            self._clear_building_grid_for_unit(structure, structure.footprint_radius * 2)
+        # Setup the building grid for the bases
+        # Mineral line shouldn't be buildable but expansions should be
 
         for expansion in self.bot.expansion_locations_list:
             minerals: Units = self.bot.mineral_field.closer_than(10, expansion)
@@ -71,23 +67,35 @@ class MapData:
                         self.building_grid[Point2((x, y)).rounded] = 0
                         y += 1.0
                     x += 1.0
-            self._clear_building_grid_for_unit(expansion, 5, enable=True)
-            
+            self._update_building_grid_for_unit(expansion, 5, enable=True)
+
+        for structure in self.bot.structures:
+            print(f'structure : {structure.type_id} [{structure.position}] ({structure.radius} / {structure.footprint_radius})')
+            self._update_building_grid_for_unit(structure, structure.footprint_radius * 2)
+    
+        for unit in self.bot.destructables:
+            print(f'destructible : {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
+            self._update_building_grid_for_unit(unit, round(unit.radius * 2))
 
     
-    def update_building_grid(self, unit: Unit) -> None:
-        self._clear_building_grid_for_unit(unit, unit.footprint_radius * 2)
+    def update_building_grid(self, unit: Unit, enable: bool = False) -> None:
+        # Flyingtownhalls have a footprint radius of 0, so we use 2.5 instead.
+        radius = unit.footprint_radius if unit.footprint_radius > 0 else 2.5
+        self._update_building_grid_for_unit(unit, radius * 2, enable)
     
-    def _clear_building_grid_for_unit(self, unit: Unit | Point2, footprint_size: float, enable: bool = False) -> None:
+    def _update_building_grid_for_unit(self, pos: Union[Point2, Unit], footprint_size: float, enable: bool = False) -> None:
         """Clears building grid for all tiles covered by a destructible unit of a given footprint size (e.g., 2, 6)."""
+        assert footprint_size > 0, "footprint_size must be greater than 0"
         half = footprint_size / 2
-        position: Point2 = unit.position
+        position: Point2 = pos.position.rounded if footprint_size % 2 == 0 else pos.position.rounded_half
+        assert isinstance(position, Point2), "unit.position is not of type Point2"
         min_x = int(position.x - half)
         min_y = int(position.y - half)
 
         for dx in range(int(footprint_size)):
             for dy in range(int(footprint_size)):
                 point = Point2((min_x + dx, min_y + dy)).rounded
+                # self.building_grid[point] = 0 if not enable else 2
                 self.building_grid[point] = 0 if not enable else 1
     
     @property
@@ -111,6 +119,19 @@ class MapData:
         Returns the closest center to the bot's starting location
         """
         return min(self.centers, key=lambda center: center._distance_squared(position))
+    
+    async def update(self):
+        """
+        Updates the map data.
+        This should be called every step to update the map data in case a CC is either flying or landing.
+        """
+        townhalls: Units = self.bot.townhalls
+        for townhall in townhalls:
+            if (townhall.is_using_ability(AbilityId.LIFT)):
+                self.update_building_grid(townhall, enable=True)
+            elif(townhall.is_using_ability(AbilityId.LAND) and townhall.is_flying == False):
+                self.update_building_grid(townhall, enable=False)
+            
 
 def get_map(bot: BotAI) -> MapData:
     global map_data

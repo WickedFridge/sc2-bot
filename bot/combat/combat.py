@@ -450,7 +450,7 @@ class Combat:
         self.known_enemy_army.detect_units(enemy_units)
             
     def unit_died(self, unit_tag: int):
-        if unit_tag not in self.known_enemy_army.units.tags:
+        if (unit_tag not in self.known_enemy_army.units.tags):
             return
         self.known_enemy_army.remove_by_tag(unit_tag)
         enemy_army: dict = self.known_enemy_army.recap

@@ -57,7 +57,7 @@ class SupplyDepot(Building):
             self.bot.supply_used == 13
             and workers_mining == self.bot.supply_used
             and self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready.amount == 0
-            and self.bot.minerals.amount >= 60
+            and self.bot.minerals >= 60
         ):
             print("move worker for first depot")
             self.bot.workers.random.move(self.bot.main_base_ramp.depot_in_middle)

@@ -132,6 +132,9 @@ class Debug:
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
         for unit in selected_units:
+            buildable: bool = self.bot.map.in_building_grid(unit.position)
+            color: tuple = GREEN if buildable else RED
+            self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
         if (selected_units.amount == 2):
             # draw the pathing grid between the two selected units
@@ -251,6 +254,10 @@ class Debug:
                     # Check if the point lies within the circle
                     if math.sqrt((x - position.x)**2 + (y - position.y)**2) <= radius:
                         point = Point2((x, y))
+                        # if (self.bot.map.in_building_grid(point)):
+                        #     color = WHITE if self.bot.map.building_grid[point] == 2 else GREEN
+                        #     center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
+                        #     self.draw_box_on_world(center, 0.5, color)
                         if (not self.bot.map.in_building_grid(point)):
                             center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
                             self.draw_box_on_world(center, 0.5, RED)
