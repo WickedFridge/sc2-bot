@@ -277,7 +277,7 @@ class Combat:
             # unload bunker if no unit around
             if (enemy_units_around.amount == 0):
                 if (len(bunker.rally_targets) == 0):
-                    rally_point: Point2 = bunker.position.towards(expansion.retreat_position, 3)
+                    rally_point: Point2 = expansion.retreat_position
                     bunker(AbilityId.RALLY_UNITS, rally_point)
                 if (bunker.cargo_used >= 1):
                     print("unload bunker")
@@ -296,15 +296,20 @@ class Combat:
             if (bunker.cargo_left == 0):
                 continue
             
-            bio_close_by: Units = self.bot.units.filter(
-                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 10
+            bio_in_range: Units = self.bot.units.filter(
+                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 3
             )
-            if (bio_close_by.amount == 0):
-                print("no bio closeby")
+            if (bio_in_range.amount == 0):
+                print("no bio in range")
                 continue
-            bio_in_range: Units = Units(bio_close_by.filter(lambda unit: unit.distance_to(bunker) <= 3)[:4], self.bot)
             print("bio should load")
-            for unit in bio_in_range:
+
+            # load the bunker with bio
+            # prioritize marines, then marauders
+            bio_should_load: Units = bio_in_range(UnitTypeId.MARINE).take(bunker.cargo_left)
+            if (bio_should_load.amount < 4):
+                bio_should_load += bio_in_range(UnitTypeId.MARAUDER).take(bunker.cargo_left - bio_should_load.amount)
+            for unit in bio_should_load:
                 bunker(AbilityId.LOAD_BUNKER, unit)
 
     

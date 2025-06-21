@@ -115,8 +115,8 @@ class Micro:
             local_ground_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             if (local_ground_units.amount >= 1):
                 medivac.move(local_ground_units.center)
-            # elif (self.bot.townhalls.amount >= 1):
-            #     self.retreat(medivac)
+            elif (self.bot.townhalls.amount >= 1):
+                self.retreat(medivac)
 
     async def medivac_boost(self, medivac: Unit):
         available_abilities = (await self.bot.get_available_abilities([medivac]))[0]
@@ -172,25 +172,35 @@ class Micro:
             self.retreat(bio)
 
     def stim_bio(self, bio_unit: Unit):
-        if (self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1):
+        if (
+            self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1
+            or bio_unit.has_buff(BuffId.STIMPACK)
+            or bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
+        ):
             return
-
-        local_enemy_units: Units = self.get_local_enemy_units(bio_unit.position)
-        local_enemy_buildings: Units = self.get_local_enemy_buildings(bio_unit.position)
-
-        match bio_unit.type_id:
-            case UnitTypeId.MARINE:
-                if (
-                    (local_enemy_units.amount >= 1 and bio_unit.health >= 25 or (local_enemy_buildings.amount >= 1 and bio_unit.health >= 40))
-                    and not bio_unit.has_buff(BuffId.STIMPACK)
-                ):
-                    bio_unit(AbilityId.EFFECT_STIM)
-            case UnitTypeId.MARAUDER:
-                if (
-                    (local_enemy_units.amount >= 1 and bio_unit.health >= 35 or (local_enemy_buildings.amount >= 1 and bio_unit.health >= 55))
-                    and not bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
-                ):
-                    bio_unit(AbilityId.EFFECT_STIM)
+        
+        WITH_MEDIVAC_HEALTH_THRESHOLD: int = 30
+        WITHOUT_MEDIVAC_HEALTH_THRESHOLD: int = 45
+        MARAUDER_HEALTH_SAFETY: int = 10
+        health_safety: int = MARAUDER_HEALTH_SAFETY if bio_unit.type_id == UnitTypeId.MARAUDER else 0
+        
+        local_usable_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
+            lambda medivac: (
+                medivac.distance_to(bio_unit) <= 10
+                and medivac.energy >= 25
+                and medivac.health >= 40
+            )
+        )
+    
+        
+        if (
+            bio_unit.health >= WITHOUT_MEDIVAC_HEALTH_THRESHOLD + health_safety
+            or (
+                local_usable_medivacs.amount >= 1
+                and bio_unit.health >= WITH_MEDIVAC_HEALTH_THRESHOLD + health_safety
+            )
+        ):
+            bio_unit(AbilityId.EFFECT_STIM)
 
     # TODO if enemy units are menacing something else than the bunker, get out and fight
     def defend_around_bunker(self, unit: Unit, enemy_units: Units, bunker: Unit):

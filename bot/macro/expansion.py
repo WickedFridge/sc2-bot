@@ -173,7 +173,7 @@ class Expansion:
     
     @property
     def mineral_line(self) -> Point2:
-        return self.mineral_fields.center if self.mineral_fields.amount >= 1 else self.position
+        return (self.mineral_fields + self.vespene_geysers).center
 
     @property
     def is_defended(self) -> bool:
@@ -185,7 +185,7 @@ class Expansion:
     @property
     def retreat_position(self) -> Point2:
         if (self.is_defended):
-            return self.defending_bunker.position.towards(self.mineral_line, 1.5)
+            return center([self.defending_bunker.position, self.mineral_line, self.position])
         return self.bunker_ramp or self.bunker_forward
     
     @property

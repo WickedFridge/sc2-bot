@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, List
+from typing import Awaitable, Callable, List, override
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.4.3"
+VERSION: str = "3.5.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -37,6 +37,8 @@ class WickedBot(Superbot):
     strategy: StrategyHandler
     debug: Debug
     townhalls_memory: Units
+    opponent_random: bool = False
+    tag_to_update: bool = False
 
     def __init__(self) -> None:
         super().__init__()
@@ -51,14 +53,23 @@ class WickedBot(Superbot):
         self.debug = Debug(self)
         self.townhalls_memory: Units = Units([], self)
 
+    @override
     @property
     def matchup(self) -> Matchup:
-        return get_matchup(self)
+        matchup: Matchup = get_matchup(self)
+        if (matchup == Matchup.TvR):
+            self.opponent_random = True
+        if (self.opponent_random == True and matchup != Matchup.TvR):
+            self.tag_to_update = True
+            self.opponent_random = False
+        return matchup
     
+    @override
     @property
     def expansions(self) -> Expansions:
         return get_expansions(self)
     
+    @override
     @property
     def map(self) -> MapData:
         return get_map(self)
@@ -81,6 +92,7 @@ class WickedBot(Superbot):
             return
         # General Game Stuff
         if (iteration == 1):
+            await self.greetings()
             await self.tag_game()
             await self.expansions.set_expansion_list()
             self.map.initialize()
@@ -94,6 +106,9 @@ class WickedBot(Superbot):
             # await self.client.debug_create_unit([[UnitTypeId.CREEPTUMOR, 3, self.expansions.b2.position, 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
         await self.check_surrend_condition()
+        # Update random tag
+        if (self.tag_to_update):
+            await self.tag_game()
         
         # Update Building grid
         self.townhalls_memory = self.townhalls.copy()
@@ -221,11 +236,14 @@ class WickedBot(Superbot):
             await self.client.chat_send("gg !", False)
             await self.client.leave()
 
-    async def tag_game(self):
+    async def greetings(self):
         await self.client.chat_send("Good Luck & Have fun !", False)
         await self.client.chat_send(f'I am Wickedbot by WickedFridge (v{VERSION})', False)
+    
+    async def tag_game(self):
         await self.client.chat_send(f'Tag:{self.matchup}', False)
         print(f'Matchup : {self.matchup}')
+        self.tag_to_update = False
 
     def orbitalTechAvailable(self):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9

@@ -110,7 +110,7 @@ class BuildingsHandler:
 
         # bank scans if we have 3 or more orbitals
         orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ else 1
+        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ else 0
         scan_banked: int = 0
         # call down a mule on this guy
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
