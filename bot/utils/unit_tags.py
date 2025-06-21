@@ -61,7 +61,9 @@ add_ons: List[UnitTypeId] = [
     UnitTypeId.FACTORYREACTOR,
     UnitTypeId.FACTORYTECHLAB,
     UnitTypeId.STARPORTREACTOR,
-    UnitTypeId.STARPORTTECHLAB
+    UnitTypeId.STARPORTTECHLAB,
+    UnitTypeId.REACTOR,
+    UnitTypeId.TECHLAB,
 ]
 bio: List[UnitTypeId] = [
     UnitTypeId.MARINE,

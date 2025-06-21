@@ -3,10 +3,12 @@ import math
 from typing import List, Union
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.pixel_map import PixelMap
 from sc2.position import Point2, Rect
 from sc2.unit import Unit
 from sc2.units import Units
+from bot.utils.unit_tags import add_ons
 
 map_data: MapData | None = None
 
@@ -17,6 +19,7 @@ class MapData:
     left_center: Point2
     right_center: Point2
     building_grid: PixelMap
+    wall_placement: List[Point2] = []
         
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -34,6 +37,14 @@ class MapData:
         self.left_center: Point2 = Point2((left_x, center.y))
         self.right_center: Point2 = Point2((right_x, center.y))
         self.initialize_building_grid()
+
+        # Initialize the wall placement positions
+        depots_positions: List[Point2] = list(self.bot.main_base_ramp.corner_depots)
+        self.wall_placement = [
+            depots_positions[0],
+            self.bot.main_base_ramp.barracks_correct_placement,
+            depots_positions[1],
+        ]
     
     def initialize_building_grid(self) -> None:
         """
@@ -75,18 +86,27 @@ class MapData:
     
         for unit in self.bot.destructables:
             print(f'destructible : {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
-            self._update_building_grid_for_unit(unit, round(unit.radius * 2))
+            if (unit.radius == 0):
+                continue
+            self._update_building_grid_for_unit(unit, unit.radius * 2)
 
     
     def update_building_grid(self, unit: Unit, enable: bool = False) -> None:
+        print(f'update building grid for {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
+        radius = unit.footprint_radius if unit.footprint_radius is not None and unit.footprint_radius > 0 else unit.radius
         # Flyingtownhalls have a footprint radius of 0, so we use 2.5 instead.
-        radius = unit.footprint_radius if unit.footprint_radius > 0 else 2.5
+        if (unit.type_id in [UnitTypeId.COMMANDCENTERFLYING, UnitTypeId.ORBITALCOMMANDFLYING]):
+            radius = 2.5
+        # Addons have a footprint radius of 3.5, so we use 1 instead.
+        if (unit.type_id in add_ons):
+            radius = 1
         self._update_building_grid_for_unit(unit, radius * 2, enable)
     
     def _update_building_grid_for_unit(self, pos: Union[Point2, Unit], footprint_size: float, enable: bool = False) -> None:
         """Clears building grid for all tiles covered by a destructible unit of a given footprint size (e.g., 2, 6)."""
         assert footprint_size > 0, "footprint_size must be greater than 0"
-        half = footprint_size / 2
+        half = round(footprint_size) / 2
+        print(f'footprint_size % 2: {footprint_size % 2}')
         position: Point2 = pos.position.rounded if footprint_size % 2 == 0 else pos.position.rounded_half
         assert isinstance(position, Point2), "unit.position is not of type Point2"
         min_x = int(position.x - half)

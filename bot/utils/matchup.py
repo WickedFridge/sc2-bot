@@ -34,27 +34,28 @@ def get_matchup(bot: BotAI) -> Matchup:
     return matchup
 
 def define_matchup(player_races: Dict[int, Race]) -> Matchup:
-    race1: Race = player_races[1]
-    race2: Race = player_races[2]
+    race1: Race = Race(player_races[1])
+    race2: Race = Race(player_races[2])
+    print(f'races: {race1}, {race2}')
     return compute_matchup(race1, race2)
         
 def compute_matchup(race1: Race, race2: Race) -> Matchup:
     if (race1 == race2):
         return Matchup.TvT
 
-    if (race1 == 1):
+    if (race1 == Race.Terran):
         match(race2):
-            case 4:
+            case Race.Random:
                 return Matchup.TvR
-            case 3:
+            case Race.Protoss:
                 return Matchup.TvP
-            case 2:
+            case Race.Zerg:
                 return Matchup.TvZ
 
     match(race1):
-        case 4:
+        case Race.Random:
             return Matchup.TvR
-        case 3:
+        case Race.Protoss:
             return Matchup.TvP
-        case 2:
+        case Race.Zerg:
             return Matchup.TvZ

@@ -22,24 +22,23 @@ class SupplyDepot(Building):
         concurrent_supplies: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         return (
             current_supply < 200
-            and self.bot.supply_left < self.bot.supply_used / 10
-            and concurrent_supplies <= self.bot.supply_used / 70
+            # and self.bot.supply_left < self.bot.supply_used / 10
+            and self.bot.supply_left < (self.bot.supply_used - 3) / 9
+            # and concurrent_supplies <= self.bot.supply_used / 70
+            and concurrent_supplies <= (self.bot.supply_used - 5) / 50
         )
     
     @override
     @property
     def position(self) -> Point2:
-        supply_placement_positions: FrozenSet[Point2] = self.bot.main_base_ramp.corner_depots
         depots: Units = self.bot.structures.of_type({UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED})
 
         # Filter locations close to finished supply depots
-        if (depots):
-            supply_placement_positions: Set[Point2] = {
-                d
-                for d in supply_placement_positions if depots.closest_distance_to(d) > 1
-            }
-        if (len(supply_placement_positions) >= 1) :
-            return supply_placement_positions.pop()
+        
+        if (depots.amount == 0):
+            return self.bot.map.wall_placement[0]
+        if (depots.amount == 1):
+            return self.bot.map.wall_placement[2] if depots.first.position == self.bot.map.wall_placement[0] else self.bot.map.wall_placement[0]
         
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):

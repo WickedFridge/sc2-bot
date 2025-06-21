@@ -51,7 +51,7 @@ class Debug:
             case 5:
                 point_positions = grid_offsets(2, initial_position = pos.rounded_half)
         for i, point_position in enumerate(point_positions):
-            draw_color = GREEN if (self.bot.in_pathing_grid(point_position)) else RED
+            draw_color = GREEN if (self.bot.map.in_building_grid(point_position)) else RED
             self.draw_box_on_world(point_position, 0.5, draw_color)
             self.draw_text_on_world(point_position, f'{i}', draw_color, 10)
 
@@ -215,8 +215,11 @@ class Debug:
             if (bunker_ramp):
                 self.draw_grid_on_world(bunker_ramp, 3, "ramp")
             
-    async def barracks_correct_placement(self):
-        self.draw_grid_on_world(self.bot.main_base_ramp.barracks_correct_placement, 3, "Barracks")
+    async def wall_placement(self):
+        self.draw_grid_on_world(self.bot.map.wall_placement[0], 2, "Depot")
+        self.draw_grid_on_world(self.bot.map.wall_placement[1], 3, "Barracks")
+        self.draw_grid_on_world(self.bot.map.wall_placement[2], 2, "Depot")
+        # self.draw_grid_on_world(self.bot.main_base_ramp.barracks_correct_placement, 3, "Barracks")
 
     async def pathing_grid(self):
         radius: float = 12
@@ -245,19 +248,14 @@ class Debug:
                         self.draw_box_on_world(center, 0.5, PURPLE)
 
     async def building_grid(self):
-        radius: float = 12
-        for expansion in self.bot.expansions:
-            position = expansion.position
-            # Iterate over the bounding square of the circle
+        radius: float = 10
+        positions: List[Point2] = self.bot.expansions.positions + [structure.position for structure in self.bot.structures]
+        for position in positions:
             for x in range(int(position.x) - radius, int(position.x) + radius + 1):
                 for y in range(int(position.y) - radius, int(position.y) + radius + 1):
                     # Check if the point lies within the circle
                     if math.sqrt((x - position.x)**2 + (y - position.y)**2) <= radius:
                         point = Point2((x, y))
-                        # if (self.bot.map.in_building_grid(point)):
-                        #     color = WHITE if self.bot.map.building_grid[point] == 2 else GREEN
-                        #     center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
-                        #     self.draw_box_on_world(center, 0.5, color)
                         if (not self.bot.map.in_building_grid(point)):
                             center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
                             self.draw_box_on_world(center, 0.5, RED)
