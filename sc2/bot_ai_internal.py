@@ -177,6 +177,31 @@ class BotAIInternal(ABC):
         )
         return self.expansion_locations_dict
 
+    def _cluster_center(self, group: list[Unit]) -> Point2:
+        """
+        Calculates the geometric center (centroid) of a given group of units.
+
+        Parameters:
+        group: A list of Unit objects representing the group of units for
+                            which the center is to be calculated.
+
+        Raises:
+        ValueError: If the provided group is empty.
+
+        Returns:
+        Point2: The calculated centroid of the group as a Point2 object.
+        """
+        if not group:
+            raise ValueError("Cannot calculate center of empty group")
+
+        total_x = total_y = 0
+        for unit in group:
+            total_x += unit.position.x
+            total_y += unit.position.y
+
+        count = len(group)
+        return Point2((total_x / count, total_y / count))
+
     @final
     def _find_expansion_locations(self) -> None:
         """Ran once at the start of the game to calculate expansion locations."""
@@ -184,7 +209,7 @@ class BotAIInternal(ABC):
         # any resource in a group is closer than a threshold to any resource of another group
 
         # Distance we group resources by
-        resource_spread_threshold: float = 8.5
+        resource_spread_threshold: float = 10.5
         # Create a group for every resource
         resource_groups: list[list[Unit]] = [
             [resource]
@@ -200,13 +225,13 @@ class BotAIInternal(ABC):
             for group_a, group_b in itertools.combinations(resource_groups, 2):
                 # Check if any pair of resource of these groups is closer than threshold together
                 # And that they are on the same terrain level
-                if any(
-                    resource_a.distance_to(resource_b) <= resource_spread_threshold
-                    # check if terrain height measurement at resources is within 10 units
-                    # this is since some older maps have inconsistent terrain height
-                    # tiles at certain expansion locations
-                    and abs(height_grid[resource_a.position.rounded] - height_grid[resource_b.position.rounded]) <= 10
-                    for resource_a, resource_b in itertools.product(group_a, group_b)
+                center_a = self._cluster_center(group_a)
+                center_b = self._cluster_center(group_b)
+
+                if center_a.distance_to(center_b) <= resource_spread_threshold and all(
+                    abs(height_grid[res_a.position.rounded] - height_grid[res_b.position.rounded]) <= 10
+                    for res_a in group_a
+                    for res_b in group_b
                 ):
                     # Remove the single groups and add the merged group
                     resource_groups.remove(group_a)
@@ -214,8 +239,9 @@ class BotAIInternal(ABC):
                     resource_groups.append(group_a + group_b)
                     merged_group = True
                     break
+
         # Distance offsets we apply to center of each resource group to find expansion position
-        offset_range = 7
+        offset_range: int = 7
         offsets = [
             (x, y)
             for x, y in itertools.product(range(-offset_range, offset_range + 1), repeat=2)
@@ -227,6 +253,10 @@ class BotAIInternal(ABC):
         for resources in resource_groups:
             # Possible expansion points
             amount = len(resources)
+            if amount > 12:
+                logger.warning(f"Found resource group of size {amount}, possible mineral wall? Skipping this one.")
+                continue
+
             # Calculate center, round and add 0.5 because expansion location will have (x.5, y.5)
             # coordinates because bases have size 5.
             center_x = int(sum(resource.position.x for resource in resources) / amount) + 0.5
