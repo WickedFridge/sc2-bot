@@ -203,21 +203,21 @@ class BotAIInternal(ABC):
         return Point2((total_x / count, total_y / count))
 
     def _find_expansion_location(
-        self, resources: Units | list[Unit], amount: int, offsets: list[tuple]
-    ) -> Point2 | None:
+        self, resources: Units | list[Unit], amount: int, offsets: list[tuple[float, float]]
+    ) -> Point2:
         """
         Finds the most suitable expansion location for resources.
 
         Parameters:
             resources: The list of resource entities or units near which the
-                                             expansion location needs to be found.
+                expansion location needs to be found.
             amount: The total number of resource entities or units to consider.
-            offsets (list[tuple]): A list of coordinate pairs denoting position offsets to consider
-                                   around the center of resources.
+            offsets (list[tuple[float, float]): A list of coordinate pairs denoting position
+                offsets to consider around the center of resources.
 
         Returns:
             The calculated optimal expansion Point2 if a suitable position is found;
-                       otherwise, None.
+                otherwise, None.
         """
         # Normal single expansion logic for regular bases
         # Calculate center, round and add 0.5 because expansion location will have (x.5, y.5)
@@ -306,7 +306,7 @@ class BotAIInternal(ABC):
         intercept = y1 - slope * x1
 
         # Function to determine which side of the line a point is on
-        def side_of_line(point):
+        def side_of_line(point: Point2) -> float:
             return point.y - slope * point.x - intercept
 
         side_1 = side_of_line(geyser_1.position)
@@ -371,7 +371,6 @@ class BotAIInternal(ABC):
             # this check is needed for TorchesAIE where the gold mineral wall has a
             # unit type of `RichMineralField` so we can only filter out by amount of resources
             if amount > 12:
-                logger.warning(f"Found resource group of size {amount}, possible mineral wall? Skipping this one.")
                 continue
 
             minerals = [r for r in resources if r._proto.unit_type not in geyser_ids]
