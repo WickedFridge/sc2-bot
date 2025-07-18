@@ -9,6 +9,7 @@ from bot.buildings.command_center import CommandCenter
 from bot.buildings.ebay import Ebay
 from bot.buildings.factory import Factory
 from bot.buildings.factoryaddon import FactoryReactor
+from bot.buildings.ghost_academy import GhostAcademy
 from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.starport import Starport
@@ -19,6 +20,7 @@ from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
+from sc2.unit import Unit
 from sc2.units import Units
 
 class Builder:
@@ -34,6 +36,7 @@ class Builder:
     command_center: CommandCenter
     ebay: Ebay
     armory: Armory
+    ghost_academy: GhostAcademy
     bunker: Bunker
     refinery: Refinery
     
@@ -50,6 +53,7 @@ class Builder:
         self.command_center = CommandCenter(self)
         self.ebay = Ebay(self)
         self.armory = Armory(self)
+        self.ghost_academy = GhostAcademy(self)
         self.bunker = Bunker(self)
         self.refinery = Refinery(self)
 

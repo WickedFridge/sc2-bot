@@ -2,6 +2,7 @@ from bot.macro.expansion_manager import Expansions
 from bot.macro.map import MapData
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
+from sc2.ids.unit_typeid import UnitTypeId
 
 
 class Superbot(BotAI):
@@ -16,3 +17,7 @@ class Superbot(BotAI):
     @property
     def map(self) -> MapData:
         pass
+
+    @property
+    def orbital_tech_available(self) -> bool:
+        return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9

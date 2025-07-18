@@ -10,7 +10,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
 
-class Train:
+class TrainDeprecated:
     bot: Superbot
     combat: Combat
     
@@ -113,6 +113,10 @@ class Train:
             return True
         return False
     
+    @property
+    def should_train_ghosts(self):
+        return self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount > 0
+    
     async def infantry(self, resources: Resources):
         if (self.bot.supply_used >= self.bot.supply_cap):
             return resources
@@ -127,7 +131,18 @@ class Train:
         # start with barracks with techlabs
         for barrack in barracks_with_techlabs :
             # if we have a techlab and should train mauraders, train them
-            if (self.should_train_marauders):
+            if (self.should_train_ghosts):
+                training_cost: Cost = self.bot.calculate_cost(UnitTypeId.GHOST)
+                can_build: bool
+                resources_updated: Resources
+                can_build, resources_updated = resources.update(training_cost)
+                if (can_build == False):
+                    continue  # Skip to the next Barracks if we can't afford it
+
+                print("Train Ghost")
+                barrack.train(UnitTypeId.GHOST)
+            # if we have a techlab and should train mauraders, train them
+            elif (self.should_train_marauders):
                 training_cost: Cost = self.bot.calculate_cost(UnitTypeId.MARAUDER)
                 can_build: bool
                 resources_updated: Resources

@@ -403,10 +403,11 @@ class Macro:
             reverse = True
         )
         
-        # we want 0 gas if saturation of any base is under 1/2 and we have 200 or more gas in bank
+        # we want 0 gas if saturation of any base is under 1/2 and we have 200 or more gas in bank while we have under 44 scvs
         if (
             expansion_sorted_by_vespene_mining.amount >= 1 and 
-            least_saturated_expansion.mineral_saturation <= 1/2 and
+            least_saturated_expansion.mineral_saturation <= 2/3 and
+            worker_count <= 44 and
             self.bot.vespene >= 200
         ):
             # find a vespene worker and ask it to stop

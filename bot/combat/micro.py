@@ -65,6 +65,8 @@ class Micro:
     async def medivac_fight(self, medivac: Unit, local_army: Units):
         # if our medivac is filled and not unloading, unload
         if (medivac.cargo_used >= 1 and not medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+
             # unload if we can, then move towards the closest ground unit
             if (self.bot.in_pathing_grid(medivac.position)):
                 medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)

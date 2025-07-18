@@ -23,7 +23,7 @@ class Execute:
         # define which base to drop
         # we'll start with the natural
         
-        drop_target: Point2 = self.bot.expansions.enemy_b2.position
+        drop_target: Point2 = self.bot.expansions.enemy_main.position
         closest_center: Point2 = self.bot.map.closest_center(drop_target)
         
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
@@ -106,9 +106,14 @@ class Execute:
                     self.micro.bio(unit)
                 case UnitTypeId.MARAUDER:
                     self.micro.bio(unit)
+                case UnitTypeId.GHOST:
+                    self.micro.bio(unit)
                 case _:
-                    closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
-                    unit.attack(closest_enemy_unit)
+                    if (self.bot.enemy_units.amount >= 1):
+                        closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
+                        unit.attack(closest_enemy_unit)
+                    else:
+                        unit.move(army.center)
 
     async def fight_defense(self, army: Army):
         for unit in army.units:
@@ -118,6 +123,8 @@ class Execute:
                 case UnitTypeId.MARINE:
                     self.micro.bio_defense(unit)
                 case UnitTypeId.MARAUDER:
+                    self.micro.bio_defense(unit)
+                case UnitTypeId.GHOST:
                     self.micro.bio_defense(unit)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)

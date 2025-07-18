@@ -59,6 +59,7 @@ supply[UnitTypeId.OVERLORD] = 0
 supply[UnitTypeId.OVERSEER] = 0
 supply[UnitTypeId.OVERLORDCOCOON] = 0
 supply[UnitTypeId.OVERLORDTRANSPORT] = 0
+supply[UnitTypeId.TRANSPORTOVERLORDCOCOON] = 0
 supply[UnitTypeId.DRONE] = 1
 supply[UnitTypeId.DRONEBURROWED] = 1
 supply[UnitTypeId.ZERGLING] = 0.5

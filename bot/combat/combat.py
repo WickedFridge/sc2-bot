@@ -58,11 +58,12 @@ class Combat:
             print(army.recap)
             
     def get_army_clusters(self, radius: float = 15) -> List[Army]:
-        army: Units = (
-            self.bot.units(UnitTypeId.MARINE)
-            + self.bot.units(UnitTypeId.MARAUDER)
-            + self.bot.units(UnitTypeId.MEDIVAC)
-        )
+        army: Units = self.bot.units.of_type([
+            UnitTypeId.MARINE,
+            UnitTypeId.MARAUDER,
+            UnitTypeId.GHOST,
+            UnitTypeId.MEDIVAC,
+        ])
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()
         visited_ids: Set[int] = set()

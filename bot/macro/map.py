@@ -92,7 +92,7 @@ class MapData:
 
     
     def update_building_grid(self, unit: Unit, enable: bool = False) -> None:
-        print(f'update building grid for {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
+        # print(f'update building grid for {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
         radius = unit.footprint_radius if unit.footprint_radius is not None and unit.footprint_radius > 0 else unit.radius
         # Flyingtownhalls have a footprint radius of 0, so we use 2.5 instead.
         if (unit.type_id in [UnitTypeId.COMMANDCENTERFLYING, UnitTypeId.ORBITALCOMMANDFLYING]):

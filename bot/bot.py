@@ -10,11 +10,11 @@ from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
-from bot.train import Train
+from bot.train_deprecated import TrainDeprecated
 from bot.technology.search import Search
-from bot.utils.colors import LIGHTBLUE
+from bot.units.trainer import Trainer
 from bot.utils.matchup import Matchup, get_matchup
-from sc2.bot_ai import BotAI, Race
+from sc2.bot_ai import Race
 from sc2.data import Result
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.5.1"
+VERSION: str = "3.6.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -32,7 +32,8 @@ class WickedBot(Superbot):
     buildings: BuildingsHandler
     search: Search
     combat: Combat
-    train: Train
+    train_deprecated: TrainDeprecated
+    trainer: Trainer
     macro: Macro
     strategy: StrategyHandler
     debug: Debug
@@ -46,7 +47,8 @@ class WickedBot(Superbot):
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)
         self.combat = Combat(self)
-        self.train = Train(self, self.combat)
+        self.train_deprecated = TrainDeprecated(self, self.combat)
+        self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
         self.scout = Scout(self)
@@ -166,14 +168,17 @@ class WickedBot(Superbot):
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
             self.builder.orbital_command.upgrade,
             self.builder.supply_depot.build,
-            self.train.workers,
+            self.trainer.scv.train,
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
             self.search.tech,
             self.builder.armory.build,
-            self.train.medivac,
-            self.train.infantry,
+            self.builder.ghost_academy.build,
+            self.trainer.medivac.train,
+            self.trainer.ghost.train,
+            self.trainer.marauder.train,
+            self.trainer.marine.train,
             self.builder.ebay.build,
             self.builder.bunker.build,
             self.builder.starport.build,
@@ -213,13 +218,13 @@ class WickedBot(Superbot):
         await self.scout.b2_against_proxy()
 
         # Debug stuff
-        await self.debug.drop_path()
+        # await self.debug.drop_path()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
         # await self.debug.building_grid()
-        # await self.combat.debug_army_orders()
+        await self.combat.debug_army_orders()
         # await self.combat.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()

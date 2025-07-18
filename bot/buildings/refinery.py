@@ -20,7 +20,7 @@ class Refinery(Building):
     @property
     def conditions(self) -> bool:
         refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount + self.bot.already_pending(UnitTypeId.REFINERY)
-        max_refineries: int = 5
+        max_refineries: int = 8
         barracks_count: int = self.bot.structures(UnitTypeId.BARRACKS).amount
         townhall_amount: int = self.bot.townhalls.amount
         workers_amount: int = self.bot.supply_workers
