@@ -10,7 +10,6 @@ from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
-from bot.train_deprecated import TrainDeprecated
 from bot.technology.search import Search
 from bot.units.trainer import Trainer
 from bot.utils.matchup import Matchup, get_matchup
@@ -22,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.6.0"
+VERSION: str = "3.6.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -32,7 +31,6 @@ class WickedBot(Superbot):
     buildings: BuildingsHandler
     search: Search
     combat: Combat
-    train_deprecated: TrainDeprecated
     trainer: Trainer
     macro: Macro
     strategy: StrategyHandler
@@ -47,7 +45,6 @@ class WickedBot(Superbot):
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)
         self.combat = Combat(self)
-        self.train_deprecated = TrainDeprecated(self, self.combat)
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
@@ -102,11 +99,14 @@ class WickedBot(Superbot):
 
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
-            # await self.client.debug_create_unit([[UnitTypeId.ORBITALCOMMAND, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.THOR, 4, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.SUPPLYDEPOT, 2, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.CREEPTUMOR, 3, self.expansions.b2.position, 2]])
-            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 1, self.townhalls.random.position.towards(self._game_info.map_center, 5), 1]])
+            # await self.client.debug_show_map()
+            # await self.client.debug_control_enemy()
+            # # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.GHOST, 8, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ZERGLING, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
         await self.check_surrend_condition()
         # Update random tag
         if (self.tag_to_update):
@@ -229,7 +229,7 @@ class WickedBot(Superbot):
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
-        # await self.debug.selection()
+        await self.debug.selection()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()

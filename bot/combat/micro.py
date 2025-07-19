@@ -63,25 +63,28 @@ class Micro:
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
     async def medivac_fight(self, medivac: Unit, local_army: Units):
+        # unload if we can, then move towards the closest ground unit
+        
         # if our medivac is filled and not unloading, unload
         if (medivac.cargo_used >= 1 and not medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+            # medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+            # return
 
-            # unload if we can, then move towards the closest ground unit
             if (self.bot.in_pathing_grid(medivac.position)):
                 medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
+                return
+            # else:
+            ground_allied_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
+            ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
+            ground_enemy_buildings: Units = self.bot.enemy_structures
+            if (ground_allied_units.amount >= 1):
+                medivac.move(medivac.position.towards(ground_allied_units.closest_to(medivac)))
+            elif(ground_enemy_units.amount >= 1):
+                medivac.move(medivac.position.towards(ground_enemy_units.closest_to(medivac)))
+            elif(ground_enemy_buildings.amount >= 1):
+                medivac.move(medivac.position.towards(ground_enemy_buildings.closest_to(medivac)))
             else:
-                ground_allied_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
-                ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
-                ground_enemy_buildings: Units = self.bot.enemy_structures
-                if (ground_allied_units.amount >= 1):
-                    medivac.move(medivac.position.towards(ground_allied_units.closest_to(medivac)))
-                elif(ground_enemy_units.amount >= 1):
-                    medivac.move(medivac.position.towards(ground_enemy_units.closest_to(medivac)))
-                elif(ground_enemy_buildings.amount >= 1):
-                    medivac.move(medivac.position.towards(ground_enemy_buildings.closest_to(medivac)))
-                else:
-                    medivac.move(medivac.position.towards(self.bot.expansions.enemy_main.position))
+                medivac.move(medivac.position.towards(self.bot.expansions.enemy_main.position))
 
         # boost if we need to
         if (medivac.is_active):
@@ -172,6 +175,28 @@ class Micro:
             bio.attack(enemy_buildings.closest_to(bio))
         else:
             self.retreat(bio)
+
+    def ghost(self, ghost: Unit):
+        # If we have enough energy and are not sniping, use snipe
+        if (ghost.energy >= 50 and not ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
+            potential_snipe_targets: Units = self.bot.enemy_units.filter(
+                lambda enemy_unit: (
+                    enemy_unit.can_be_attacked
+                    and enemy_unit.type_id not in dont_attack
+                    and enemy_unit.is_biological
+                    and enemy_unit.health + enemy_unit.shield >= 60
+                    and enemy_unit.distance_to(ghost) <= 10
+                )
+            )
+            # if we have snipe targets, use snipe
+            if (potential_snipe_targets.amount >= 1):
+                potential_snipe_targets.sort(
+                    key=lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
+                )
+                target: Unit = potential_snipe_targets.first
+                ghost(AbilityId.EFFECT_GHOSTSNIPE, target)
+                return
+        self.bio(ghost)
 
     def stim_bio(self, bio_unit: Unit):
         if (
@@ -285,7 +310,7 @@ class Micro:
         )
         
         if (enemy_bases.amount >= 1):
-            return enemy_bases.closest(unit)
+            return enemy_bases.closest_to(unit)
         else:
             for possible_expansion in possible_enemy_expansion_positions:
                 if (self.bot.state.visibility[possible_expansion.rounded] == 0):

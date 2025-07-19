@@ -106,7 +106,7 @@ class MapData:
         """Clears building grid for all tiles covered by a destructible unit of a given footprint size (e.g., 2, 6)."""
         assert footprint_size > 0, "footprint_size must be greater than 0"
         half = round(footprint_size) / 2
-        print(f'footprint_size % 2: {footprint_size % 2}')
+        # print(f'footprint_size % 2: {footprint_size % 2}')
         position: Point2 = pos.position.rounded if footprint_size % 2 == 0 else pos.position.rounded_half
         assert isinstance(position, Point2), "unit.position is not of type Point2"
         min_x = int(position.x - half)

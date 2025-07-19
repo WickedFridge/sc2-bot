@@ -24,6 +24,7 @@ class Marine(Train):
                     and len(rax.orders) < 2
                 ) or (
                     rax.has_techlab
+                    and rax.is_idle
                     and not self.trainer.should_train_marauders
                     and not self.trainer.should_train_ghosts
                 )

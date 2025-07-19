@@ -5,6 +5,7 @@ from bot.superbot import Superbot
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.point2_functions import grid_offsets
 from bot.utils.unit_functions import find_by_tag
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
@@ -130,6 +131,11 @@ class Debug:
 
     async def selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        # for unit in selected_units:
+        #     print(f'Selected unit: {unit.name}')
+        #     print(f'is dropping: {unit.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)}')
+        #     print(f'unit buffs: {unit.buffs}')
+        
         selected_positions: List[Point2] = []
         for unit in selected_units:
             buildable: bool = self.bot.map.in_building_grid(unit.position)
@@ -148,38 +154,32 @@ class Debug:
             end_y = math.floor(max_y) + 0.5
 
             x = start_x
-            while x <= end_x:
+            while (x <= end_x):
                 y = start_y
-                while y <= end_y:
+                while (y <= end_y):
                     color = GREEN if self.bot.map.in_building_grid(Point2((x, y))) else RED
                     self.draw_box_on_world(Point2((x, y)), 0.5, color)
                     y += 1.0
                 x += 1.0
             
-            # for x in range(0, right.x - left.x + 1):
-            #     for y in range(0, up.y - bottom.y + 1):
-            #         point: Point2 = Point2((left.x + x, bottom.y + y))
-            #         color = GREEN if (self.bot.in_pathing_grid(point)) else RED
-            #         self.draw_box_on_world(point, 0.5, color)
-                    # if (self.bot.in_pathing_grid(point)):
-                    #     self.draw_box_on_world(point, 0.25, GREEN)
-                    # else:
-                    #     self.draw_box_on_world(point, 0.25, RED)
-        else:
-            for unit in selected_units:
-                self.draw_text_on_world(unit.position, f'Cloaked {unit.is_cloaked}, Burrowed {unit.is_burrowed}')
-                
-                # draw target
-                if (unit.is_idle):
-                    break
-                target: int|Point2 = unit.orders[0].target
-                if (target is Point2):
-                    self.draw_box_on_world(target)
-                else:
-                    # find target unit
-                    target_unit: Unit = find_by_tag(self.bot, target)
-                    if (target_unit):
-                        self.draw_box_on_world(target_unit.position)
+        for unit in selected_units:
+            buff_count: int = len(unit.buffs)
+            self.draw_text_on_world(unit.position, f'{unit.name} : {buff_count} buffs')
+            
+            for i, buff in enumerate(unit.buffs):
+                self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
+            
+            # draw target
+            if (unit.is_idle):
+                break
+            target: int|Point2 = unit.orders[0].target
+            if (target is Point2):
+                self.draw_box_on_world(target)
+            else:
+                # find target unit
+                target_unit: Unit = find_by_tag(self.bot, target)
+                if (target_unit):
+                    self.draw_box_on_world(target_unit.position)
 
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(

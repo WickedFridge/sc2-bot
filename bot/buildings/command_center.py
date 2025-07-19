@@ -24,7 +24,7 @@ class CommandCenter(Building):
         return (
             (townhalls_count <= 2 or factory_count >= 1) and
             townhalls_count <= base_count + 2 and
-            pending_cc_count <= 4
+            pending_cc_count <= 2
         )    
     @override
     @property

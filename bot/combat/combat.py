@@ -152,8 +152,7 @@ class Combat:
 
         # if local_army_supply > local threat
         # attack local_threat if it exists
-        if (local_enemy_supply + local_enemy_buildings.amount > 0):
-            
+        if (local_enemy_supply + local_enemy_buildings.amount > 0):        
             if (situation == Situation.BUNKER_RUSH):
                 return Orders.DEFEND_BUNKER_RUSH
             if (situation == Situation.CANON_RUSH):

@@ -107,7 +107,7 @@ class Execute:
                 case UnitTypeId.MARAUDER:
                     self.micro.bio(unit)
                 case UnitTypeId.GHOST:
-                    self.micro.bio(unit)
+                    self.micro.ghost(unit)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)

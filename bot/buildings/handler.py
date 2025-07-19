@@ -164,8 +164,8 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                unit.is_visible and
-                # unit.is_revealed == False and
+                not unit.is_visible and
+                unit.is_revealed == False and
                 (unit.is_cloaked or unit.is_burrowed) and
                 fighting_units.closest_distance_to(unit) < 10
             )
