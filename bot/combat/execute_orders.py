@@ -19,11 +19,27 @@ class Execute:
         self.bot = bot
         self.micro = Micro(bot)
 
+    @property
+    def drop_target(self):
+        print(f'time : {self.bot.time}')
+        index_base_to_hit = round(self.bot.time / 60) % 3
+        match (index_base_to_hit):
+            case 0:
+                print("dropping main")
+                return self.bot.expansions.enemy_main.position
+            case 1:
+                print("dropping natural")
+                return self.bot.expansions.enemy_b2.position
+            case 2:
+                print("dropping b3")
+                return self.bot.expansions.enemy_b3.position
+    
     async def drop(self, army: Army):
         # define which base to drop
         # we'll start with the natural
         
-        drop_target: Point2 = self.bot.expansions.enemy_main.position
+        
+        drop_target: Point2 = self.drop_target
         closest_center: Point2 = self.bot.map.closest_center(drop_target)
         
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
@@ -79,7 +95,13 @@ class Execute:
         retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left == 0 or unit.health_percentage < 0.4)
         await self.pickup(usable_medivacs, ground_units)
         for medivac in retreating_medivacs:
-            self.micro.retreat(medivac)
+            menacing_enemy_units: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.can_attack_air and unit.distance_to(medivac) <= unit.air_range + 2 
+            )
+            if (menacing_enemy_units.amount >= 1):
+                Micro.move_away(medivac, menacing_enemy_units.center, 5)
+            else:
+                self.micro.retreat(medivac)
 
     async def heal_up(self, army: Army):
         # drop units
@@ -103,11 +125,11 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
-                    self.micro.bio(unit)
+                    self.micro.bio(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio(unit)
+                    self.micro.bio(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.ghost(unit)
+                    self.micro.ghost(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
@@ -121,15 +143,30 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
-                    self.micro.bio_defense(unit)
+                    self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio_defense(unit)
+                    self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.bio_defense(unit)
+                    self.micro.bio_defense(unit, army.units)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
+    async def disengage(self, army: Army):
+        for unit in army.units:
+            match unit.type_id:
+                case UnitTypeId.MEDIVAC:
+                    await self.micro.medivac_fight(unit, army.units)
+                case UnitTypeId.MARINE:
+                    self.micro.bio_disengage(unit)
+                case UnitTypeId.MARAUDER:
+                    self.micro.bio_disengage(unit)
+                case UnitTypeId.GHOST:
+                    self.micro.bio_disengage(unit)
+                case _:
+                    self.micro.retreat(unit)
+
+    
     def defend(self, army: Army):
         main_position: Point2 = self.bot.start_location
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]

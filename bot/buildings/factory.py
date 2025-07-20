@@ -20,6 +20,7 @@ class Factory(Building):
             + self.bot.structures(UnitTypeId.FACTORYFLYING).ready.amount
             + self.bot.already_pending(UnitTypeId.FACTORY)
         )
+        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount
         addons_amount: int = (
             self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount
             + self.bot.structures(UnitTypeId.BARRACKSTECHLAB).amount
@@ -29,7 +30,7 @@ class Factory(Building):
         return (
             facto_tech_requirement == 1
             and self.bot.townhalls.amount >= 2
-            and addons_amount >= 2
+            and (barracks_amount == 1 or addons_amount >= 2)
             and factories_amount < max_factories
         )
     

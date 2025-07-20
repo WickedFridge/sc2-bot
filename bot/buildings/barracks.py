@@ -1,9 +1,8 @@
-from typing import override
+from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion_manager import Expansions
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
-
 
 class Barracks(Building):
     def __init__(self, build):
@@ -24,23 +23,30 @@ class Barracks(Building):
         base_amount: int = self.bot.townhalls.amount
         return barracks_pending_amount, barracks_amount, base_amount
 
+    @property
+    def max_barracks(self) -> int:
+        """
+        We want 1 rax for 1 base, 2 raxes for 2 bases, 3 raxes for 3 bases, 5 raxes for 4 bases, 8 raxes for 5 bases, then 12
+        with a max of 12 raxes
+        """
+        _, _, base_amount = self._barracks_info()
+        rax_amount: List[int] = [1, 2, 3, 5, 8, 12]
+        if (base_amount > len(rax_amount) - 1):
+            return max(rax_amount)
+        return rax_amount[base_amount - 1]
+    
     @override
     @property
     def conditions(self) -> bool:
         townhall_amount: int = self.bot.townhalls.ready.amount
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracks_pending, barracks_total, base_amount = self._barracks_info()
-        max_barracks: int = min(14, base_amount ** 2 / 2 - base_amount / 2 + 1)
-
-        # We want 1 rax for 1 base, 2 raxes for 2 bases, 4 raxes for 3 bases, 7 raxes for 4 bases
-        # y = x²/2 - x/2 + 1 where x is the number of bases and y the number of raxes
-        # with a max of 12 raxes
 
         return (
             townhall_amount >= 1
             and barracks_tech_requirement == 1
             and barracks_pending < base_amount
-            and barracks_total < max_barracks
+            and barracks_total < self.max_barracks
         )
     
     @override

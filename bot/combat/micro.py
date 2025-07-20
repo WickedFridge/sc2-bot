@@ -10,7 +10,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio
+from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable
 
 
 class Micro:
@@ -31,11 +31,12 @@ class Micro:
             return
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         enemy_units_in_sight: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(unit) <= 10)
-        if (unit.type_id in bio and enemy_units_in_range.amount >= 1):
+        if (unit.type_id in bio_stimmable and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         
         # TODO: handle retreat when opponent is blocking our way
-        retreat_position = self.retreat_position
+        local_flying_orbital: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).in_distance_between(unit.position, 0, 10)
+        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(local_flying_orbital.center, -2)
         if (
             unit.type_id == UnitTypeId.MEDIVAC
             and unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
@@ -128,7 +129,7 @@ class Micro:
         if (AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
-    def bio_defense(self, bio: Unit):
+    def bio_defense(self, bio: Unit, local_army: Units):
         enemy_units: Units = self.get_enemy_units().sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
@@ -142,41 +143,46 @@ class Micro:
             self.stim_bio(bio)
             self.defend_around_bunker(bio, enemy_units, closest_bunker)
         else:
-            self.bio(bio)
+            self.bio(bio, local_army)
             
     
-    def bio(self, bio: Unit):
-        enemy_units_in_range = self.get_enemy_units_in_range(bio)
+    def bio(self, bio_unit: Unit, local_army: Units):
+        local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
+        local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
+        enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
         other_enemy_units: Units = self.get_enemy_units()
-        other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
+        other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
         enemy_buildings: Units = self.bot.enemy_structures
         enemy_buildings_in_sight = enemy_buildings.filter(
-            lambda building: building.distance_to(bio) <= 12
+            lambda building: building.distance_to(bio_unit) <= 12
         )
         enemy_buildings_in_range = enemy_buildings.filter(
-            lambda building: bio.target_in_range(building)
+            lambda building: bio_unit.target_in_range(building)
         )
         
         # handle stim
-        self.stim_bio(bio)
+        self.stim_bio(bio_unit)
 
         if (enemy_units_in_range.amount >= 1):
-            self.hit_n_run(bio, enemy_units_in_range)
+            self.hit_n_run(bio_unit, enemy_units_in_range)
         elif(other_enemy_units.amount >= 1):
-            if (enemy_buildings_in_range.amount >= 1 and bio.weapon_ready):
-                bio.attack(enemy_buildings_in_range.closest_to(bio))
+            if (enemy_buildings_in_range.amount >= 1 and bio_unit.weapon_ready):
+                bio_unit.attack(enemy_buildings_in_range.closest_to(bio_unit))
+            # if everything isn't unloaded, regroup before attacking
+            elif(local_medivacs_with_cargo):
+                bio_unit.move(local_army.center)
             else:
-                bio.attack(other_enemy_units.closest_to(bio))
+                bio_unit.attack(other_enemy_units.closest_to(bio_unit))
         elif(enemy_buildings_in_sight.amount >= 1):
             enemy_buildings_in_sight.sort(key = lambda building: building.health)
-            bio.attack(enemy_buildings_in_sight.first)
+            bio_unit.attack(enemy_buildings_in_sight.first)
         elif(enemy_buildings.amount >= 1):
             # print("[Error] no enemy units to attack")
-            bio.attack(enemy_buildings.closest_to(bio))
+            bio_unit.attack(enemy_buildings.closest_to(bio_unit))
         else:
-            self.retreat(bio)
+            self.retreat(bio_unit)
 
-    def ghost(self, ghost: Unit):
+    def ghost(self, ghost: Unit, local_army: Units):
         # If we have enough energy and are not sniping, use snipe
         if (ghost.energy >= 50 and not ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
             potential_snipe_targets: Units = self.bot.enemy_units.filter(
@@ -196,26 +202,29 @@ class Micro:
                 target: Unit = potential_snipe_targets.first
                 ghost(AbilityId.EFFECT_GHOSTSNIPE, target)
                 return
-        self.bio(ghost)
+        self.bio(ghost, local_army)
 
     def stim_bio(self, bio_unit: Unit):
         if (
             self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1
             or bio_unit.has_buff(BuffId.STIMPACK)
             or bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
+            or bio_unit.type_id == UnitTypeId.GHOST
         ):
             return
         
         WITH_MEDIVAC_HEALTH_THRESHOLD: int = 30
         WITHOUT_MEDIVAC_HEALTH_THRESHOLD: int = 45
         MARAUDER_HEALTH_SAFETY: int = 10
+        MEDIVAC_ENERGY_THRESHOLD: int = 25
+        MEDIVAC_HEALTH_THRESHOLD: int = 40
         health_safety: int = MARAUDER_HEALTH_SAFETY if bio_unit.type_id == UnitTypeId.MARAUDER else 0
         
         local_usable_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
             lambda medivac: (
                 medivac.distance_to(bio_unit) <= 10
-                and medivac.energy >= 25
-                and medivac.health >= 40
+                and medivac.energy >= MEDIVAC_ENERGY_THRESHOLD
+                and medivac.health >= MEDIVAC_HEALTH_THRESHOLD
             )
         )
     
@@ -229,6 +238,17 @@ class Micro:
         ):
             bio_unit(AbilityId.EFFECT_STIM)
 
+    def bio_disengage(self, bio_unit: Unit):
+        enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
+        
+        # handle stim
+        self.stim_bio(bio_unit)
+
+        if (enemy_units_in_range.amount >= 1):
+            self.hit_n_run(bio_unit, enemy_units_in_range)
+        else:
+            self.retreat(bio_unit)
+    
     # TODO if enemy units are menacing something else than the bunker, get out and fight
     def defend_around_bunker(self, unit: Unit, enemy_units: Units, bunker: Unit):
         if (not bunker):
@@ -321,7 +341,7 @@ class Micro:
             print("Error : A building is hidden somewhere ?")
             return enemy_main_position
 
-    def move_away(selected: Unit, enemy: Unit, distance: int = 2):
+    def move_away(selected: Unit, enemy: Unit|Point2, distance: int = 2):
         selected_position: Point2 = selected.position
         offset: Point2 = selected_position.negative_offset(enemy.position)
         target: Point2 = selected_position.__add__(offset)

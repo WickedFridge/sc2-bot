@@ -67,5 +67,10 @@ add_ons: List[UnitTypeId] = [
 ]
 bio: List[UnitTypeId] = [
     UnitTypeId.MARINE,
+    UnitTypeId.MARAUDER,
+    UnitTypeId.GHOST,
+]
+bio_stimmable: List[UnitTypeId] = [
+    UnitTypeId.MARINE,
     UnitTypeId.MARAUDER
 ]

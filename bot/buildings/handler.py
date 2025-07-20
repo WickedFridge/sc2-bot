@@ -132,6 +132,9 @@ class BuildingsHandler:
             lambda unit: (unit.type_id not in worker_types)
         )
 
+        if (fighting_units.amount == 0):
+            return
+        
         # find fighting units that are on creep without a building in 15 range
         on_creep_fighting_units: Units = fighting_units.filter(
             lambda unit: (

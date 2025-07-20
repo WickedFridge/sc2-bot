@@ -6,31 +6,6 @@ from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
-addon_sequence = {
-    Matchup.TvP: [
-        UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.BARRACKSTECHLAB,
-        UnitTypeId.BARRACKSTECHLAB,
-        UnitTypeId.BARRACKSREACTOR,
-    ],
-    Matchup.TvZ: [
-        UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.BARRACKSTECHLAB,
-        UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.BARRACKSTECHLAB,
-    ],
-    Matchup.TvT: [
-        UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.BARRACKSTECHLAB,
-        UnitTypeId.BARRACKSREACTOR,
-    ],
-    Matchup.TvZ: [
-        UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.BARRACKSTECHLAB,
-        UnitTypeId.BARRACKSREACTOR,
-    ]
-}
-
 class BarracksAddon(Building):
     def __init__(self, build):
         super().__init__(build)

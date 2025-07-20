@@ -168,8 +168,14 @@ class Combat:
                 return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
+            if (
+                fighting_army_supply >= local_enemy_supply * 0.7
+                or potential_army_supply >= local_enemy_supply * 0.9
+            ):
+                print(f'disengaging')
+                return Orders.FIGHT_DISENGAGE
             
-            print(f'army too strong [{round(fighting_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.5, 1)}], not taking the fight')
+            print(f'army too strong [{round(fighting_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.25, 1)}], not taking the fight')
             return Orders.PICKUP_LEAVE
                 
         # if we should defend
@@ -196,7 +202,7 @@ class Combat:
         if (
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
-            and usable_medivacs.amount >= 1
+            and usable_medivacs.amount >= 2
             and stim_completed
         ):
             # if we would lose a fight
@@ -204,7 +210,7 @@ class Combat:
                 potential_army_supply < potential_enemy_supply
             ):
                 # if our bio is too low, heal up
-                if (army.bio_health_percentage < 0.6):
+                if (army.bio_health_percentage < 0.7):
                     return Orders.HEAL_UP
                 else:
                     return Orders.DROP
@@ -233,6 +239,9 @@ class Combat:
                 
                 case Orders.FIGHT_OFFENSE:
                     await self.execute.fight(army)
+
+                case Orders.FIGHT_DISENGAGE:
+                    await self.execute.disengage(army)
                 
                 case Orders.FIGHT_DEFENSE:
                     await self.execute.fight_defense(army)
@@ -321,6 +330,7 @@ class Combat:
             Orders.HEAL_UP: GREEN,
             Orders.FIGHT_OFFENSE: RED,
             Orders.FIGHT_DEFENSE: ORANGE,
+            Orders.FIGHT_DISENGAGE: ORANGE,
             Orders.DEFEND: YELLOW,
             Orders.HARASS: LIGHTBLUE,
             Orders.DROP: LIGHTBLUE,
