@@ -145,7 +145,12 @@ class Micro:
         else:
             self.bio(bio, local_army)
             
-    
+    def ghost_defense(self, ghost: Unit, local_army: Units):
+        if (self.ghost_snipe):
+            return
+        self.bio_defense(ghost, local_army)
+
+
     def bio(self, bio_unit: Unit, local_army: Units):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
@@ -183,27 +188,33 @@ class Micro:
             self.retreat(bio_unit)
 
     def ghost(self, ghost: Unit, local_army: Units):
-        # If we have enough energy and are not sniping, use snipe
-        if (ghost.energy >= 50 and not ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
-            potential_snipe_targets: Units = self.bot.enemy_units.filter(
-                lambda enemy_unit: (
-                    enemy_unit.can_be_attacked
-                    and enemy_unit.type_id not in dont_attack
-                    and enemy_unit.is_biological
-                    and enemy_unit.health + enemy_unit.shield >= 60
-                    and enemy_unit.distance_to(ghost) <= 10
-                )
-            )
-            # if we have snipe targets, use snipe
-            if (potential_snipe_targets.amount >= 1):
-                potential_snipe_targets.sort(
-                    key=lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
-                )
-                target: Unit = potential_snipe_targets.first
-                ghost(AbilityId.EFFECT_GHOSTSNIPE, target)
-                return
+        if (self.ghost_snipe(ghost)):
+            return
         self.bio(ghost, local_army)
 
+    def ghost_snipe(self, ghost: Unit) -> bool:
+        # if we don't have energy or are already sniping, we just skip
+        if (ghost.energy < 50 or ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
+            return False
+        potential_snipe_targets: Units = self.bot.enemy_units.filter(
+            lambda enemy_unit: (
+                enemy_unit.can_be_attacked
+                and enemy_unit.type_id not in dont_attack
+                and enemy_unit.is_biological
+                and enemy_unit.health + enemy_unit.shield >= 60
+                and enemy_unit.distance_to(ghost) <= 10
+            )
+        )
+        # if we don't have snipe targets, we skip
+        if (potential_snipe_targets.amount == 0):
+            return False
+        potential_snipe_targets.sort(
+            key=lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
+        )
+        target: Unit = potential_snipe_targets.first
+        ghost(AbilityId.EFFECT_GHOSTSNIPE, target)
+        return True
+            
     def stim_bio(self, bio_unit: Unit):
         if (
             self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1

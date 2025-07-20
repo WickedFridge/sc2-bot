@@ -20,28 +20,24 @@ class Execute:
         self.micro = Micro(bot)
 
     @property
-    def drop_target(self):
-        print(f'time : {self.bot.time}')
+    def drop_target(self) -> Point2:
+        # print(f'time : {self.bot.time}')
+        # switch drop target every 60 seconds
         index_base_to_hit = round(self.bot.time / 60) % 3
         match (index_base_to_hit):
             case 0:
-                print("dropping main")
+                # print("dropping main")
                 return self.bot.expansions.enemy_main.position
             case 1:
-                print("dropping natural")
+                # print("dropping natural")
                 return self.bot.expansions.enemy_b2.position
             case 2:
-                print("dropping b3")
+                # print("dropping b3")
                 return self.bot.expansions.enemy_b3.position
     
     async def drop(self, army: Army):
-        # define which base to drop
-        # we'll start with the natural
-        
-        
         drop_target: Point2 = self.drop_target
-        closest_center: Point2 = self.bot.map.closest_center(drop_target)
-        
+        closest_center: Point2 = self.bot.map.closest_center(self.drop_target)
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         
         # select dropping medivacs
@@ -147,7 +143,7 @@ class Execute:
                 case UnitTypeId.MARAUDER:
                     self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.bio_defense(unit, army.units)
+                    self.micro.ghost_defense(unit, army.units)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
