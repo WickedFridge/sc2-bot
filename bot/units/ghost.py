@@ -13,7 +13,10 @@ class Ghost(Train):
     
     @property
     def custom_conditions(self) -> bool:
-        return self.trainer.should_train_ghosts
+        return (
+            self.trainer.should_train_ghosts
+            and not self.trainer.should_train_marauders
+        )
 
     @override
     @property

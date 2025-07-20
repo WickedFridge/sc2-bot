@@ -21,14 +21,26 @@ class Refinery(Building):
     def conditions(self) -> bool:
         refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount + self.bot.already_pending(UnitTypeId.REFINERY)
         max_refineries: int = 8
-        barracks_count: int = self.bot.structures(UnitTypeId.BARRACKS).amount
-        townhall_amount: int = self.bot.townhalls.amount
         workers_amount: int = self.bot.supply_workers
+
+        # build first refinery as soon as we have a barracks and at least 13 SCVs
+        if (refinery_amount == 0):
+            return (
+                self.bot.structures(UnitTypeId.BARRACKS).amount > 0
+                and workers_amount >= 15
+            )
+        
+        # build second refinery as soon as we have a factory and at least 18 SCVs
+        if (refinery_amount == 1):
+            return (
+                self.bot.structures(UnitTypeId.FACTORY).amount > 0
+                and workers_amount >= 21
+            )
+        
+        # TODO: fix refinery count for gas #7 and #8
         return (
-            refinery_amount < townhall_amount
-            and refinery_amount < barracks_count
-            and refinery_amount < max_refineries
-            and refinery_amount <= 2 * self.bot.townhalls.ready.amount
+            refinery_amount < max_refineries
+            and refinery_amount <= 2 * self.bot.expansions.amount_taken
             and workers_amount >= (refinery_amount + 1) * 12.5 + 1
         )
     

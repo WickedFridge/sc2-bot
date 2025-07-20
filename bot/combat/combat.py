@@ -143,6 +143,7 @@ class Combat:
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         
         stim_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+        stim_almost_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.7
 
         closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
@@ -203,7 +204,7 @@ class Combat:
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
             and usable_medivacs.amount >= 2
-            and stim_completed
+            and stim_almost_completed
         ):
             # if we would lose a fight
             if (
