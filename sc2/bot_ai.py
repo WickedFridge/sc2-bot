@@ -171,12 +171,13 @@ class BotAI(BotAIInternal):
         expansion_locations: dict[Point2, Units] = {pos: Units([], self) for pos in self._expansion_positions_list}
         for resource in self.resources:
             # It may be that some resources are not mapped to an expansion location
-            exp_position: Point2 | None = self._resource_location_to_expansion_position_dict.get(
+            exp_positions: set[Point2] | None = self._resource_location_to_expansion_position_dict.get(
                 resource.position, None
             )
-            if exp_position:
-                assert exp_position in expansion_locations
-                expansion_locations[exp_position].append(resource)
+            if exp_positions:
+                for exp_position in exp_positions:
+                    assert exp_position in expansion_locations
+                    expansion_locations[exp_position].append(resource)
         return expansion_locations
 
     @property

@@ -14,6 +14,7 @@ from pathlib import Path
 from loguru import logger
 
 from sc2.game_info import Ramp
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -35,6 +36,8 @@ def pytest_generate_tests(metafunc):
 class TestClass:
     # Load all pickle files and convert them into bot objects from raw data (game_data, game_info, game_state)
     scenarios = [(map_path.name, {"map_path": map_path}) for map_path in MAPS]
+
+    MAPS_WITH_ODD_EXPANSION_COUNT: set[UnitTypeId] = {"Persephone AIE", "StargazersAIE", "Stasis LE"}
 
     def test_main_base_ramp(self, map_path: Path):
         bot = get_map_specific_bot(map_path)
@@ -105,7 +108,7 @@ class TestClass:
         # On N player maps, it is expected that there are N*X bases because of symmetry, at least for maps designed for 1vs1
         # Those maps in the list have an un-even expansion count
         # pyre-ignore[16]
-        expect_even_expansion_count = 1 if bot.game_info.map_name in ["StargazersAIE", "Stasis LE"] else 0
+        expect_even_expansion_count = 1 if bot.game_info.map_name in self.MAPS_WITH_ODD_EXPANSION_COUNT else 0
         assert (
             len(bot.expansion_locations_list) % (len(bot.enemy_start_locations) + 1) == expect_even_expansion_count
         ), f"{bot.expansion_locations_list}"
