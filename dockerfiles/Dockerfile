@@ -37,8 +37,8 @@ WORKDIR /root/
 # Download and uncompress StarCraftII from https://github.com/Blizzard/s2client-proto#linux-packages and remove zip file
 # If file is locally available, use this instead:
 #COPY SC2.4.10.zip /root/
-RUN curl http://blzdistsc2-a.akamaihd.net/Linux/SC2.$SC2_VERSION.zip -o "SC2.$SC2_VERSION.zip" \
-    && unzip -q -P iagreetotheeula SC2.$SC2_VERSION.zip \
+RUN curl --retry 3 --retry-delay 5 -C - http://blzdistsc2-a.akamaihd.net/Linux/SC2.$SC2_VERSION.zip -o "SC2.$SC2_VERSION.zip" \
+    && unzip -q -P iagreetotheeula "SC2.$SC2_VERSION.zip" \
     && rm SC2.$SC2_VERSION.zip
 
 # Remove Battle.net folder
@@ -70,7 +70,7 @@ RUN curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/9/ -o 1.zip \
     && rm *.zip
 
 # Get official blizzard maps
-RUN curl --retry 3 --retry-delay 5 -C - http://blzdistsc2-a.akamaihd.net/MapPacks/Ladder2019Season3.zip -o Ladder2019Season3.zip \
+RUN curl --retry 3 --retry-delay 5 -C - http://blzdistsc2-a.akamaihd.net/MapPacks/Ladder2019Season3.zip -o 'Ladder2019Season3.zip' \
     && unzip -q -P iagreetotheeula -o 'Ladder2019Season3.zip' \
     && mv Ladder2019Season3/* . \
     && rm Ladder2019Season3.zip \
