@@ -1,10 +1,11 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
+from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2
+from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import worker_types
@@ -20,7 +21,7 @@ class Execute:
         self.micro = Micro(bot)
 
     @property
-    def drop_target(self) -> Point2:
+    def default_drop_target(self) -> Point2:
         # print(f'time : {self.bot.time}')
         # switch drop target every 60 seconds
         index_base_to_hit = round(self.bot.time / 60) % 3
@@ -34,34 +35,76 @@ class Execute:
             case 2:
                 # print("dropping b3")
                 return self.bot.expansions.enemy_b3.position
+
+    def get_drop_target(self, known_enemy_army: Army) -> Point2:
+        # if we don't know about enemy army or enemy bases, drop on the default target
+        if (known_enemy_army.units.amount == 0 or self.bot.expansions.enemy_bases.amount == 0):
+            return self.default_drop_target
+        
+        # otherwise drop on the furthest base from the enemy army
+        enemy_army_center: Point2 = known_enemy_army.units.center
+        enemy_bases: Expansions = self.bot.expansions.enemy_bases.sorted(
+            lambda base: base.position._distance_squared(enemy_army_center),
+            reverse=True,
+        )
+        return enemy_bases.first.position
     
-    async def drop(self, army: Army):
-        drop_target: Point2 = self.drop_target
-        closest_center: Point2 = self.bot.map.closest_center(self.drop_target)
+    def get_best_edge(self, known_enemy_army: Army, drop_target: Point2) -> Point2:
+        if (known_enemy_army.units.amount == 0):
+            return self.bot.map.closest_center(drop_target)
+        closest_two_centers: List[Point2] = self.bot.map.closest_centers(drop_target, 2)
+        closest_two_centers.sort(key=lambda center: center._distance_squared(known_enemy_army.center), reverse= True)
+        return closest_two_centers[0]
+
+    async def drop(self, army: Army, known_enemy_army: Army):
+        drop_target: Point2 = self.get_drop_target(known_enemy_army)
+        # get the 2 closest edge of the map to the drop target
+        # take the furthest one from the enemy army
+
+        # closest_center: Point2 = self.bot.map.closest_center(drop_target)
+        best_edge = self.get_best_edge(known_enemy_army, drop_target)
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         
         # select dropping medivacs
-        usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
-        full_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left == 0)
+        usable_medivacs: Units = medivacs.filter(lambda unit: unit.health_percentage >= 0.4)
+
+        if (usable_medivacs.amount == 0):
+            print("Error: no usable medivacs for drop")
+            return
         
-        if ((usable_medivacs + full_medivacs).amount > 2):
-            sorted_usable_medivacs: Units = usable_medivacs.sorted(lambda unit: (-unit.health, unit.tag))
-            droppable_medivac: Units = sorted_usable_medivacs.take(max(0, usable_medivacs.amount - full_medivacs.amount))
-        else:
-            droppable_medivac: Units = usable_medivacs
+        # Step 1: Select the 2 healthiest Medivacs
+        medivacs_to_use: Units = usable_medivacs.sorted(lambda unit: (-unit.health, -unit.cargo_used, unit.tag)).take(2)
+
+        # Step 2: Split the medivacs
+        medivacs_to_retreat = medivacs.filter(lambda unit: unit.tag not in medivacs_to_use.tags)
+        
+        # Step 3: Unload and retreat extras
+        for medivac in medivacs_to_retreat:
+            if medivac.passengers:
+                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)  # unload where it is
+            self.micro.retreat(medivac)
+        
+        # Step 4: Check if the best two are full or need more units
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
-        await self.pickup(droppable_medivac, ground_units)
-        dropping_medivac: Units = droppable_medivac + full_medivacs if army.ground_units.amount == 0 else full_medivacs
+        cargo_left: int = sum(medivac.cargo_left for medivac in medivacs_to_use)
         
-        for medivac in dropping_medivac:
+        # Step 5: Select the ground units to pickup and retreat with the rest
+        if (ground_units.amount >= 1 and cargo_left > 0):
+            await self.pickup(medivacs_to_use, ground_units)
+        else:
+            for unit in ground_units:
+                self.micro.retreat(unit)
+        
+        # Step 6 : Drop with the medivacs
+        for medivac in medivacs_to_use:
             distance_medivac_to_target = medivac.position.distance_to(drop_target)
-            distance_edge_to_target = closest_center.distance_to(drop_target)
+            distance_edge_to_target = best_edge.distance_to(drop_target)
             
             # If the edge is closer to the target than we are, take the detour
             if (distance_edge_to_target < distance_medivac_to_target):
                 # Optional: Only go to edge if not already very close to it
-                if medivac.position.distance_to(closest_center) > 5:
-                    medivac.move(closest_center)
+                if medivac.position.distance_to(best_edge) > 5:
+                    medivac.move(best_edge)
                 else:
                     medivac.move(drop_target)
             else:
@@ -103,9 +146,8 @@ class Execute:
         # drop units
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                if (not unit.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
-                    unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
-                await self.micro.medivac_fight(unit, army.units)
+                unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
+                self.micro.medivac_heal(unit, army.units)
             # group units that aren't near the center
             else:
                 if (unit.distance_to(army.center) > 5):
@@ -148,11 +190,29 @@ class Execute:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
+    async def fight_drop(self, army: Army, known_enemy_army: Army):
+        for unit in army.units:
+            match unit.type_id:
+                case UnitTypeId.MEDIVAC:
+                    await self.micro.medivac_fight_drop(unit, self.get_drop_target(known_enemy_army))
+                case UnitTypeId.MARINE:
+                    self.micro.bio(unit, army.units)
+                case UnitTypeId.MARAUDER:
+                    self.micro.bio(unit, army.units)
+                case UnitTypeId.GHOST:
+                    self.micro.ghost(unit, army.units)
+                case _:
+                    if (self.bot.enemy_units.amount >= 1):
+                        closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
+                        unit.attack(closest_enemy_unit)
+                    else:
+                        unit.move(army.center)
+    
     async def disengage(self, army: Army):
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight(unit, army.units)
+                    await self.micro.medivac_disengage(unit, army.units)
                 case UnitTypeId.MARINE:
                     self.micro.bio_disengage(unit)
                 case UnitTypeId.MARAUDER:

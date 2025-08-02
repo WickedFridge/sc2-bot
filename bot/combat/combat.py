@@ -41,7 +41,7 @@ class Combat:
 
     @property
     def army_radius(self) -> float:
-        return self.army_supply * 0.2 + 10
+        return self.army_supply * 0.15 + 10
 
     @property
     def armored_supply(self) -> float:
@@ -134,6 +134,7 @@ class Combat:
         )
         fighting_army_supply: float = army.weighted_supply
         potential_army_supply: float = army.potential_supply
+        potential_bio_supply: float = army.potential_bio_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_enemy_supply: float = local_enemy_army.weighted_supply
         unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
@@ -166,7 +167,10 @@ class Combat:
                     or potential_army_supply >= local_enemy_supply * 1.25
                 )
             ):
-                return Orders.FIGHT_OFFENSE
+                if (potential_army_supply >= fighting_army_supply * 2):
+                    return Orders.FIGHT_DROP
+                else:
+                    return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             if (
@@ -204,6 +208,7 @@ class Combat:
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
             and usable_medivacs.amount >= 2
+            and potential_bio_supply >= 12
             and stim_almost_completed
         ):
             # if we would lose a fight
@@ -241,6 +246,9 @@ class Combat:
                 case Orders.FIGHT_OFFENSE:
                     await self.execute.fight(army)
 
+                case Orders.FIGHT_DROP:
+                    await self.execute.fight_drop(army, self.known_enemy_army)
+
                 case Orders.FIGHT_DISENGAGE:
                     await self.execute.disengage(army)
                 
@@ -257,7 +265,7 @@ class Combat:
                     self.execute.defend_canon_rush(army)
 
                 case Orders.DROP:
-                    await self.execute.drop(army)
+                    await self.execute.drop(army, self.known_enemy_army)
                 
                 case Orders.HARASS:
                     await self.execute.harass(army)            
@@ -330,6 +338,7 @@ class Combat:
             Orders.RETREAT: GREEN,
             Orders.HEAL_UP: GREEN,
             Orders.FIGHT_OFFENSE: RED,
+            Orders.FIGHT_DROP: RED,
             Orders.FIGHT_DEFENSE: ORANGE,
             Orders.FIGHT_DISENGAGE: ORANGE,
             Orders.DEFEND: YELLOW,
@@ -369,6 +378,18 @@ class Combat:
             # self.draw_sphere_on_world(base.position, radius, color)
             self.draw_text_on_world(base.position, base_descriptor, color)
     
+    async def debug_drop_target(self):
+        drop_target: Point2 = self.execute.get_drop_target(self.known_enemy_army)
+        best_edge: Point2 = self.execute.get_best_edge(self.known_enemy_army, drop_target)
+        self.draw_grid_on_world(drop_target, text="Drop Target")
+        self.draw_flying_box(best_edge, 5, PURPLE)
+        self.bot.client.debug_line_out(
+            Point3((drop_target.x, drop_target.y, 10)),
+            Point3((best_edge.x, best_edge.y, 10)),
+            color=PURPLE,
+        )
+        self.draw_text_on_world(best_edge, "Best Edge", PURPLE)
+
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(

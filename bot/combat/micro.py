@@ -1,6 +1,7 @@
 import math
 from typing import List
 from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.point2_functions import center
 from sc2.ids.ability_id import AbilityId
@@ -52,8 +53,7 @@ class Micro:
     
     async def medivac_pickup(self, medivac: Unit, local_army: Units):
         # stop unloading if we are
-        if (medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
-            medivac.stop()
+        medivac.stop()
         await self.medivac_boost(medivac)
         units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3)
         for unit in units_to_pickup:
@@ -63,18 +63,37 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
+    async def medivac_disengage(self, medivac: Unit, local_army: Units):
+        # boost if we can
+        await self.medivac_boost(medivac)
+        
+        SAFETY_DISTANCE: int = 4
+        menacing_enemy_units: Units = self.enemy_units.filter(
+            lambda enemy_unit: (
+                enemy_unit.type_id in menacing
+                and enemy_unit.can_attack_air
+                and enemy_unit.distance_to(medivac) <= enemy_unit.air_range + SAFETY_DISTANCE
+            )
+        )
+        # if medivac in danger, retreat and drop units
+        if (menacing_enemy_units.amount >= 1):
+            Micro.move_away(medivac, menacing_enemy_units.center, SAFETY_DISTANCE)
+            if (medivac.cargo_used >= 1):
+                # unload all units if we can
+                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            return
+        
+        # if medivac not in danger, heal the closest damaged unit
+        self.medivac_heal(medivac, local_army)
+
     async def medivac_fight(self, medivac: Unit, local_army: Units):
         # unload if we can, then move towards the closest ground unit
         
-        # if our medivac is filled and not unloading, unload
-        if (medivac.cargo_used >= 1 and not medivac.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)):
-            # medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
-            # return
-
+        # if our medivac is filled and can unload, unload
+        if (medivac.cargo_used >= 1):
             if (self.bot.in_pathing_grid(medivac.position)):
-                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)
-                return
-            # else:
+                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            
             ground_allied_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
             ground_enemy_buildings: Units = self.bot.enemy_structures
@@ -101,6 +120,27 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
+        self.medivac_heal(medivac, local_army)
+
+    async def medivac_fight_drop(self, medivac: Unit, drop_target: Point2):
+        # first boost
+        await self.medivac_boost(medivac)
+        
+        # if there's a base closer than our drop target, we attack it
+        closest_enemy_base: Expansion = self.bot.expansions.enemy_bases.closest_to(medivac)
+        MARGIN: int = 5
+        if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
+            drop_target = closest_enemy_base.position
+
+        
+        # if we are at the same height, unload all units
+        # we need to check the height position of the map
+        if (self.bot.get_terrain_height(medivac.position) == self.bot.get_terrain_height(drop_target)):
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        
+        medivac.move(drop_target)
+    
+    def medivac_heal(self, medivac: Unit, local_army: Units):
         # heal damaged ally in local army
         damaged_allies: Units = local_army.filter(
             lambda unit: (
@@ -123,14 +163,14 @@ class Micro:
                 medivac.move(local_ground_units.center)
             elif (self.bot.townhalls.amount >= 1):
                 self.retreat(medivac)
-
+    
     async def medivac_boost(self, medivac: Unit):
         available_abilities = (await self.bot.get_available_abilities([medivac]))[0]
         if (AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
     def bio_defense(self, bio: Unit, local_army: Units):
-        enemy_units: Units = self.get_enemy_units().sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
+        enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
             self.bio(bio)
@@ -155,7 +195,7 @@ class Micro:
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
-        other_enemy_units: Units = self.get_enemy_units()
+        other_enemy_units: Units = self.enemy_units
         other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
         enemy_buildings: Units = self.bot.enemy_structures
         enemy_buildings_in_sight = enemy_buildings.filter(
@@ -358,7 +398,8 @@ class Micro:
         target: Point2 = selected_position.__add__(offset)
         selected.move(selected_position.towards(target, distance))
 
-    def get_enemy_units(self) -> Units:
+    @property
+    def enemy_units(self) -> Units:
         enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
         enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
         return enemy_units + enemy_towers
@@ -366,7 +407,7 @@ class Micro:
     def get_enemy_units_in_range(self, unit: Unit) -> Units:
         if (unit is None):
             return Units([], self.bot)
-        enemy_units_in_range: Units = self.get_enemy_units().filter(
+        enemy_units_in_range: Units = self.enemy_units.filter(
             lambda enemy: unit.target_in_range(enemy)
         )
         return enemy_units_in_range

@@ -19,7 +19,8 @@ class Train:
     unitId: UnitTypeId
     buildingIds: List[UnitTypeId]
     name: str
-
+    i: int = 0
+        
     def __init__(self, trainer: Trainer) -> None:
         self.bot = trainer.bot
         self.trainer = trainer
@@ -57,8 +58,8 @@ class Train:
         if (not self.conditions):
             return resources
         
+        self.i = 0
         resources_updated: Resources = resources
-        i: int = 0
         for building in self.building_group:
             if (not self.conditions):
                 return resources_updated
@@ -67,7 +68,7 @@ class Train:
             can_build, resources_updated = resources.update(self.training_cost)
             if (can_build == False):
                 return resources_updated            
-            self.log(i)
+            self.log(self.i)
             building.train(self.unitId)
-            i += 1
+            self.i += 1
         return resources_updated

@@ -129,6 +129,10 @@ class Expansions:
         return self.expansions[self.expansions.__len__() - 4]
     
     @property
+    def enemy_bases(self) -> Optional[Expansions]:
+        return self.filter(lambda expansion: expansion.is_enemy == True)
+
+    @property
     def last_taken(self) -> Optional[Expansion]:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == 0):
@@ -191,7 +195,7 @@ class Expansions:
         
         self.expansions = expansions
 
-def get_expansions(bot: WickedBot) -> Expansions:
+def get_expansions(bot: BotAI) -> Expansions:
     global expansions
     if (expansions is None):
         expansions = Expansions(bot)

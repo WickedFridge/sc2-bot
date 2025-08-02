@@ -140,6 +140,16 @@ class MapData:
         """
         return min(self.centers, key=lambda center: center._distance_squared(position))
     
+    def closest_centers(self, position: Point2, amount: int) -> List[Point2]:
+        """
+        Returns the n closest center to the bot's starting location
+        """
+        if (amount <= 0):
+            return []
+        if (amount >= len(self.centers)):
+            return self.centers
+        return sorted(self.centers, key=lambda center: center._distance_squared(position))[:amount]
+    
     async def update(self):
         """
         Updates the map data.

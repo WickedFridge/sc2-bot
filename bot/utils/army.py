@@ -59,6 +59,14 @@ class Army:
     @property
     def weighted_supply(self) -> float:
         return weighted_units_supply(self.fighting_units)
+    
+    @property
+    def bio_supply(self) -> float:
+        return units_supply(self.bio_units)
+    
+    @property
+    def potential_bio_supply(self) -> float:
+        return units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
 
     @property
     def units_not_in_sight(self) -> Units:
@@ -112,6 +120,9 @@ class Army:
             return self.fighting_units + self.passengers
         return medivacs_filled + self.passengers
     
+    @property
+    def bio_units(self) -> Units:
+        return self.units.filter(lambda unit: unit.type_id in bio)
     
     @property
     def fighting_units(self) -> Units:

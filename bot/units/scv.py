@@ -18,7 +18,7 @@ class Scv(Train):
 
     @property
     def scv_amount(self) -> float:
-        workers_pending: float = self.bot.already_pending(self.unitId)
+        workers_pending: float = self.bot.already_pending(self.unitId) + self.i
         return self.bot.supply_workers + workers_pending
     
     @property

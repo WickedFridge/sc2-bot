@@ -9,6 +9,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
+from bot.utils.unit_tags import hq_types
 
 
 class Expansion:
@@ -37,6 +38,15 @@ class Expansion:
             if (townhall.order_target == self.position):
                 return True
         return False
+    
+    @property
+    def is_enemy(self) -> bool:
+        # if is enemy main unscouted, return True
+        if (self.position == self.bot.enemy_start_locations[0] and self.bot.state.visibility[self.position.rounded] == 0):
+            return True
+        enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in hq_types)
+        return enemy_townhalls.amount > 0 and enemy_townhalls.closest_distance_to(self.position) == 0
+        
     
     @property
     def is_ready(self) -> bool:

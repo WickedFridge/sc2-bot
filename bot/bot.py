@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.7.2"
+VERSION: str = "3.8.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -112,7 +112,7 @@ class WickedBot(Superbot):
         if (self.tag_to_update):
             await self.tag_game()
         
-        # Update Building grid
+        # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
         await self.map.update()
         
@@ -219,6 +219,7 @@ class WickedBot(Superbot):
 
         # Debug stuff
         # await self.debug.drop_path()
+        await self.combat.debug_drop_target()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
@@ -249,15 +250,6 @@ class WickedBot(Superbot):
         await self.client.chat_send(f'Tag:{self.matchup}', False)
         print(f'Matchup : {self.matchup}')
         self.tag_to_update = False
-
-    def orbitalTechAvailable(self):
-        return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
-
-    def waitingForOrbital(self):
-        ccs: Units = self.townhalls(UnitTypeId.COMMANDCENTER).ready.filter(
-            lambda cc: cc.is_using_ability(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND) == False
-        )
-        return self.orbitalTechAvailable() and ccs.amount >= 1
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
         pass
