@@ -127,7 +127,12 @@ class Micro:
         await self.medivac_boost(medivac)
         
         # if there's a base closer than our drop target, we attack it
-        closest_enemy_base: Expansion = self.bot.expansions.enemy_bases.closest_to(medivac)
+        # if we don't know any enemy base, we just drop the enemy main
+        closest_enemy_base: Expansion = (
+            self.bot.expansions.enemy_bases.closest_to(medivac)
+            if self.bot.expansions.enemy_bases.amount >= 1
+            else self.bot.expansions.enemy_main
+        )
         MARGIN: int = 5
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
             drop_target = closest_enemy_base.position
