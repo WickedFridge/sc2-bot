@@ -19,13 +19,11 @@ class SupplyDepot(Building):
     @property
     def conditions(self) -> bool:
         current_supply: int = self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8
-        concurrent_supplies: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
+        concurrent_supply_depots: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         return (
             current_supply < 200
-            # and self.bot.supply_left < self.bot.supply_used / 10
-            and self.bot.supply_left < (self.bot.supply_used - 3) / 9
-            # and concurrent_supplies <= self.bot.supply_used / 70
-            and concurrent_supplies <= (self.bot.supply_used - 5) / 50
+            and self.bot.supply_left < (self.bot.supply_used - 3) / 6
+            and concurrent_supply_depots <= (self.bot.supply_used - 5) / 60
         )
     
     @override

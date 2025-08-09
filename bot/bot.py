@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.8.1"
+VERSION: str = "3.9.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -115,6 +115,7 @@ class WickedBot(Superbot):
         # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
         await self.map.update()
+        self.macro.supply_block_update()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)
@@ -166,25 +167,35 @@ class WickedBot(Superbot):
         ]
 
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
+            # basic economy
             self.builder.orbital_command.upgrade,
             self.builder.supply_depot.build,
             self.trainer.scv.train,
+            self.builder.refinery.build,
+            # add ons
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
-            self.search.tech,
-            self.builder.armory.build,
-            self.builder.ghost_academy.build,
+            # defense
+            self.builder.bunker.build,
+            # very important tech
+            self.search.tech_primary,
+            # army
             self.trainer.medivac.train,
             self.trainer.ghost.train,
             self.trainer.marauder.train,
             self.trainer.marine.train,
-            self.builder.ebay.build,
-            self.builder.bunker.build,
+            # advanced tech
+            self.search.tech_secondary,
+            self.builder.armory.build,
+            # production buildings
             self.builder.starport.build,
             self.builder.factory.build,
             self.builder.barracks.build,
-            self.builder.refinery.build,
+            # late game tech
+            self.builder.ebay.build,
+            self.builder.ghost_academy.build,
+            # expands
             self.builder.command_center.build,
         ]
         resources: Resources = Resources.from_tuples(

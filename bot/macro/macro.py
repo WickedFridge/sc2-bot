@@ -9,6 +9,7 @@ from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.base import Base
+from bot.utils.colors import GREEN
 from bot.utils.point2_functions import center
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -24,6 +25,7 @@ class Macro:
     bot: Superbot
     bases: List[Base]
     speed_mining: SpeedMining
+    supply_block_time: int = 0
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -444,3 +446,23 @@ class Macro:
                 continue
             mineral_workers.closest_to(least_saturated_refinery).gather(least_saturated_refinery)
             break
+
+    def supply_block_update(self):
+        if (self.bot.supply_left <= 1):
+            production_buildings_idle: Units = self.bot.structures(
+                [UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND, UnitTypeId.BARRACKS, UnitTypeId.STARPORT]
+            ).ready.filter(
+                lambda building: (
+                    building.is_idle
+                    or (building.has_reactor and len(building.orders) < 2)
+                )
+            )
+            if (production_buildings_idle.amount >= 1):
+                self.supply_block_time += 1
+
+        self.bot.client.debug_text_screen(
+            f"Supply Block Time: {self.supply_block_time}",
+            (0.05, 0.05),
+            GREEN,
+            12,
+        )

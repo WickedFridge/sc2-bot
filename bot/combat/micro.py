@@ -63,24 +63,32 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
+    def medivac_safety_disengage(self, medivac: Unit, safety_distance: int = 4) -> bool:
+        # if medivac is in danger
+        menacing_enemy_units: Units = self.enemy_units.filter(
+            lambda enemy_unit: (
+                enemy_unit.type_id in menacing
+                and enemy_unit.can_attack_air
+                and enemy_unit.distance_to(medivac) <= enemy_unit.air_range + safety_distance
+            )
+        )
+        # if medivac in danger, retreat and drop units
+        if (menacing_enemy_units.amount == 0):
+            return False
+        
+        Micro.move_away(medivac, menacing_enemy_units.center, safety_distance)
+        if (medivac.cargo_used >= 1):
+            # unload all units if we can
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        return True
+
+    
     async def medivac_disengage(self, medivac: Unit, local_army: Units):
         # boost if we can
         await self.medivac_boost(medivac)
         
         SAFETY_DISTANCE: int = 4
-        menacing_enemy_units: Units = self.enemy_units.filter(
-            lambda enemy_unit: (
-                enemy_unit.type_id in menacing
-                and enemy_unit.can_attack_air
-                and enemy_unit.distance_to(medivac) <= enemy_unit.air_range + SAFETY_DISTANCE
-            )
-        )
-        # if medivac in danger, retreat and drop units
-        if (menacing_enemy_units.amount >= 1):
-            Micro.move_away(medivac, menacing_enemy_units.center, SAFETY_DISTANCE)
-            if (medivac.cargo_used >= 1):
-                # unload all units if we can
-                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        if (self.medivac_safety_disengage(medivac, SAFETY_DISTANCE)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -120,6 +128,9 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
+        SAFETY_DISTANCE: int = 2
+        if (self.medivac_safety_disengage(medivac, SAFETY_DISTANCE)):
+            return
         self.medivac_heal(medivac, local_army)
 
     async def medivac_fight_drop(self, medivac: Unit, drop_target: Point2):
@@ -347,13 +358,27 @@ class Micro:
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
         if (enemy_units_in_range.amount == 0):
             return
-        enemy_units_in_range.sort(
-            key=lambda enemy_unit: (
-                enemy_unit.shield + enemy_unit.health
-            )
-        )
         if (unit.weapon_ready):
-            unit.attack(enemy_units_in_range.first)
+            enemy_light_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_light)
+            enemy_armored_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_armored)
+            enemy_to_fight: Units = enemy_units_in_range
+            
+            # choose a better target if the unit has bonus damage
+            if (unit.bonus_damage):
+                match(unit.bonus_damage[1]):
+                    case 'Light':
+                        enemy_to_fight = enemy_light_units if enemy_light_units.amount >= 1 else enemy_units_in_range
+                    case 'Armored':
+                        enemy_to_fight = enemy_armored_units if enemy_armored_units.amount >= 1 else enemy_units_in_range
+                    case _:
+                        enemy_to_fight = enemy_units_in_range
+
+            enemy_to_fight.sort(
+                key=lambda enemy_unit: (
+                    enemy_unit.shield + enemy_unit.health
+                )
+            )
+            unit.attack(enemy_to_fight.first)
         else:
             # only run away from unit with smaller range that are facing (chasing us)
             closest_enemy: Unit = enemy_units_in_range.closest_to(unit)

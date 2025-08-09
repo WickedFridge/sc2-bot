@@ -23,26 +23,42 @@ class Refinery(Building):
         max_refineries: int = 8
         workers_amount: int = self.bot.supply_workers
 
-        # build first refinery as soon as we have a barracks and at least 13 SCVs
-        if (refinery_amount == 0):
-            return (
+        match(refinery_amount):
+            case 0:
+                # build first refinery as soon as we have a barracks and at least 15 SCVs
+                return (
                 self.bot.structures(UnitTypeId.BARRACKS).amount > 0
                 and workers_amount >= 15
             )
-        
-        # build second refinery as soon as we have a factory and at least 18 SCVs
-        if (refinery_amount == 1):
-            return (
-                self.bot.structures(UnitTypeId.FACTORY).amount > 0
-                and workers_amount >= 21
-            )
-        
-        # TODO: fix refinery count for gas #7 and #8
-        return (
-            refinery_amount < max_refineries
-            and refinery_amount <= 2 * self.bot.expansions.amount_taken
-            and workers_amount >= (refinery_amount + 1) * 12.5 + 1
-        )
+
+            case 1:
+                # build second refinery as soon as we have a factory and at least 21 SCVs
+                return (
+                    self.bot.structures(UnitTypeId.FACTORY).amount > 0
+                    and workers_amount >= 21
+                )
+            
+            case 2:
+                # build third rafinery as long as we have 3 CCs and at least 32 SCVs  
+                return (
+                    self.bot.structures([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND]).amount >= 3
+                    and workers_amount >= 32
+                )
+            
+            case 3:
+                # build third rafinery as long as we have 2 Ebays and at least 40 SCVs
+                return (
+                    self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
+                    and workers_amount >= 40
+                )
+
+            case _:        
+                # TODO: fix refinery count for gas #7 and #8
+                return (
+                    refinery_amount < max_refineries
+                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
+                    and workers_amount >= (refinery_amount + 1) * 12.5 + 1
+                )
     
     
     

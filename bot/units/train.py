@@ -42,10 +42,15 @@ class Train:
 
     @property
     def building_group(self) -> Units:
-        buildings: Units = Units([], self.bot)
-        for buildingId in self.buildingIds:
-            buildings += self.bot.structures(buildingId).ready.idle
-        return buildings
+        return self.bot.structures(self.buildingIds).ready.filter(
+            lambda building: (
+                building.is_idle or
+                (
+                    len(building.orders) == 1
+                    and building.orders[0].progress >= 0.95
+                )
+            )
+        )
 
     @property
     def training_cost(self) -> Cost:
