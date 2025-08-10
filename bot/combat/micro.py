@@ -38,12 +38,15 @@ class Micro:
         # TODO: handle retreat when opponent is blocking our way
         local_flying_orbital: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).in_distance_between(unit.position, 0, 10)
         retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(local_flying_orbital.center, -2)
-        if (
-            unit.type_id == UnitTypeId.MEDIVAC
-            and unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
-            and enemy_units_in_sight.amount == 0
-        ):
-            unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
+        if (unit.type_id == UnitTypeId.MEDIVAC):
+            if (
+                unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
+                and enemy_units_in_sight.amount == 0
+            ):
+                unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
+            if (not self.medivac_safety_disengage(unit)):
+                unit.move(retreat_position)
+            return
         if (unit.distance_to(retreat_position) < 5):
             return
         if (enemy_units_in_range.amount >= 1):
@@ -63,12 +66,11 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    def medivac_safety_disengage(self, medivac: Unit, safety_distance: int = 4) -> bool:
+    def medivac_safety_disengage(self, medivac: Unit, safety_distance: int = 2) -> bool:
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
-                enemy_unit.type_id in menacing
-                and enemy_unit.can_attack_air
+                (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
                 and enemy_unit.distance_to(medivac) <= enemy_unit.air_range + safety_distance
             )
         )
@@ -87,7 +89,7 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        SAFETY_DISTANCE: int = 4
+        SAFETY_DISTANCE: int = 2
         if (self.medivac_safety_disengage(medivac, SAFETY_DISTANCE)):
             return
         
@@ -221,23 +223,24 @@ class Micro:
             lambda building: bio_unit.target_in_range(building)
         )
         
-        # handle stim
-        self.stim_bio(bio_unit)
-
+        
         if (enemy_units_in_range.amount >= 1):
+            self.stim_bio(bio_unit)
             self.hit_n_run(bio_unit, enemy_units_in_range)
-        elif(other_enemy_units.amount >= 1):
+        elif (other_enemy_units.amount >= 1):
             if (enemy_buildings_in_range.amount >= 1 and bio_unit.weapon_ready):
+                self.stim_bio(bio_unit)
                 bio_unit.attack(enemy_buildings_in_range.closest_to(bio_unit))
             # if everything isn't unloaded, regroup before attacking
-            elif(local_medivacs_with_cargo):
+            elif (local_medivacs_with_cargo):
                 bio_unit.move(local_army.center)
             else:
+                self.stim_bio(bio_unit)
                 bio_unit.attack(other_enemy_units.closest_to(bio_unit))
-        elif(enemy_buildings_in_sight.amount >= 1):
+        elif (enemy_buildings_in_sight.amount >= 1):
             enemy_buildings_in_sight.sort(key = lambda building: building.health)
             bio_unit.attack(enemy_buildings_in_sight.first)
-        elif(enemy_buildings.amount >= 1):
+        elif (enemy_buildings.amount >= 1):
             # print("[Error] no enemy units to attack")
             bio_unit.attack(enemy_buildings.closest_to(bio_unit))
         else:
@@ -344,7 +347,7 @@ class Micro:
             menacing_enemy_units: Units = enemy_units.filter(lambda enemy_unit: other_structures_than_bunkers.in_attack_range_of(enemy_unit))
             if (menacing_enemy_units.amount == 0 or menacing_enemy_units.closest_distance_to(bunker) <= 8):
                 if (bunker.cargo_left >= 1):
-                    unit.move(bunker)
+                    unit.move(bunker.position.towards(retreat_position, 2))
                 elif (unit.distance_to(retreat_position) > 2):
                     unit.move(retreat_position)
                 else:

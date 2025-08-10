@@ -153,8 +153,9 @@ class Army:
 
     def detect_units(self, enemy_units: Units) -> None:
         for enemy in enemy_units:
-            if enemy.tag not in self.units.tags:
-                self.units.append(enemy)
+            if (enemy.tag in self.units.tags):
+                self.remove_by_tag(enemy.tag)
+            self.units.append(enemy)
     
     def remove_by_tag(self, tag: int) -> None:
         destroyed_unit: Unit = self.units.by_tag(tag)

@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "3.9.0"
+VERSION: str = "4.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -101,9 +101,9 @@ class WickedBot(Superbot):
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
             # await self.client.debug_control_enemy()
-            # # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.GHOST, 8, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ENGINEERINGBAY, 1, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.COMMANDCENTER, 3, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 10, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.ZERGLING, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
@@ -115,7 +115,6 @@ class WickedBot(Superbot):
         # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
         await self.map.update()
-        self.macro.supply_block_update()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)
@@ -140,8 +139,10 @@ class WickedBot(Superbot):
         await self.buildings.drop_mules()
         await self.buildings.scan()
         await self.buildings.handle_supplies()
-        await self.buildings.lift_orbital()
-        await self.buildings.land_orbital()
+        # await self.buildings.lift_orbitals()
+        await self.buildings.lift_townhalls()
+        # await self.buildings.land_orbital()
+        await self.buildings.land_townhalls()
         await self.buildings.reposition_buildings()
         
         # Spend Money
@@ -177,6 +178,7 @@ class WickedBot(Superbot):
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
             # defense
+            self.builder.planetary_fortress.upgrade,
             self.builder.bunker.build,
             # very important tech
             self.search.tech_primary,
@@ -229,6 +231,7 @@ class WickedBot(Superbot):
         await self.scout.b2_against_proxy()
 
         # Debug stuff
+        
         # await self.debug.drop_path()
         await self.combat.debug_drop_target()
         # await self.debug.unscouted_b2()
@@ -242,9 +245,10 @@ class WickedBot(Superbot):
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
         await self.debug.selection()
+        # self.macro.supply_block_update()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
-        # await self.debug.bunker_positions()
+        await self.debug.bunker_positions()
         # await self.debug.wall_placement()
                     
     async def check_surrend_condition(self):

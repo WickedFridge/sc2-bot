@@ -59,12 +59,9 @@ class BuildingsHandler:
                     and unit.order_target == burning_building.tag
                 )
             )
-            if (
-                (burning_building.type_id in must_repair and repairing_workers.amount < 8)
-                or repairing_workers.amount < 3
-            ):
-                print("pulling worker to repair", burning_building.name)
-                
+            max_workers_repairing: int = 8 if burning_building.type_id in must_repair else 3
+            if (repairing_workers.amount < max_workers_repairing):
+                print(f'pulling worker to repair {burning_building.name} [{repairing_workers.amount}/{max_workers_repairing}]')
                 available_workers.closest_to(burning_building).repair(burning_building)
     
     async def cancel_buildings(self):
@@ -193,40 +190,95 @@ class BuildingsHandler:
                 print("Raise Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
-    async def lift_orbital(self):
-        if (self.bot.expansions.free.amount == 0):
-            return
-        orbitals_not_on_slot = self.bot.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
-        for orbital in orbitals_not_on_slot:
+    async def lift_townhalls(self):
+        townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND]).ready.idle
+        # calculate the optimal worker count based on mineral field left in bases
+        optimal_worker_count: int = (
+            sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
+            + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
+        )
+        is_mining_optimal: bool = self.bot.supply_workers < optimal_worker_count - 5
+
+        for townhall in townhalls_not_on_slot:
+            # don't lift Orbitals after the third CC
+            if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
+                if (self.bot.townhalls.ready.amount >= 4):
+                    continue
+            
+            # don't lift CCs before the 4th CC
+            if (townhall.type_id == UnitTypeId.COMMANDCENTER):
+                if (self.bot.townhalls.ready.amount < 4):
+                    continue
+            
+            # check if we should lift the command center or upgrade it to orbital command
+            if (is_mining_optimal and self.bot.townhalls.ready.amount != 4):
+                # don't lift this command center because mining is already optimal
+                # unless it's to plant the 4th PF
+                continue
             landing_spot: Point2 = self.bot.expansions.next.position
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             
-            # calculate the optimal worker count based on mineral field left in bases
-            optimal_worker_count: int = (
-                sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
-                + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
-            )
             if (enemy_units_around_spot.amount >= 1):
                 print("too many enemies")
                 return
-            if (
-                self.bot.supply_workers >= optimal_worker_count - 5
-                or self.bot.expansions.townhalls_not_on_slot().amount >= 2
-            ):
-                print("Lift Orbital")
-                orbital(AbilityId.LIFT_ORBITALCOMMAND)
 
-    async def land_orbital(self):
-        flying_orbitals: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).ready.idle
-        for orbital in flying_orbitals:
+            if (townhall.type_id == UnitTypeId.COMMANDCENTER):
+                print("Lift Command Center")
+                townhall(AbilityId.LIFT_COMMANDCENTER)
+            else:
+                print("Lift Orbital")
+                townhall(AbilityId.LIFT_ORBITALCOMMAND)
+
+    
+    # async def lift_orbital(self):
+    #     if (self.bot.expansions.free.amount == 0):
+    #         return
+    #     orbitals_not_on_slot = self.bot.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
+    #     for orbital in orbitals_not_on_slot:
+    #         landing_spot: Point2 = self.bot.expansions.next.position
+    #         enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+            
+    #         # calculate the optimal worker count based on mineral field left in bases
+    #         optimal_worker_count: int = (
+    #             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
+    #             + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
+    #         )
+    #         if (enemy_units_around_spot.amount >= 1):
+    #             print("too many enemies")
+    #             return
+    #         if (
+    #             self.bot.supply_workers >= optimal_worker_count - 5
+    #             or self.bot.expansions.townhalls_not_on_slot().amount >= 2
+    #         ):
+    #             print("Lift Orbital")
+    #             orbital(AbilityId.LIFT_ORBITALCOMMAND)
+        
+    # async def land_orbital(self):
+    #     flying_orbitals: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).ready.idle
+    #     for orbital in flying_orbitals:
+    #         landing_spot: Point2 = (
+    #             self.bot.expansions.next.position if flying_orbitals.amount == 1
+    #             else self.bot.expansions.free.closest_to(orbital.position).position if self.bot.expansions.free.amount >= 1
+    #             else self.bot.expansions.last_taken.position
+    #         )
+    #         enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+    #         if (enemy_units_around_spot.amount == 0):
+    #             orbital(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
+    
+    async def land_townhalls(self):
+        flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready.idle
+        for townhall in flying_townhall:
             landing_spot: Point2 = (
-                self.bot.expansions.next.position if flying_orbitals.amount == 1
-                else self.bot.expansions.free.closest_to(orbital.position).position if self.bot.expansions.free.amount >= 1
+                self.bot.expansions.next.position if flying_townhall.amount == 1
+                else self.bot.expansions.free.closest_to(townhall.position).position if self.bot.expansions.free.amount >= 1
                 else self.bot.expansions.last_taken.position
             )
             enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             if (enemy_units_around_spot.amount == 0):
-                orbital(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
+                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
+                    townhall(AbilityId.LAND_COMMANDCENTER, landing_spot)
+                else:
+                    townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
 
     async def reposition_buildings(self):
         production_building_ids: List[UnitTypeId] = [

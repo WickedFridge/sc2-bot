@@ -190,7 +190,7 @@ class Expansion:
         bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready
         if (bunkers.amount == 0):
             return False
-        return (bunkers.closest_distance_to(self.position) <= 10)
+        return (bunkers.closest_distance_to(self.position) <= 12)
     
     @property
     def retreat_position(self) -> Point2:

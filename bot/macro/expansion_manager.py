@@ -166,13 +166,12 @@ class Expansions:
     def vespene(self) -> int:
         return sum(expansion.vespene for expansion in self.expansions)
     
-    def townhalls_not_on_slot(self, type_id: Optional[UnitTypeId] = None) -> Units:
-        townhalls: Units = self.bot.townhalls
-        all_townhalls: Units = (
-            townhalls if not type_id
-            else townhalls(type_id)
+    def townhalls_not_on_slot(self, type_ids: Optional[List[UnitTypeId] | UnitTypeId] = None) -> Units:
+        townhalls: Units = (
+            self.bot.townhalls if type_ids is None
+            else self.bot.townhalls(type_ids)
         )
-        return all_townhalls.filter(lambda townhall: townhall.tag not in self.townhalls.tags)
+        return townhalls.filter(lambda townhall: townhall.tag not in self.townhalls.tags)
 
     def closest_to(self, unit: Unit | Point2) -> Expansion:
         expansions: List[Expansion] = self.expansions.copy()

@@ -19,7 +19,7 @@ from ..utils.unit_tags import tower_types, worker_types
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
-REPAIR_THRESHOLD: float = 0.8
+REPAIR_THRESHOLD: float = 0.6
 
 class Macro:
     bot: Superbot
@@ -137,7 +137,8 @@ class Macro:
                     damaged_mechanical_units = self.bot.units.filter(in_threat_distance).filter(
                         lambda unit: (unit.is_mechanical and unit.health_percentage < REPAIR_THRESHOLD)
                     )
-                    self.repair_units(workers + mules, damaged_mechanical_units)
+                    max_workers_repairing: int = workers.amount / 2
+                    self.repair_units(available_workers + mules, damaged_mechanical_units, max_workers_repairing)
                 
                 case Threat.ATTACK:
                     if (available_workers.amount == 0):
@@ -251,38 +252,43 @@ class Macro:
                 break
             closest_worker: Unit = available_workers.closest_to(enemy_scout)
             # if no scv is already chasing
-            attacking_workers: Unit = workers.filter(
+            attacking_workers: Units = workers.filter(
                 lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
             )
             if (attacking_workers.amount < max_scv_attacking):
                 # pull 1 scv to follow it
                 closest_worker.attack(enemy_scout)
 
-    def repair_units(self, workers: Units, damaged_mechanical_units: Units):
-        if(damaged_mechanical_units.amount == 0):
+    def repair_units(self, avaialble_workers: Units, damaged_mechanical_units: Units, max_workers_repairing: int = 8):
+        workers_repairing: Units = self.bot.workers.filter(
+            lambda unit: (
+                unit.orders.__len__() >= 1
+                and unit.orders[0].ability.id in AbilityRepair
+            )
+        )
+        if (damaged_mechanical_units.amount == 0):
             return
-        if (workers.amount == 0):
+        if (avaialble_workers.amount == 0):
             print("no workers available to repair o7")
             return
+        if (workers_repairing.amount >= max_workers_repairing):
+            return
 
+        
         for damaged_unit in damaged_mechanical_units:
-            workers_repairing_unit: Units = self.bot.workers.filter(
-                lambda unit: (
-                    unit.orders.__len__() >= 1
-                    and unit.orders[0].ability.id in AbilityRepair
-                    and unit.order_target == damaged_unit.tag
-                )
+            workers_repairing_unit: Units = workers_repairing.filter(
+                lambda unit: (unit.order_target == damaged_unit.tag)
             )
-            max_workers_repairing: int = 0.5 + (self.bot.townhalls.amount / 2).__round__()
             if (workers_repairing_unit.amount >= max_workers_repairing):
                 return
             
-            close_workers: Units = workers.filter(
-                lambda unit: unit.distance_to(damaged_unit) < 25 and unit.tag != damaged_unit.tag
-            ).collecting
+            close_workers: Units = avaialble_workers.filter(
+                lambda unit: unit.distance_to(damaged_unit) < 10 and unit.tag != damaged_unit.tag
+            ).sorted_by_distance_to(damaged_unit)
+            
+
             if (close_workers.amount >= 1):
-                print("Repairing SCV")
-                close_workers.closest_to(damaged_unit).repair(damaged_unit)
+                close_workers.first.repair(damaged_unit)
 
     async def split_workers(self):
         cc: Unit = self.bot.townhalls.first

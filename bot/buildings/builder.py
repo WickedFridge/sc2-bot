@@ -12,6 +12,7 @@ from bot.buildings.factoryaddon import FactoryReactor
 from bot.buildings.ghost_academy import GhostAcademy
 from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
+from bot.buildings.planetary_fortress import PlanetaryFortress
 from bot.buildings.starport import Starport
 from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
@@ -33,6 +34,7 @@ class Builder:
     barracks_reactor: BarracksReactor
     factory_reactor: FactoryReactor
     orbital_command: OrbitalCommand
+    planetary_fortress: PlanetaryFortress
     command_center: CommandCenter
     ebay: Ebay
     armory: Armory
@@ -51,6 +53,7 @@ class Builder:
         self.factory_reactor = FactoryReactor(self)
         self.orbital_command = OrbitalCommand(self)
         self.command_center = CommandCenter(self)
+        self.planetary_fortress = PlanetaryFortress(self)
         self.ebay = Ebay(self)
         self.armory = Armory(self)
         self.ghost_academy = GhostAcademy(self)

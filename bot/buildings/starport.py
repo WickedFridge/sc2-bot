@@ -23,15 +23,20 @@ class Starport(Building):
     @property
     def conditions(self) -> bool:
         starport_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.STARPORT)
-        max_starport: int = 1
-
-        # We want 1 starport so far
-        return (
-            starport_tech_requirement == 1
-            and self.bot.townhalls.amount >= 2
-            and self.starport_amount < max_starport
-        )
+        if (starport_tech_requirement < 1):
+            return False
+        
+        # We want 1st starport after we have a 2nd base
+        if (self.starport_amount == 0):
+            return self.bot.townhalls.amount >= 2
+        
+        return False
     
+        # we will see this later
+        # We want 2nd starport after we have a 4th base
+        if (self.starport_amount == 1):
+            return self.bot.townhalls.amount >= 4
+            
     @override
     @property
     def position(self) -> Point2:

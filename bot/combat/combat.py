@@ -167,7 +167,7 @@ class Combat:
                     or potential_army_supply >= local_enemy_supply * 1.25
                 )
             ):
-                if (potential_army_supply >= fighting_army_supply * 2):
+                if (potential_army_supply >= army.supply * 2):
                     return Orders.FIGHT_DROP
                 else:
                     return Orders.FIGHT_OFFENSE
@@ -192,10 +192,12 @@ class Combat:
             return Orders.HARASS
         
         # if another army is close, we should regroup
+        # only merge ground armies
         if (
             self.armies.__len__() >= 2
             and closest_army_distance <= self.army_radius * 1.2
             and 2/3 < closest_army.supply / army.supply < 3/2
+            and army.bio_supply + closest_army.bio_supply >= 12
         ):
             return Orders.REGROUP
         
@@ -288,19 +290,21 @@ class Combat:
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )
-            enemy_units_around: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-                lambda unit: unit.distance_to(bunker) <= 8.5
+
+            # unload bunker if no enemy can shoot the bunker => bunker is safe and doesn't need to be loaded
+            enemy_units_menacing: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+                lambda unit: unit.ground_range >= unit.distance_to(bunker)
             )
                 
             # unload bunker if no unit around
-            if (enemy_units_around.amount == 0):
+            if (enemy_units_menacing.amount == 0):
                 if (len(bunker.rally_targets) == 0):
                     rally_point: Point2 = expansion.retreat_position
                     bunker(AbilityId.RALLY_UNITS, rally_point)
                 if (bunker.cargo_used >= 1):
                     print("unload bunker")
                     bunker(AbilityId.UNLOADALL_BUNKER)
-                continue
+                # continue
             
             # If bunker under 20 hp, unload
             if (bunker.health <= 20):
@@ -311,14 +315,24 @@ class Combat:
             if (enemy_units_in_range.amount >= 1):
                 enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
                 bunker.attack(enemy_units_in_range.first)
+            
+            # load the bunker with bio if there is space
             if (bunker.cargo_left == 0):
                 continue
             
             bio_in_range: Units = self.bot.units.filter(
                 lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 3
             )
-            if (bio_in_range.amount == 0):
-                print("no bio in range")
+            SAFETY_RADIUS: float = 1.5
+            bio_in_danger: Units = bio_in_range.filter(
+                lambda unit: (
+                    self.bot.enemy_units.filter(
+                        lambda enemy: enemy.can_attack_ground
+                        and enemy.distance_to(unit) <= enemy.ground_range + SAFETY_RADIUS
+                    ).amount > 0
+                )
+            )
+            if (bio_in_danger.amount == 0):
                 continue
             print("bio should load")
 
