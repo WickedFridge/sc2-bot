@@ -344,7 +344,12 @@ class Micro:
             # defend by the bunker
             # otherwise get out and fight
             other_structures_than_bunkers: Units = self.bot.structures.filter(lambda structure: structure.type_id != UnitTypeId.BUNKER)
-            menacing_enemy_units: Units = enemy_units.filter(lambda enemy_unit: other_structures_than_bunkers.in_attack_range_of(enemy_unit))
+            menacing_enemy_units: Units = enemy_units.filter(
+                lambda enemy_unit: (
+                    other_structures_than_bunkers.in_attack_range_of(enemy_unit).amount >= 1
+                    or self.bot.workers.in_attack_range_of(enemy_unit).amount >= 1
+                )
+            )
             if (menacing_enemy_units.amount == 0 or menacing_enemy_units.closest_distance_to(bunker) <= 8):
                 if (bunker.cargo_left >= 1):
                     unit.move(bunker.position.towards(retreat_position, 2))
