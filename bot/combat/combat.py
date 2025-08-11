@@ -291,13 +291,13 @@ class Combat:
                 lambda unit: bunker.target_in_range(unit)
             )
 
-            # unload bunker if no enemy can shoot the bunker => bunker is safe and doesn't need to be loaded
+            # unload bunker if no enemy can shoot the bunker and the bunker can't shoot any unit => bunker is safe and doesn't need to be loaded
             enemy_units_menacing: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-                lambda unit: unit.ground_range >= unit.distance_to(bunker)
+                lambda unit: unit.target_in_range(bunker)
             )
                 
             # unload bunker if no unit around
-            if (enemy_units_menacing.amount == 0):
+            if (enemy_units_menacing.amount == 0 and enemy_units_in_range.amount == 0):
                 if (len(bunker.rally_targets) == 0):
                     rally_point: Point2 = expansion.retreat_position
                     bunker(AbilityId.RALLY_UNITS, rally_point)
