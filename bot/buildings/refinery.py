@@ -19,10 +19,12 @@ class Refinery(Building):
     @override
     @property
     def conditions(self) -> bool:
+        if (self.target_geyser is None):
+            return False
         refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount + self.bot.already_pending(UnitTypeId.REFINERY)
         max_refineries: int = 8
         workers_amount: int = self.bot.supply_workers
-
+        
         match(refinery_amount):
             case 0:
                 # build first refinery as soon as we have a barracks and at least 15 SCVs
@@ -63,7 +65,7 @@ class Refinery(Building):
     
     
     @property
-    def target_geyser(self) -> Unit:
+    def target_geyser(self) -> Unit | None:
         for expansion in self.bot.expansions.taken:
             if (expansion.refineries.amount <= 2):
                 free_geyser: Units = expansion.vespene_geysers.filter(
@@ -75,6 +77,7 @@ class Refinery(Building):
                 )
                 if (free_geyser.amount >= 1):
                     return free_geyser.first
+        return None
 
     async def build(self, resources: Resources) -> Resources:
         if (not self.conditions):
