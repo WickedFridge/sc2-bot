@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "4.0.3"
+VERSION: str = "4.0.4"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -139,9 +139,7 @@ class WickedBot(Superbot):
         await self.buildings.drop_mules()
         await self.buildings.scan()
         await self.buildings.handle_supplies()
-        # await self.buildings.lift_orbitals()
         await self.buildings.lift_townhalls()
-        # await self.buildings.land_orbital()
         await self.buildings.land_townhalls()
         await self.buildings.reposition_buildings()
         

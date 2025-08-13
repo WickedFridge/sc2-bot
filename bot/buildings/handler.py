@@ -230,41 +230,6 @@ class BuildingsHandler:
                 townhall(AbilityId.LIFT_ORBITALCOMMAND)
 
     
-    # async def lift_orbital(self):
-    #     if (self.bot.expansions.free.amount == 0):
-    #         return
-    #     orbitals_not_on_slot = self.bot.expansions.townhalls_not_on_slot(UnitTypeId.ORBITALCOMMAND).idle
-    #     for orbital in orbitals_not_on_slot:
-    #         landing_spot: Point2 = self.bot.expansions.next.position
-    #         enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
-            
-    #         # calculate the optimal worker count based on mineral field left in bases
-    #         optimal_worker_count: int = (
-    #             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
-    #             + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
-    #         )
-    #         if (enemy_units_around_spot.amount >= 1):
-    #             print("too many enemies")
-    #             return
-    #         if (
-    #             self.bot.supply_workers >= optimal_worker_count - 5
-    #             or self.bot.expansions.townhalls_not_on_slot().amount >= 2
-    #         ):
-    #             print("Lift Orbital")
-    #             orbital(AbilityId.LIFT_ORBITALCOMMAND)
-        
-    # async def land_orbital(self):
-    #     flying_orbitals: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).ready.idle
-    #     for orbital in flying_orbitals:
-    #         landing_spot: Point2 = (
-    #             self.bot.expansions.next.position if flying_orbitals.amount == 1
-    #             else self.bot.expansions.free.closest_to(orbital.position).position if self.bot.expansions.free.amount >= 1
-    #             else self.bot.expansions.last_taken.position
-    #         )
-    #         enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
-    #         if (enemy_units_around_spot.amount == 0):
-    #             orbital(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
-    
     async def land_townhalls(self):
         flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready.idle
         for townhall in flying_townhall:

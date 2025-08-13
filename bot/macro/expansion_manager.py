@@ -152,11 +152,19 @@ class Expansions:
     
     @property
     def mineral_fields(self) -> Units:
-        return Units([expansion.mineral_fields for expansion in self.taken.expansions], self.bot)
+        mineral_fields: List[Units] = []
+        for expansion in self.taken.expansions:
+            for mineral_field in expansion.mineral_fields:
+                mineral_fields.append(mineral_field)
+        return Units(mineral_fields, self.bot)
 
     @property
     def vespene_geysers(self) -> Units:
-        return Units([expansion.vespene_geysers for expansion in self.taken.expansions], self.bot)
+        vespene_geysers: List[Units] = []
+        for expansion in self.taken.expansions:
+            for vespene_geyser in expansion.vespene_geysers:
+                vespene_geysers.append(vespene_geyser)
+        return Units(vespene_geysers, self.bot)
 
     @property
     def minerals(self) -> int:
@@ -171,7 +179,19 @@ class Expansions:
             self.bot.townhalls if type_ids is None
             else self.bot.townhalls(type_ids)
         )
-        return townhalls.filter(lambda townhall: townhall.tag not in self.townhalls.tags)
+        
+        # Return townhalls that are either not on an expansion slot, or a depleted expansion
+        return townhalls.filter(
+            lambda townhall: (
+                townhall.tag not in self.townhalls.tags
+                or (
+                    self.mineral_fields.closest_distance_to(townhall.position) > 10
+                    and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
+                        lambda vespene: vespene.has_vespene
+                    ).amount == 0
+                )
+            )
+        )
 
     def closest_to(self, unit: Unit | Point2) -> Expansion:
         expansions: List[Expansion] = self.expansions.copy()

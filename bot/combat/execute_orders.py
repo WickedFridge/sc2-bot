@@ -91,6 +91,7 @@ class Execute:
         # Step 5: Select the ground units to pickup and retreat with the rest
         if (ground_units.amount >= 1 and cargo_left > 0):
             await self.pickup(medivacs_to_use, ground_units)
+            return
         else:
             for unit in ground_units:
                 self.micro.retreat(unit)
@@ -104,6 +105,7 @@ class Execute:
             if (distance_edge_to_target < distance_medivac_to_target):
                 # Optional: Only go to edge if not already very close to it
                 if medivac.position.distance_to(best_edge) > 5:
+                    await self.micro.medivac_boost(medivac)
                     medivac.move(best_edge)
                 else:
                     medivac.move(drop_target)
