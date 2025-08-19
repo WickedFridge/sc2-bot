@@ -32,6 +32,7 @@ class FusionCore(Building):
             and self.bot.townhalls.ready.amount >= 4
             and starport_count >= 1
             and medivac_count >= 6
+            and self.bot.supply_used >= 160
         )
     
     @override

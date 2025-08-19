@@ -258,8 +258,8 @@ class Micro:
         potential_snipe_targets: Units = self.bot.enemy_units.filter(
             lambda enemy_unit: (
                 enemy_unit.can_be_attacked
-                and enemy_unit.type_id not in dont_attack
                 and enemy_unit.is_biological
+                and (enemy_unit.can_attack or enemy_unit.type_id in menacing) 
                 and enemy_unit.health + enemy_unit.shield >= 60
                 and enemy_unit.distance_to(ghost) <= 10
                 and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)

@@ -64,4 +64,7 @@ class SupplyDepot(Building):
             and self.bot.minerals >= 65
         ):
             print("move worker for first depot")
-            self.bot.workers.random.move(self.bot.main_base_ramp.depot_in_middle)
+            depot_position: Point2 = self.bot.main_base_ramp.depot_in_middle.position
+            builder: Unit = workers_mining.filter(lambda unit: not unit.is_carrying_resource).closest_to(depot_position)
+            builder.move(depot_position)
+            builder.hold_position(True)

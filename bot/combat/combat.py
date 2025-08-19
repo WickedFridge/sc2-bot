@@ -290,6 +290,9 @@ class Combat:
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )
+            enemy_units_potentially_in_range: Units  = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+                lambda unit: bunker.distance_to(unit) <= 7 + bunker.radius + unit.radius
+            )
 
             # unload bunker if no enemy can shoot the bunker and the bunker can't shoot any unit => bunker is safe and doesn't need to be loaded
             enemy_units_menacing: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
@@ -297,7 +300,7 @@ class Combat:
             )
                 
             # unload bunker if no unit around
-            if (enemy_units_menacing.amount == 0 and enemy_units_in_range.amount == 0):
+            if (enemy_units_menacing.amount == 0 and enemy_units_in_range.amount == 0 and enemy_units_potentially_in_range.amount == 0):
                 if (len(bunker.rally_targets) == 0):
                     rally_point: Point2 = expansion.retreat_position
                     bunker(AbilityId.RALLY_UNITS, rally_point)
@@ -323,6 +326,8 @@ class Combat:
             bio_in_range: Units = self.bot.units.filter(
                 lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 3
             )
+            if (bio_in_range.amount == 0):
+                continue
             SAFETY_RADIUS: float = 1.5
             bio_in_danger: Units = bio_in_range.filter(
                 lambda unit: (
@@ -332,7 +337,10 @@ class Combat:
                     ).amount > 0
                 )
             )
-            if (bio_in_danger.amount == 0):
+            if (
+                bio_in_danger.amount == 0
+                and enemy_units_potentially_in_range.amount == 0
+            ):
                 continue
             print("bio should load")
 

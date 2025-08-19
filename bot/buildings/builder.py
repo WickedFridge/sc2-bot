@@ -130,7 +130,7 @@ class Builder:
                     worker.is_carrying_resource == False
                     and (
                         (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9)
-                        or worker.orders.__len__() == 0
+                        or worker.is_idle
                         or worker.orders[0].ability.id not in AbilityBuild
                     )
                 )

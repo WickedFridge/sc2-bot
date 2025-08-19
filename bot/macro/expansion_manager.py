@@ -180,20 +180,23 @@ class Expansions:
             else self.bot.townhalls(type_ids)
         )
         
+        # TODO : the commented code is very slow
+        # it is supposed to check if a base is depleated
+
         # if every mineral field is depleted and every geyser is depleted, we return an empty list
-        if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
-            return Units([], self.bot)
+        # if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
+        #     return Units([], self.bot)
 
         # Return townhalls that are either not on an expansion slot, or a depleted expansion
         return townhalls.filter(
             lambda townhall: (
                 townhall.tag not in self.townhalls.tags
-                or (
-                    (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
-                    and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
-                        lambda vespene: vespene.has_vespene
-                    ).amount == 0
-                )
+                # or (
+                #     (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
+                #     and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
+                #         lambda vespene: vespene.has_vespene
+                #     ).amount == 0
+                # )
             )
         )
 

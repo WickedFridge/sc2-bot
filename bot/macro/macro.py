@@ -168,9 +168,15 @@ class Macro:
                 
                 case Threat.HARASS:
                     for worker in workers:
-                        closest_enemy: Unit = (local_enemy_units + local_enemy_buildings).closest_to(worker)
-                        if (closest_enemy.distance_to(worker) < closest_enemy.ground_range + 2):
-                            Micro.move_away(worker, closest_enemy, 1)
+                        enemies_facing_worker: Units = local_enemy_buildings + local_enemy_units.filter(
+                            lambda enemy: enemy.is_facing(worker, math.pi / 2)
+                        )
+                        # we don't move away from unit not facing us or if we're repairing
+                        if (enemies_facing_worker.amount == 0 or worker.is_repairing):
+                            continue
+                        closest_enemy_facing_worker = enemies_facing_worker.closest_to(worker)
+                        if (closest_enemy_facing_worker.distance_to(worker) < closest_enemy_facing_worker.ground_range + 1):
+                            Micro.move_away(worker, closest_enemy_facing_worker, 0.5)
                 
                 case Threat.CANON_RUSH:
                     canons: Units = self.bot.enemy_structures.filter(
