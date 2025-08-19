@@ -39,17 +39,22 @@ class BuildingsHandler:
             closest_worker.smart(incomplete_building)
             
     async def repair_buildings(self):
+        if (self.bot.minerals == 0):
+            return
         workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
         available_workers: Units = workers.filter(
-            lambda worker: worker.is_moving or worker.is_collecting or worker.is_idle
+            lambda worker: (
+                worker.is_moving
+                or worker.is_collecting
+                or worker.is_idle
+                or worker.is_attacking
+            )
         )
-        if (self.bot.minerals < 50):
-            return
         if (available_workers.amount == 0):
             print("no workers to repair o7")
             return
         burning_buildings = self.bot.structures.ready.filter(
-            lambda unit: unit.health_percentage < 0.6 or (unit.type_id == UnitTypeId.BUNKER and unit.health_percentage < 1)
+            lambda unit: unit.health_percentage < 0.6 or (unit.type_id in must_repair and unit.health_percentage < 1)
         )
         for burning_building in burning_buildings:
             repairing_workers: Units = workers.filter(
@@ -59,7 +64,8 @@ class BuildingsHandler:
                     and unit.order_target == burning_building.tag
                 )
             )
-            max_workers_repairing: int = 8 if burning_building.type_id in must_repair else 3
+            repair_ratio: float = min(1, self.bot.supply_workers / 10)
+            max_workers_repairing: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
             if (repairing_workers.amount < max_workers_repairing):
                 print(f'pulling worker to repair {burning_building.name} [{repairing_workers.amount}/{max_workers_repairing}]')
                 available_workers.closest_to(burning_building).repair(burning_building)

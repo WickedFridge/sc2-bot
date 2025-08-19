@@ -194,7 +194,7 @@ class Micro:
             self.bio(bio)
             return
         
-        close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(bio) <= 10)
+        close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
         closest_bunker: Unit = close_bunkers.closest_to(bio) if close_bunkers else None
         if (closest_bunker):
             # handle stim

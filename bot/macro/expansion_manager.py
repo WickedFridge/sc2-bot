@@ -189,7 +189,7 @@ class Expansions:
             lambda townhall: (
                 townhall.tag not in self.townhalls.tags
                 or (
-                    self.mineral_fields.closest_distance_to(townhall.position) > 10
+                    (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
                     and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
                         lambda vespene: vespene.has_vespene
                     ).amount == 0

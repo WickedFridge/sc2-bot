@@ -3,6 +3,7 @@ from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.resources import Resources
 from sc2.game_data import Cost
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -20,6 +21,10 @@ class SupplyDepot(Building):
     def conditions(self) -> bool:
         current_supply: int = self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8
         concurrent_supply_depots: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
+        if (current_supply == 15):
+            return self.bot.supply_used == 14
+        if (current_supply == 23):
+            return self.bot.supply_used == 21
         return (
             current_supply < 200
             and self.bot.supply_left < (self.bot.supply_used - 3) / 6
@@ -49,12 +54,14 @@ class SupplyDepot(Building):
     
     async def move_worker_first(self):
         # move SCV for first depot
-        workers_mining: int = self.bot.workers.collecting.amount
+        workers_mining: Units = self.bot.workers.filter(
+            lambda worker: worker.is_collecting or len(worker.orders) == 2 and worker.orders[1] == AbilityId.HARVEST_GATHER_SCV
+        )
         if (
             self.bot.supply_used == 13
-            and workers_mining == self.bot.supply_used
+            and workers_mining.amount == 12
             and self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready.amount == 0
-            and self.bot.minerals >= 60
+            and self.bot.minerals >= 65
         ):
             print("move worker for first depot")
             self.bot.workers.random.move(self.bot.main_base_ramp.depot_in_middle)
