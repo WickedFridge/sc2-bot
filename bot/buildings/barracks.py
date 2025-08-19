@@ -30,7 +30,7 @@ class Barracks(Building):
         with a max of 12 raxes
         """
         _, _, base_amount = self._barracks_info()
-        rax_amount: List[int] = [1, 2, 3, 5, 8, 12]
+        rax_amount: List[int] = [1, 2, 3, 5, 8, 12, 14, 16]
         if (base_amount > len(rax_amount) - 1):
             return max(rax_amount)
         return rax_amount[base_amount - 1]

@@ -262,8 +262,10 @@ class Micro:
                 and enemy_unit.is_biological
                 and enemy_unit.health + enemy_unit.shield >= 60
                 and enemy_unit.distance_to(ghost) <= 10
+                and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
             )
         )
+
         # if we don't have snipe targets, we skip
         if (potential_snipe_targets.amount == 0):
             return False

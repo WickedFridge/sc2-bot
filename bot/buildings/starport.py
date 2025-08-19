@@ -30,12 +30,13 @@ class Starport(Building):
         if (self.starport_amount == 0):
             return self.bot.townhalls.amount >= 2
         
-        return False
-    
-        # we will see this later
+        
+        # TODO we will see this later
         # We want 2nd starport after we have a 4th base
-        if (self.starport_amount == 1):
-            return self.bot.townhalls.amount >= 4
+        # if (self.starport_amount == 1):
+        #     return self.bot.townhalls.amount >= 4
+        
+        return False
             
     @override
     @property

@@ -18,7 +18,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing
     
 class Combat:
     bot: Superbot
@@ -125,7 +125,7 @@ class Combat:
             )
         )
         # useful in case of canon/bunker rush
-        global_enemy_menacing_units_buildings: Units = global_enemy_units + global_enemy_buildings.filter(
+        global_enemy_menacing_units_buildings: Units = global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
 

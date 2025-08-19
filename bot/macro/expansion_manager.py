@@ -180,6 +180,10 @@ class Expansions:
             else self.bot.townhalls(type_ids)
         )
         
+        # if every mineral field is depleted and every geyser is depleted, we return an empty list
+        if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
+            return Units([], self.bot)
+
         # Return townhalls that are either not on an expansion slot, or a depleted expansion
         return townhalls.filter(
             lambda townhall: (

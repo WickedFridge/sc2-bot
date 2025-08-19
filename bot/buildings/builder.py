@@ -9,11 +9,13 @@ from bot.buildings.command_center import CommandCenter
 from bot.buildings.ebay import Ebay
 from bot.buildings.factory import Factory
 from bot.buildings.factoryaddon import FactoryReactor
+from bot.buildings.fusion_core import FusionCore
 from bot.buildings.ghost_academy import GhostAcademy
 from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.planetary_fortress import PlanetaryFortress
 from bot.buildings.starport import Starport
+from bot.buildings.starporttechlab import StarportTechlab
 from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityBuild
@@ -33,12 +35,14 @@ class Builder:
     barracks_techlab: BarracksTechlab
     barracks_reactor: BarracksReactor
     factory_reactor: FactoryReactor
+    starporttechlab: StarportTechlab
     orbital_command: OrbitalCommand
     planetary_fortress: PlanetaryFortress
     command_center: CommandCenter
     ebay: Ebay
     armory: Armory
     ghost_academy: GhostAcademy
+    fusion_core: FusionCore
     bunker: Bunker
     refinery: Refinery
     
@@ -51,12 +55,14 @@ class Builder:
         self.barracks_techlab = BarracksTechlab(self)
         self.barracks_reactor = BarracksReactor(self)
         self.factory_reactor = FactoryReactor(self)
+        self.starporttechlab = StarportTechlab(self)
         self.orbital_command = OrbitalCommand(self)
         self.command_center = CommandCenter(self)
         self.planetary_fortress = PlanetaryFortress(self)
         self.ebay = Ebay(self)
         self.armory = Armory(self)
         self.ghost_academy = GhostAcademy(self)
+        self.fusion_core = FusionCore(self)
         self.bunker = Bunker(self)
         self.refinery = Refinery(self)
 

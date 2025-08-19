@@ -264,11 +264,21 @@ class BuildingsHandler:
         
         # if starport is complete and has no reactor, lift it
         if (
-            self.bot.structures(UnitTypeId.STARPORT).ready.amount >= 1
-            and self.bot.structures(UnitTypeId.STARPORTREACTOR).ready.amount < self.bot.structures(UnitTypeId.STARPORT).ready.amount
+            self.bot.structures(UnitTypeId.STARPORT).ready.amount == 1
+            and self.bot.structures(UnitTypeId.STARPORTREACTOR).ready.amount == 0
+        ):
+            starport = self.bot.structures(UnitTypeId.STARPORT).ready.first
+            if (not starport.has_add_on):
+                print("Lift Starport")
+                starport(AbilityId.LIFT_STARPORT)
+        
+        # or 2nd starport can't build addon
+        if (
+            self.bot.structures(UnitTypeId.STARPORT).ready.amount == 2
+            and self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 0
         ):
             for starport in self.bot.structures(UnitTypeId.STARPORT).ready:
-                if (not starport.has_add_on):
+                if (not starport.has_add_on and not self.bot.in_placement_grid(starport.add_on_position)):
                     print("Lift Starport")
                     starport(AbilityId.LIFT_STARPORT)
         

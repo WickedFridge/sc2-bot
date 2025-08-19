@@ -31,6 +31,7 @@ class Search:
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
             Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
+            Tech(UnitTypeId.FUSIONCORE, UpgradeId.MEDIVACCADUCEUSREACTOR)
         ]
     
     async def tech_primary(self, resources: Resources) -> Resources:

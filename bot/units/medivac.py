@@ -19,7 +19,7 @@ class Medivac(Train):
 
     @property
     def max_amount(self) -> int:
-        return 12
+        return 10
 
     @override
     @property

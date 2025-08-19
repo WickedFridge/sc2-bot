@@ -47,7 +47,7 @@ class Execute:
             lambda base: base.position._distance_squared(enemy_army_center),
             reverse=True,
         )
-        return enemy_bases.first.position
+        return enemy_bases.first.mineral_line.position
     
     def get_best_edge(self, known_enemy_army: Army, drop_target: Point2) -> Point2:
         if (known_enemy_army.units.amount == 0):

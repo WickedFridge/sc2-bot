@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "4.0.4"
+VERSION: str = "4.1.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -101,10 +101,11 @@ class WickedBot(Superbot):
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
             # await self.client.debug_control_enemy()
+            # await self.client.debug_upgrade()
             # await self.client.debug_create_unit([[UnitTypeId.ENGINEERINGBAY, 1, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.COMMANDCENTER, 3, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 10, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.ZERGLING, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 12, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
         await self.check_surrend_condition()
@@ -175,6 +176,7 @@ class WickedBot(Superbot):
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
+            # self.builder.starporttechlab.build,
             # defense
             self.builder.planetary_fortress.upgrade,
             self.builder.bunker.build,
@@ -195,6 +197,7 @@ class WickedBot(Superbot):
             # late game tech
             self.builder.ebay.build,
             self.builder.ghost_academy.build,
+            self.builder.fusion_core.build,
             # expands
             self.builder.command_center.build,
         ]
