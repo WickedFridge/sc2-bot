@@ -69,4 +69,7 @@ class Search:
                     building(technology.upgrade)
                 else:
                     building.research(technology.upgrade)
+                
+                # only one research per frame
+                return resources_updated
         return resources_updated

@@ -37,13 +37,14 @@ class Refinery(Building):
                 # build second refinery as soon as we have a factory and at least 21 SCVs
                 return (
                     self.bot.structures(UnitTypeId.FACTORY).amount > 0
+                    and self.bot.townhalls.amount >= 2
                     and workers_amount >= 21
                 )
             
             case 2:
                 # build third rafinery as long as we have 3 CCs and at least 32 SCVs  
                 return (
-                    self.bot.structures([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND]).amount >= 3
+                    self.bot.townhalls.amount >= 3
                     and workers_amount >= 32
                 )
             

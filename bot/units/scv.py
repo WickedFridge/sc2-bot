@@ -23,8 +23,10 @@ class Scv(Train):
     
     @property
     def max_amount(self) -> int:
+        minimal_amount: int = 24
+        maximal_amount: int = 84
         orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        return min([84, 100 - 4 * orbital_count, self.bot.expansions.amount_taken * 22])
+        return max(minimal_amount, min([maximal_amount, 100 - 4 * orbital_count, self.bot.expansions.amount_taken * 22]))
     
     @override
     @property

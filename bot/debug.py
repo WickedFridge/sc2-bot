@@ -14,6 +14,7 @@ from sc2.units import Units
 
 class Debug:
     bot: Superbot
+    rush_started: bool = False
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -259,3 +260,72 @@ class Debug:
                         if (not self.bot.map.in_building_grid(point)):
                             center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
                             self.draw_box_on_world(center, 0.5, RED)
+
+    def parse_unit_type(self, name: str) -> UnitTypeId | None:
+        try:
+            # normalize to uppercase, remove spaces if needed
+            return UnitTypeId[name.upper()]
+        except KeyError:
+            return None
+
+    async def _create_units(
+        self,
+        amount: int,
+        unit_id: UnitTypeId,
+        player_id: int = 1,
+    ) -> None:  # pragma: no cover
+        """Create units at player camera location.
+
+        Parameters
+        ----------
+        amount :
+            Number of units to create
+        unit_id :
+            What type of unit to create
+        player_id :
+            Which player should be controlling the unit
+
+        Returns
+        -------
+
+        """
+
+        player_camera = self.bot.state.observation_raw.player.camera
+        pos = Point2((player_camera.x, player_camera.y))
+        await self.bot.client.debug_create_unit([[unit_id, amount, pos, player_id]])
+
+    async def spawn_test_units(self):
+        if (len(self.bot.state.chat) == 1 and self.bot.state.chat[0].player_id == self.bot.player_id):
+            message: str = self.bot.state.chat[0].message
+            
+            parts = message.split(" ", 2)  # split into at most 3 parts
+            amount_str: str = parts[0]
+            unit_str: str = parts[1] if len(parts) > 1 else ""
+            player_str: str = parts[2] if len(parts) > 2 else ""
+            
+            amount: int = int(amount_str)
+            unit: str = unit_str
+            player: int = 1 if player_str else 2
+            
+            print(f'Spawning {amount} {unit}')
+            unit_type: UnitTypeId | None = self.parse_unit_type(unit)
+            if (unit_type is None):
+                print(f'Unknown unit type: {unit} !')
+                return
+            await self._create_units(amount, unit_type, player)
+
+
+    async def zerg_rush(self):
+        time: int = 4*60 + 20  # 4:20
+        zerglings_count: int = 58
+        if (self.bot.time != time):
+            return
+        if (self.rush_started):
+            return
+        await self.bot.chat_send(f'Zerg Rush [{zerglings_count}] started at {time}!')
+        self.rush_started = True
+        spawn_position: Point2 = self.bot.expansions.b2.position.towards(self.bot.expansions.enemy_main.position, 10)
+        await self.bot.client.debug_create_unit([[UnitTypeId.ZERGLING, zerglings_count, spawn_position, 2]])
+        await self.bot.client.debug_control_enemy()
+        await self.bot.client.debug_show_map()
+            

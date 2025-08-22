@@ -144,7 +144,10 @@ class Macro:
                     if (available_workers.amount == 0):
                         print("no workers to pull, o7")
                         break
-                    attackable_enemy_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying == False and unit.can_be_attacked)
+                    attackable_enemy_units: Units = local_enemy_units.filter(
+                        lambda unit: unit.is_flying == False and unit.can_be_attacked
+                    ).sorted(lambda unit: unit.health + unit.shield)
+
                     for worker in available_workers:
                         enemy_units_on_main_ramp: Units = attackable_enemy_units.filter(
                             lambda unit: (
@@ -159,7 +162,24 @@ class Macro:
                         ):
                             return
                         if (attackable_enemy_units.amount >= 1):
-                            worker.attack(attackable_enemy_units.closest_to(worker))
+                            # attack enemy units in range if we can (choose the weakest one)
+                            enemy_in_range: Units = attackable_enemy_units.filter(
+                                lambda unit: unit.distance_to(worker) <= 1
+                            )
+                            
+                            # Move towards the bunker if there is one and we can't attack
+                            if (
+                                local_buildings(UnitTypeId.BUNKER).filter(lambda unit: unit.build_progress >= 0.95).amount >= 1
+                                and (
+                                    enemy_in_range.amount == 0
+                                    or worker.weapon_cooldown > 0
+                                )
+                            ):
+                                bunker: Unit = local_buildings(UnitTypeId.BUNKER).closest_to(worker)
+                                worker.move(bunker.position.towards(worker))
+                            else:
+                                target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
+                                worker.attack(target)
                         else:
                             Micro.move_away(worker, local_enemy_units.closest_to(worker), 1)
                 

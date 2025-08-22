@@ -111,10 +111,11 @@ class BuildingsHandler:
             return
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
-        # bank scans if we have 3 or more orbitals
+        # bank scans if we have 3 or more orbitals and enough SCVs
         orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ else 0
+        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ and self.bot.supply_workers >= 42 else 0
         scan_banked: int = 0
+        
         # call down a mule on this guy
         for orbital_command in self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).filter(lambda x: x.energy >= 50):
             if (

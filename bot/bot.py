@@ -21,7 +21,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "4.1.3"
+VERSION: str = "4.2.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -251,6 +251,7 @@ class WickedBot(Superbot):
         # await self.debug.loaded_stuff(iteration)
         await self.debug.bunker_positions()
         # await self.debug.wall_placement()
+        await self.debug.spawn_test_units()
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
