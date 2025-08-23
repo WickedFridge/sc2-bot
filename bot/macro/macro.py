@@ -51,6 +51,7 @@ class Macro:
 
     def local_threat_detection(self, cc: Unit) -> Threat:
         local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
+        # local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) == min([base.position.distance_to(unit) for base in self.bases]))
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
                 unit.type_id in tower_types
@@ -115,9 +116,11 @@ class Macro:
                 elif(attackable_enemy_buildings.amount >= 1):
                     worker.attack(attackable_enemy_buildings.closest_to(worker))
             return
-        
+            
         for base in self.bases:
+            # building is considered as local if our base is the closest one to it
             local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(base.position) <= BASE_SIZE)
+            # local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(base.position) == min([base.position.distance_to(unit) for base in self.bases]))
             in_threat_distance = lambda unit: local_buildings.closest_distance_to(unit) <= THREAT_DISTANCE
             workers: Units = self.bot.workers.filter(in_threat_distance)
             if (workers.amount == 0):
@@ -368,7 +371,7 @@ class Macro:
 
         # make some movements with SCVs on oversaturated lines
         if (
-            most_saturated_expansion.mineral_worker_count > most_saturated_expansion.optimal_mineral_workers
+            most_saturated_expansion.mineral_worker_count > most_saturated_expansion.optimal_mineral_workers + 2
             and least_saturated_expansion.mineral_worker_count < least_saturated_expansion.optimal_mineral_workers - 2
         ):
             most_saturated_expansion.mineral_workers.random.stop()
@@ -437,7 +440,7 @@ class Macro:
             reverse = True
         )
         
-        # we want 0 gas if saturation of any base is under 1/2 and we have 200 or more gas in bank while we have under 44 scvs
+        # we want 0 gas if saturation of any base is under 2/3 and we have 200 or more gas in bank while we have under 44 scvs
         if (
             expansion_sorted_by_vespene_mining.amount >= 1 and 
             least_saturated_expansion.mineral_saturation <= 2/3 and

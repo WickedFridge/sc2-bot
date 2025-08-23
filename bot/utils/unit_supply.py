@@ -2,7 +2,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
 
-supply: dict = {}
+supply: dict[UnitTypeId, int] = {}
 
 # Terran Units
 # creeps

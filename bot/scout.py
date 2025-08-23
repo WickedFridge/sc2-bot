@@ -1,5 +1,4 @@
 from typing import List, Optional
-from bot.macro.expansion_manager import Expansions
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions import closest_point
 from sc2.bot_ai import BotAI

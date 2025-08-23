@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import Awaitable, Callable, List, override
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
@@ -8,6 +9,7 @@ from bot.macro.macro import Macro
 from bot.macro.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
+from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
 from bot.technology.search import Search
@@ -15,13 +17,11 @@ from bot.units.trainer import Trainer
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.bot_ai import Race
 from sc2.data import Result
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "4.2.0"
+VERSION: str = "4.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -73,6 +73,11 @@ class WickedBot(Superbot):
     def map(self) -> MapData:
         return get_map(self)
 
+    @override
+    @property
+    def scouting(self) -> Scouting:
+        return get_scouting(self)
+
     async def on_start(self):
         """
         This code runs once at the start of the game
@@ -108,6 +113,7 @@ class WickedBot(Superbot):
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
+        start_time: float = perf_counter()
         await self.check_surrend_condition()
         # Update random tag
         if (self.tag_to_update):
@@ -125,7 +131,7 @@ class WickedBot(Superbot):
         await self.macro.speed_mining.execute()
         
         # Assement of the situation
-        await self.combat.detect_enemy_army()
+        self.scouting.detect_enemy_army()
         await self.macro.update_threat_level()
         await self.strategy.update_situation()
         
@@ -252,6 +258,13 @@ class WickedBot(Superbot):
         await self.debug.bunker_positions()
         # await self.debug.wall_placement()
         await self.debug.spawn_test_units()
+        end_time: float = perf_counter()
+        
+        self.client.debug_text_screen(
+            f'Step Time: {(end_time - start_time)*1000:.2f} ms',
+            (0.01, 0.01),
+        )
+        
                     
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
@@ -272,7 +285,7 @@ class WickedBot(Superbot):
         pass
     
     async def on_unit_destroyed(self, unit_tag: int):
-        self.combat.unit_died(unit_tag)
+        self.scouting.unit_died(unit_tag)
         if (unit_tag in self.structures_memory.tags):
             print('structure destroyed - Removing it from grid')
             dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)

@@ -3,6 +3,7 @@ from bot.combat.micro import Micro
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
+from bot.utils.unit_supply import supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -36,33 +37,31 @@ class Execute:
                 # print("dropping b3")
                 return self.bot.expansions.enemy_b3.position
 
-    def get_drop_target(self, known_enemy_army: Army) -> Point2:
+    @property
+    def drop_target(self) -> Point2:
         # if we don't know about enemy army or enemy bases, drop on the default target
-        if (known_enemy_army.units.amount == 0 or self.bot.expansions.enemy_bases.amount == 0):
+        if (self.bot.scouting.known_enemy_army.units.amount == 0 or self.bot.expansions.enemy_bases.amount == 0):
             return self.default_drop_target
         
         # otherwise drop on the furthest base from the enemy army
-        enemy_army_center: Point2 = known_enemy_army.units.center
+        enemy_army_center: Point2 = self.bot.scouting.known_enemy_army.center
         enemy_bases: Expansions = self.bot.expansions.enemy_bases.sorted(
             lambda base: base.position._distance_squared(enemy_army_center),
             reverse=True,
         )
         return enemy_bases.first.mineral_line.position
     
-    def get_best_edge(self, known_enemy_army: Army, drop_target: Point2) -> Point2:
-        if (known_enemy_army.units.amount == 0):
-            return self.bot.map.closest_center(drop_target)
-        closest_two_centers: List[Point2] = self.bot.map.closest_centers(drop_target, 2)
-        closest_two_centers.sort(key=lambda center: center._distance_squared(known_enemy_army.center), reverse= True)
+    @property
+    def best_edge(self) -> Point2:
+        if (self.bot.scouting.known_enemy_army.units.amount == 0):
+            return self.bot.map.closest_center(self.drop_target)
+        closest_two_centers: List[Point2] = self.bot.map.closest_centers(self.drop_target, 2)
+        closest_two_centers.sort(key=lambda center: center._distance_squared(self.bot.scouting.known_enemy_army.center), reverse= True)
         return closest_two_centers[0]
 
-    async def drop(self, army: Army, known_enemy_army: Army):
-        drop_target: Point2 = self.get_drop_target(known_enemy_army)
+    async def drop(self, army: Army):
         # get the 2 closest edge of the map to the drop target
         # take the furthest one from the enemy army
-
-        # closest_center: Point2 = self.bot.map.closest_center(drop_target)
-        best_edge = self.get_best_edge(known_enemy_army, drop_target)
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         
         # select dropping medivacs
@@ -87,10 +86,11 @@ class Execute:
         # Step 4: Check if the best two are full or need more units
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
         cargo_left: int = sum(medivac.cargo_left for medivac in medivacs_to_use)
+        pickable_ground_units: Units = ground_units.filter(lambda unit: supply[unit.type_id] <= cargo_left)
         
         # Step 5: Select the ground units to pickup and retreat with the rest
-        if (ground_units.amount >= 1 and cargo_left > 0):
-            await self.pickup(medivacs_to_use, ground_units)
+        if (pickable_ground_units.amount >= 1):
+            await self.pickup(medivacs_to_use, pickable_ground_units)
             return
         else:
             for unit in ground_units:
@@ -98,20 +98,20 @@ class Execute:
         
         # Step 6 : Drop with the medivacs
         for medivac in medivacs_to_use:
-            distance_medivac_to_target = medivac.position.distance_to(drop_target)
-            distance_edge_to_target = best_edge.distance_to(drop_target)
+            distance_medivac_to_target = medivac.position.distance_to(self.drop_target)
+            distance_edge_to_target = self.best_edge.distance_to(self.drop_target)
             
             # If the edge is closer to the target than we are, take the detour
             if (distance_edge_to_target < distance_medivac_to_target):
                 # Optional: Only go to edge if not already very close to it
-                if medivac.position.distance_to(best_edge) > 5:
+                if medivac.position.distance_to(self.best_edge) > 5:
                     await self.micro.medivac_boost(medivac)
-                    medivac.move(best_edge)
+                    medivac.move(self.best_edge)
                 else:
-                    medivac.move(drop_target)
+                    medivac.move(self.drop_target)
             else:
                 # Direct path is better
-                medivac.move(drop_target)
+                medivac.move(self.drop_target)
 
     async def pickup(self, medivacs: Units, ground_units: Units):
         # units get closer to medivacs
@@ -192,11 +192,11 @@ class Execute:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
-    async def fight_drop(self, army: Army, known_enemy_army: Army):
+    async def fight_drop(self, army: Army):
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight_drop(unit, self.get_drop_target(known_enemy_army))
+                    await self.micro.medivac_fight_drop(unit, self.drop_target)
                 case UnitTypeId.MARINE:
                     self.micro.bio(unit, army.units)
                 case UnitTypeId.MARAUDER:

@@ -22,10 +22,11 @@ class Micro:
     
     @property
     def retreat_position(self) -> Point2:
-        last_expansion: Expansion = self.bot.expansions.last_taken
-        if (last_expansion):
-            return last_expansion.retreat_position
-        return self.bot.expansions.main.position
+        if (self.bot.expansions.taken.amount <= 1):
+            return self.bot.expansions.main.position
+        if (self.bot.scouting.known_enemy_army.supply == 0):
+            return self.bot.expansions.last_taken.position
+        return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).position
     
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
@@ -37,7 +38,7 @@ class Micro:
         
         # TODO: handle retreat when opponent is blocking our way
         local_flying_orbital: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).in_distance_between(unit.position, 0, 10)
-        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(local_flying_orbital.center, -2)
+        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(self.bot.game_info.map_center, 5)
         if (unit.type_id == UnitTypeId.MEDIVAC):
             if (
                 unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])

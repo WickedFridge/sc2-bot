@@ -1,6 +1,6 @@
 from typing import List, Optional
 from bot.combat.orders import Orders
-from bot.superbot import Superbot
+from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -11,10 +11,10 @@ from ..utils.unit_supply import units_supply, weighted_units_supply
 
 class Army:
     units: Units
-    bot: Superbot
+    bot: BotAI
     orders: Orders = Orders.RETREAT
 
-    def __init__(self, units, bot: Superbot) -> None:
+    def __init__(self, units, bot: BotAI) -> None:
         self.units = units
         self.bot = bot
     
@@ -77,14 +77,14 @@ class Army:
         return Units(unseen_units, self.bot)
     
     @property
-    def recap(self) -> dict:
+    def recap(self) -> dict[str, dict[UnitTypeId, int] | float]:
         return {
             'units': self.composition,
             'supply' : self.supply,
         }
     
     @property
-    def composition(self) -> dict:
+    def composition(self) -> dict[UnitTypeId, int]:
         return Army.get_composition(self.fighting_units)
 
     @property
@@ -162,12 +162,12 @@ class Army:
         self.units.remove(destroyed_unit)
         # print("enemy unit destroyed :", destroyed_unit.name)
     
-    def get_composition(_units: Units) -> dict:
-        army: dict = {}
+    def get_composition(_units: Units) -> dict[UnitTypeId, int]:
+        army: dict[UnitTypeId, int] = {}
         for unit in _units:
-            if (unit.name in army):
-                army[unit.name] += 1
+            if (unit.type_id in army):
+                army[unit.type_id] += 1
             else:
-                army[unit.name] = 1
+                army[unit.type_id] = 1
         return army
     

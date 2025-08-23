@@ -23,14 +23,12 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menac
 class Combat:
     bot: Superbot
     execute: Execute
-    known_enemy_army: Army
     armies: List[Army] = []
     bases: List[Base] = []
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.execute = Execute(bot)
-        self.known_enemy_army = Army(Units([], bot), bot)
     
     @property
     def army_supply(self) -> float:
@@ -137,14 +135,14 @@ class Combat:
         potential_bio_supply: float = army.potential_bio_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_enemy_supply: float = local_enemy_army.weighted_supply
-        unseen_enemy_army: Army = Army(self.known_enemy_army.units_not_in_sight, self.bot)
+        unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
         unseen_enemy_supply: float = unseen_enemy_army.supply
         potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         
         stim_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
-        stim_almost_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.7
+        stim_almost_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.85
 
         closest_army: Army = self.get_closest_army(army)
         closest_army_distance: float = self.get_closest_army_distance(army)
@@ -249,7 +247,7 @@ class Combat:
                     await self.execute.fight(army)
 
                 case Orders.FIGHT_DROP:
-                    await self.execute.fight_drop(army, self.known_enemy_army)
+                    await self.execute.fight_drop(army)
 
                 case Orders.FIGHT_DISENGAGE:
                     await self.execute.disengage(army)
@@ -267,7 +265,7 @@ class Combat:
                     self.execute.defend_canon_rush(army)
 
                 case Orders.DROP:
-                    await self.execute.drop(army, self.known_enemy_army)
+                    await self.execute.drop(army)
                 
                 case Orders.HARASS:
                     await self.execute.harass(army)            
@@ -401,8 +399,8 @@ class Combat:
             self.draw_text_on_world(base.position, base_descriptor, color)
     
     async def debug_drop_target(self):
-        drop_target: Point2 = self.execute.get_drop_target(self.known_enemy_army)
-        best_edge: Point2 = self.execute.get_best_edge(self.known_enemy_army, drop_target)
+        drop_target: Point2 = self.execute.drop_target
+        best_edge: Point2 = self.execute.best_edge
         self.draw_grid_on_world(drop_target, text="Drop Target")
         self.draw_flying_box(best_edge, 5, PURPLE)
         self.bot.client.debug_line_out(
@@ -503,14 +501,3 @@ class Combat:
         )
         local_enemy_buildings.sort(key=lambda building: building.health)
         return local_enemy_buildings
-
-    async def detect_enemy_army(self):
-        enemy_units: Units = self.bot.enemy_units
-        self.known_enemy_army.detect_units(enemy_units)
-            
-    def unit_died(self, unit_tag: int):
-        if (unit_tag not in self.known_enemy_army.units.tags):
-            return
-        self.known_enemy_army.remove_by_tag(unit_tag)
-        enemy_army: dict = self.known_enemy_army.recap
-        print("remaining enemy units :", enemy_army)
