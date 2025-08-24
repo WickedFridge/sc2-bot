@@ -376,27 +376,6 @@ class Combat:
             army_descriptor: str = f'[{army.orders.__repr__()}] (S: {army.weighted_supply.__round__(2)}/{army.potential_supply.__round__(2)})'
             self.draw_sphere_on_world(army.units.center, self.army_radius * 0.7, color)
             self.draw_text_on_world(army.units.center, army_descriptor, color)
-
-    async def debug_bases_threat(self):
-        color: tuple
-        for base in self.bases:
-            match base.threat:
-                case Threat.NO_THREAT:
-                    color = GREEN
-                case Threat.ATTACK:
-                    color = RED
-                case Threat.WORKER_SCOUT:
-                    color = YELLOW
-                case Threat.HARASS:
-                    color = BLUE
-                case Threat.CANON_RUSH:
-                    color = PURPLE
-                case _:
-                    color = WHITE
-            base_descriptor: str = f'[{base.threat.__repr__()}]'
-            # radius: float = 15
-            # self.draw_sphere_on_world(base.position, radius, color)
-            self.draw_text_on_world(base.position, base_descriptor, color)
     
     async def debug_drop_target(self):
         drop_target: Point2 = self.execute.drop_target

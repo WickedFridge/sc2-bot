@@ -26,7 +26,7 @@ class Micro:
             return self.bot.expansions.main.position
         if (self.bot.scouting.known_enemy_army.supply == 0):
             return self.bot.expansions.last_taken.position
-        return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).position
+        return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).retreat_position
     
     def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
@@ -239,6 +239,7 @@ class Micro:
                 self.stim_bio(bio_unit)
                 bio_unit.attack(other_enemy_units.closest_to(bio_unit))
         elif (enemy_buildings_in_sight.amount >= 1):
+            self.stim_bio(bio_unit)
             enemy_buildings_in_sight.sort(key = lambda building: building.health)
             bio_unit.attack(enemy_buildings_in_sight.first)
         elif (enemy_buildings.amount >= 1):

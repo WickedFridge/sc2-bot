@@ -195,8 +195,9 @@ class Expansion:
     @property
     def retreat_position(self) -> Point2:
         if (self.is_defended):
-            return center([self.defending_bunker.position, self.mineral_line, self.position])
-        return self.bunker_ramp or self.bunker_forward
+            return center([self.defending_bunker.position, self.mineral_line])
+        position: Point2 = self.bunker_ramp or self.bunker_forward
+        return center([position, self.mineral_line])
     
     @property
     def bunker_forward_in_pathing(self) -> Point2 | None:

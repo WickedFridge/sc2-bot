@@ -80,7 +80,8 @@ class BuildingsHandler:
                     or self.bot.workers.closest_to(structure).is_constructing_scv == False
                     or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
                 )
-                and structure.health < 50
+                and structure.health < 100
+                and structure.health_percentage < 0.1
             )
         )
         for building in incomplete_buildings:
