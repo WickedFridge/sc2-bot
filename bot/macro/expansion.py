@@ -183,7 +183,10 @@ class Expansion:
     
     @property
     def mineral_line(self) -> Point2:
-        return (self.mineral_fields + self.vespene_geysers).center
+        resources: Units = self.mineral_fields + self.vespene_geysers
+        if (resources.amount == 0):
+            return self.position
+        return resources.center
 
     @property
     def is_defended(self) -> bool:
