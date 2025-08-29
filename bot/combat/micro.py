@@ -16,7 +16,7 @@ from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_
 
 class Micro:
     bot: Superbot
-
+    
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
     
@@ -67,19 +67,20 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    def medivac_safety_disengage(self, medivac: Unit, safety_distance: int = 2) -> bool:
+    def medivac_safety_disengage(self, medivac: Unit, safety_distance: float = 2) -> bool:
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
                 (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
-                and enemy_unit.distance_to(medivac) <= enemy_unit.air_range + safety_distance
+                and enemy_unit.is_facing(medivac, math.pi / 2)
+                and enemy_unit.distance_to(medivac) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
             )
         )
         # if medivac in danger, retreat and drop units
         if (menacing_enemy_units.amount == 0):
             return False
         
-        Micro.move_away(medivac, menacing_enemy_units.center, safety_distance)
+        Micro.move_away(medivac, menacing_enemy_units.center, max(1, safety_distance))
         if (medivac.cargo_used >= 1):
             # unload all units if we can
             medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
@@ -90,8 +91,8 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        SAFETY_DISTANCE: int = 2
-        if (self.medivac_safety_disengage(medivac, SAFETY_DISTANCE)):
+        safety_distance: float = 3 * (1 - medivac.health_percentage) - 1
+        if (self.medivac_safety_disengage(medivac, safety_distance)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -131,8 +132,8 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
-        SAFETY_DISTANCE: int = 2
-        if (self.medivac_safety_disengage(medivac, SAFETY_DISTANCE)):
+        safety_distance: float = 3 * (1 - medivac.health_percentage) - 1
+        if (self.medivac_safety_disengage(medivac, safety_distance)):
             return
         self.medivac_heal(medivac, local_army)
 
@@ -151,7 +152,12 @@ class Micro:
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
             drop_target = closest_enemy_base.position
 
-        
+        # if we are further than 40 from our drop target, unload (we are probably fighting on the middle of the map)
+        if (medivac.distance_to(drop_target) > 40):
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            return
+
+
         # if we are at the same height, unload all units
         # we need to check the height position of the map
         if (self.bot.get_terrain_height(medivac.position) == self.bot.get_terrain_height(drop_target)):
