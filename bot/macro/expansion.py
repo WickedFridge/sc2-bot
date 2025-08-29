@@ -185,7 +185,7 @@ class Expansion:
     def mineral_line(self) -> Point2:
         resources: Units = self.mineral_fields + self.vespene_geysers
         if (resources.amount == 0):
-            return self.position
+            return self.position.towards(self.bot.game_info.map_center, 5)
         return resources.center
 
     @property

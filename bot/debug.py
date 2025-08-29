@@ -297,7 +297,9 @@ class Debug:
     async def spawn_test_units(self):
         if (len(self.bot.state.chat) == 1 and self.bot.state.chat[0].player_id == self.bot.player_id):
             message: str = self.bot.state.chat[0].message
-            
+            if (message.startswith("Tag:")):
+                return
+
             parts = message.split(" ", 2)  # split into at most 3 parts
             amount_str: str = parts[0]
             unit_str: str = parts[1] if len(parts) > 1 else ""

@@ -46,6 +46,10 @@ class Macro:
         for expansion in self.bot.expansions.taken:
             bases.append(Base(self.bot, expansion.cc, Threat.NO_THREAT))
         
+        # If we don't have any base left we're pretty dead
+        if (len(bases) == 0):
+            return bases
+        
         # Then distribute our structures among these bases based on proximity
         for building in self.bot.structures:
             closest_base = min(bases, key=lambda base: base.cc.distance_to(building))
