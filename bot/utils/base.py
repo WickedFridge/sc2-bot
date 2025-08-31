@@ -28,7 +28,7 @@ class Base:
         self.bot = bot
         self.cc = cc
         self.threat = threat
-        self.buildings = Units([], bot)
+        self.buildings = Units([cc], bot)
         self.workers = Units([], bot)
         self.units = Units([], bot)
         self.enemy_units = Units([], bot)
@@ -45,7 +45,7 @@ class Base:
     def distance_to(self, position: Unit | Point2) -> float:
         return self.buildings.closest_distance_to(position.position)
     
-    def threat_detection(self) -> None:
+    def threat_detection(self) -> Threat:
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
                 unit.type_id in tower_types

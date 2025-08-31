@@ -75,6 +75,10 @@ class Expansions:
         return self.filter(lambda expansion: expansion.is_ready == True)
 
     @property
+    def safe(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_safe == True)
+
+    @property
     def free(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == False)
 

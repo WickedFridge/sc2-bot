@@ -42,22 +42,32 @@ class Macro:
     
     def threat_detection(self) -> List[Base]:
         bases: List[Base] = []
+        ccs: List[int] = []
         # First create a Base object for each expansion we own
         for expansion in self.bot.expansions.taken:
             bases.append(Base(self.bot, expansion.cc, Threat.NO_THREAT))
+            ccs.append(expansion.cc.tag)
         
         # If we don't have any base left we're pretty dead
         if (len(bases) == 0):
             return bases
         
-        # Then distribute our structures among these bases based on proximity
-        for building in self.bot.structures:
-            closest_base = min(bases, key=lambda base: base.cc.distance_to(building))
+        # Then distribute our other structures among these bases based on proximity
+        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in ccs).sorted(
+            key=lambda structure: min(structure.distance_to(base.position) for base in bases)
+        )
+        for building in other_structures:
+            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(building))
+            
+            # skip buildings that are too far from the base
+            if (closest_base.distance_to(building) > THREAT_DISTANCE):
+                continue
+            
             closest_base.buildings.append(building)
         
         # Then distribute our units and workers among these bases based on proximity
         for unit in self.bot.units:
-            closest_base = min(bases, key=lambda base: base.cc.distance_to(unit))
+            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
             
             # skip enemy units that are too far from the base
             if (closest_base.distance_to(unit) > THREAT_DISTANCE):
@@ -69,7 +79,7 @@ class Macro:
 
         # Then distribute enemy units and structures among these bases based on proximity
         for unit in self.bot.enemy_units + self.bot.enemy_structures:
-            closest_base = min(bases, key=lambda base: base.cc.distance_to(unit))
+            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
             
             # skip enemy units that are too far from the base
             if (closest_base.distance_to(unit) > THREAT_DISTANCE):
@@ -82,7 +92,7 @@ class Macro:
         
         # Then, for each base, analyze nearby enemy units to determine the threat level
         for base in bases:
-            base.threat_detection()
+            base.threat = base.threat_detection()
         return bases
 
     
@@ -152,9 +162,13 @@ class Macro:
             return
         if (not self.bot.mineral_field or not self.bot.workers or self.bot.expansions.ready.amount == 0):
             return
-        expansions_sorted_by_deficit_in_mining: Expansions = self.bot.expansions.ready.sorted(
+        if (self.bot.expansions.ready.safe.amount == 0):
+            return
+
+        expansions_sorted_by_deficit_in_mining: Expansions = self.bot.expansions.ready.safe.sorted(
             key = lambda expansion: expansion.mineral_worker_count - expansion.optimal_mineral_workers,
         )
+
 
         most_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.last
         least_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.first
@@ -322,16 +336,20 @@ class Macro:
                 case _:
                     color = WHITE
             base_descriptor: str = f'[{i + 1}][{base.threat.__repr__()}]'
+            unit_descriptor: str = f'[{i + 1}]'
             for enemy_unit in base.enemy_units:
                 self.draw_box_on_world(enemy_unit.position, enemy_unit.radius, RED)
+                self.draw_text_on_world(enemy_unit.position, unit_descriptor, RED)
             for building in base.buildings:
                 radius: float = building.footprint_radius if building.type_id not in add_ons else 0.5
                 self.draw_box_on_world(building.position, radius, color)
                 self.draw_text_on_world(building.position, base_descriptor, color)
             for unit in base.units:
                 self.draw_box_on_world(unit.position, 0.5, color)
-            for workers in base.workers:
-                self.draw_box_on_world(workers.position, 0.3, color)
+                self.draw_text_on_world(unit.position, unit_descriptor, color)
+            for worker in base.workers:
+                self.draw_box_on_world(worker.position, 0.3, color)
+                self.draw_text_on_world(worker.position, unit_descriptor, color)
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)

@@ -207,7 +207,7 @@ class Combat:
         if (
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
-            and usable_medivacs.amount >= 2
+            and (usable_medivacs.amount >= 2 or potential_army_supply >= 40)
             and potential_bio_supply >= 12
             and stim_almost_completed
         ):
@@ -238,7 +238,7 @@ class Combat:
                     await self.execute.pickup_leave(army)
                 
                 case Orders.RETREAT:
-                    self.execute.retreat_army(army)
+                    await self.execute.retreat_army(army)
 
                 case Orders.HEAL_UP:
                     await self.execute.heal_up(army)

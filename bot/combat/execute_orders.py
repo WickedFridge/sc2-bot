@@ -81,7 +81,7 @@ class Execute:
         for medivac in medivacs_to_retreat:
             if medivac.passengers:
                 medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)  # unload where it is
-            self.micro.retreat(medivac)
+            await self.micro.retreat(medivac)
         
         # Step 4: Check if the best two are full or need more units
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
@@ -94,7 +94,7 @@ class Execute:
             return
         else:
             for unit in ground_units:
-                self.micro.retreat(unit)
+                await self.micro.retreat(unit)
         
         # Step 6 : Drop with the medivacs
         for medivac in medivacs_to_use:
@@ -117,7 +117,7 @@ class Execute:
         # units get closer to medivacs
         for unit in ground_units:
             if (medivacs.amount == 0):
-                self.micro.retreat(unit)
+                await self.micro.retreat(unit)
                 break
             unit.move(medivacs.closest_to(unit))
         
@@ -128,12 +128,13 @@ class Execute:
 
     async def pickup_leave(self, army: Army):
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
+        minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
         if (army.center.distance_to(self.micro.retreat_position) <= 20 or ground_units.amount == 0):
-            self.retreat_army(army)
+            await self.retreat_army(army)
             return
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
-        retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left == 0 or unit.health_percentage < 0.4)
+        retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
         await self.pickup(usable_medivacs, ground_units)
         for medivac in retreating_medivacs:
             menacing_enemy_units: Units = self.bot.enemy_units.filter(
@@ -142,7 +143,7 @@ class Execute:
             if (menacing_enemy_units.amount >= 1):
                 Micro.move_away(medivac, menacing_enemy_units.center, 5)
             else:
-                self.micro.retreat(medivac)
+                await self.micro.retreat(medivac)
 
     async def heal_up(self, army: Army):
         # drop units
@@ -155,9 +156,9 @@ class Execute:
                 if (unit.distance_to(army.center) > 5):
                     unit.move(army.center)
     
-    def retreat_army(self, army: Army):
+    async def retreat_army(self, army: Army):
         for unit in army.units:
-            self.micro.retreat(unit)
+            await self.micro.retreat(unit)
 
     async def fight(self, army: Army):
         for unit in army.units:
@@ -222,7 +223,7 @@ class Execute:
                 case UnitTypeId.GHOST:
                     self.micro.bio_disengage(unit)
                 case _:
-                    self.micro.retreat(unit)
+                    await self.micro.retreat(unit)
 
     
     def defend(self, army: Army):

@@ -2,6 +2,7 @@ from collections import deque
 import math
 from typing import List, Optional
 
+from bot.utils.army import Army
 from bot.utils.point2_functions import dfs_in_pathing, center, find_closest_bottom_ramp, grid_offsets
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
@@ -51,6 +52,19 @@ class Expansion:
     @property
     def is_ready(self) -> bool:
         return self.is_taken and self.cc.is_ready and not self.cc.is_flying
+
+    @property
+    def is_safe(self) -> bool:
+        local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_ground
+        )
+        local_units: Units = self.bot.units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_ground
+        )
+        if (self.defending_bunker and self.defending_bunker.cargo_used >= 1):
+            local_units.append(self.defending_bunker)
+        
+        return Army(local_units, self.bot).weighted_supply >= Army(local_enemy_units, self.bot).weighted_supply
 
     @property
     def cc(self) -> Optional[Unit]:

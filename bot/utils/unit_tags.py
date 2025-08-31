@@ -13,8 +13,6 @@ hq_types: List[UnitTypeId] = [
 ]
 
 must_repair: List[UnitTypeId] = [
-    UnitTypeId.COMMANDCENTER,
-    UnitTypeId.ORBITALCOMMAND,
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.MISSILETURRET,
     UnitTypeId.BUNKER

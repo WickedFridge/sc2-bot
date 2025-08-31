@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
@@ -24,12 +24,12 @@ class Micro:
     @property
     def retreat_position(self) -> Point2:
         if (self.bot.expansions.taken.amount <= 1):
-            return self.bot.expansions.main.position
+            return self.bot.expansions.main.retreat_position
         if (self.bot.scouting.known_enemy_army.supply == 0):
-            return self.bot.expansions.last_taken.position
+            return self.bot.expansions.last_taken.retreat_position
         return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).retreat_position
     
-    def retreat(self, unit: Unit):
+    async def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
@@ -46,8 +46,10 @@ class Micro:
                 and enemy_units_in_sight.amount == 0
             ):
                 unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
-            if (not self.medivac_safety_disengage(unit)):
+            if (not self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
                 unit.move(retreat_position)
+                if (unit.distance_to(retreat_position) > 15):
+                    await self.medivac_boost(unit)
             return
         if (unit.distance_to(retreat_position) < 5):
             return
@@ -60,15 +62,17 @@ class Micro:
         # stop unloading if we are
         medivac.stop()
         await self.medivac_boost(medivac)
-        units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3)
+        units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         for unit in units_to_pickup:
             medivac(AbilityId.LOAD_MEDIVAC, unit)
-        units_next: Units = local_army.in_distance_between(medivac, 3, 10)
+        units_next: Units = local_army.in_distance_between(medivac, 3, 10).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         if (units_next.amount == 0):
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    def medivac_safety_disengage(self, medivac: Unit, safety_distance: float = 2) -> bool:
+    def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
+        if (safety_distance is None):
+            safety_distance =  -1 + 3 * (1 - math.pow(medivac.health_percentage, 2))
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
@@ -92,8 +96,7 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        safety_distance: float = 3 * (1 - medivac.health_percentage) - 1
-        if (self.medivac_safety_disengage(medivac, safety_distance)):
+        if (self.medivac_safety_disengage(medivac)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -127,7 +130,7 @@ class Micro:
         medivacs_amount_to_back: int = max(0, local_medivacs.amount - local_ground_units.amount)
         if (medivacs_amount_to_back > 0):
             if (medivac.tag in local_medivacs.take(medivacs_amount_to_back).tags):
-                self.retreat(medivac)
+                await self.retreat(medivac)
                 return
 
         # boost if we need to
@@ -144,10 +147,9 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
-        safety_distance: float = 3 * (1 - medivac.health_percentage) - 1
-        if (self.medivac_safety_disengage(medivac, safety_distance)):
+        if (self.medivac_safety_disengage(medivac)):
             return
-        self.medivac_heal(medivac, local_army)
+        await self.medivac_heal(medivac, local_army)
 
     async def medivac_fight_drop(self, medivac: Unit, drop_target: Point2):
         # first boost
@@ -167,6 +169,7 @@ class Micro:
         # if we are further than 40 from our drop target, unload (we are probably fighting on the middle of the map)
         if (medivac.distance_to(drop_target) > 40):
             medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            self.medivac_safety_disengage(medivac)
             return
 
 
@@ -177,7 +180,7 @@ class Micro:
         
         medivac.move(drop_target)
     
-    def medivac_heal(self, medivac: Unit, local_army: Units):
+    async def medivac_heal(self, medivac: Unit, local_army: Units):
         # heal damaged ally in local army
         damaged_allies: Units = local_army.filter(
             lambda unit: (
@@ -199,7 +202,7 @@ class Micro:
             if (local_ground_units.amount >= 1):
                 medivac.move(local_ground_units.center)
             elif (self.bot.townhalls.amount >= 1):
-                self.retreat(medivac)
+                await self.retreat(medivac)
     
     async def medivac_boost(self, medivac: Unit):
         available_abilities = (await self.bot.get_available_abilities([medivac]))[0]

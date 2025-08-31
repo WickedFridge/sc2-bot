@@ -50,30 +50,45 @@ class BuildingsHandler:
                 or worker.is_attacking
             )
         )
-        if (available_workers.amount == 0):
-            print("no workers to repair o7")
+        workers_repairing: Units = workers.filter(
+            lambda worker: (
+                len(worker.orders) >= 1
+                and worker.orders[0].ability.id in AbilityRepair
+            )
+        )
+        max_workers_repairing: int = min(round(self.bot.supply_workers / 2), self.bot.supply_workers - 6)
+
+        # we don't want under 6 workers mining
+        # we don't want over 1/2 of our workers repairing
+        if (available_workers.amount <= 6 or workers_repairing.amount >= self.bot.supply_workers / 2):
+            print(f'max amount of repairnig workers reached [{workers_repairing.amount}/{max_workers_repairing}]')
             return
+        
         burning_buildings_in_pathing = self.bot.structures.ready.filter(
             lambda unit: (
-                self.bot.in_pathing_grid(unit) and (
+                (
+                    unit.is_flying == False or
+                    self.bot.in_pathing_grid(unit)
+                ) and (
                     unit.health_percentage < 0.6 or
                     (unit.type_id in must_repair and unit.health_percentage < 1)
                 )
             )
         )
         for burning_building in burning_buildings_in_pathing:
-            repairing_workers: Units = workers.filter(
-                lambda unit: (
-                    unit.orders.__len__()
-                    and unit.orders[0].ability.id in AbilityRepair
-                    and unit.order_target == burning_building.tag
-                )
+            workers_repairing_building: Units = workers_repairing.filter(
+                lambda unit: unit.order_target == burning_building.tag
             )
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
-            max_workers_repairing: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
-            if (repairing_workers.amount < max_workers_repairing):
-                print(f'pulling worker to repair {burning_building.name} [{repairing_workers.amount}/{max_workers_repairing}]')
-                available_workers.closest_to(burning_building).repair(burning_building)
+            max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
+            if (workers_repairing_building.amount >= max_workers_repairing_building or workers_repairing.amount >= max_workers_repairing):
+                return
+            print(f'pulling worker to repair {burning_building.name} [{workers_repairing_building.amount}/{max_workers_repairing}]')
+            repairer: Unit = available_workers.closest_to(burning_building)
+            repairer.repair(burning_building)
+            available_workers.remove(repairer)
+            workers_repairing.append(repairer)
+            workers_repairing_building.append(repairer)
     
     async def cancel_buildings(self):
         incomplete_buildings: Units = self.bot.structures.filter(
