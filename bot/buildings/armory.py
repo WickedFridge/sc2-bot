@@ -20,6 +20,7 @@ class Armory(Building):
         armory_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ARMORY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
         armory_count: int = self.bot.structures(UnitTypeId.ARMORY).ready.amount + self.bot.already_pending(UnitTypeId.ARMORY)
+        ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount
 
         # We want 1 armory once we have a +1 60% complete
         return (
@@ -27,6 +28,7 @@ class Armory(Building):
             and upgrades_tech_requirement >= 0.6
             and armory_count == 0
             and self.bot.townhalls.amount >= 1
+            and ebays_count >= 1
         )
     
     @override

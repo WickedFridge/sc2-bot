@@ -53,10 +53,15 @@ class BuildingsHandler:
         if (available_workers.amount == 0):
             print("no workers to repair o7")
             return
-        burning_buildings = self.bot.structures.ready.filter(
-            lambda unit: unit.health_percentage < 0.6 or (unit.type_id in must_repair and unit.health_percentage < 1)
+        burning_buildings_in_pathing = self.bot.structures.ready.filter(
+            lambda unit: (
+                self.bot.in_pathing_grid(unit) and (
+                    unit.health_percentage < 0.6 or
+                    (unit.type_id in must_repair and unit.health_percentage < 1)
+                )
+            )
         )
-        for burning_building in burning_buildings:
+        for burning_building in burning_buildings_in_pathing:
             repairing_workers: Units = workers.filter(
                 lambda unit: (
                     unit.orders.__len__()

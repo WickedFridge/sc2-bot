@@ -3,6 +3,7 @@ from typing import List
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
+from bot.utils.army import Army
 from bot.utils.point2_functions import center
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
@@ -117,6 +118,17 @@ class Micro:
                 medivac.move(medivac.position.towards(ground_enemy_buildings.closest_to(medivac)))
             else:
                 medivac.move(medivac.position.towards(self.bot.expansions.enemy_main.position))
+
+        # if there's too many medivacs in our army, back
+        army: Army = Army(local_army, self.bot)
+        passengers: Units = army.passengers
+        local_ground_units: Units = local_army.filter(lambda unit: unit.is_flying == False) + passengers
+        local_medivacs: Units = local_army(UnitTypeId.MEDIVAC).sorted(key = lambda unit: unit.health_percentage)
+        medivacs_amount_to_back: int = max(0, local_medivacs.amount - local_ground_units.amount)
+        if (medivacs_amount_to_back > 0):
+            if (medivac.tag in local_medivacs.take(medivacs_amount_to_back).tags):
+                self.retreat(medivac)
+                return
 
         # boost if we need to
         if (medivac.is_active):
