@@ -197,7 +197,7 @@ class Expansion:
     
     @property
     def retreat_position(self) -> Point2:
-        if (self.is_defended):
+        if (self.is_defended and self.mineral_fields.amount >= 1):
             reference_position: Point2 = self.mineral_fields.closest_to(self.defending_bunker).position
             return center([reference_position, self.defending_bunker.position])
         position: Point2 = self.bunker_ramp or self.bunker_forward
