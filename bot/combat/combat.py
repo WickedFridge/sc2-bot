@@ -61,6 +61,7 @@ class Combat:
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST,
             UnitTypeId.MEDIVAC,
+            UnitTypeId.VIKINGFIGHTER,
         ])
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()

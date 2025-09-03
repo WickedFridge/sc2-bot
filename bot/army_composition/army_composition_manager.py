@@ -35,12 +35,23 @@ class ArmyCompositionManager:
             UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
+            UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
         }
 
         for unit_type, requirements in unlocks.items():
             if all(self.__is_available(req) for req in requirements):
                 available_units.append(unit_type)
         return available_units
+    
+    @property
+    def vikings_amount(self) -> int:
+        # we want matching air supply
+        viking_amount: int = self.wicked.scouting.known_enemy_army.flying_fighting_supply // 2
+        
+        # we want 4 vikings by colossus
+        colossus_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.COLOSSUS).amount
+        viking_amount += 4 * colossus_amount
+        return viking_amount
     
     @property
     def marauders_ratio(self) -> float:
@@ -72,8 +83,10 @@ class ArmyCompositionManager:
             if (self.maximal_amount(unit_type)):
                 composition.set(unit_type, self.maximal_amount(unit_type))
 
+        if (UnitTypeId.VIKINGFIGHTER in available_units):
+            composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
+        
         if (UnitTypeId.MARAUDER in available_units):
-            # always add a minimum of the Marauders we own so far
             # current_marauder_count: int = units(UnitTypeId.MARAUDER).amount
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2

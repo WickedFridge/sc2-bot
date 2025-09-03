@@ -8,6 +8,7 @@ from bot.units.marauder import Marauder
 from bot.units.marine import Marine
 from bot.units.medivac import Medivac
 from bot.units.scv import Scv
+from bot.units.viking import Viking
 from sc2.ids.unit_typeid import UnitTypeId
 
 class TrainerFunction:
@@ -26,6 +27,7 @@ class Trainer:
     marine: Marine
     marauder: Marauder
     ghost: Ghost
+    viking: Viking
     
     def __init__(self, bot: Superbot, combat: Combat) -> None:
         self.bot = bot
@@ -35,20 +37,7 @@ class Trainer:
         self.marine = Marine(self)
         self.marauder = Marauder(self)
         self.ghost = Ghost(self)
-
-    # @property
-    # def ordered_army_trainers(self) -> List[Callable[[Resources], Awaitable[Resources]]]:
-    #     trainer_functions: List[tuple[Callable[[Resources], Awaitable[Resources]], float]] = [
-    #         (self.medivac.train, self.bot.composition_manager.ratio_trained(UnitTypeId.MEDIVAC)),
-    #         (self.marine.train, self.bot.composition_manager.ratio_trained(UnitTypeId.MARINE)),
-    #         (self.marauder.train, self.bot.composition_manager.ratio_trained(UnitTypeId.MARAUDER)),
-    #         (self.ghost.train, self.bot.composition_manager.ratio_trained(UnitTypeId.GHOST)),
-    #     ]
-    #     # sort by second element of tuple (the ratio)
-    #     trainer_functions.sort(key=lambda x: x[1])
-
-    #     # return only the functions, drop the ratios
-    #     return [func for func, _ in trainer_functions]
+        self.viking = Viking(self)
     
     @property
     def ordered_unit_types(self) -> List[UnitTypeId]:
@@ -57,6 +46,7 @@ class Trainer:
             (UnitTypeId.MARAUDER, self.bot.composition_manager.ratio_trained(UnitTypeId.MARAUDER)),
             (UnitTypeId.MEDIVAC, self.bot.composition_manager.ratio_trained(UnitTypeId.MEDIVAC)),
             (UnitTypeId.GHOST, self.bot.composition_manager.ratio_trained(UnitTypeId.GHOST)),
+            (UnitTypeId.VIKINGFIGHTER, self.bot.composition_manager.ratio_trained(UnitTypeId.VIKINGFIGHTER)),
         ]
         # sort by ratio
         unit_ratios.sort(key=lambda x: x[1])
@@ -73,6 +63,8 @@ class Trainer:
                 return self.medivac.train
             case UnitTypeId.GHOST:
                 return self.ghost.train
+            case UnitTypeId.VIKINGFIGHTER:
+                return self.viking.train
             case _:
                 raise ValueError(f"No trainer available for {unit_type}")
 

@@ -71,27 +71,51 @@ class Micro:
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
     def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
+        # if (safety_distance is None):
+        #     safety_distance =  -1 + 3 * (1 - math.pow(medivac.health_percentage, 2))
+        # # if medivac is in danger
+        # menacing_enemy_units: Units = self.enemy_units.filter(
+        #     lambda enemy_unit: (
+        #         (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
+        #         and enemy_unit.is_facing(medivac, math.pi / 2)
+        #         and enemy_unit.distance_to(medivac) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
+        #     )
+        # )
+        # # if medivac in danger, retreat and drop units
+        # if (menacing_enemy_units.amount == 0):
+        #     return False
+        
+        # Micro.move_away(medivac, menacing_enemy_units.center, max(1, safety_distance))
+        # if (medivac.cargo_used >= 1):
+        #     # unload all units if we can
+        #     medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        # return True
+        
+        if (not self.safety_disengage(medivac, safety_distance)):
+            return False
+        if (medivac.cargo_used >= 1):
+            # unload all units if we can
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        return True
+
+    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None) -> bool:
         if (safety_distance is None):
-            safety_distance =  -1 + 3 * (1 - math.pow(medivac.health_percentage, 2))
+            safety_distance =  -1 + 3 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
                 (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
-                and enemy_unit.is_facing(medivac, math.pi / 2)
-                and enemy_unit.distance_to(medivac) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
+                and enemy_unit.is_facing(flying_unit, math.pi / 2)
+                and enemy_unit.distance_to(flying_unit) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
             )
         )
         # if medivac in danger, retreat and drop units
         if (menacing_enemy_units.amount == 0):
             return False
         
-        Micro.move_away(medivac, menacing_enemy_units.center, max(1, safety_distance))
-        if (medivac.cargo_used >= 1):
-            # unload all units if we can
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+        Micro.move_away(flying_unit, menacing_enemy_units.center, max(1, safety_distance))
         return True
 
-    
     async def medivac_disengage(self, medivac: Unit, local_army: Units):
         # boost if we can
         await self.medivac_boost(medivac)
@@ -269,6 +293,30 @@ class Micro:
         else:
             self.retreat(bio_unit)
 
+    def viking(self, viking: Unit, local_units: Units):
+        # find a target if our weapon isn't on cooldown
+        if (viking.weapon_cooldown == 0):
+            potential_targets: Units = self.bot.enemy_units.filter(
+                lambda unit: unit.is_flying or unit.type_id == UnitTypeId.COLOSSUS
+            ).sorted(
+                lambda unit: unit.health + unit.shield
+            )
+            enemy_in_range: Units = potential_targets.filter(
+                lambda unit: viking.target_in_range(unit)
+            )
+            if (enemy_in_range.amount >= 1):
+                viking.attack(enemy_in_range.first)
+            elif (potential_targets.amount >= 1):
+                viking.attack(potential_targets.closest_to(viking))
+            else:
+                if (not self.safety_disengage(viking)):
+                    viking.move(local_units.center)
+
+        # if we're not on cooldown, either disengage or follow our army
+        elif (not self.safety_disengage(viking)):
+            viking.move(local_units.center)
+
+    
     def ghost(self, ghost: Unit, local_army: Units):
         if (self.ghost_snipe(ghost)):
             return

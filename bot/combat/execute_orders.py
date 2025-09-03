@@ -127,11 +127,14 @@ class Execute:
 
 
     async def pickup_leave(self, army: Army):
-        ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
-        minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
+        # First retreat if we're only flying units
+        ground_units: Units = army.units.not_flying
         if (army.center.distance_to(self.micro.retreat_position) <= 20 or ground_units.amount == 0):
             await self.retreat_army(army)
             return
+        
+        # then pickup units
+        minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
         retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
@@ -144,6 +147,9 @@ class Execute:
                 Micro.move_away(medivac, menacing_enemy_units.center, 5)
             else:
                 await self.micro.retreat(medivac)
+
+        other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id != UnitTypeId.MEDIVAC)
+        self.retreat_army(Army(other_flying_units, self.bot))
 
     async def heal_up(self, army: Army):
         # drop units
@@ -171,6 +177,8 @@ class Execute:
                     self.micro.bio(unit, army.units)
                 case UnitTypeId.GHOST:
                     self.micro.ghost(unit, army.units)
+                case UnitTypeId.VIKINGFIGHTER:
+                    self.micro.viking(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
@@ -189,6 +197,8 @@ class Execute:
                     self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
                     self.micro.ghost_defense(unit, army.units)
+                case UnitTypeId.VIKINGFIGHTER:
+                    self.micro.viking(unit, army.units)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
@@ -204,6 +214,8 @@ class Execute:
                     self.micro.bio(unit, army.units)
                 case UnitTypeId.GHOST:
                     self.micro.ghost(unit, army.units)
+                case UnitTypeId.VIKINGFIGHTER:
+                    self.micro.viking(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)

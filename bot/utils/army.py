@@ -49,6 +49,10 @@ class Army:
         return units_supply(armored_ground_units)
     
     @property
+    def flying_fighting_supply(self) -> float:
+        return units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
+
+    @property
     def supply(self) -> float:
         return units_supply(self.units)
 
