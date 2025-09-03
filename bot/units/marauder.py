@@ -13,7 +13,8 @@ class Marauder(Train):
     
     @property
     def custom_conditions(self) -> bool:
-        return self.trainer.should_train_marauders
+        marine_count: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
+        return (marine_count >= 8)
 
     @override
     @property

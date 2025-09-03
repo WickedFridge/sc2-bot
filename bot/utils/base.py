@@ -111,7 +111,7 @@ class Base:
                 self.defend_bunker_rush()
     
     def defend_bunker_rush(self) -> None:
-        bunkers: Units = self.enemy_structures.filter(UnitTypeId.BUNKER)
+        bunkers: Units = self.enemy_structures(UnitTypeId.BUNKER)
         # track the SCVs with 3 workers each
         self.track_enemy_scout(3)
         

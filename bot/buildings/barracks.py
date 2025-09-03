@@ -25,12 +25,8 @@ class Barracks(Building):
 
     @property
     def max_barracks(self) -> int:
-        """
-        We want 1 rax for 1 base, 2 raxes for 2 bases, 3 raxes for 3 bases, 5 raxes for 4 bases, 8 raxes for 5 bases, then 12
-        with a max of 12 raxes
-        """
         _, _, base_amount = self._barracks_info()
-        rax_amount: List[int] = [1, 2, 3, 5, 8, 12, 14, 16]
+        rax_amount: List[int] = [1, 2, 4, 6, 8, 12, 14, 16]
         if (base_amount > len(rax_amount) - 1):
             return max(rax_amount)
         return rax_amount[base_amount - 1]

@@ -1,5 +1,6 @@
 from time import perf_counter
 from typing import Awaitable, Callable, List, override
+from bot.army_composition.army_composition_manager import get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.combat import Combat
@@ -21,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "4.5.0"
+VERSION: str = "5.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -77,6 +78,11 @@ class WickedBot(Superbot):
     @property
     def scouting(self) -> Scouting:
         return get_scouting(self)
+
+    @override
+    @property
+    def composition_manager(self):
+        return get_composition_manager(self)
 
     async def on_start(self):
         """
@@ -134,6 +140,7 @@ class WickedBot(Superbot):
         self.scouting.detect_enemy_army()
         await self.macro.update_threat_level()
         await self.strategy.update_situation()
+        self.composition_manager.calculate_composition()
         
         # Specific Worker Management
         await self.macro.workers_response_to_threat()
@@ -172,41 +179,95 @@ class WickedBot(Superbot):
             'command_center',
         ]
 
-        money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
+        money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
+        money_spenders.extend([
             # basic economy
             self.builder.orbital_command.upgrade,
             self.builder.supply_depot.build,
             self.trainer.scv.train,
             self.builder.refinery.build,
+        ])
+        money_spenders.extend([
             # add ons
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
             # self.builder.starporttechlab.build,
+        ])
+        money_spenders.extend([
             # defense
             self.builder.planetary_fortress.upgrade,
             self.builder.bunker.build,
+        ])
+        money_spenders.extend([
             # very important tech
             self.search.tech_primary,
+        ])
+        money_spenders.extend(self.trainer.ordered_army_trainers)
+        money_spenders.extend([
             # army
             self.trainer.medivac.train,
             self.trainer.ghost.train,
             self.trainer.marauder.train,
             self.trainer.marine.train,
+        ])
+        money_spenders.extend([
             # advanced tech
             self.search.tech_secondary,
             self.builder.armory.build,
+        ])
+        money_spenders.extend([
             # production buildings
             self.builder.starport.build,
             self.builder.factory.build,
             self.builder.barracks.build,
+        ])
+        money_spenders.extend([
             # late game tech
             self.builder.ebay.build,
             self.builder.ghost_academy.build,
             self.builder.fusion_core.build,
+        ])
+        money_spenders.extend([
             # expands
             self.builder.command_center.build,
-        ]
+        ])
+        
+        # money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
+        #     # basic economy
+        #     self.builder.orbital_command.upgrade,
+        #     self.builder.supply_depot.build,
+        #     self.trainer.scv.train,
+        #     self.builder.refinery.build,
+        #     # add ons
+        #     self.builder.barracks_techlab.build,
+        #     self.builder.barracks_reactor.build,
+        #     self.builder.factory_reactor.build,
+        #     # self.builder.starporttechlab.build,
+        #     # defense
+        #     self.builder.planetary_fortress.upgrade,
+        #     self.builder.bunker.build,
+        #     # very important tech
+        #     self.search.tech_primary,
+        #     # army
+        #     self.trainer.medivac.train,
+        #     self.trainer.ghost.train,
+        #     self.trainer.marauder.train,
+        #     self.trainer.marine.train,
+        #     # advanced tech
+        #     self.search.tech_secondary,
+        #     self.builder.armory.build,
+        #     # production buildings
+        #     self.builder.starport.build,
+        #     self.builder.factory.build,
+        #     self.builder.barracks.build,
+        #     # late game tech
+        #     self.builder.ebay.build,
+        #     self.builder.ghost_academy.build,
+        #     self.builder.fusion_core.build,
+        #     # expands
+        #     self.builder.command_center.build,
+        # ]
         resources: Resources = Resources.from_tuples(
             (self.minerals, False),
             (self.vespene, False)
@@ -258,6 +319,8 @@ class WickedBot(Superbot):
         # await self.debug.bunker_positions()
         # await self.debug.wall_placement()
         await self.debug.spawn_test_units()
+        await self.debug.composition_manager()
+        await self.debug.composition_priorities()
         end_time: float = perf_counter()
         
         self.client.debug_text_screen(

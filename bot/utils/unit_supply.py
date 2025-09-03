@@ -131,6 +131,9 @@ supply[UnitTypeId.TEMPEST] = 4
 supply[UnitTypeId.CARRIER] = 6
 supply[UnitTypeId.MOTHERSHIP] = 8
 
+def unit_supply(unit_type: UnitTypeId) -> int:
+    return supply.get(unit_type, 0)
+
 def units_supply(army: Units) -> float:
     army_supply: float = 0
     for unit in army:

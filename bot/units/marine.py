@@ -43,8 +43,8 @@ class Marine(Train):
                     and rax.orders[0].progress >= 0.95
                 )
             )
-            and not self.trainer.should_train_marauders
-            and not self.trainer.should_train_ghosts
+            and not self.bot.composition_manager.should_train(UnitTypeId.MARAUDER)
+            and not self.bot.composition_manager.should_train(UnitTypeId.GHOST)
         )
     
     @override

@@ -10,13 +10,6 @@ class Ghost(Train):
         self.unitId = UnitTypeId.GHOST
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Ghost'
-    
-    @property
-    def custom_conditions(self) -> bool:
-        return (
-            self.trainer.should_train_ghosts
-            and not self.trainer.should_train_marauders
-        )
 
     @override
     @property

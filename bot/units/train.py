@@ -8,7 +8,7 @@ from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 from bot.utils.unit_supply import supply
-
+from bot.utils.unit_tags import worker_types
 
 if TYPE_CHECKING:
     from .trainer import Trainer
@@ -30,6 +30,10 @@ class Train:
         return (
             self.bot.supply_used + supply[self.unitId] <= self.bot.supply_cap
             and self.building_group.amount > 0
+            and (
+                self.unitId in worker_types
+                or self.bot.composition_manager.should_train(self.unitId)
+            )
         )
     
     @property

@@ -12,15 +12,6 @@ class Medivac(Train):
         self.buildingIds = [UnitTypeId.STARPORT]
         self.name = 'Medivac'
 
-    @property
-    def medivac_amount(self) -> float:
-        medivac_pending: float = self.bot.already_pending(self.unitId)
-        return self.bot.units(UnitTypeId.MEDIVAC).amount + medivac_pending
-
-    @property
-    def max_amount(self) -> int:
-        return 10
-
     @override
     @property
     def custom_conditions(self) -> bool:
@@ -33,11 +24,8 @@ class Medivac(Train):
         barracks_inactive: Units = self.bot.structures(UnitTypeId.BARRACKS).ready.filter(lambda rax: not rax.is_active)
 
         return (
-            self.medivac_amount < self.max_amount
-            and (
-                bio_supply >= 10
-                or barracks_inactive.amount == 0
-            )
+            bio_supply >= 10
+            or barracks_inactive.amount == 0
         )
     
     @override

@@ -1,5 +1,6 @@
 import math
 from typing import List, Optional
+from bot.army_composition.composition import Composition
 from bot.macro.expansion import Expansion
 from bot.superbot import Superbot
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
@@ -63,6 +64,14 @@ class Debug:
         self.bot.client.debug_text_world(
             text,
             Point3((pos.x, pos.y, z_height)),
+            color=draw_color,
+            size=font_size,
+        )
+
+    def draw_text_on_screen(self, text: str, pos: Point2 = Point2((0.01, 0.01)), draw_color: tuple = WHITE, font_size: int = 12) -> None:
+        self.bot.client.debug_text_screen(
+            text,
+            pos,
             color=draw_color,
             size=font_size,
         )
@@ -331,3 +340,14 @@ class Debug:
         await self.bot.client.debug_control_enemy()
         await self.bot.client.debug_show_map()
             
+
+    async def composition_manager(self):
+        composition: Composition = self.bot.composition_manager.composition
+        for i, (string, color) in enumerate(composition.debug_info):
+            position: Point2 = Point2((0.01, 0.01 + 0.015 * (i + 1)))
+            self.draw_text_on_screen(string, position, color)
+
+    async def composition_priorities(self):
+        for i, unit_type in enumerate(self.bot.trainer.ordered_unit_types):
+            position: Point2 = Point2((0.9, 0.02 + 0.015 * (i + 1)))
+            self.draw_text_on_screen(unit_type.name, position)
