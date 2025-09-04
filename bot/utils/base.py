@@ -46,10 +46,14 @@ class Base:
         return self.buildings.closest_distance_to(position.position)
     
     def threat_detection(self) -> Threat:
+        # we only detect towers in the main and b2 as canon rush
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
                 unit.type_id in tower_types
-                and self.buildings.closest_distance_to(unit) <= self.BASE_SIZE
+                and (
+                    unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
+                    or unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
+                )
             )
         )
         if (enemy_towers.amount >= 1):
@@ -128,7 +132,7 @@ class Base:
         # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
         if (canons.amount == 0):
             for pylon in pylons:
-                self.pull_workers(self.workers, pylon, 4)
+                self.pull_workers(pylon, 4)
 
         for canon in canons:
             if (canon.build_progress <= 0.5):
@@ -154,13 +158,13 @@ class Base:
         for enemy_scout in self.enemy_units.filter(lambda unit: unit.type_id in worker_types):
             if (self.available_workers.amount == 0):
                 return
-            closest_worker: Unit = self.available_workers.closest_to(enemy_scout)
             # if no scv is already chasing
             attacking_workers: Units = self.workers.filter(
                 lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
             )
             if (attacking_workers.amount < max_scv_attacking):
                 # pull 1 scv to follow it
+                closest_worker: Unit = self.available_workers.closest_to(enemy_scout)
                 closest_worker.attack(enemy_scout)
 
     def attack_threat(self) -> None:

@@ -1,6 +1,7 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
+from bot.utils.matchup import Matchup
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
@@ -21,11 +22,13 @@ class GhostAcademy(Building):
         ghost_academy_count: int = self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount + self.bot.already_pending(UnitTypeId.GHOSTACADEMY)
         
         # We want a ghost academy once we have at least 4 bases and 2/2 started
+        # but no ghost in TvT
         return (
             ghost_academy_tech_requirement == 1
             and upgrades_tech_requirement > 0
             and self.bot.townhalls.amount >= 4
             and ghost_academy_count == 0
+            and self.bot.matchup != Matchup.TvT
         )
     
     @override

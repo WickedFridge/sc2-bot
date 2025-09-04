@@ -1,5 +1,6 @@
 from typing import override
 from bot.buildings.building import Building
+from bot.macro.expansion import Expansion
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -36,12 +37,14 @@ class CommandCenter(Building):
     def position(self) -> Point2:
         townhall_amount: int = self.bot.townhalls.amount
         cc_position: Point2 = self.bot.expansions.next.position
+        next_expansion: Expansion = self.bot.expansions.next
+        near_cc_position: Point2 = self.bot.expansions.main.position.towards(cc_position, 2)
         match (townhall_amount):
             case 0:
                 return self.bot.expansions.main.position
             case 1:
-                return self.bot.expansions.next.position
+                return next_expansion.position if next_expansion.is_safe else near_cc_position
             case 2:
-                return self.bot.expansions.main.position.towards(cc_position, 2)
+                return near_cc_position
             case _:
-                return self.bot.townhalls.closest_to(cc_position).position.towards(cc_position, 2)
+                return self.bot.expansions.safe.closest_to(cc_position).position.towards(cc_position, 2)
