@@ -121,7 +121,7 @@ class Base:
         
         # try to destroy the constructing bunkers and give up on finished ones
         for bunker in bunkers.filter(lambda unit: unit.build_progress < 1):
-            self.pull_workers(self.available_workers, bunker, 4)
+            self.pull_workers(bunker, 4)
 
     def defend_cannon_rush(self) -> None:
         canons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)

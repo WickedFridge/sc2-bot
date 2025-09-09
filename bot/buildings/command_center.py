@@ -47,4 +47,4 @@ class CommandCenter(Building):
             case 2:
                 return near_cc_position
             case _:
-                return self.bot.expansions.safe.closest_to(cc_position).position.towards(cc_position, 2)
+                return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
