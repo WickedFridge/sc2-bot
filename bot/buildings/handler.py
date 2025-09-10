@@ -373,6 +373,18 @@ class BuildingsHandler:
                         else:
                             print("no free reactor")
 
+    async def salvage_bunkers(self) -> None:
+        planetaries: Units = self.bot.structures(UnitTypeId.PLANETARYFORTRESS)
+        if (planetaries.amount == 0):
+            return
+        
+        BASE_SIZE: int = 8
+        bunkers_near_planetaries: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda unit: planetaries.closest_distance_to(unit) <= BASE_SIZE
+        )
+        for bunker in bunkers_near_planetaries:
+            bunker(AbilityId.SALVAGEEFFECT_SALVAGE)
+    
     async def find_land_position(self, building: Unit):
         possible_land_positions_offset = sorted(
             (Point2((x, y)) for x in range(-10, 10) for y in range(-10, 10)),

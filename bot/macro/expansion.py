@@ -204,10 +204,10 @@ class Expansion:
 
     @property
     def is_defended(self) -> bool:
-        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready
-        if (bunkers.amount == 0):
+        defenses: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready
+        if (defenses.amount == 0):
             return False
-        return (bunkers.closest_distance_to(self.position) <= 12)
+        return (defenses.closest_distance_to(self.position) <= 12)
     
     @property
     def retreat_position(self) -> Point2:

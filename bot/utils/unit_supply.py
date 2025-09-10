@@ -7,7 +7,7 @@ supply: dict[UnitTypeId, int] = {}
 # Terran Units
 # creeps
 supply[UnitTypeId.MULE] = 0
-supply[UnitTypeId.AUTOTURRET] = 0
+supply[UnitTypeId.AUTOTURRET] = 2
 supply[UnitTypeId.MISSILETURRET] = 0
 supply[UnitTypeId.BUNKER] = 8
 supply[UnitTypeId.PLANETARYFORTRESS] = 12
@@ -44,9 +44,10 @@ supply[UnitTypeId.BATTLECRUISER] = 6
 # creeps
 supply[UnitTypeId.EGG] = 0
 supply[UnitTypeId.LARVA] = 0
-supply[UnitTypeId.BROODLING] = 0
+supply[UnitTypeId.BROODLING] = 0.5
 supply[UnitTypeId.SLAYNSWARMHOSTSPAWNFLYER] = 0
-supply[UnitTypeId.LOCUSTMP] = 0
+supply[UnitTypeId.LOCUSTMPFLYING] = 0
+supply[UnitTypeId.LOCUSTMP] = 2
 supply[UnitTypeId.CHANGELING] = 0
 supply[UnitTypeId.CHANGELINGMARINE] = 0
 supply[UnitTypeId.CHANGELINGMARINESHIELD] = 0
@@ -102,7 +103,7 @@ supply[UnitTypeId.ULTRALISKBURROWED] = 6
 # Protoss Units
 # creeps
 supply[UnitTypeId.ADEPTPHASESHIFT] = 0
-supply[UnitTypeId.INTERCEPTOR] = 0.5
+supply[UnitTypeId.INTERCEPTOR] = 1
 supply[UnitTypeId.PHOTONCANNON] = 3
 
 # Tier 1
@@ -143,6 +144,6 @@ def units_supply(army: Units) -> float:
 def weighted_units_supply(units: Units) -> float:
     army_supply: float = 0
     for unit in units:
-        health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health + unit.shield_max)
+        health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health_max + unit.shield_max)
         army_supply += supply[unit.type_id] * health_percentage
     return army_supply

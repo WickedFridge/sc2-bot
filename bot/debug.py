@@ -141,11 +141,6 @@ class Debug:
 
     async def selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
-        # for unit in selected_units:
-        #     print(f'Selected unit: {unit.name}')
-        #     print(f'is dropping: {unit.is_using_ability(AbilityId.UNLOADALLAT_MEDIVAC)}')
-        #     print(f'unit buffs: {unit.buffs}')
-        
         selected_positions: List[Point2] = []
         for unit in selected_units:
             buildable: bool = self.bot.map.in_building_grid(unit.position)
@@ -173,8 +168,9 @@ class Debug:
                 x += 1.0
             
         for unit in selected_units:
-            buff_count: int = len(unit.buffs)
-            self.draw_text_on_world(unit.position, f'{unit.name} : {buff_count} buffs')
+            unit: Unit
+            order: str = "idle" if unit.is_idle else unit.orders[0].__repr__()
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}]')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')

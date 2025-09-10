@@ -51,7 +51,8 @@ menacing: List[UnitTypeId] = [
 ]
 dont_attack: List[UnitTypeId] = [
     UnitTypeId.EGG,
-    UnitTypeId.LARVA
+    UnitTypeId.LARVA,
+    UnitTypeId.INTERCEPTOR
 ]
 add_ons: List[UnitTypeId] = [
     UnitTypeId.BARRACKSREACTOR,
