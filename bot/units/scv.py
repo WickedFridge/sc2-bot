@@ -15,6 +15,7 @@ class Scv(Train):
             UnitTypeId.PLANETARYFORTRESS,
         ]
         self.name = 'SCV'
+        self.order_id = AbilityId.COMMANDCENTERTRAIN_SCV
 
     @property
     def scv_amount(self) -> float:

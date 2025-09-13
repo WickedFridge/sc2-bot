@@ -229,11 +229,11 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_disengage(unit, army.units)
                 case UnitTypeId.MARINE:
-                    self.micro.bio_disengage(unit)
+                    await self.micro.bio_disengage(unit)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio_disengage(unit)
+                    await self.micro.bio_disengage(unit)
                 case UnitTypeId.GHOST:
-                    self.micro.bio_disengage(unit)
+                    await self.micro.bio_disengage(unit)
                 case _:
                     await self.micro.retreat(unit)
 

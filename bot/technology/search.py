@@ -2,6 +2,7 @@ from typing import List
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.technology.tech import Tech
+from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -19,19 +20,19 @@ class Search:
         super().__init__()
         self.bot = bot
         self.tech_tree_secondary = [
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.STIMPACK),
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.SHIELDWALL, [UpgradeId.STIMPACK]),
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.PUNISHERGRENADES, [UpgradeId.SHIELDWALL]),
+            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.STIMPACK, AbilityId.BARRACKSTECHLABRESEARCH_STIMPACK),
+            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.SHIELDWALL, AbilityId.RESEARCH_COMBATSHIELD, [UpgradeId.STIMPACK]),
+            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.PUNISHERGRENADES, AbilityId.RESEARCH_CONCUSSIVESHELLS, [UpgradeId.SHIELDWALL]),
             # Tech(UnitTypeId.ARMORY, AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1, is_ability = True),
         ]
         self.tech_tree_primary = [
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL1),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL1),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
-            Tech(UnitTypeId.FUSIONCORE, UpgradeId.MEDIVACCADUCEUSREACTOR)
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL1),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL1, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL1),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL3, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
+            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL3, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
+            Tech(UnitTypeId.FUSIONCORE, UpgradeId.MEDIVACCADUCEUSREACTOR, AbilityId.FUSIONCORERESEARCH_RESEARCHMEDIVACENERGYUPGRADE)
         ]
     
     async def tech_primary(self, resources: Resources) -> Resources:
@@ -69,7 +70,9 @@ class Search:
                     building(technology.upgrade)
                 else:
                     building.research(technology.upgrade)
-                
+                # add a fake order to the building so that we know it's not idle anymore
+                building.orders.append(FakeOrder(technology.order))
+
                 # only one research per frame
                 return resources_updated
         return resources_updated

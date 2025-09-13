@@ -1,5 +1,6 @@
 from typing import override
 from bot.units.train import Train
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
@@ -11,6 +12,7 @@ class Marine(Train):
         self.unitId = UnitTypeId.MARINE
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Marine'
+        self.order_id = AbilityId.BARRACKSTRAIN_MARINE
     
     def no_addon_conditions(self, rax: Unit) -> bool:
         return (

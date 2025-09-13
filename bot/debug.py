@@ -1,3 +1,4 @@
+import json
 import math
 from typing import List, Optional
 from bot.army_composition.composition import Composition
@@ -9,7 +10,7 @@ from bot.utils.unit_functions import find_by_tag
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
-from sc2.unit import Unit
+from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 
 
@@ -305,6 +306,10 @@ class Debug:
             if (message.startswith("Tag:")):
                 return
 
+            if (message.startswith("order")):
+                self.order()
+                return
+            
             parts = message.split(" ", 2)  # split into at most 3 parts
             amount_str: str = parts[0]
             unit_str: str = parts[1] if len(parts) > 1 else ""
@@ -320,6 +325,16 @@ class Debug:
                 print(f'Unknown unit type: {unit} !')
                 return
             await self._create_units(amount, unit_type, player)
+
+    def order(self):
+        selected_buildings: Units = self.bot.structures.selected
+        if (selected_buildings.amount == 0):
+            return
+        building: Unit = selected_buildings.first
+        order: UnitOrder = building.orders[0]
+        print("####################################################")
+        print(vars(order.ability))
+        print("####################################################")
 
 
     async def zerg_rush(self):

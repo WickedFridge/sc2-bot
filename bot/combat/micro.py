@@ -71,26 +71,6 @@ class Micro:
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
     def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
-        # if (safety_distance is None):
-        #     safety_distance =  -1 + 3 * (1 - math.pow(medivac.health_percentage, 2))
-        # # if medivac is in danger
-        # menacing_enemy_units: Units = self.enemy_units.filter(
-        #     lambda enemy_unit: (
-        #         (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
-        #         and enemy_unit.is_facing(medivac, math.pi / 2)
-        #         and enemy_unit.distance_to(medivac) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
-        #     )
-        # )
-        # # if medivac in danger, retreat and drop units
-        # if (menacing_enemy_units.amount == 0):
-        #     return False
-        
-        # Micro.move_away(medivac, menacing_enemy_units.center, max(1, safety_distance))
-        # if (medivac.cargo_used >= 1):
-        #     # unload all units if we can
-        #     medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
-        # return True
-        
         if (not self.safety_disengage(medivac, safety_distance)):
             return False
         if (medivac.cargo_used >= 1):
@@ -124,7 +104,7 @@ class Micro:
             return
         
         # if medivac not in danger, heal the closest damaged unit
-        self.medivac_heal(medivac, local_army)
+        await self.medivac_heal(medivac, local_army)
 
     async def medivac_fight(self, medivac: Unit, local_army: Units):
         # unload if we can, then move towards the closest ground unit
@@ -240,7 +220,7 @@ class Micro:
             self.bio(bio)
             return
         
-        close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
+        close_bunkers: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
         closest_bunker: Unit = close_bunkers.closest_to(bio) if close_bunkers else None
         if (closest_bunker):
             # handle stim
@@ -381,7 +361,7 @@ class Micro:
         ):
             bio_unit(AbilityId.EFFECT_STIM)
 
-    def bio_disengage(self, bio_unit: Unit):
+    async def bio_disengage(self, bio_unit: Unit):
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
         
         # handle stim
@@ -390,7 +370,7 @@ class Micro:
         if (enemy_units_in_range.amount >= 1):
             self.hit_n_run(bio_unit, enemy_units_in_range)
         else:
-            self.retreat(bio_unit)
+            await self.retreat(bio_unit)
     
     # TODO if enemy units are menacing something else than the bunker, get out and fight
     def defend_around_bunker(self, unit: Unit, enemy_units: Units, bunker: Unit):

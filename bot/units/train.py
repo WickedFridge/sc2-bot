@@ -4,7 +4,9 @@ from typing import TYPE_CHECKING
 
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
+from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 from bot.utils.unit_supply import supply
@@ -18,6 +20,7 @@ class Train:
     trainer: Trainer
     unitId: UnitTypeId
     buildingIds: List[UnitTypeId]
+    order_id: AbilityId
     name: str
     i: int = 0
         
@@ -29,7 +32,7 @@ class Train:
     def default_conditions(self) -> bool:
         return (
             self.bot.supply_used + supply[self.unitId] <= self.bot.supply_cap
-            and self.building_group.amount > 0
+            and self.building_group.amount >= 1
             and (
                 self.unitId in worker_types
                 or self.bot.composition_manager.should_train(self.unitId)
@@ -79,5 +82,7 @@ class Train:
                 return resources_updated            
             self.log(self.i)
             building.train(self.unitId)
+            # add a fake order so that other function know that we are not idle anymore
+            building.orders.append(FakeOrder(self.order_id))
             self.i += 1
         return resources_updated
