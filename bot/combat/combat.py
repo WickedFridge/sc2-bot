@@ -1,9 +1,6 @@
-import math
-from typing import List, Optional, Set
+from typing import List, Set
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
-from bot.combat.threats import Threat
-from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
@@ -11,7 +8,6 @@ from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import grid_offsets
-from bot.utils.unit_functions import find_by_tag
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -47,13 +43,6 @@ class Combat:
         for army in self.armies:
             result += army.armored_ground_supply
         return result
-
-    def debug_cluster(self) -> None:
-        clusters: List[Units] = self.get_army_clusters()
-        for i, cluster in enumerate(clusters):
-            army = Army(cluster, self.bot)
-            print("army", i)
-            print(army.recap)
             
     def get_army_clusters(self, radius: float = 15) -> List[Army]:
         army: Units = self.bot.units.of_type([
@@ -68,6 +57,11 @@ class Combat:
         visited_ids: Set[int] = set()
         clusters: List[Units] = []
 
+        # create a first cluster with all Reapers
+        reapers: Units = self.bot.units(UnitTypeId.REAPER)
+        if (reapers.amount >= 1):
+            clusters.append(Army(Units(reapers, self.bot), self.bot))
+        
         for unit in units_copy:
             if unit.tag in visited_ids:
                 continue  # Skip if already visited
@@ -95,24 +89,80 @@ class Combat:
             clusters.append(Army(Units(cluster, self.bot), self.bot))
         return clusters
 
+    
+    @property
+    def global_enemy_units(self) -> Units:
+        return self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.can_be_attacked
+                and unit.type_id not in dont_attack
+            )
+        )    
+    
+    def debug_cluster(self) -> None:
+        clusters: List[Units] = self.get_army_clusters()
+        for i, cluster in enumerate(clusters):
+            army = Army(cluster, self.bot)
+            print("army", i)
+            print(army.recap)
+
     async def select_orders(self, iteration: int, situation: Situation):
         # update local armies
         # Scale radius in function of army supply
         # old_armies: List[Army] = self.armies.copy()
         self.armies = self.get_army_clusters(self.army_radius)
         
+        for army in self.armies:
+            army.orders = self.get_army_orders(army, situation)
+
+    def reapers_orders(self, army: Army, situation: Situation) -> Orders:
+        local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
+        local_enemy_army: Army = Army(local_enemy_units, self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply
         global_enemy_buildings: Units = self.bot.enemy_structures
-        global_enemy_units: Units = self.bot.enemy_units.filter(
+        local_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                unit.can_be_attacked
-                and unit.type_id not in dont_attack
+                unit.distance_to(army.units.center) <= 30
+                and unit.can_be_attacked
+                and unit.type_id in worker_types
             )
         )
-        
-        for army in self.armies:
-            army.orders = self.get_army_orders(army, situation, global_enemy_buildings, global_enemy_units)
+        # useful in case of canon/bunker rush
+        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
+            lambda unit: unit.type_id in tower_types
+        )
+        closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
+        distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
 
-    def get_army_orders(self, army: Army, situation: Situation, global_enemy_buildings: Units, global_enemy_units: Units) -> Orders:
+        # if there are units, fight or retreat
+        if (situation == Situation.BUNKER_RUSH):
+            return Orders.DEFEND_BUNKER_RUSH
+        if (situation == Situation.CANON_RUSH):
+            return Orders.DEFEND_CANON_RUSH
+            
+        if (local_enemy_supply > 0):        
+            if (distance_building_to_enemies <= BASE_SIZE):
+                return Orders.FIGHT_DEFENSE
+            return Orders.FIGHT_OFFENSE
+        
+        # if we should defend
+        if (distance_building_to_enemies <= 10):
+            return Orders.DEFEND
+
+        # if enemy is a workers, focus them
+        if (local_enemy_workers.amount >= 1):
+            return Orders.HARASS
+        
+        # if we have few life, heal up
+        if (army.bio_health_percentage <= 0.3):
+            return Orders.HEAL_UP
+        return Orders.SCOUT
+    
+    def get_army_orders(self, army: Army, situation: Situation) -> Orders:
+        # specific orders for reapers
+        if (army.units(UnitTypeId.REAPER).amount >= 1):
+            return self.reapers_orders(army, situation)
+        
         # define local enemies
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
         local_enemy_buildings = self.get_local_enemy_buildings(army.units.center, self.army_radius)
@@ -123,8 +173,9 @@ class Combat:
                 and unit.type_id in worker_types
             )
         )
+        global_enemy_buildings: Units = self.bot.enemy_structures
         # useful in case of canon/bunker rush
-        global_enemy_menacing_units_buildings: Units = global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
+        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
 
@@ -151,14 +202,14 @@ class Combat:
         # debug info
         # self.draw_text_on_world(army.center, f'{local_enemy_army.recap}')
 
-        # if local_army_supply > local threat
-        # attack local_threat if it exists
-        if (local_enemy_supply + local_enemy_buildings.amount > 0):        
-            if (situation == Situation.BUNKER_RUSH):
-                return Orders.DEFEND_BUNKER_RUSH
-            if (situation == Situation.CANON_RUSH):
-                return Orders.DEFEND_CANON_RUSH
-
+        # first handle specific situations
+        if (situation == Situation.BUNKER_RUSH):
+            return Orders.DEFEND_BUNKER_RUSH
+        if (situation == Situation.CANON_RUSH):
+            return Orders.DEFEND_CANON_RUSH
+        
+        # Deal with local enemy supply
+        if (local_enemy_supply):
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
             if (
                 stim_completed and (
@@ -237,7 +288,7 @@ class Combat:
             match army.orders:
                 case Orders.PICKUP_LEAVE:
                     await self.execute.pickup_leave(army)
-                
+    
                 case Orders.RETREAT:
                     await self.execute.retreat_army(army)
 
@@ -272,7 +323,7 @@ class Combat:
                     await self.execute.harass(army)            
                      
                 case Orders.KILL_BUILDINGS:
-                    await self.execute.kill_buildings(army)
+                    await self.execute.kill_buildings(army, self.army_radius)
 
                 case Orders.CHASE_BUILDINGS:
                     await self.execute.chase_buildings(army)
@@ -282,6 +333,9 @@ class Combat:
 
                 case Orders.REGROUP:
                     self.execute.regroup(army, self.armies)
+
+                case Orders.SCOUT:
+                    self.execute.scout(army)
     
     async def handle_bunkers(self):
         for expansion in self.bot.expansions.defended:
@@ -461,14 +515,11 @@ class Combat:
         return round(closest_distance_to_other, 1)
                 
     def get_local_enemy_units(self, position: Point2, radius: int = 15) -> Units:
-        global_enemy_units: Units = self.bot.enemy_units.filter(
+        local_enemy_units: Units = self.global_enemy_units.filter(
             lambda unit: (
-                unit.can_be_attacked
-                and unit.type_id not in dont_attack
+                unit.distance_to(position) <= (10 + radius)
+                and unit.type_id not in worker_types
             )
-        )
-        local_enemy_units: Units = global_enemy_units.filter(
-            lambda unit: unit.distance_to(position) <= (10 + radius)
         )
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: unit.type_id in tower_types and unit.can_be_attacked

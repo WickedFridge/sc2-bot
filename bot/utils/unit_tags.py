@@ -32,7 +32,6 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.MISSILETURRET,
     UnitTypeId.NYDUSCANAL,
     UnitTypeId.AUTOTURRET,
-    UnitTypeId.PYLON,
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -65,6 +64,7 @@ add_ons: List[UnitTypeId] = [
     UnitTypeId.TECHLAB,
 ]
 bio: List[UnitTypeId] = [
+    UnitTypeId.REAPER,
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER,
     UnitTypeId.GHOST,
@@ -72,4 +72,17 @@ bio: List[UnitTypeId] = [
 bio_stimmable: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER
+]
+building_priorities: List[UnitTypeId] = [
+    UnitTypeId.COMMANDCENTER,
+    UnitTypeId.ORBITALCOMMAND,
+    UnitTypeId.PLANETARYFORTRESS,
+    UnitTypeId.HATCHERY,
+    UnitTypeId.LAIR,
+    UnitTypeId.HIVE,
+    UnitTypeId.NEXUS,
+    UnitTypeId.PYLON,
+    UnitTypeId.ENGINEERINGBAY,
+    UnitTypeId.EVOLUTIONCHAMBER,
+    UnitTypeId.FORGE
 ]

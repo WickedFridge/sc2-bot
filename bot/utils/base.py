@@ -42,6 +42,10 @@ class Base:
     def available_workers(self) -> Units:
         return self.workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
 
+    @property
+    def full_available_workers(self) -> Units:
+        return self.bot.workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
+
     def distance_to(self, position: Unit | Point2) -> float:
         return self.buildings.closest_distance_to(position.position)
     
@@ -156,7 +160,7 @@ class Base:
 
     def track_enemy_scout(self, max_scv_attacking = 1) -> None:
         for enemy_scout in self.enemy_units.filter(lambda unit: unit.type_id in worker_types):
-            if (self.available_workers.amount == 0):
+            if (self.full_available_workers.amount == 0):
                 return
             # if no scv is already chasing
             attacking_workers: Units = self.workers.filter(
@@ -164,8 +168,15 @@ class Base:
             )
             if (attacking_workers.amount < max_scv_attacking):
                 # pull 1 scv to follow it
-                closest_worker: Unit = self.available_workers.closest_to(enemy_scout)
+                closest_worker: Unit = self.full_available_workers.closest_to(enemy_scout)
                 closest_worker.attack(enemy_scout)
+        
+        damaged_workers = self.workers.filter(
+            lambda unit: unit.health_percentage < 1
+        ).sorted(lambda unit: unit.health_percentage)
+
+        max_workers_repairing: int = max(5, self.workers.amount / 3)
+        self.repair_units(self.available_workers, damaged_workers, max_workers_repairing)
 
     def attack_threat(self) -> None:
         if (self.available_workers.amount == 0):
@@ -224,14 +235,14 @@ class Base:
         self.repair_units(self.available_workers, damaged_mechanical_units, max_workers_repairing)
 
     def pull_workers(self, target: Unit, amount: int) -> None:
-        workers_attacking_tower: int = self.workers.filter(
+        workers_attacking_tower: int = self.bot.workers.filter(
             lambda unit: unit.is_attacking and unit.order_target == target.tag
         ).amount
 
         if (workers_attacking_tower >= amount):
             return
 
-        workers_pulled: Units = self.available_workers.sorted_by_distance_to(target).take(amount - workers_attacking_tower)
+        workers_pulled: Units = self.full_available_workers.sorted_by_distance_to(target).take(amount - workers_attacking_tower)
         
         for worker_pulled in workers_pulled:
             worker_pulled.attack(target)

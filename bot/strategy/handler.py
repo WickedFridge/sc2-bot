@@ -42,7 +42,7 @@ class StrategyHandler:
             local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
             enemy_towers: Units = self.bot.enemy_structures.filter(
                 lambda unit: (
-                    unit.type_id in tower_types
+                    unit.type_id in tower_types or unit.type_id == UnitTypeId.PYLON
                     and local_buildings.closest_distance_to(unit) <= 10
                 )
             )

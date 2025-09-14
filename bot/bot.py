@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.1.0"
+VERSION: str = "5.2.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -234,41 +234,6 @@ class WickedBot(Superbot):
             self.builder.command_center.build,
         ])
         
-        # money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = [
-        #     # basic economy
-        #     self.builder.orbital_command.upgrade,
-        #     self.builder.supply_depot.build,
-        #     self.trainer.scv.train,
-        #     self.builder.refinery.build,
-        #     # add ons
-        #     self.builder.barracks_techlab.build,
-        #     self.builder.barracks_reactor.build,
-        #     self.builder.factory_reactor.build,
-        #     # self.builder.starporttechlab.build,
-        #     # defense
-        #     self.builder.planetary_fortress.upgrade,
-        #     self.builder.bunker.build,
-        #     # very important tech
-        #     self.search.tech_primary,
-        #     # army
-        #     self.trainer.medivac.train,
-        #     self.trainer.ghost.train,
-        #     self.trainer.marauder.train,
-        #     self.trainer.marine.train,
-        #     # advanced tech
-        #     self.search.tech_secondary,
-        #     self.builder.armory.build,
-        #     # production buildings
-        #     self.builder.starport.build,
-        #     self.builder.factory.build,
-        #     self.builder.barracks.build,
-        #     # late game tech
-        #     self.builder.ebay.build,
-        #     self.builder.ghost_academy.build,
-        #     self.builder.fusion_core.build,
-        #     # expands
-        #     self.builder.command_center.build,
-        # ]
         resources: Resources = Resources.from_tuples(
             (self.minerals, False),
             (self.vespene, False)
@@ -278,18 +243,7 @@ class WickedBot(Superbot):
                 break
             resources = await money_spender(resources)
 
-            # self.client.debug_text_screen(
-            #     f'{money_spender_names[i]}:',
-            #     (0.55,0.05 + 0.02 * i),
-            #     LIGHTBLUE,
-            #     14,
-            # )
-            # self.client.debug_text_screen(
-            #     f'{resources.minerals.amount}|{resources.minerals.short}/{resources.vespene.amount}|{resources.vespene.short}',
-            #     (0.7,0.05 + 0.02 * i),
-            #     LIGHTBLUE,
-            #     14,
-            # )
+
         
         # Control Attacking Units
         await self.combat.select_orders(iteration, self.strategy.situation)

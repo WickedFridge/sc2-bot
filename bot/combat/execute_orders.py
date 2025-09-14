@@ -9,7 +9,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types
+from ..utils.unit_tags import worker_types, building_priorities
 
 PICKUP_RANGE: int = 3
 
@@ -157,6 +157,8 @@ class Execute:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
                 self.micro.medivac_heal(unit, army.units)
+            if (unit.type_id == UnitTypeId.REAPER):
+                self.micro.retreat(unit)
             # group units that aren't near the center
             else:
                 if (unit.distance_to(army.center) > 5):
@@ -169,6 +171,8 @@ class Execute:
     async def fight(self, army: Army):
         for unit in army.units:
             match unit.type_id:
+                case UnitTypeId.REAPER:
+                    self.micro.reaper(unit)
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
@@ -191,6 +195,8 @@ class Execute:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
+                case UnitTypeId.REAPER:
+                    self.micro.reaper(unit)
                 case UnitTypeId.MARINE:
                     self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.MARAUDER:
@@ -349,7 +355,7 @@ class Execute:
             return
 
         #TODO improve this
-        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.main.position)))
+        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position)))
         for unit in army.units:
             unit.attack(canons.first)
 
@@ -368,17 +374,34 @@ class Execute:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_fight(unit, army.units)
             else:
-                unit.attack(enemy_workers_close.closest_to(unit))
+                if (unit.health_percentage >= 0.85):
+                    self.micro.stim_bio(unit)
+                closest_worker: Unit = enemy_workers_close.closest_to(unit)
+                buildings_in_range: Units = self.bot.enemy_structures.filter(
+                    lambda building: unit.target_in_range(building)
+                ).sorted(
+                    lambda building: (building.type_id not in building_priorities, building.health + building.shield)
+                )
+                if (unit.distance_to(closest_worker) <= unit.ground_range + 2 or unit.weapon_cooldown > 0 or buildings_in_range.amount == 0):
+                    unit.attack(enemy_workers_close.closest_to(unit))
+                else:
+                    unit.attack(buildings_in_range.first)                    
     
-    async def kill_buildings(self, army: Army):
+    async def kill_buildings(self, army: Army, radius: float):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.distance_to(army.units.center) <= 10 and unit.can_be_attacked
+            lambda unit: unit.distance_to(army.units.center) <= radius and unit.can_be_attacked
+        ).sorted(
+            lambda building: (building.type_id not in building_priorities, building.health + building.shield)
         )
-        local_enemy_buildings.sort(key=lambda building: building.health)
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_fight(unit, army.units)
+                if (unit.cargo_used >= 4):
+                    await self.micro.medivac_fight_drop(unit, local_enemy_buildings.first.position)
+                else:
+                    await self.micro.medivac_fight(unit, army.units)
             else:
+                if (unit.health_percentage >= 0.85):
+                    self.micro.stim_bio(unit)
                 unit.attack(local_enemy_buildings.first)
 
     async def attack_nearest_base(self, army: Army):
@@ -416,3 +439,7 @@ class Execute:
                 closest_army_position = other_army.center
         for unit in army.units:
             unit.move(closest_army_position)
+
+    def scout(self, army: Army):
+        for reaper in army.units:
+            reaper.move(self.bot.expansions.enemy_main.mineral_line)

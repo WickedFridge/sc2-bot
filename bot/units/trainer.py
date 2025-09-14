@@ -7,7 +7,9 @@ from bot.units.ghost import Ghost
 from bot.units.marauder import Marauder
 from bot.units.marine import Marine
 from bot.units.medivac import Medivac
+from bot.units.reaper import Reaper
 from bot.units.scv import Scv
+from bot.units.train import Train
 from bot.units.viking import Viking
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -23,52 +25,51 @@ class Trainer:
     bot: Superbot
     combat: Combat
     scv: Scv
-    medivac: Medivac
+    reaper: Reaper
     marine: Marine
     marauder: Marauder
+    medivac: Medivac
     ghost: Ghost
     viking: Viking
+    army_trainers: Dict[UnitTypeId, Train]
     
     def __init__(self, bot: Superbot, combat: Combat) -> None:
         self.bot = bot
         self.combat = combat
         self.scv = Scv(self)
-        self.medivac = Medivac(self)
+        self.reaper = Reaper(self)
         self.marine = Marine(self)
         self.marauder = Marauder(self)
+        self.medivac = Medivac(self)
         self.ghost = Ghost(self)
         self.viking = Viking(self)
+        
+        self.army_trainers = {
+            UnitTypeId.REAPER: self.reaper,
+            UnitTypeId.MARINE: self.marine,
+            UnitTypeId.MARAUDER: self.marauder,
+            UnitTypeId.MEDIVAC: self.medivac,
+            UnitTypeId.GHOST: self.ghost,
+            UnitTypeId.VIKINGFIGHTER: self.viking,
+        }
     
     @property
     def ordered_unit_types(self) -> List[UnitTypeId]:
-        unit_ratios: list[tuple[UnitTypeId, float]] = [
-            (UnitTypeId.MARINE, self.bot.composition_manager.ratio_trained(UnitTypeId.MARINE)),
-            (UnitTypeId.MARAUDER, self.bot.composition_manager.ratio_trained(UnitTypeId.MARAUDER)),
-            (UnitTypeId.MEDIVAC, self.bot.composition_manager.ratio_trained(UnitTypeId.MEDIVAC)),
-            (UnitTypeId.GHOST, self.bot.composition_manager.ratio_trained(UnitTypeId.GHOST)),
-            (UnitTypeId.VIKINGFIGHTER, self.bot.composition_manager.ratio_trained(UnitTypeId.VIKINGFIGHTER)),
+        unit_ratios: List[tuple[UnitTypeId, float]] = [
+            (unit_id, self.bot.composition_manager.ratio_trained(unit_id)) for unit_id in self.army_trainers.keys()
         ]
+        
         # sort by ratio
         unit_ratios.sort(key=lambda x: x[1])
         return [unit for unit, _ in unit_ratios]
 
     def trainer_for(self, unit_type: UnitTypeId) -> Callable[[Resources], Awaitable[Resources]]:
         """Map each UnitTypeId to its corresponding train() function."""
-        match unit_type:
-            case UnitTypeId.MARINE:
-                return self.marine.train
-            case UnitTypeId.MARAUDER:
-                return self.marauder.train
-            case UnitTypeId.MEDIVAC:
-                return self.medivac.train
-            case UnitTypeId.GHOST:
-                return self.ghost.train
-            case UnitTypeId.VIKINGFIGHTER:
-                return self.viking.train
-            case _:
-                raise ValueError(f"No trainer available for {unit_type}")
+        if (unit_type not in self.army_trainers.keys()):
+            raise ValueError(f"No trainer available for {unit_type}")
+
+        return self.army_trainers[unit_type].train
 
     @property
     def ordered_army_trainers(self) -> List[Callable[[Resources], Awaitable[Resources]]]:
         return [self.trainer_for(unit) for unit in self.ordered_unit_types]
-        

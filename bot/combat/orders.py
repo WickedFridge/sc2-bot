@@ -17,6 +17,7 @@ class Orders(enum.Enum):
     HEAL_UP = 13
     FIGHT_DISENGAGE = 14
     FIGHT_DROP = 15
+    SCOUT = 16
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

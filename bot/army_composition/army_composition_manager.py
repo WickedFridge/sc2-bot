@@ -31,6 +31,7 @@ class ArmyCompositionManager:
         available_units: List[UnitTypeId] = []
         
         unlocks: dict[UnitTypeId, List[UnitTypeId]] = {
+            UnitTypeId.REAPER: [UnitTypeId.BARRACKS],
             UnitTypeId.MARINE: [UnitTypeId.BARRACKS],
             UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
@@ -69,6 +70,8 @@ class ArmyCompositionManager:
         match unit_type:
             case UnitTypeId.MEDIVAC:
                 return 10
+            case UnitTypeId.REAPER:
+                return 1
             case _:
                 return False        
 
@@ -83,6 +86,9 @@ class ArmyCompositionManager:
             if (self.maximal_amount(unit_type)):
                 composition.set(unit_type, self.maximal_amount(unit_type))
 
+        if (self.bot.time >= 120):
+            composition.remove(UnitTypeId.REAPER)
+        
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         

@@ -25,7 +25,7 @@ class CommandCenter(Building):
             case 0 | 1:
                 return True
             case 2:
-                return medivac_count >= 2 or self.bot.minerals >= 500
+                return medivac_count >= 2 or self.bot.minerals >= 600
             case _:
                 return (
                     townhalls_count <= base_count + 2 and

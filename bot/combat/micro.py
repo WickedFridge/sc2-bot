@@ -235,6 +235,35 @@ class Micro:
         self.bio_defense(ghost, local_army)
 
 
+    def reaper(self, reaper: Unit):
+        # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
+        SAFETY: int = 2
+        enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
+        close_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.distance_to(reaper) <= 10)
+        menacing_enemy_units: Units = close_enemy_units.filter(lambda unit: unit.distance_to(reaper) <= reaper.radius + unit.radius + unit.ground_range + SAFETY)
+        if (reaper.weapon_cooldown == 0):
+            # if we can safely shoot, just shoot
+            if (menacing_enemy_units.amount == 0 or (menacing_enemy_units.amount <= 3 and reaper.health >= 15)):
+                if (enemy_units_in_range.amount >= 1):
+                    reaper.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield, unit.distance_to_squared(reaper))).first)
+                else:
+                    reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
+            # if we can't safely shoot, move away
+            else:
+                Micro.move_away(reaper, menacing_enemy_units.center, 3)
+        else:
+            if (menacing_enemy_units.amount >= 1):
+                Micro.move_away(reaper, menacing_enemy_units.center, 3)
+            elif (enemy_units_in_range.amount <= 1):
+                reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
+            else:
+                # figure out later what to do
+                pass
+                # target: Point2 = center([reaper.position.towards(enemy_units_in_range.center, 2), reaper.position.towards(self.enemy_units)])
+                # reaper.move()
+
+        
+    
     def bio(self, bio_unit: Unit, local_army: Units):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
@@ -466,7 +495,7 @@ class Micro:
         enemy_bases: Units = self.bot.enemy_structures.filter(
             lambda structure: structure.type_id in hq_types
         )
-        possible_enemy_expansion_positions: List[Point2] = self.bot.expansion_locations_list
+        possible_enemy_expansion_positions: List[Point2] = self.bot.expansions.positions
         possible_enemy_expansion_positions.sort(
             key = lambda position: position.distance_to(enemy_main_position)
         )
@@ -481,7 +510,17 @@ class Micro:
                 if (self.bot.state.visibility[possible_expansion.rounded] == 1):
                     return possible_expansion
             print("Error : A building is hidden somewhere ?")
-            return enemy_main_position
+            
+            # return a different base every minute so that we check somewhere different
+            match (self.bot.time // 60 % 4):
+                case 0:
+                    return enemy_main_position
+                case 1:
+                    return self.bot.expansions.enemy_b2.position
+                case 2:
+                    return self.bot.expansions.enemy_b3.position
+                case 3:
+                    return self.bot.expansions.enemy_b4.position
 
     def move_away(selected: Unit, enemy: Unit|Point2, distance: int = 2):
         selected_position: Point2 = selected.position
