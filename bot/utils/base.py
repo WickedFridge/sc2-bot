@@ -123,10 +123,13 @@ class Base:
         # track the SCVs with 3 workers each
         self.track_enemy_scout(3)
         
-        # try to destroy the constructing bunkers and give up on finished ones
-        for bunker in bunkers.filter(lambda unit: unit.build_progress < 1):
-            self.pull_workers(bunker, 4)
-
+        # try to destroy the constructing bunkers but commit on finished bunkers
+        for bunker in bunkers:
+            if (bunker.build_progress <= 0.5):
+                self.pull_workers(bunker, 3)
+            else:
+                self.pull_workers(bunker, round((bunker.build_progress * 8)))
+            
     def defend_cannon_rush(self) -> None:
         canons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)
         pylons: Units = self.enemy_structures(UnitTypeId.PYLON)

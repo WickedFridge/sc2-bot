@@ -57,12 +57,10 @@ class Macro:
             key=lambda structure: min(structure.distance_to(base.position) for base in bases)
         )
         for building in other_structures:
-            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(building))
-            
-            # skip buildings that are too far from the base
-            if (closest_base.distance_to(building) > THREAT_DISTANCE):
-                continue
-            
+            closest_base: Base = min(bases, key=lambda base: (
+                base.cc.distance_to(building)
+                and self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)
+            ))
             closest_base.buildings.append(building)
         
         # Then distribute our units and workers among these bases based on proximity

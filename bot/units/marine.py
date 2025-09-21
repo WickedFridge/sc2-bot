@@ -17,7 +17,7 @@ class Marine(Train):
     def no_addon_conditions(self, rax: Unit) -> bool:
         return (
             not rax.has_add_on
-            and rax.is_idle
+            and len(rax.orders) == 0
         )
     
     def reactor_conditions(self, rax: Unit) -> bool:

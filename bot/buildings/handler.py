@@ -380,7 +380,7 @@ class BuildingsHandler:
         
         BASE_SIZE: int = 8
         bunkers_near_planetaries: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
-            lambda unit: planetaries.closest_distance_to(unit) <= BASE_SIZE
+            lambda unit: unit.cargo_used == 0 and planetaries.closest_distance_to(unit) <= BASE_SIZE
         )
         for bunker in bunkers_near_planetaries:
             bunker(AbilityId.SALVAGEEFFECT_SALVAGE)

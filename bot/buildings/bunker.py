@@ -16,7 +16,7 @@ class Bunker(Building):
     @property
     def conditions(self) -> bool:    
         bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
-        bunker_count: float = self.bot.structures(UnitTypeId.BUNKER).ready.amount + max(
+        defense_count: float = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.amount + max(
             self.bot.already_pending(UnitTypeId.BUNKER),
             self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
         )
@@ -25,7 +25,8 @@ class Bunker(Building):
         # We want a bunker at each base after the first
         return (
             bunker_tech_requirements == 1
-            and bunker_count < expansions_count - 1
+            and self.bot.supply_army >= 1
+            and defense_count < expansions_count - 1
             and self.bot.expansions.taken.without_main.not_defended.amount >= 1
         )
     

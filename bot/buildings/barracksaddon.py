@@ -97,7 +97,7 @@ class BarracksAddon(Building):
         return (
             self.barracks_without_addon.amount >= 1
             and self.next_addon == self.unitId
-            and self.bot.units(UnitTypeId.MARINE).amount >= 1
+            and not self.bot.composition_manager.should_train(UnitTypeId.REAPER)
         )
 
     @override

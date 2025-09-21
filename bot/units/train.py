@@ -51,7 +51,7 @@ class Train:
     def building_group(self) -> Units:
         return self.bot.structures(self.buildingIds).ready.filter(
             lambda building: (
-                building.is_idle or
+                len(building.orders) == 0 or
                 (
                     len(building.orders) == 1
                     and building.orders[0].progress >= 0.95

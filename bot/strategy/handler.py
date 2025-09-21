@@ -7,11 +7,13 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 from ..utils.unit_tags import tower_types
 
+
 class StrategyHandler:
     bot: Superbot
     situation: Situation
     strategy: Strategy
     priorities: List[Priority]
+    BASE_SIZE: int = 20
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -38,21 +40,23 @@ class StrategyHandler:
     def detect_tower_rush(self) -> Optional[Situation]:
         if self.bot.townhalls.amount >= 3:
             return None
-        for cc in self.bot.townhalls:
-            local_buildings: Units = self.bot.structures.filter(lambda unit: unit.distance_to(cc.position) < BASE_SIZE)
-            enemy_towers: Units = self.bot.enemy_structures.filter(
-                lambda unit: (
-                    unit.type_id in tower_types or unit.type_id == UnitTypeId.PYLON
-                    and local_buildings.closest_distance_to(unit) <= 10
+        # we only detect towers in the main and b2 as canon rush
+        enemy_towers: Units = self.bot.enemy_structures.filter(
+            lambda unit: (
+                unit.type_id in tower_types
+                and (
+                    unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
+                    or unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
                 )
             )
-            if (enemy_towers.amount >= 1):
-                match (enemy_towers.first.type_id):
-                    case UnitTypeId.PHOTONCANNON:
-                        return Situation.CANON_RUSH
-                    case UnitTypeId.PYLON:
-                        return Situation.CANON_RUSH
-                    case UnitTypeId.BUNKER:
-                        return Situation.BUNKER_RUSH
-                    case _:
-                        return None
+        )
+        if (enemy_towers.amount >= 1):
+            match(enemy_towers.random.type_id):
+                case UnitTypeId.PYLON:
+                    return Situation.CANON_RUSH
+                case UnitTypeId.PHOTONCANNON:
+                    return Situation.CANON_RUSH
+                case UnitTypeId.BUNKER:
+                    return Situation.BUNKER_RUSH
+                case _:
+                    return Situation.UNDER_ATTACK
