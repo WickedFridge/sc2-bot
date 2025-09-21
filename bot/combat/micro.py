@@ -213,11 +213,11 @@ class Micro:
         if (AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS in available_abilities):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
-    def bio_defense(self, bio: Unit, local_army: Units):
+    async def bio_defense(self, bio: Unit, local_army: Units):
         enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
-            self.bio(bio)
+            await self.bio(bio)
             return
         
         close_bunkers: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
@@ -227,12 +227,12 @@ class Micro:
             self.stim_bio(bio)
             self.defend_around_bunker(bio, enemy_units, closest_bunker)
         else:
-            self.bio(bio, local_army)
+            await self.bio(bio, local_army)
             
-    def ghost_defense(self, ghost: Unit, local_army: Units):
+    async def ghost_defense(self, ghost: Unit, local_army: Units):
         if (self.ghost_snipe):
             return
-        self.bio_defense(ghost, local_army)
+        await self.bio_defense(ghost, local_army)
 
 
     def reaper(self, reaper: Unit):
@@ -264,7 +264,7 @@ class Micro:
 
         
     
-    def bio(self, bio_unit: Unit, local_army: Units):
+    async def bio(self, bio_unit: Unit, local_army: Units):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
@@ -300,7 +300,7 @@ class Micro:
             # print("[Error] no enemy units to attack")
             bio_unit.attack(enemy_buildings.closest_to(bio_unit))
         else:
-            self.retreat(bio_unit)
+            await self.retreat(bio_unit)
 
     def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
@@ -326,10 +326,10 @@ class Micro:
             viking.move(local_units.center)
 
     
-    def ghost(self, ghost: Unit, local_army: Units):
+    async def ghost(self, ghost: Unit, local_army: Units):
         if (self.ghost_snipe(ghost)):
             return
-        self.bio(ghost, local_army)
+        await self.bio(ghost, local_army)
 
     def ghost_snipe(self, ghost: Unit) -> bool:
         # if we don't have energy or are already sniping, we just skip

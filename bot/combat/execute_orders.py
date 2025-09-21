@@ -149,7 +149,7 @@ class Execute:
                 await self.micro.retreat(medivac)
 
         other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id != UnitTypeId.MEDIVAC)
-        self.retreat_army(Army(other_flying_units, self.bot))
+        await self.retreat_army(Army(other_flying_units, self.bot))
 
     async def heal_up(self, army: Army):
         # drop units
@@ -158,7 +158,7 @@ class Execute:
                 unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
                 self.micro.medivac_heal(unit, army.units)
             if (unit.type_id == UnitTypeId.REAPER):
-                self.micro.retreat(unit)
+                await self.micro.retreat(unit)
             # group units that aren't near the center
             else:
                 if (unit.distance_to(army.center) > 5):
@@ -172,17 +172,17 @@ class Execute:
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.REAPER:
-                    self.micro.reaper(unit)
+                    await self.micro.reaper(unit)
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
-                    self.micro.bio(unit, army.units)
+                    await self.micro.bio(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio(unit, army.units)
+                    await self.micro.bio(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.ghost(unit, army.units)
+                    await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
-                    self.micro.viking(unit, army.units)
+                    await self.micro.viking(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
@@ -196,15 +196,15 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.REAPER:
-                    self.micro.reaper(unit)
+                    await self.micro.reaper(unit)
                 case UnitTypeId.MARINE:
-                    self.micro.bio_defense(unit, army.units)
+                    await self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio_defense(unit, army.units)
+                    await self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.ghost_defense(unit, army.units)
+                    await self.micro.ghost_defense(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
-                    self.micro.viking(unit, army.units)
+                    await self.micro.viking(unit, army.units)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
@@ -215,13 +215,13 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight_drop(unit, self.drop_target)
                 case UnitTypeId.MARINE:
-                    self.micro.bio(unit, army.units)
+                    await self.micro.bio(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    self.micro.bio(unit, army.units)
+                    await self.micro.bio(unit, army.units)
                 case UnitTypeId.GHOST:
-                    self.micro.ghost(unit, army.units)
+                    await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
-                    self.micro.viking(unit, army.units)
+                    await self.micro.viking(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)

@@ -2,7 +2,9 @@ from __future__ import annotations
 from typing import List
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
 
 scouting: Scouting | None = None
@@ -11,6 +13,7 @@ class Scouting:
     bot: BotAI
     known_enemy_army: Army
     known_enemy_composition: List[UnitTypeId] = []
+    known_enemy_upgrades: List[UpgradeId] = []
     
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -32,6 +35,20 @@ class Scouting:
             if (enemy.type_id not in self.known_enemy_composition):
                 self.known_enemy_composition.append(enemy.type_id)
             
+    def detect_enemy_upgrades(self):
+        self.detect_burrow()
+
+    def detect_burrow(self):
+        if (UpgradeId.BURROW in self.known_enemy_upgrades):
+            return
+        if (
+            self.bot.enemy_units(UnitTypeId.ROACHBURROWED).amount >= 1
+            or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
+        ):
+            print("Burrow detected")
+            self.known_enemy_upgrades.append(UpgradeId.BURROW)
+
+    
     def unit_died(self, unit_tag: int):
         if (unit_tag not in self.known_enemy_army.units.tags):
             return

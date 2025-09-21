@@ -52,6 +52,10 @@ class ArmyCompositionManager:
         # we want 4 vikings by colossus
         colossus_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.COLOSSUS).amount
         viking_amount += 4 * colossus_amount
+        
+        # we want 3 more vikings by carrier
+        carrier_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.CARRIER).amount
+        viking_amount += 3 * carrier_amount
         return viking_amount
     
     @property
@@ -64,7 +68,7 @@ class ArmyCompositionManager:
         }
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             return default_marauder_ratio[self.wicked.matchup]
-        return self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply
+        return min(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
     
     def maximal_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:
@@ -73,7 +77,7 @@ class ArmyCompositionManager:
             case UnitTypeId.REAPER:
                 return 1
             case _:
-                return False        
+                return False
 
     def calculate_composition(self) -> Composition:
         available_units: List[UnitTypeId] = self.available_units
