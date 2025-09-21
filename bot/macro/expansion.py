@@ -210,6 +210,13 @@ class Expansion:
         return (defenses.closest_distance_to(self.position) <= 12)
     
     @property
+    def detects(self) -> bool:
+        turrets: Units = self.bot.structures(UnitTypeId.MISSILETURRET).ready
+        if (turrets.amount == 0):
+            return False
+        return (turrets.closest_distance_to(self.position) <= 12)
+    
+    @property
     def retreat_position(self) -> Point2:
         if (self.is_defended and self.mineral_fields.amount >= 1):
             reference_position: Point2 = self.mineral_fields.closest_to(self.defending_bunker).position

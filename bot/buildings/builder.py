@@ -11,6 +11,7 @@ from bot.buildings.factory import Factory
 from bot.buildings.factoryaddon import FactoryReactor
 from bot.buildings.fusion_core import FusionCore
 from bot.buildings.ghost_academy import GhostAcademy
+from bot.buildings.missile_turret import MissileTurret
 from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.planetary_fortress import PlanetaryFortress
@@ -44,6 +45,7 @@ class Builder:
     ghost_academy: GhostAcademy
     fusion_core: FusionCore
     bunker: Bunker
+    missile_turret: MissileTurret
     refinery: Refinery
     
     def __init__(self, bot: Superbot) -> None:
@@ -64,6 +66,7 @@ class Builder:
         self.ghost_academy = GhostAcademy(self)
         self.fusion_core = FusionCore(self)
         self.bunker = Bunker(self)
+        self.missile_turret = MissileTurret(self)
         self.refinery = Refinery(self)
 
     async def switch_addons(self):
@@ -129,7 +132,7 @@ class Builder:
                 lambda worker: (
                     worker.is_carrying_resource == False
                     and (
-                        (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.9)
+                        (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.95)
                         or worker.is_idle
                         or worker.orders[0].ability.id not in AbilityBuild
                     )

@@ -71,6 +71,14 @@ class Expansions:
         return self.filter(lambda expansion: expansion.is_taken == True)
     
     @property
+    def detecting(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.detects == True)
+    
+    @property
+    def not_detecting(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.detects == False)
+
+    @property
     def ready(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_ready == True)
 

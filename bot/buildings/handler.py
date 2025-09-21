@@ -160,12 +160,13 @@ class BuildingsHandler:
         if (fighting_units.amount == 0):
             return
         
-        # find fighting units that are on creep without a building in 15 range
+        # find fighting units that are on creep without a building in 15 range and not close to an expansion slot (that could have died the last frame)
         on_creep_fighting_units: Units = fighting_units.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
                 and not self.bot.enemy_structures.closer_than(15, unit.position).amount
                 and not self.bot.enemy_units(UnitTypeId.BROODLING).closer_than(15, unit.position).amount
+                and not self.bot.expansions.closest_to(unit.position).position.distance_to(unit.position) < 15
             )
         )
 
@@ -378,11 +379,14 @@ class BuildingsHandler:
         if (planetaries.amount == 0):
             return
         
-        BASE_SIZE: int = 8
-        bunkers_near_planetaries: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
-            lambda unit: unit.cargo_used == 0 and planetaries.closest_distance_to(unit) <= BASE_SIZE
+        BASE_SIZE: int = 12
+        bunkers_to_salvage: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda unit: (
+                unit.cargo_used == 0
+                and planetaries.closest_distance_to(unit) <= BASE_SIZE
+            )
         )
-        for bunker in bunkers_near_planetaries:
+        for bunker in bunkers_to_salvage:
             bunker(AbilityId.SALVAGEEFFECT_SALVAGE)
     
     async def find_land_position(self, building: Unit):

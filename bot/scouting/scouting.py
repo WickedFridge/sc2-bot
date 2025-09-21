@@ -35,17 +35,17 @@ class Scouting:
             if (enemy.type_id not in self.known_enemy_composition):
                 self.known_enemy_composition.append(enemy.type_id)
             
-    def detect_enemy_upgrades(self):
-        self.detect_burrow()
+    async def detect_enemy_upgrades(self):
+        await self.detect_burrow()
 
-    def detect_burrow(self):
+    async def detect_burrow(self):
         if (UpgradeId.BURROW in self.known_enemy_upgrades):
             return
         if (
             self.bot.enemy_units(UnitTypeId.ROACHBURROWED).amount >= 1
             or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
         ):
-            print("Burrow detected")
+            await self.bot.client.chat_send("Burrow detected !", False)
             self.known_enemy_upgrades.append(UpgradeId.BURROW)
 
     

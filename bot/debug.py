@@ -303,11 +303,10 @@ class Debug:
     async def spawn_test_units(self):
         if (len(self.bot.state.chat) == 1 and self.bot.state.chat[0].player_id == self.bot.player_id):
             message: str = self.bot.state.chat[0].message
-            if (message.startswith("Tag:")):
-                return
-
             if (message.startswith("order")):
                 self.order()
+                return
+            if (not message[0].isdigit()):
                 return
             
             parts = message.split(" ", 2)  # split into at most 3 parts

@@ -402,11 +402,12 @@ class Execute:
             else:
                 if (unit.health_percentage >= 0.85):
                     self.micro.stim_bio(unit)
+                target: Unit = local_enemy_buildings.first
                 if (unit.weapon_cooldown == 0):
                     in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
-                    unit.attack(in_range_enemy_buildings.first)
-                else:
-                    unit.attack(local_enemy_buildings.first)
+                    if (in_range_enemy_buildings.amount >= 1):
+                        target = in_range_enemy_buildings.first
+                unit.attack(target)
 
     async def attack_nearest_base(self, army: Army):
         # if army is purely air

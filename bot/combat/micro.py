@@ -235,7 +235,7 @@ class Micro:
         await self.bio_defense(ghost, local_army)
 
 
-    def reaper(self, reaper: Unit):
+    async def reaper(self, reaper: Unit):
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
         SAFETY: int = 2
         enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
@@ -302,7 +302,7 @@ class Micro:
         else:
             await self.retreat(bio_unit)
 
-    def viking(self, viking: Unit, local_units: Units):
+    async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
         if (viking.weapon_cooldown == 0):
             potential_targets: Units = self.bot.enemy_units.filter(

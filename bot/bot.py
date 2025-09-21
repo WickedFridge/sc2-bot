@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.2.3"
+VERSION: str = "5.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -138,7 +138,7 @@ class WickedBot(Superbot):
         
         # Assement of the situation
         self.scouting.detect_enemy_army()
-        self.scouting.detect_enemy_upgrades()
+        await self.scouting.detect_enemy_upgrades()
         await self.macro.update_threat_level()
         await self.strategy.update_situation()
         self.composition_manager.calculate_composition()
@@ -200,6 +200,7 @@ class WickedBot(Superbot):
             # defense
             self.builder.planetary_fortress.upgrade,
             self.builder.bunker.build,
+            self.builder.missile_turret.build,
         ])
         money_spenders.extend([
             # very important tech

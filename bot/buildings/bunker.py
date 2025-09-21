@@ -1,6 +1,7 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from bot.utils.matchup import Matchup
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -12,6 +13,15 @@ class Bunker(Building):
         self.unitId = UnitTypeId.BUNKER
         self.name = "Bunker"
 
+    @property
+    def expansions_without_defense(self) -> Expansions:
+        return self.bot.expansions.taken.without_main.filter(
+            lambda expansion: (
+                self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).amount == 0
+                or self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).closest_distance_to(expansion.position) > 12
+            )
+        )
+    
     @override
     @property
     def conditions(self) -> bool:    
@@ -26,14 +36,14 @@ class Bunker(Building):
         return (
             bunker_tech_requirements == 1
             and self.bot.supply_army >= 1
+            and self.expansions_without_defense.amount >= 1
             and defense_count < expansions_count - 1
-            and self.bot.expansions.taken.without_main.not_defended.amount >= 1
         )
     
     @override
     @property
     def position(self) -> Point2:
-        expansion_not_defended: Expansion = self.bot.expansions.taken.without_main.not_defended.first
+        expansion_not_defended: Expansion = self.expansions_without_defense.first
         bunker_position: Point2 = (
             expansion_not_defended.bunker_ramp
             if self.bot.matchup == Matchup.TvZ and expansion_not_defended.bunker_ramp is not None

@@ -90,8 +90,6 @@ class ArmyCompositionManager:
             if (self.maximal_amount(unit_type)):
                 composition.set(unit_type, self.maximal_amount(unit_type))
 
-        if (self.bot.time >= 120):
-            composition.remove(UnitTypeId.REAPER)
         
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
@@ -107,14 +105,16 @@ class ArmyCompositionManager:
         ghost_count: int = units(UnitTypeId.GHOST).amount
         composition.add(UnitTypeId.GHOST, ghost_count)
         
-        # always fill the rest of the composition with half Marines
-        composition.fill(UnitTypeId.MARINE, 1/2)
-        
-        # Then, finish with either Ghost or Marines
-        if (UnitTypeId.GHOST in self.available_units):
-            composition.fill(UnitTypeId.GHOST)
-        else:
-            composition.fill(UnitTypeId.MARINE)
+        if (self.bot.time >= 120):
+            composition.remove(UnitTypeId.REAPER)
+            # always fill the rest of the composition with half Marines
+            composition.fill(UnitTypeId.MARINE, 1/2)
+            
+            # Then, finish with either Ghost or Marines
+            if (UnitTypeId.GHOST in self.available_units):
+                composition.fill(UnitTypeId.GHOST)
+            else:
+                composition.fill(UnitTypeId.MARINE)
         self.composition = composition
 
     def should_train(self, unit_type: UnitTypeId) -> bool:
