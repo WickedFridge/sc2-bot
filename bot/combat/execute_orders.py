@@ -23,19 +23,18 @@ class Execute:
 
     @property
     def default_drop_target(self) -> Point2:
-        # print(f'time : {self.bot.time}')
         # switch drop target every 60 seconds
         index_base_to_hit = round(self.bot.time / 60) % 3
         match (index_base_to_hit):
             case 0:
                 # print("dropping main")
-                return self.bot.expansions.enemy_main.position
+                return self.bot.expansions.enemy_main.mineral_line
             case 1:
                 # print("dropping natural")
-                return self.bot.expansions.enemy_b2.position
+                return self.bot.expansions.enemy_b2.mineral_line
             case 2:
                 # print("dropping b3")
-                return self.bot.expansions.enemy_b3.position
+                return self.bot.expansions.enemy_b3.mineral_line
 
     @property
     def drop_target(self) -> Point2:
@@ -49,7 +48,7 @@ class Execute:
             lambda base: base.position._distance_squared(enemy_army_center),
             reverse=True,
         )
-        return enemy_bases.first.mineral_line.position
+        return enemy_bases.first.mineral_line
     
     @property
     def best_edge(self) -> Point2:

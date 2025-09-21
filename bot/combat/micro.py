@@ -168,7 +168,7 @@ class Micro:
         )
         MARGIN: int = 5
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
-            drop_target = closest_enemy_base.position
+            drop_target = closest_enemy_base.mineral_line
 
         # if we are further than 40 from our drop target, unload (we are probably fighting on the middle of the map)
         if (medivac.distance_to(drop_target) > 40):
