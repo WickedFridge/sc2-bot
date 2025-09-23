@@ -239,7 +239,10 @@ class Combat:
 
         # if enemy is a workers, focus them
         if (local_enemy_workers.amount >= 1):
-            return Orders.HARASS
+            if (potential_army_supply >= army.supply * 2):
+                return Orders.FIGHT_DROP
+            else:
+                return Orders.HARASS
         
         # if another army is close, we should regroup
         # only merge ground armies
@@ -395,7 +398,6 @@ class Combat:
                 and enemy_units_potentially_in_range.amount == 0
             ):
                 continue
-            print("bio should load")
 
             # load the bunker with bio
             # prioritize marines, then marauders

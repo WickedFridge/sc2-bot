@@ -1,10 +1,12 @@
 from __future__ import annotations
+import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
+from bot.utils.unit_supply import supply
 
 if TYPE_CHECKING:
     from bot import WickedBot  # only imported for type hints
@@ -46,17 +48,36 @@ class ArmyCompositionManager:
     
     @property
     def vikings_amount(self) -> int:
-        # we want matching air supply
-        viking_amount: int = self.wicked.scouting.known_enemy_army.flying_fighting_supply // 2
+        # we want pretty much matching air supply
+        enemy_units: Units = self.wicked.scouting.known_enemy_army.units
+        viking_response: dict[UnitTypeId, int] = {
+            UnitTypeId.CARRIER: 4,
+            UnitTypeId.COLOSSUS: 4,
+            UnitTypeId.BATTLECRUISER: 4,
+            UnitTypeId.TEMPEST: 3,
+            UnitTypeId.BROODLORD: 3,
+            UnitTypeId.MOTHERSHIP: 5,
+            UnitTypeId.WARPPRISM: 1,
+            UnitTypeId.MUTALISK: 0,
+        }
+        viking_amount: float = sum(
+            viking_response.get(unit.type_id, supply[unit.type_id] / 2 if unit.is_flying else 0)
+            for unit in enemy_units
+        )
+
+        # round up, because 2.3 vikings = 3 vikings in practice
+        return int(math.ceil(viking_amount))
         
-        # we want 4 vikings by colossus
-        colossus_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.COLOSSUS).amount
-        viking_amount += 4 * colossus_amount
+        # viking_amount: int = self.wicked.scouting.known_enemy_army.flying_fighting_supply // 2
         
-        # we want 3 more vikings by carrier
-        carrier_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.CARRIER).amount
-        viking_amount += 3 * carrier_amount
-        return viking_amount
+        # # we want 4 vikings by colossus
+        # colossus_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.COLOSSUS).amount
+        # viking_amount += 4 * colossus_amount
+        
+        # # we want 3 more vikings by carrier
+        # carrier_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.CARRIER).amount
+        # viking_amount += 3 * carrier_amount
+        # return viking_amount
     
     @property
     def marauders_ratio(self) -> float:
@@ -68,7 +89,7 @@ class ArmyCompositionManager:
         }
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             return default_marauder_ratio[self.wicked.matchup]
-        return min(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
+        return max(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
     
     def maximal_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:

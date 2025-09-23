@@ -41,25 +41,29 @@ class Macro:
                 worker.stop()
     
     def threat_detection(self) -> List[Base]:
+        # If we don't have any base left we're pretty dead
+        if (self.bot.expansions.taken.amount == 0):
+            return []
+        
         bases: List[Base] = []
         ccs: List[int] = []
         # First create a Base object for each expansion we own
         for expansion in self.bot.expansions.taken:
             bases.append(Base(self.bot, expansion.cc, Threat.NO_THREAT))
-            ccs.append(expansion.cc.tag)
-        
-        # If we don't have any base left we're pretty dead
-        if (len(bases) == 0):
-            return bases
+            ccs.append(expansion.cc.tag)        
         
         # Then distribute our other structures among these bases based on proximity
-        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in ccs).sorted(
-            key=lambda structure: min(structure.distance_to(base.position) for base in bases)
-        )
+        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in ccs)
+        # .sorted(
+        #     key=lambda structure: min(structure.distance_to(base.position) for base in bases)
+        # )
         for building in other_structures:
-            closest_base: Base = min(bases, key=lambda base: (
+            bases_with_same_height: List[Base] = [base for base in bases if self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)]
+            if (len(bases_with_same_height) == 0):
+                continue
+            closest_base: Base = min(bases_with_same_height, key=lambda base: (
                 base.cc.distance_to(building)
-                and self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)
+                # and self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)
             ))
             closest_base.buildings.append(building)
         

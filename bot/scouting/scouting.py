@@ -6,6 +6,7 @@ from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
+from bot.utils.unit_tags import burrowed_units
 
 scouting: Scouting | None = None
 
@@ -42,10 +43,11 @@ class Scouting:
         if (UpgradeId.BURROW in self.known_enemy_upgrades):
             return
         if (
-            self.bot.enemy_units(UnitTypeId.ROACHBURROWED).amount >= 1
+            self.bot.enemy_units(burrowed_units).amount >= 1
             or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
         ):
-            await self.bot.client.chat_send("Burrow detected !", False)
+            print("Burrow detected !")
+            await self.bot.client.chat_send("Tag:Burrow", False)
             self.known_enemy_upgrades.append(UpgradeId.BURROW)
 
     

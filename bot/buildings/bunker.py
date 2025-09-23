@@ -30,6 +30,7 @@ class Bunker(Building):
             self.bot.already_pending(UnitTypeId.BUNKER),
             self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
         )
+        bunker_to_construct_amount: int = self.bot.already_pending(UnitTypeId.BUNKER) - self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
         expansions_count: int = self.bot.expansions.amount_taken
 
         # We want a bunker at each base after the first
@@ -38,6 +39,7 @@ class Bunker(Building):
             and self.bot.supply_army >= 1
             and self.expansions_without_defense.amount >= 1
             and defense_count < expansions_count - 1
+            and bunker_to_construct_amount == 0
         )
     
     @override

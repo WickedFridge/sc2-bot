@@ -82,10 +82,10 @@ class Execute:
                 medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)  # unload where it is
             await self.micro.retreat(medivac)
         
-        # Step 4: Check if the best two are full or need more units
+        # Step 4: Check if the best two are full or need more units (don't drop ghosts)
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
         cargo_left: int = sum(medivac.cargo_left for medivac in medivacs_to_use)
-        pickable_ground_units: Units = ground_units.filter(lambda unit: supply[unit.type_id] <= cargo_left)
+        pickable_ground_units: Units = ground_units.filter(lambda unit: unit.type_id != UnitTypeId.GHOST and supply[unit.type_id] <= cargo_left)
         
         # Step 5: Select the ground units to pickup and retreat with the rest
         if (pickable_ground_units.amount >= 1):

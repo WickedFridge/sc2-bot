@@ -41,6 +41,10 @@ class Expansion:
         return False
     
     @property
+    def is_populated(self) -> bool:
+        return self.bot.structures.closest_distance_to(self.position) <= 5
+    
+    @property
     def is_enemy(self) -> bool:
         # if is enemy main unscouted, return True
         if (self.position == self.bot.enemy_start_locations[0] and self.bot.state.visibility[self.position.rounded] == 0):

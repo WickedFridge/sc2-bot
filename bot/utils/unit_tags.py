@@ -86,3 +86,18 @@ building_priorities: List[UnitTypeId] = [
     UnitTypeId.EVOLUTIONCHAMBER,
     UnitTypeId.FORGE
 ]
+burrowed_units: List[UnitTypeId] = [
+    UnitTypeId.QUEENBURROWED,
+    UnitTypeId.DRONEBURROWED,
+    UnitTypeId.ZERGLINGBURROWED,
+    UnitTypeId.BANELINGBURROWED,
+    UnitTypeId.ROACHBURROWED,
+    UnitTypeId.RAVAGERBURROWED,
+    UnitTypeId.HYDRALISKBURROWED,
+    UnitTypeId.LURKER,
+    UnitTypeId.LURKERMP,
+    UnitTypeId.LURKERBURROWED,
+    UnitTypeId.INFESTORBURROWED,
+    UnitTypeId.SWARMHOSTBURROWEDMP,
+    UnitTypeId.ULTRALISKBURROWED,
+]

@@ -71,6 +71,10 @@ class Expansions:
         return self.filter(lambda expansion: expansion.is_taken == True)
     
     @property
+    def populated(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_populated == True)
+    
+    @property
     def detecting(self) -> Expansions:
         return self.filter(lambda expansion: expansion.detects == True)
     

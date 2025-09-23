@@ -30,7 +30,7 @@ class Building:
         pass
 
     @property
-    def position(self) -> Point2:
+    def position(self) -> Point2 | None:
         pass
 
     @property
@@ -53,6 +53,11 @@ class Building:
             return resources_updated
         
         print(f'Build {self.name}')
-        position: Point2 = dfs_in_pathing(self.bot, self.position, self.bot.game_info.map_center, self.radius, self.has_addon)
+        pos: Point2 | None = self.position
+        if (pos is None):
+            print("Error, no valid position for {self.name}")
+            return resources_updated
+        
+        position: Point2 = dfs_in_pathing(self.bot, pos, self.bot.game_info.map_center, self.radius, self.has_addon)
         await self.builder.build(self.unitId, position)
         return resources_updated
