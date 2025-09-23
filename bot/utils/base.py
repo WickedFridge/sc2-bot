@@ -53,8 +53,10 @@ class Base:
         # we only detect towers in the main and b2 as canon rush
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
-                unit.type_id in tower_types
-                and (
+                (
+                    unit.type_id in tower_types
+                    or unit.type_id == UnitTypeId.PYLON
+                ) and (
                     unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
                     or unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
                 )

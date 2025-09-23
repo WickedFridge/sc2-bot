@@ -12,7 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, add_ons 
+from ..utils.unit_tags import worker_types, add_ons, tower_types
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
@@ -84,7 +84,11 @@ class Macro:
             closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
             
             # skip enemy units that are too far from the base
-            if (closest_base.distance_to(unit) > THREAT_DISTANCE):
+            if (
+                closest_base.distance_to(unit) > THREAT_DISTANCE
+                and unit.type_id not in tower_types
+                and unit.type_id != UnitTypeId.PYLON
+            ):
                 continue
 
             if (unit.is_structure):

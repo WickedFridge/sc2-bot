@@ -344,19 +344,18 @@ class Execute:
         return None
 
     def defend_canon_rush(self, army: Army):
-        canons: Units = self.bot.enemy_structures(UnitTypeId.PHOTONCANNON).filter(
-            lambda unit: (
-                unit.distance_to(army.center) <= 30
-            )
+        enemies: Units = self.bot.enemy_structures([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]).sorted(
+            lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position))
         )
-        if (canons.amount == 0):
-            print("Error : no canons detected")
-            return
-
-        #TODO improve this
-        canons.sort(key=lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position)))
+        
+        # if there are canons, destroy them
         for unit in army.units:
-            unit.attack(canons.first)
+            if (enemies(UnitTypeId.PHOTONCANNON).amount >= 1):
+                unit.attack(enemies(UnitTypeId.PHOTONCANNON).first)
+            else:
+                unit.attack(enemies.first)
+            
+
 
     async def harass(self, army: Army):
         enemy_workers_close: Units = self.bot.enemy_units.filter(

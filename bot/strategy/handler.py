@@ -43,7 +43,7 @@ class StrategyHandler:
         # we only detect towers in the main and b2 as canon rush
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
-                unit.type_id in tower_types
+                (unit.type_id in tower_types or unit.type_id == UnitTypeId.PYLON)
                 and (
                     unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
                     or unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
@@ -51,7 +51,7 @@ class StrategyHandler:
             )
         )
         if (enemy_towers.amount >= 1):
-            match(enemy_towers.random.type_id):
+            match(enemy_towers.first.type_id):
                 case UnitTypeId.PYLON:
                     return Situation.CANON_RUSH
                 case UnitTypeId.PHOTONCANNON:
