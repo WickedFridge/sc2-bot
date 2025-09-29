@@ -336,18 +336,20 @@ class BuildingsHandler:
         flying_buildings: Units = self.bot.structures.idle.filter(
             lambda building: building.type_id in flying_building_ids
         )
+        
+        starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
+        starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
+        starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on == False)
+        free_reactors: Units = self.bot.structures(UnitTypeId.REACTOR).filter(
+            lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
+        )
+                    
         for flying_building in flying_buildings:
             match (flying_building.type_id):
                 case UnitTypeId.BARRACKSFLYING:
                     land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
                     flying_building(AbilityId.LAND, land_position)    
                 case UnitTypeId.FACTORYFLYING:
-                    starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
-                    starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
-                    starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on == False)
-                    free_reactors: Units = self.bot.structures(UnitTypeId.REACTOR).filter(
-                        lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-                    )
                     if (
                         free_reactors.amount <= 1 and
                         (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
@@ -355,11 +357,6 @@ class BuildingsHandler:
                         land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
                         flying_building(AbilityId.LAND, land_position)
                 case UnitTypeId.STARPORTFLYING:
-                    reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
-                
-                    free_reactors: Units = reactors.filter(
-                        lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-                    )
                     if (free_reactors.amount >= 1):
                         print("Land Starport")
                         closest_free_reactor = free_reactors.closest_to(flying_building)
@@ -368,9 +365,12 @@ class BuildingsHandler:
                         building_factory_reactors: Units = self.bot.structures(UnitTypeId.FACTORYREACTOR).filter(
                             lambda reactor: reactor.build_progress < 1
                         )
-                        if (building_factory_reactors):                
+                        if (building_factory_reactors.amount >= 1):                
                             # print("Move Starport over Factory building Reactor")
                             flying_building.move(building_factory_reactors.closest_to(flying_building).add_on_land_position)
+                        elif (starports.amount >= 2):
+                            land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                            flying_building(AbilityId.LAND, land_position)
                         else:
                             print("no free reactor")
 

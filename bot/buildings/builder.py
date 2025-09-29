@@ -2,13 +2,13 @@ from __future__ import annotations
 import math
 from typing import List, Literal
 from bot.buildings.armory import Armory
-from bot.buildings.barracksaddon import BarracksReactor, BarracksTechlab
+from bot.buildings.barracks_addon import BarracksReactor, BarracksTechlab
 from bot.buildings.barracks import Barracks
 from bot.buildings.bunker import Bunker
 from bot.buildings.command_center import CommandCenter
 from bot.buildings.ebay import Ebay
 from bot.buildings.factory import Factory
-from bot.buildings.factoryaddon import FactoryReactor
+from bot.buildings.factory_addon import FactoryReactor
 from bot.buildings.fusion_core import FusionCore
 from bot.buildings.ghost_academy import GhostAcademy
 from bot.buildings.missile_turret import MissileTurret
@@ -16,6 +16,7 @@ from bot.buildings.refinery import Refinery
 from bot.buildings.orbital_command import OrbitalCommand
 from bot.buildings.planetary_fortress import PlanetaryFortress
 from bot.buildings.starport import Starport
+from bot.buildings.starportreactor import StarportReactor
 from bot.buildings.starporttechlab import StarportTechlab
 from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
@@ -36,7 +37,8 @@ class Builder:
     barracks_techlab: BarracksTechlab
     barracks_reactor: BarracksReactor
     factory_reactor: FactoryReactor
-    starporttechlab: StarportTechlab
+    starport_techlab: StarportTechlab
+    starport_reactor: StarportReactor
     orbital_command: OrbitalCommand
     planetary_fortress: PlanetaryFortress
     command_center: CommandCenter
@@ -57,7 +59,8 @@ class Builder:
         self.barracks_techlab = BarracksTechlab(self)
         self.barracks_reactor = BarracksReactor(self)
         self.factory_reactor = FactoryReactor(self)
-        self.starporttechlab = StarportTechlab(self)
+        self.starport_techlab = StarportTechlab(self)
+        self.starport_reactor = StarportReactor(self)
         self.orbital_command = OrbitalCommand(self)
         self.command_center = CommandCenter(self)
         self.planetary_fortress = PlanetaryFortress(self)
@@ -133,7 +136,7 @@ class Builder:
                     worker.is_carrying_resource == False
                     and (
                         (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.95)
-                        or worker.is_idle
+                        or len(worker.orders) == 0
                         or worker.orders[0].ability.id not in AbilityBuild
                     )
                 )

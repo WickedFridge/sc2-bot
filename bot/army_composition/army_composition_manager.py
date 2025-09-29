@@ -57,7 +57,7 @@ class ArmyCompositionManager:
             UnitTypeId.TEMPEST: 3,
             UnitTypeId.BROODLORD: 3,
             UnitTypeId.MOTHERSHIP: 5,
-            UnitTypeId.WARPPRISM: 1,
+            UnitTypeId.WARPPRISM: 0.33,
             UnitTypeId.MUTALISK: 0,
         }
         viking_amount: float = sum(
@@ -67,17 +67,6 @@ class ArmyCompositionManager:
 
         # round up, because 2.3 vikings = 3 vikings in practice
         return int(math.ceil(viking_amount))
-        
-        # viking_amount: int = self.wicked.scouting.known_enemy_army.flying_fighting_supply // 2
-        
-        # # we want 4 vikings by colossus
-        # colossus_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.COLOSSUS).amount
-        # viking_amount += 4 * colossus_amount
-        
-        # # we want 3 more vikings by carrier
-        # carrier_amount: int = self.wicked.scouting.known_enemy_army.fighting_units(UnitTypeId.CARRIER).amount
-        # viking_amount += 3 * carrier_amount
-        # return viking_amount
     
     @property
     def marauders_ratio(self) -> float:
@@ -116,10 +105,8 @@ class ArmyCompositionManager:
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
         if (UnitTypeId.MARAUDER in available_units):
-            # current_marauder_count: int = units(UnitTypeId.MARAUDER).amount
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
-            # composition.set(UnitTypeId.MARAUDER, max(marauder_count, current_marauder_count))
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
         # always add a minimum of the Ghost we own so far

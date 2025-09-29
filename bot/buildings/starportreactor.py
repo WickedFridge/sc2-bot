@@ -4,11 +4,11 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
 
-class StarportTechlab(StarportAddon):
+class StarportReactor(StarportAddon):
     def __init__(self, build):
         super().__init__(build)
-        self.unitId = UnitTypeId.STARPORTTECHLAB
-        self.name = "Starport Tech Lab"
+        self.unitId = UnitTypeId.STARPORTREACTOR
+        self.name = "Starport Reactor"
 
     @override
     @property
@@ -19,8 +19,7 @@ class StarportTechlab(StarportAddon):
         return (
             starports.amount >= 2
             and self.starports_without_addon.idle.amount >= 1
-            and (
-                self.bot.composition_manager.should_train(UnitTypeId.RAVEN)
-                or self.bot.composition_manager.should_train(UnitTypeId.LIBERATOR)
-            )
+            and self.bot.composition_manager.vikings_amount >= 8
         )
+    
+    

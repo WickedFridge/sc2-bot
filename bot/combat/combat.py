@@ -128,7 +128,7 @@ class Combat:
             )
         )
         # useful in case of canon/bunker rush
-        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
+        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing or unit.is_burrowed) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)

@@ -20,10 +20,11 @@ class CommandCenter(Building):
         medivac_count: int = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
         pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
         max_pending_cc_count: int = 2
+        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount + self.bot.already_pending(UnitTypeId.ORBITALCOMMAND)
 
         match(townhalls_count):
             case 0 | 1:
-                return True
+                return orbital_count >= 1
             case 2:
                 return medivac_count >= 2 or self.bot.minerals >= 600
             case _:

@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.4.3"
+VERSION: str = "5.5.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -194,7 +194,8 @@ class WickedBot(Superbot):
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
             self.builder.factory_reactor.build,
-            # self.builder.starporttechlab.build,
+            self.builder.starport_techlab.build,
+            self.builder.starport_reactor.build,
         ])
         money_spenders.extend([
             # defense

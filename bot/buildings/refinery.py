@@ -55,6 +55,14 @@ class Refinery(Building):
                     and workers_amount >= 40
                 )
 
+            # TODO clean this
+            case 6:
+                return (
+                    refinery_amount < max_refineries
+                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
+                    and workers_amount >= 75
+                )
+
             case _:        
                 # TODO: fix refinery count for gas #7 and #8
                 return (

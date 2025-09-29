@@ -82,7 +82,7 @@ class Base:
             return Threat.WORKER_SCOUT
         
         # local units are bunkers and units that are close to any of our buildings
-        local_units: Units = self.buildings(UnitTypeId.BUNKER) + self.units.filter(
+        local_units: Units = self.buildings([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]) + self.units.filter(
             lambda unit: unit.type_id not in worker_types
         )
         local_army: Army = Army(local_units, self.bot)
@@ -240,14 +240,21 @@ class Base:
         self.repair_units(self.available_workers, damaged_mechanical_units, max_workers_repairing)
 
     def pull_workers(self, target: Unit, amount: int) -> None:
-        workers_attacking_tower: int = self.bot.workers.filter(
+        workers_attacking_tower: Units = self.bot.workers.filter(
             lambda unit: unit.is_attacking and unit.order_target == target.tag
-        ).amount
+        )
 
-        if (workers_attacking_tower >= amount):
+        if (workers_attacking_tower.amount == amount):
+            return
+        if (workers_attacking_tower.amount > amount):
+            # stop excess workers
+            workers_attacking_reversed: Units = workers_attacking_tower.sorted_by_distance_to(target).reverse()
+            workers_to_stop: Units = workers_attacking_reversed.take(workers_attacking_tower.amount - amount)
+            for worker in workers_to_stop:
+                worker.stop()
             return
 
-        workers_pulled: Units = self.full_available_workers.sorted_by_distance_to(target).take(amount - workers_attacking_tower)
+        workers_pulled: Units = self.full_available_workers.sorted_by_distance_to(target).take(amount - workers_attacking_tower.amount)
         
         for worker_pulled in workers_pulled:
             worker_pulled.attack(target)

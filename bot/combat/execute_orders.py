@@ -380,8 +380,15 @@ class Execute:
                 ).sorted(
                     lambda building: (building.type_id not in building_priorities, building.health + building.shield)
                 )
+                # in these case we should target a worker
                 if (unit.distance_to(closest_worker) <= unit.ground_range + 2 or unit.weapon_cooldown > 0 or buildings_in_range.amount == 0):
-                    unit.attack(enemy_workers_close.closest_to(unit))
+                    # if we're not on cooldown and the worker is really close, run away
+                    if (unit.weapon_cooldown >= 0 and enemy_workers_close.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
+                        Micro.move_away(unit, enemy_workers_close.closest_to(unit).position, 1)
+                    # if we're on cooldown, shoot at it
+                    # if we're not in range, move towards it
+                    else:
+                        unit.attack(enemy_workers_close.closest_to(unit))                    
                 else:
                     unit.attack(buildings_in_range.first)                    
     

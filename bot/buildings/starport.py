@@ -32,10 +32,12 @@ class Starport(Building):
         
         
         # TODO we will see this later
-        # We want 2nd starport after we have a 4th base
-        # if (self.starport_amount == 1):
-        #     return self.bot.townhalls.amount >= 4
-        
+        # We want 2nd starport after we have a 3rd base if our composition is mostly air units
+        if (self.starport_amount == 1):
+            return (
+                self.bot.townhalls.amount >= 3
+                and self.bot.composition_manager.vikings_amount >= 8
+            )
         return False
             
     @override
