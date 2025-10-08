@@ -116,7 +116,7 @@ class ArmyCompositionManager:
         if (self.bot.time >= 120):
             composition.remove(UnitTypeId.REAPER)
             # always fill the rest of the composition with half Marines
-            composition.fill(UnitTypeId.MARINE, 1/2)
+            composition.fill(UnitTypeId.MARINE, 2/3)
             
             # Then, finish with either Ghost or Marines
             if (UnitTypeId.GHOST in self.available_units):

@@ -27,7 +27,7 @@ class Armory(Building):
             armory_tech_requirement == 1
             and upgrades_tech_requirement >= 0.6
             and armory_count == 0
-            and self.bot.townhalls.amount >= 1
+            and self.bot.townhalls.amount >= 3
             and ebays_count >= 1
         )
     

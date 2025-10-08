@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.6.0"
+VERSION: str = "5.6.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -205,7 +205,16 @@ class WickedBot(Superbot):
         ])
         money_spenders.extend([
             # very important tech
-            self.search.tech_primary,
+            self.search.infantry_attack_level_1.search,
+            self.search.infantry_armor_level_1.search,
+            self.builder.armory.build,
+            self.search.infantry_attack_level_2.search,
+            self.search.infantry_armor_level_2.search,
+            self.search.infantry_attack_level_3.search,
+            self.search.infantry_armor_level_3.search,
+            self.search.air_attack_level_1.search,
+            self.search.air_attack_level_2.search,
+            self.search.air_attack_level_3.search,
         ])
         money_spenders.extend(self.trainer.ordered_army_trainers)
         money_spenders.extend([
@@ -217,8 +226,13 @@ class WickedBot(Superbot):
         ])
         money_spenders.extend([
             # advanced tech
-            self.search.tech_secondary,
-            self.builder.armory.build,
+            self.search.stimpack.search,
+            self.search.combat_shield.search,
+            self.search.concussive_shells.search,
+            self.search.caduceus_reactor.search,
+            self.search.air_armor_level_1.search,
+            self.search.air_armor_level_2.search,
+            self.search.air_armor_level_3.search,
         ])
         money_spenders.extend([
             # production buildings

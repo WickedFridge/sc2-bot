@@ -2,6 +2,12 @@ from typing import List
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.technology.tech import Tech
+from bot.technology.upgrades.air_upgrades import AirArmorLevel1, AirArmorLevel2, AirArmorLevel3, AirAttackLevel1, AirAttackLevel2, AirAttackLevel3
+from bot.technology.upgrades.caduceus_reactor import CaduceusReactor
+from bot.technology.upgrades.combat_shield import CombatShield
+from bot.technology.upgrades.concussive_shells import ConcussiveShells
+from bot.technology.upgrades.infantry_upgrades import InfantryArmorLevel1, InfantryArmorLevel2, InfantryArmorLevel3, InfantryAttackLevel1, InfantryAttackLevel2, InfantryAttackLevel3
+from bot.technology.upgrades.stimpack import Stimpack
 from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
@@ -15,64 +21,39 @@ class Search:
     shield_researched: bool = False
     concussive_shells_researched: bool = False
     tech_tree_primary: List[Tech] = []
+    stimpack: Stimpack
+    combat_shield: CombatShield
+    concussive_shells: ConcussiveShells
+    infantry_attack_level_1: InfantryAttackLevel1
+    infantry_attack_level_2: InfantryAttackLevel2
+    infantry_attack_level_3: InfantryAttackLevel3
+    infantry_armor_level_1: InfantryArmorLevel1
+    infantry_armor_level_2: InfantryArmorLevel2
+    infantry_armor_level_3: InfantryArmorLevel3
+    air_attack_level_1: AirAttackLevel1
+    air_attack_level_2: AirAttackLevel2
+    air_attack_level_3: AirAttackLevel3
+    air_armor_level_1: AirArmorLevel1
+    air_armor_level_2: AirArmorLevel2
+    air_armor_level_3: AirArmorLevel3
+    caduceus_reactor: CaduceusReactor
 
     def __init__(self, bot: Superbot) -> None:
         super().__init__()
         self.bot = bot
-        self.tech_tree_secondary = [
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.STIMPACK, AbilityId.BARRACKSTECHLABRESEARCH_STIMPACK),
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.SHIELDWALL, AbilityId.RESEARCH_COMBATSHIELD, [UpgradeId.STIMPACK]),
-            Tech(UnitTypeId.BARRACKSTECHLAB, UpgradeId.PUNISHERGRENADES, AbilityId.RESEARCH_CONCUSSIVESHELLS, [UpgradeId.SHIELDWALL]),
-            # Tech(UnitTypeId.ARMORY, AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL1, is_ability = True),
-        ]
-        self.tech_tree_primary = [
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL1),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL1, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL1),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL2, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL2, requirements_buildings = [UnitTypeId.ARMORY]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYWEAPONSLEVEL3, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYWEAPONSLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
-            Tech(UnitTypeId.ENGINEERINGBAY, UpgradeId.TERRANINFANTRYARMORSLEVEL3, AbilityId.ENGINEERINGBAYRESEARCH_TERRANINFANTRYARMORLEVEL3, [UpgradeId.TERRANINFANTRYWEAPONSLEVEL2, UpgradeId.TERRANINFANTRYARMORSLEVEL2]),
-            Tech(UnitTypeId.FUSIONCORE, UpgradeId.MEDIVACCADUCEUSREACTOR, AbilityId.FUSIONCORERESEARCH_RESEARCHMEDIVACENERGYUPGRADE)
-        ]
-    
-    async def tech_primary(self, resources: Resources) -> Resources:
-        technology_to_research: List[Tech] = filter(
-            lambda tech: self.bot.already_pending(tech.upgrade) == 0,
-            self.tech_tree_primary
-        )
-        return self.search(technology_to_research, resources)
-    
-    async def tech_secondary(self, resources: Resources) -> Resources:
-        technology_to_research: List[Tech] = filter(
-            lambda tech: self.bot.already_pending(tech.upgrade) == 0,
-            self.tech_tree_secondary
-        )
-        return self.search(technology_to_research, resources)
-    
-    def search(self, tech_tree: List[Tech], resources: Resources) -> Resources:
-        resources_updated: Resources = resources
-        for technology in tech_tree:
-            if (
-                self.bot.structures(technology.building).ready.idle.amount >= 1
-                and self.bot.tech_requirement_progress(technology.upgrade) == 1
-                and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in technology.requirements_ups)
-                and all(self.bot.structures(building).ready.amount >= 1 for building in technology.requirements_buildings)
-            ):
-                searching_cost: Cost = self.bot.calculate_cost(technology.upgrade)
-                can_build: bool
-                resources_updated: Resources
-                can_build, resources_updated = resources.update(searching_cost)
-                if (can_build == False):
-                    return resources_updated
-                print("Search", technology.upgrade)
-                building: Unit = self.bot.structures(technology.building).ready.idle.random
-                if (technology.is_ability):
-                    building(technology.upgrade)
-                else:
-                    building.research(technology.upgrade)
-                # add a fake order to the building so that we know it's not idle anymore
-                building.orders.append(FakeOrder(technology.order))
-
-                # only one research per frame
-                return resources_updated
-        return resources_updated
+        self.stimpack = Stimpack(self)
+        self.combat_shield = CombatShield(self)
+        self.concussive_shells = ConcussiveShells(self)
+        self.infantry_attack_level_1 = InfantryAttackLevel1(self)
+        self.infantry_attack_level_2 = InfantryAttackLevel2(self)
+        self.infantry_attack_level_3 = InfantryAttackLevel3(self)
+        self.infantry_armor_level_1 = InfantryArmorLevel1(self)
+        self.infantry_armor_level_2 = InfantryArmorLevel2(self)
+        self.infantry_armor_level_3 = InfantryArmorLevel3(self)
+        self.air_attack_level_1 = AirAttackLevel1(self)
+        self.air_attack_level_2 = AirAttackLevel2(self)
+        self.air_attack_level_3 = AirAttackLevel3(self)
+        self.air_armor_level_1 = AirArmorLevel1(self)
+        self.air_armor_level_2 = AirArmorLevel2(self)
+        self.air_armor_level_3 = AirArmorLevel3(self)
+        self.caduceus_reactor = CaduceusReactor(self)

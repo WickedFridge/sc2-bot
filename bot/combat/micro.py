@@ -14,9 +14,11 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable
 
+MAXIMUM_SNIPE_COUNT: int = 2
 
 class Micro:
     bot: Superbot
+    snipe_targets: dict[int, int] = {}
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -194,7 +196,7 @@ class Micro:
         )
 
         if (damaged_allies.amount >= 1):
-            damaged_allies.sort(key = lambda unit: (unit.health, unit.distance_to(medivac)))
+            damaged_allies.sort(key = lambda unit: (unit.health_percentage, unit.distance_to(medivac)))
             # start with allies in range
             damaged_allies_in_range: Units = damaged_allies.filter(lambda unit: unit.distance_to(medivac) <= 3)
             if (damaged_allies_in_range.amount):
@@ -348,6 +350,10 @@ class Micro:
                 and enemy_unit.health + enemy_unit.shield >= 60
                 and enemy_unit.distance_to(ghost) <= 10
                 and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
+                and (
+                    enemy_unit.tag not in self.snipe_targets.keys()
+                    or self.snipe_targets[enemy_unit.tag] < MAXIMUM_SNIPE_COUNT
+                )
             )
         )
 
@@ -359,6 +365,10 @@ class Micro:
         )
         target: Unit = potential_snipe_targets.first
         ghost(AbilityId.EFFECT_GHOSTSNIPE, target)
+        if (target.tag in self.snipe_targets.keys()):
+            self.snipe_targets[target.tag] += 1
+        else:
+            self.snipe_targets[target.tag] = 1
         return True
             
     def stim_bio(self, bio_unit: Unit):

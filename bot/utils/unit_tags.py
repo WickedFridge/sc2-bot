@@ -47,6 +47,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.LURKER,
     UnitTypeId.VIPER,
     UnitTypeId.CREEPTUMOR,
+    UnitTypeId.CARRIER,
+    UnitTypeId.SENTRY,
 ]
 dont_attack: List[UnitTypeId] = [
     UnitTypeId.EGG,

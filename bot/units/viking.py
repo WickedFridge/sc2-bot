@@ -15,6 +15,11 @@ class Viking(Train):
 
     @override
     @property
+    def custom_conditions(self) -> bool:
+        return self.bot.units([UnitTypeId.MEDIVAC]).amount >= 2
+    
+    @override
+    @property
     def building_group(self) -> Units:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         return starports.filter(
