@@ -217,7 +217,7 @@ class Micro:
         enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
-            await self.bio(bio)
+            await self.bio_fight(bio)
             return
         
         close_bunkers: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
@@ -227,7 +227,7 @@ class Micro:
             self.stim_bio(bio)
             self.defend_around_bunker(bio, enemy_units, closest_bunker)
         else:
-            await self.bio(bio, local_army)
+            await self.bio_fight(bio, local_army)
             
     async def ghost_defense(self, ghost: Unit, local_army: Units):
         if (self.ghost_snipe):
@@ -264,12 +264,12 @@ class Micro:
 
         
     
-    async def bio(self, bio_unit: Unit, local_army: Units):
+    async def bio_fight(self, bio_unit: Unit, local_army: Units):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
-        other_enemy_units: Units = self.enemy_units
-        other_enemy_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
+        other_enemy_fighting_units: Units = self.enemy_fighting_units
+        other_enemy_fighting_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
         enemy_buildings: Units = self.bot.enemy_structures
         enemy_buildings_in_sight = enemy_buildings.filter(
             lambda building: building.distance_to(bio_unit) <= 12
@@ -282,7 +282,7 @@ class Micro:
         if (enemy_units_in_range.amount >= 1):
             self.stim_bio(bio_unit)
             self.hit_n_run(bio_unit, enemy_units_in_range)
-        elif (other_enemy_units.amount >= 1):
+        elif (other_enemy_fighting_units.amount >= 1):
             if (enemy_buildings_in_range.amount >= 1 and bio_unit.weapon_ready):
                 self.stim_bio(bio_unit)
                 bio_unit.attack(enemy_buildings_in_range.closest_to(bio_unit))
@@ -291,20 +291,25 @@ class Micro:
                 bio_unit.move(local_army.center)
             else:
                 self.stim_bio(bio_unit)
-                bio_unit.attack(other_enemy_units.closest_to(bio_unit))
-        elif (enemy_buildings_in_sight.amount >= 1):
-            self.stim_bio(bio_unit)
-            enemy_buildings_in_sight.sort(key = lambda building: building.health)
-            bio_unit.attack(enemy_buildings_in_sight.first)
-        elif (enemy_buildings.amount >= 1):
-            # print("[Error] no enemy units to attack")
-            bio_unit.attack(enemy_buildings.closest_to(bio_unit))
+                bio_unit.attack(other_enemy_fighting_units.closest_to(bio_unit))
+        
         else:
-            await self.retreat(bio_unit)
+            print("ERROR: no enemy fighting units")
+
+        # TODO : all of this is supposed to never happen ?
+        # elif (enemy_buildings_in_sight.amount >= 1):
+        #     self.stim_bio(bio_unit)
+        #     enemy_buildings_in_sight.sort(key = lambda building: building.health)
+        #     bio_unit.attack(enemy_buildings_in_sight.first)
+        # elif (enemy_buildings.amount >= 1):
+        #     # print("[Error] no enemy units to attack")
+        #     bio_unit.attack(enemy_buildings.closest_to(bio_unit))
+        # else:
+        #     await self.retreat(bio_unit)
 
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
-        if (viking.weapon_cooldown == 0):
+        if (viking.weapon_cooldown <= 0.1):
             potential_targets: Units = self.bot.enemy_units.filter(
                 lambda unit: unit.is_flying or unit.type_id == UnitTypeId.COLOSSUS
             ).sorted(
@@ -329,7 +334,7 @@ class Micro:
     async def ghost(self, ghost: Unit, local_army: Units):
         if (self.ghost_snipe(ghost)):
             return
-        await self.bio(ghost, local_army)
+        await self.bio_fight(ghost, local_army)
 
     def ghost_snipe(self, ghost: Unit) -> bool:
         # if we don't have energy or are already sniping, we just skip
@@ -485,7 +490,7 @@ class Micro:
             target_position = unit.position.towards(target_position, 50)
         unit.attack(target_position)
 
-    def attack_position(self, unit: Unit, target_position: Point2):
+    def attack_a_position(self, unit: Unit, target_position: Point2):
         if (unit.distance_to(target_position) > 50):
             target_position = unit.position.towards(target_position, 50)
         unit.attack(target_position)
@@ -529,10 +534,19 @@ class Micro:
         selected.move(selected_position.towards(target, distance))
 
     @property
+    def enemy_towers(self) -> Units:
+        enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
+        return enemy_towers
+    
+    @property
     def enemy_units(self) -> Units:
         enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
-        enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
-        return enemy_units + enemy_towers
+        return enemy_units + self.enemy_towers
+    
+    @property
+    def enemy_fighting_units(self) -> Units:
+        return self.enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing)
+        
     
     def get_enemy_units_in_range(self, unit: Unit) -> Units:
         if (unit is None):

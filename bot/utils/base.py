@@ -260,10 +260,7 @@ class Base:
             worker_pulled.attack(target)
 
     def repair_units(self, avaialble_workers: Units, damaged_mechanical_units: Units, max_workers_repairing: int = 8):
-        if (damaged_mechanical_units.amount == 0):
-            return
-        if (avaialble_workers.amount == 0):
-            print("no workers available to repair o7")
+        if (damaged_mechanical_units.amount == 0 or avaialble_workers.amount == 0):
             return
         workers_repairing: Units = self.bot.workers.filter(
             lambda unit: (

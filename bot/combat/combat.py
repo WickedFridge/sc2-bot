@@ -224,8 +224,10 @@ class Combat:
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             if (
-                fighting_army_supply >= local_enemy_supply * 0.7
-                or potential_army_supply >= local_enemy_supply * 0.9
+                army.ground_units.amount >= 6 and (
+                    fighting_army_supply >= local_enemy_supply * 0.7
+                    or potential_army_supply >= local_enemy_supply * 0.9    
+                )
             ):
                 print(f'disengaging')
                 return Orders.FIGHT_DISENGAGE

@@ -3,6 +3,7 @@ from bot.combat.micro import Micro
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
+from bot.utils.point2_functions import center
 from bot.utils.unit_supply import supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -175,9 +176,9 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
-                    await self.micro.bio(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    await self.micro.bio(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -214,9 +215,9 @@ class Execute:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight_drop(unit, self.drop_target)
                 case UnitTypeId.MARINE:
-                    await self.micro.bio(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.MARAUDER:
-                    await self.micro.bio(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -419,7 +420,7 @@ class Execute:
         if (not army.leader):
             return
         nearest_base_target: Point2 = self.micro.get_nearest_base_target(army.leader)
-        self.micro.attack_position(army.leader, nearest_base_target)
+        self.micro.attack_a_position(army.leader, nearest_base_target)
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_fight(unit, army.units)
@@ -432,12 +433,14 @@ class Execute:
         if (not army.leader):
             return
         attack_position: Point2 = self.bot.enemy_structures.closest_to(army.leader).position
-        self.micro.attack_position(army.leader, attack_position)
+        self.micro.attack_a_position(army.leader, attack_position)
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_fight(unit, army.units)
-            else:
+            elif (unit.distance_to(army.leader) >= 3):
                 unit.move(army.leader.position)
+            else:
+                unit.move(center([unit.position, army.leader.position, attack_position]))
 
     def regroup(self, army: Army, armies: List[Army]):
         other_armies = list(filter(lambda other_army: other_army.center != army.center, armies))
@@ -452,4 +455,7 @@ class Execute:
 
     def scout(self, army: Army):
         for reaper in army.units:
-            reaper.move(self.bot.expansions.enemy_main.mineral_line)
+            if (self.bot.state.visibility[self.bot.expansions.enemy_b2.position.rounded] == 0):
+                reaper.move(self.bot.expansions.enemy_b2.mineral_line)
+            else:
+                reaper.move(self.bot.expansions.enemy_main.mineral_line)
