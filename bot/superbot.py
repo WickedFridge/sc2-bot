@@ -29,9 +29,11 @@ class Superbot(BotAI):
     def composition_manager(self) -> ArmyCompositionManager:
         pass
 
+
     @property
     def orbital_tech_available(self) -> bool:
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
+    
     
     @property
     def units_with_passengers(self) -> Units:

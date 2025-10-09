@@ -45,11 +45,24 @@ class Execute:
         
         # otherwise drop on the furthest base from the enemy army
         enemy_army_center: Point2 = self.bot.scouting.known_enemy_army.center
-        enemy_bases: Expansions = self.bot.expansions.enemy_bases.sorted(
+        
+        # every 3 min of game, assume another base is taken if not scouted
+        enemy_bases: Expansions = self.bot.expansions.enemy_bases
+        if (self.bot.time / 60 >= 3):
+            if (not self.bot.expansions.enemy_b2.is_enemy and not self.bot.expansions.enemy_b2.is_scouted):
+                enemy_bases.add(self.bot.expansions.enemy_b2)
+        if (self.bot.time / 60 >= 6):
+            if (not self.bot.expansions.enemy_b3.is_enemy and not self.bot.expansions.enemy_b3.is_scouted):
+                enemy_bases.add(self.bot.expansions.enemy_b3)
+        if (self.bot.time / 60 >= 9):
+            if (not self.bot.expansions.enemy_b4.is_enemy and not self.bot.expansions.enemy_b4.is_scouted):
+                enemy_bases.add(self.bot.expansions.enemy_b4)
+        
+        sorted_enemy_bases: Expansions = enemy_bases.sorted(
             lambda base: base.position._distance_squared(enemy_army_center),
             reverse=True,
         )
-        return enemy_bases.first.mineral_line
+        return sorted_enemy_bases.first.mineral_line
     
     @property
     def best_edge(self) -> Point2:

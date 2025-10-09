@@ -1,5 +1,6 @@
 import math
 from typing import List, Set
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.matchup import Matchup
@@ -93,15 +94,20 @@ class BuildingsHandler:
     async def cancel_buildings(self):
         incomplete_buildings: Units = self.bot.structures.filter(
             lambda structure: (
-                structure.build_progress < 1
+                structure.health_percentage < structure.build_progress < 1
                 and structure.type_id not in add_ons
+                # and (
+                #     self.bot.workers.amount == 0
+                #     or self.bot.workers.closest_to(structure).is_constructing_scv == False
+                #     or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
+                # )
                 and (
-                    self.bot.workers.amount == 0
-                    or self.bot.workers.closest_to(structure).is_constructing_scv == False
-                    or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
+                    structure.health < 100
+                    and structure.health_percentage < 0.1
+                ) or (
+                    structure.health_percentage < 0.3
+                    and self.bot.scouting.situation == Situation.UNDER_ATTACK
                 )
-                and structure.health < 100
-                and structure.health_percentage < 0.1
             )
         )
         for building in incomplete_buildings:
@@ -193,10 +199,10 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                not unit.is_visible and
-                unit.is_revealed == False and
-                (unit.is_cloaked or unit.is_burrowed) and
-                fighting_units.closest_distance_to(unit) < 10
+                not unit.is_visible
+                and unit.is_revealed == False
+                and (unit.is_cloaked or unit.is_burrowed)
+                and fighting_units.closest_distance_to(unit) < 10
             )
         )
         

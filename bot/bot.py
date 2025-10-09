@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.6.1"
+VERSION: str = "5.7.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -83,6 +83,7 @@ class WickedBot(Superbot):
     @property
     def composition_manager(self):
         return get_composition_manager(self)
+
 
     async def on_start(self):
         """
@@ -263,7 +264,7 @@ class WickedBot(Superbot):
 
         
         # Control Attacking Units
-        await self.combat.select_orders(iteration, self.strategy.situation)
+        await self.combat.select_orders(iteration)
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
 

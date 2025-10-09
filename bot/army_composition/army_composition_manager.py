@@ -123,6 +123,7 @@ class ArmyCompositionManager:
                 composition.fill(UnitTypeId.GHOST)
             else:
                 composition.fill(UnitTypeId.MARINE)
+        
         self.composition = composition
 
     def should_train(self, unit_type: UnitTypeId) -> bool:

@@ -28,6 +28,9 @@ class Expansions:
     def __len__(self) -> int:
         return len(self.expansions)
 
+    def add(self, expansion: Expansion) -> None:
+        self.expansions.append(expansion)
+    
     def filter(self, pred: Callable[[Expansion], Any]) -> Expansions:
         return Expansions(self.bot, list(filter(pred, self)))
     

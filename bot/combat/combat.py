@@ -106,16 +106,17 @@ class Combat:
             print("army", i)
             print(army.recap)
 
-    async def select_orders(self, iteration: int, situation: Situation):
+    async def select_orders(self, iteration: int):
         # update local armies
         # Scale radius in function of army supply
         # old_armies: List[Army] = self.armies.copy()
         self.armies = self.get_army_clusters(self.army_radius)
         
         for army in self.armies:
-            army.orders = self.get_army_orders(army, situation)
+            army.orders = self.get_army_orders(army)
 
-    def reapers_orders(self, army: Army, situation: Situation) -> Orders:
+    def reapers_orders(self, army: Army) -> Orders:
+        situation: Situation = self.bot.scouting.situation
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_enemy_supply: float = local_enemy_army.weighted_supply
@@ -158,10 +159,10 @@ class Combat:
             return Orders.HEAL_UP
         return Orders.SCOUT
     
-    def get_army_orders(self, army: Army, situation: Situation) -> Orders:
+    def get_army_orders(self, army: Army) -> Orders:
         # specific orders for reapers
         if (army.units(UnitTypeId.REAPER).amount >= 1):
-            return self.reapers_orders(army, situation)
+            return self.reapers_orders(army)
         
         # define local enemies
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
@@ -175,6 +176,7 @@ class Combat:
         )
         global_enemy_buildings: Units = self.bot.enemy_structures
         # useful in case of canon/bunker rush
+        situation: Situation = self.bot.scouting.situation
         global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
@@ -260,13 +262,14 @@ class Combat:
         if (local_enemy_buildings.amount >= 1):
             return Orders.KILL_BUILDINGS
         
-        # if we have enough army we attack
+        # if we have enough army and we're not under attack we attack
         if (
             potential_army_supply >= 8
             and potential_army_supply >= army.supply * 0.7
             and (usable_medivacs.amount >= 2 or potential_army_supply >= 40)
             and potential_bio_supply >= 12
             and stim_almost_completed
+            and situation != Situation.UNDER_ATTACK
         ):
             # if we would lose a fight
             if (

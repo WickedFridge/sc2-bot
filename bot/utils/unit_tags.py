@@ -103,3 +103,12 @@ burrowed_units: List[UnitTypeId] = [
     UnitTypeId.SWARMHOSTBURROWEDMP,
     UnitTypeId.ULTRALISKBURROWED,
 ]
+cloaked_units: List[UnitTypeId] = [
+    UnitTypeId.GHOST,
+    UnitTypeId.WIDOWMINE,
+    UnitTypeId.WIDOWMINEBURROWED,
+    UnitTypeId.BANSHEE,
+    UnitTypeId.OBSERVER,
+    UnitTypeId.OBSERVERSIEGEMODE,
+    UnitTypeId.DARKTEMPLAR,
+]

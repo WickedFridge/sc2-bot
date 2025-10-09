@@ -7,17 +7,14 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 from ..utils.unit_tags import tower_types
 
-
 class StrategyHandler:
     bot: Superbot
-    situation: Situation
     strategy: Strategy
     priorities: List[Priority]
     BASE_SIZE: int = 20
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
-        self.situation = Situation.STABLE
         self.strategy = Strategy.MACRO_SAFE
         self.priorities = [
             Priority.ECONOMY,
@@ -27,14 +24,16 @@ class StrategyHandler:
         ]
 
     async def update_situation(self):
-        self.situation = self.assess_situation()
+        self.bot.scouting.situation = self.assess_situation()
 
     def assess_situation(self) -> Situation:
         # identify canon rush or bunker rush
         tower_rush_situation: Optional[Situation] = self.detect_tower_rush()
         if (tower_rush_situation):
-            return tower_rush_situation            
-
+            return tower_rush_situation
+        
+        if (self.bot.scouting.known_enemy_army.units.amount >= 2 * self.bot.units.amount):
+            return Situation.UNDER_ATTACK
         return Situation.STABLE
     
     def detect_tower_rush(self) -> Optional[Situation]:
