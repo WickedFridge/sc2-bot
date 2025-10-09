@@ -47,7 +47,7 @@ class Execute:
         enemy_army_center: Point2 = self.bot.scouting.known_enemy_army.center
         
         # every 3 min of game, assume another base is taken if not scouted
-        enemy_bases: Expansions = self.bot.expansions.enemy_bases
+        enemy_bases: Expansions = self.bot.expansions.enemy_bases.copy()
         if (self.bot.time / 60 >= 3):
             if (not self.bot.expansions.enemy_b2.is_enemy and not self.bot.expansions.enemy_b2.is_scouted):
                 enemy_bases.add(self.bot.expansions.enemy_b2)
@@ -450,6 +450,10 @@ class Execute:
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_fight(unit, army.units)
+                continue
+            enemy_units_in_range = self.micro.get_enemy_units_in_range(unit)
+            if (unit.weapon_cooldown == 0 and enemy_units_in_range.amount >= 1):
+                unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
             elif (unit.distance_to(army.leader) >= 3):
                 unit.move(army.leader.position)
             else:

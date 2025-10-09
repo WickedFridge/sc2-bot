@@ -49,7 +49,7 @@ class ArmyCompositionManager:
     @property
     def vikings_amount(self) -> int:
         # we want pretty much matching air supply
-        enemy_units: Units = self.wicked.scouting.known_enemy_army.units
+        enemy_units: Units = self.wicked.scouting.known_enemy_army.units + self.wicked.enemy_structures
         viking_response: dict[UnitTypeId, int] = {
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
@@ -59,6 +59,7 @@ class ArmyCompositionManager:
             UnitTypeId.MOTHERSHIP: 5,
             UnitTypeId.WARPPRISM: 0.33,
             UnitTypeId.MUTALISK: 0,
+            UnitTypeId.ROBOTICSBAY: 2,
         }
         viking_amount: float = sum(
             viking_response.get(unit.type_id, supply[unit.type_id] / 2 if unit.is_flying else 0)

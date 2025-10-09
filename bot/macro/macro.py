@@ -37,7 +37,11 @@ class Macro:
         for worker in self.bot.workers.filter(lambda worker: worker.is_idle == False):
             order: UnitOrder = worker.orders[0]
             townhall_ids: List[int] = [townhall.tag for townhall in self.bot.townhalls]
-            if (order.ability.id == AbilityId.MOVE and order.target in townhall_ids):
+            positions = self.bot.expansions.taken.positions
+            if (
+                order.ability.id == AbilityId.MOVE and order.target in townhall_ids
+                or positions and min(worker.distance_to(p) for p in positions) >= 20
+            ):
                 worker.stop()
     
     def threat_detection(self) -> List[Base]:

@@ -3,6 +3,8 @@ from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.technology.tech import Tech
 from bot.technology.upgrades.air_upgrades import AirArmorLevel1, AirArmorLevel2, AirArmorLevel3, AirAttackLevel1, AirAttackLevel2, AirAttackLevel3
+from bot.technology.upgrades.building_armor import BuildingArmor
+from bot.technology.upgrades.building_range import BuildingRange
 from bot.technology.upgrades.caduceus_reactor import CaduceusReactor
 from bot.technology.upgrades.combat_shield import CombatShield
 from bot.technology.upgrades.concussive_shells import ConcussiveShells
@@ -37,6 +39,8 @@ class Search:
     air_armor_level_2: AirArmorLevel2
     air_armor_level_3: AirArmorLevel3
     caduceus_reactor: CaduceusReactor
+    building_armor: BuildingArmor
+    building_range: BuildingRange
 
     def __init__(self, bot: Superbot) -> None:
         super().__init__()
@@ -57,3 +61,5 @@ class Search:
         self.air_armor_level_2 = AirArmorLevel2(self)
         self.air_armor_level_3 = AirArmorLevel3(self)
         self.caduceus_reactor = CaduceusReactor(self)
+        self.building_armor = BuildingArmor(self)
+        self.building_range = BuildingRange(self)

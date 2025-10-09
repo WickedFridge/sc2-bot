@@ -238,7 +238,7 @@ class Combat:
             return Orders.PICKUP_LEAVE
                 
         # if we should defend
-        if (distance_building_to_enemies <= 10):
+        if (distance_building_to_enemies <= 10 and Army(global_enemy_menacing_units_buildings, self.bot).supply >= 12):
             return Orders.DEFEND
 
         # if enemy is a workers, focus them

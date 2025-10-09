@@ -45,10 +45,11 @@ class Scouting:
             return
         if (
             self.bot.enemy_units(burrowed_units + cloaked_units).amount >= 1
+            or self.bot.enemy_structures(UnitTypeId.LURKERDEN).amount >= 1
             or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
         ):
             print("Burrow/cloack detected !")
-            await self.bot.client.chat_send("Tag:Burrow", False)
+            await self.bot.client.chat_send("Tag:Detection", False)
             self.known_enemy_upgrades.append(UpgradeId.BURROW)
 
     

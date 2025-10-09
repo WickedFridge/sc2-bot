@@ -273,9 +273,6 @@ class Micro:
         other_enemy_fighting_units: Units = self.enemy_fighting_units
         other_enemy_fighting_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
         enemy_buildings: Units = self.bot.enemy_structures
-        enemy_buildings_in_sight = enemy_buildings.filter(
-            lambda building: building.distance_to(bio_unit) <= 12
-        )
         enemy_buildings_in_range = enemy_buildings.filter(
             lambda building: bio_unit.target_in_range(building)
         )
@@ -294,24 +291,12 @@ class Micro:
             else:
                 self.stim_bio(bio_unit)
                 bio_unit.attack(other_enemy_fighting_units.closest_to(bio_unit))
-        
         else:
             print("ERROR: no enemy fighting units")
 
-        # TODO : all of this is supposed to never happen ?
-        # elif (enemy_buildings_in_sight.amount >= 1):
-        #     self.stim_bio(bio_unit)
-        #     enemy_buildings_in_sight.sort(key = lambda building: building.health)
-        #     bio_unit.attack(enemy_buildings_in_sight.first)
-        # elif (enemy_buildings.amount >= 1):
-        #     # print("[Error] no enemy units to attack")
-        #     bio_unit.attack(enemy_buildings.closest_to(bio_unit))
-        # else:
-        #     await self.retreat(bio_unit)
-
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
-        if (viking.weapon_cooldown <= 0.1):
+        if (viking.weapon_cooldown <= 0.25):
             potential_targets: Units = self.bot.enemy_units.filter(
                 lambda unit: unit.is_flying or unit.type_id == UnitTypeId.COLOSSUS
             ).sorted(
@@ -325,6 +310,8 @@ class Micro:
             elif (potential_targets.amount >= 1):
                 viking.attack(potential_targets.closest_to(viking))
             else:
+                # if (self.bot.scouting.known_enemy_army.flying_fighting_supply == 0):
+                #     viking(AbilityId.MORPH_VIKINGASSAULTMODE)
                 if (not self.safety_disengage(viking)):
                     viking.move(local_units.center)
 
@@ -503,7 +490,11 @@ class Micro:
     def attack_a_position(self, unit: Unit, target_position: Point2):
         if (unit.distance_to(target_position) > 50):
             target_position = unit.position.towards(target_position, 50)
-        unit.attack(target_position)
+        enemy_units_in_range = self.get_enemy_units_in_range(unit)
+        if (unit.weapon_cooldown == 0 and enemy_units_in_range.amount >= 1):
+            unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
+        else:
+            unit.move(target_position)
 
     def get_nearest_base_target(self, unit: Unit) -> Point2:
         enemy_main_position: Point2 = self.bot.enemy_start_locations[0]

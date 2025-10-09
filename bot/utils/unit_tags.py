@@ -40,6 +40,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.BANELING,
     UnitTypeId.BANELINGCOCOON,
     UnitTypeId.BANELINGBURROWED,
+    UnitTypeId.ZERGLINGBURROWED,
+    UnitTypeId.ROACHBURROWED,
     UnitTypeId.INFESTOR,
     UnitTypeId.INFESTORBURROWED,
     UnitTypeId.SWARMHOSTMP,
