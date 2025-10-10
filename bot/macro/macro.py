@@ -40,7 +40,10 @@ class Macro:
             positions = self.bot.expansions.taken.positions
             if (
                 order.ability.id == AbilityId.MOVE and order.target in townhall_ids
-                or positions and min(worker.distance_to(p) for p in positions) >= 20
+                or (
+                    (worker.is_repairing or worker.is_attacking)
+                    and positions and min(worker.distance_to(p) for p in positions) >= 20
+                )
             ):
                 worker.stop()
     

@@ -42,17 +42,19 @@ class Refinery(Building):
                 )
             
             case 2:
-                # build third rafinery as long as we have 3 CCs and at least 32 SCVs  
+                # build third rafinery as long as we have 3CCs, 4 rax and at least 40 SCVs  
                 return (
                     self.bot.townhalls.amount >= 3
-                    and workers_amount >= 32
+                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 4
+                    and workers_amount >= 38
                 )
             
             case 3:
-                # build third rafinery as long as we have 2 Ebays and at least 40 SCVs
+                # build fourth rafinery as long as we have 2 Ebays, a 3rd base takenand at least 50 SCVs
                 return (
                     self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
-                    and workers_amount >= 40
+                    and self.bot.expansions.amount_taken >= 3
+                    and workers_amount >= 50
                 )
 
             # TODO clean this

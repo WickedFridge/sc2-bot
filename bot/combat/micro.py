@@ -91,11 +91,13 @@ class Micro:
                 and enemy_unit.distance_to(flying_unit) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
             )
         )
-        # if medivac in danger, retreat and drop units
         if (menacing_enemy_units.amount == 0):
             return False
         
-        Micro.move_away(flying_unit, menacing_enemy_units.center, max(1, safety_distance))
+        # if medivac in danger, move towards a better retreat position
+        best_retreat_position: Point2 = flying_unit.position.towards(self.retreat_position, 3 - safety_distance).towards(menacing_enemy_units.center, -max(1, safety_distance))
+        flying_unit.move(best_retreat_position)
+        # Micro.move_away(flying_unit, menacing_enemy_units.center, max(1, safety_distance))
         return True
 
     async def medivac_disengage(self, medivac: Unit, local_army: Units):

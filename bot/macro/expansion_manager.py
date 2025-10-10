@@ -31,6 +31,9 @@ class Expansions:
     def add(self, expansion: Expansion) -> None:
         self.expansions.append(expansion)
     
+    def extended(self, expansion_list: List[Expansion]) -> Expansions:
+        return Expansions(self.bot, self.expansions.copy() + expansion_list)
+    
     def filter(self, pred: Callable[[Expansion], Any]) -> Expansions:
         return Expansions(self.bot, list(filter(pred, self)))
     

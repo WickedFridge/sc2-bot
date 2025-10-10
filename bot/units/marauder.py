@@ -13,18 +13,6 @@ class Marauder(Train):
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Marauder'
         self.order_id = AbilityId.BARRACKSTRAIN_MARAUDER
-    
-    @property
-    def custom_conditions(self) -> bool:
-        marine_count: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
-        stimpack_started: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) > 0
-        return (
-            stimpack_started
-            and (
-                marine_count >= 8
-                or self.bot.composition_manager.marauders_ratio > 0.3
-            )
-        )
 
     @override
     @property

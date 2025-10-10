@@ -2,11 +2,13 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
+from bot.utils.army import Army
 from bot.utils.matchup import Matchup
+from bot.utils.unit_supply import get_unit_supply
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
-from bot.utils.unit_supply import supply
 
 if TYPE_CHECKING:
     from bot import WickedBot  # only imported for type hints
@@ -21,8 +23,11 @@ class ArmyCompositionManager:
         self.bot = bot
         self.composition = Composition(bot, 0)
 
-    def __is_available(self, unit_type: UnitTypeId) -> bool:
-        return self.bot.structures(unit_type).ready.amount >= 1
+    def __is_available(self, unit_upgrade_type: UnitTypeId|UpgradeId) -> bool:
+        if (isinstance(unit_upgrade_type, UnitTypeId)):
+            return self.bot.structures(unit_upgrade_type).ready.amount >= 1
+        else:
+            return self.bot.already_pending(unit_upgrade_type) > 0
 
     @property
     def wicked(self) -> WickedBot:
@@ -32,10 +37,10 @@ class ArmyCompositionManager:
     def available_units(self) -> List[UnitTypeId]:
         available_units: List[UnitTypeId] = []
         
-        unlocks: dict[UnitTypeId, List[UnitTypeId]] = {
+        unlocks: dict[UnitTypeId, List[UnitTypeId|UpgradeId]] = {
             UnitTypeId.REAPER: [UnitTypeId.BARRACKS],
             UnitTypeId.MARINE: [UnitTypeId.BARRACKS],
-            UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
+            UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS, UpgradeId.STIMPACK],
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
@@ -59,10 +64,16 @@ class ArmyCompositionManager:
             UnitTypeId.MOTHERSHIP: 5,
             UnitTypeId.WARPPRISM: 0.33,
             UnitTypeId.MUTALISK: 0,
+            UnitTypeId.OBSERVER: 0,
+
+            # buildings that produce air units
             UnitTypeId.ROBOTICSBAY: 2,
+            UnitTypeId.STARGATE: 1,
+            UnitTypeId.FLEETBEACON: 2,
+            UnitTypeId.GREATERSPIRE: 2,
         }
         viking_amount: float = sum(
-            viking_response.get(unit.type_id, supply[unit.type_id] / 2 if unit.is_flying else 0)
+            viking_response.get(unit.type_id, get_unit_supply(unit.type_id) / 2 if unit.is_flying else 0)
             for unit in enemy_units
         )
 
@@ -81,10 +92,10 @@ class ArmyCompositionManager:
             return default_marauder_ratio[self.wicked.matchup]
         return max(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
     
-    def maximal_amount(self, unit_type: UnitTypeId) -> int | bool:
+    def default_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:
             case UnitTypeId.MEDIVAC:
-                return 10
+                return 6
             case UnitTypeId.REAPER:
                 return 1
             case _:
@@ -96,16 +107,18 @@ class ArmyCompositionManager:
 
         max_army_supply: int = 200 - self.wicked.trainer.scv.max_amount
         composition: Composition = Composition(self.bot, max_army_supply)
+        marine_count: int = self.wicked.units(UnitTypeId.MARINE).amount + self.wicked.already_pending(UnitTypeId.MARINE)
 
         for unit_type in available_units:
-            if (self.maximal_amount(unit_type)):
-                composition.set(unit_type, self.maximal_amount(unit_type))
+            if (self.default_amount(unit_type)):
+                composition.set(unit_type, self.default_amount(unit_type))
 
         
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
-        if (UnitTypeId.MARAUDER in available_units):
+        # only start making marauders once we have at least 8 marines
+        if (UnitTypeId.MARAUDER in available_units and marine_count >= 8):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
             composition.add(UnitTypeId.MARAUDER, marauder_count)
@@ -116,7 +129,20 @@ class ArmyCompositionManager:
         
         if (self.bot.time >= 120):
             composition.remove(UnitTypeId.REAPER)
-            # always fill the rest of the composition with half Marines
+            # if we have medivacs and a lot of bio, get the medivac count up to 10
+            if (UnitTypeId.MEDIVAC in available_units):
+                # add up to 4 Medivac if we already have a lot of bio
+                bio_supply: int = (
+                    Army(self.wicked.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]), self.wicked).supply
+                    + self.bot.already_pending(UnitTypeId.MARINE) * 1
+                    + self.bot.already_pending(UnitTypeId.MARAUDER) * 2
+                    + self.bot.already_pending(UnitTypeId.GHOST) * 3
+                )
+                if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
+                    composition.set(UnitTypeId.MEDIVAC, min(10, round(bio_supply / 8)))
+
+            
+            # always fill the rest of the composition with 2 thirds of Marines
             composition.fill(UnitTypeId.MARINE, 2/3)
             
             # Then, finish with either Ghost or Marines

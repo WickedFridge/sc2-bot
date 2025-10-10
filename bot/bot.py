@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.8.0"
+VERSION: str = "5.9.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -214,14 +214,8 @@ class WickedBot(Superbot):
             self.search.infantry_attack_level_3.search,
             self.search.infantry_armor_level_3.search,
         ])
+        # army
         money_spenders.extend(self.trainer.ordered_army_trainers)
-        money_spenders.extend([
-            # army
-            self.trainer.medivac.train,
-            self.trainer.ghost.train,
-            self.trainer.marauder.train,
-            self.trainer.marine.train,
-        ])
         money_spenders.extend([
             # advanced tech
             self.search.stimpack.search,

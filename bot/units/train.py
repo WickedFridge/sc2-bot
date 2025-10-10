@@ -9,7 +9,7 @@ from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
-from bot.utils.unit_supply import supply
+from bot.utils.unit_supply import get_unit_supply
 from bot.utils.unit_tags import worker_types
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ class Train:
     @property
     def default_conditions(self) -> bool:
         return (
-            self.bot.supply_used + supply[self.unitId] <= self.bot.supply_cap
+            self.bot.supply_used + get_unit_supply(self.unitId) <= self.bot.supply_cap
             and self.building_group.amount >= 1
             and (
                 self.unitId in worker_types

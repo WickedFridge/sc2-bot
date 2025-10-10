@@ -220,7 +220,11 @@ class Combat:
                 )
             ):
                 if (potential_army_supply >= army.supply * 2):
-                    return Orders.FIGHT_DROP
+                    # only fight if our medivacs are healthy
+                    if (usable_medivacs.amount >= 2):
+                        return Orders.FIGHT_DROP
+                    else:
+                        return Orders.RETREAT
                 else:
                     return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):

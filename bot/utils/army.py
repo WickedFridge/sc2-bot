@@ -6,7 +6,7 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import worker_types, menacing, bio
-from ..utils.unit_supply import units_supply, weighted_units_supply
+from ..utils.unit_supply import get_units_supply, weighted_units_supply
 
 
 class Army:
@@ -46,19 +46,19 @@ class Army:
         armored_ground_units: Units = self.ground_units.filter(
             lambda unit: unit.is_armored
         )
-        return units_supply(armored_ground_units)
+        return get_units_supply(armored_ground_units)
     
     @property
     def flying_fighting_supply(self) -> float:
-        return units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
+        return get_units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
 
     @property
     def supply(self) -> float:
-        return units_supply(self.units)
+        return get_units_supply(self.units)
 
     @property
     def potential_supply(self) -> float:
-        return units_supply(self.potential_fighting_units)
+        return get_units_supply(self.potential_fighting_units)
     
     @property
     def weighted_supply(self) -> float:
@@ -66,11 +66,11 @@ class Army:
     
     @property
     def bio_supply(self) -> float:
-        return units_supply(self.bio_units)
+        return get_units_supply(self.bio_units)
     
     @property
     def potential_bio_supply(self) -> float:
-        return units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
+        return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
 
     @property
     def units_not_in_sight(self) -> Units:

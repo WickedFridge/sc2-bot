@@ -102,11 +102,11 @@ class BuildingsHandler:
                 #     or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
                 # )
                 and (
-                    structure.health < 100
-                    and structure.health_percentage < 0.1
-                ) or (
-                    structure.health_percentage < 0.3
-                    and self.bot.scouting.situation == Situation.UNDER_ATTACK
+                    (structure.health < 100 and structure.health_percentage < 0.1)
+                    or (
+                        structure.health_percentage < 0.3
+                        and self.bot.scouting.situation == Situation.UNDER_ATTACK
+                    )
                 )
             )
         )

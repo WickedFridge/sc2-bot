@@ -46,7 +46,7 @@ class Expansion:
     
     @property
     def is_visible(self) -> bool:
-        return self.bot.state.visibility[self.position.rounded] != 2
+        return self.bot.state.visibility[self.position.rounded] == 2
     
     @property
     def is_populated(self) -> bool:

@@ -6,9 +6,9 @@ from sc2.ids.upgrade_id import UpgradeId
 
 
 class BuildingArmor(Upgrade):
-    upgrade = UpgradeId.NEOSTEELFRAME
+    upgrade = UpgradeId.TERRANBUILDINGARMOR
     building = UnitTypeId.ENGINEERINGBAY
-    ability = AbilityId.RESEARCH_NEOSTEELFRAME
+    ability = AbilityId.RESEARCH_TERRANSTRUCTUREARMORUPGRADE
     requirements_ups = [
         UpgradeId.TERRANINFANTRYWEAPONSLEVEL3,
         UpgradeId.TERRANINFANTRYARMORSLEVEL3,

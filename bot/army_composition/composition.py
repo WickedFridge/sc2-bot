@@ -1,6 +1,6 @@
 from typing import Dict, Iterator, List
 from bot.utils.colors import GREEN, RED, WHITE
-from bot.utils.unit_supply import unit_supply
+from bot.utils.unit_supply import get_unit_supply
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -37,13 +37,17 @@ class Composition:
     @property
     def total_supply(self) -> int:
         """Total supply used by this composition."""
-        return sum(unit_supply(unit) * count for unit, count in self.units.items())
+        return sum(get_unit_supply(unit) * count for unit, count in self.units.items())
 
     @property
     def supply_remaining(self) -> int:
         """How much supply is left before hitting cap."""
         return self.supply_cap - self.total_supply
 
+    @property
+    def keys(self) -> List[UnitTypeId]:
+        return list(self.units.keys())
+    
     def __getitem__(self, unit_type: UnitTypeId) -> int:
         return self.units.get(unit_type, 0)
 
@@ -82,7 +86,7 @@ class Composition:
     
     def fill(self, unit_type: UnitTypeId, ratio: float = 1) -> None:
         """Fill remaining supply with a specific unit type."""
-        unit_supply_value: int = unit_supply(unit_type)
+        unit_supply_value: int = get_unit_supply(unit_type)
         max_addable: int = self.supply_remaining // unit_supply_value
         if (max_addable >= 1):
             self.add(unit_type, int(max_addable * ratio))

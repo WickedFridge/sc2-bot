@@ -1,6 +1,6 @@
 from typing import List, override
 from bot.units.train import Train
-from bot.utils.unit_supply import units_supply
+from bot.utils.unit_supply import get_units_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -22,7 +22,7 @@ class Medivac(Train):
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST
         ]
-        bio_supply: int = units_supply(self.bot.units(bio_unit_ids))
+        bio_supply: int = get_units_supply(self.bot.units(bio_unit_ids))
         barracks_inactive: Units = self.bot.structures(UnitTypeId.BARRACKS).ready.filter(lambda rax: not rax.is_active)
 
         return (

@@ -11,7 +11,7 @@ class BuildingRange(Upgrade):
     building = UnitTypeId.ENGINEERINGBAY
     ability = AbilityId.RESEARCH_HISECAUTOTRACKING
     requirements_ups = [
-        UpgradeId.NEOSTEELFRAME,
+        UpgradeId.TERRANBUILDINGARMOR,
     ]
     name = "Building Range"
 

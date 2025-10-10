@@ -1,10 +1,11 @@
 from typing import List, Optional
 from bot.combat.micro import Micro
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions import center
-from bot.utils.unit_supply import supply
+from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -47,18 +48,19 @@ class Execute:
         enemy_army_center: Point2 = self.bot.scouting.known_enemy_army.center
         
         # every 3 min of game, assume another base is taken if not scouted
-        enemy_bases: Expansions = self.bot.expansions.enemy_bases.copy()
+        potential_enemy_bases: List[Expansion] = []
         if (self.bot.time / 60 >= 3):
             if (not self.bot.expansions.enemy_b2.is_enemy and not self.bot.expansions.enemy_b2.is_scouted):
-                enemy_bases.add(self.bot.expansions.enemy_b2)
+                potential_enemy_bases.append(self.bot.expansions.enemy_b2)
+        
+        # add b3 + b4 at the same time because we're not sure which base they'll take
         if (self.bot.time / 60 >= 6):
             if (not self.bot.expansions.enemy_b3.is_enemy and not self.bot.expansions.enemy_b3.is_scouted):
-                enemy_bases.add(self.bot.expansions.enemy_b3)
-        if (self.bot.time / 60 >= 9):
+                potential_enemy_bases.append(self.bot.expansions.enemy_b3)
             if (not self.bot.expansions.enemy_b4.is_enemy and not self.bot.expansions.enemy_b4.is_scouted):
-                enemy_bases.add(self.bot.expansions.enemy_b4)
+                potential_enemy_bases.append(self.bot.expansions.enemy_b4)
         
-        sorted_enemy_bases: Expansions = enemy_bases.sorted(
+        sorted_enemy_bases: Expansions = self.bot.expansions.enemy_bases.extended(potential_enemy_bases).sorted(
             lambda base: base.position._distance_squared(enemy_army_center),
             reverse=True,
         )
@@ -99,7 +101,7 @@ class Execute:
         # Step 4: Check if the best two are full or need more units (don't drop ghosts)
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
         cargo_left: int = sum(medivac.cargo_left for medivac in medivacs_to_use)
-        pickable_ground_units: Units = ground_units.filter(lambda unit: unit.type_id != UnitTypeId.GHOST and supply[unit.type_id] <= cargo_left)
+        pickable_ground_units: Units = ground_units.filter(lambda unit: unit.type_id != UnitTypeId.GHOST and get_unit_supply(unit.type_id) <= cargo_left)
         
         # Step 5: Select the ground units to pickup and retreat with the rest
         if (pickable_ground_units.amount >= 1):

@@ -41,4 +41,4 @@ class MissileTurret(Building):
     @override
     @property
     def position(self) -> Point2:
-        return self.expansions_without_turret.first.position
+        return self.expansions_without_turret.first.bunker_forward_in_pathing
