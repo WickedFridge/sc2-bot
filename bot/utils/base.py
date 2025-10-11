@@ -248,7 +248,7 @@ class Base:
             return
         if (workers_attacking_tower.amount > amount):
             # stop excess workers
-            workers_attacking_reversed: Units = workers_attacking_tower.sorted_by_distance_to(target).reverse()
+            workers_attacking_reversed: Units = workers_attacking_tower.sorted_by_distance_to(target, True)
             workers_to_stop: Units = workers_attacking_reversed.take(workers_attacking_tower.amount - amount)
             for worker in workers_to_stop:
                 worker.stop()
