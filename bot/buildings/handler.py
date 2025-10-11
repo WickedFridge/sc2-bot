@@ -281,6 +281,10 @@ class BuildingsHandler:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
 
     async def reposition_buildings(self):
+        # never reposition the first barrack
+        if (self.bot.structures(UnitTypeId.BARRACKS).ready.amount <= 1):
+            return
+
         production_building_ids: List[UnitTypeId] = [
             UnitTypeId.BARRACKS,
             UnitTypeId.FACTORY,

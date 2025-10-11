@@ -1,6 +1,7 @@
 from typing import Dict, List, override
 from bot.buildings.building import Building
 from bot.macro.resources import Resources
+from bot.strategy.strategy_types import Situation
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
@@ -98,6 +99,7 @@ class BarracksAddon(Building):
             self.barracks_without_addon.amount >= 1
             and self.next_addon == self.unitId
             and not self.bot.composition_manager.should_train(UnitTypeId.REAPER)
+            and self.bot.scouting.situation != Situation.UNDER_ATTACK
         )
 
     @override

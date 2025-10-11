@@ -2,6 +2,7 @@ from typing import FrozenSet, Set, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.resources import Resources
+from bot.strategy.strategy_types import Situation
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -24,7 +25,7 @@ class SupplyDepot(Building):
         if (current_supply == 15):
             return self.bot.supply_used == 14
         if (current_supply == 23):
-            return self.bot.supply_used == 21
+            return self.bot.supply_used == 21 or self.bot.scouting.situation == Situation.UNDER_ATTACK
         return (
             current_supply < 200
             and self.bot.supply_left < (self.bot.supply_used - 3) / 6
