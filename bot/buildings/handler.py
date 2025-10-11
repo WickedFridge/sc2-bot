@@ -281,10 +281,6 @@ class BuildingsHandler:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
 
     async def reposition_buildings(self):
-        # never reposition the first barrack
-        if (self.bot.structures(UnitTypeId.BARRACKS).ready.amount <= 1):
-            return
-
         production_building_ids: List[UnitTypeId] = [
             UnitTypeId.BARRACKS,
             UnitTypeId.FACTORY,
@@ -296,10 +292,14 @@ class BuildingsHandler:
                 and structure.has_add_on == False
             )
         )
-        for production_building in production_buildings_without_addon:
-            if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, production_building.add_on_position)):
-                print(f'Can not build add-on, {production_building.name} lifts')
-                production_building(AbilityId.LIFT)
+        
+        # never reposition the first barrack
+        barracks_amount: int = self.bot.structures([UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING]).amount + self.bot.already_pending(UnitTypeId.BARRACKS)
+        if (barracks_amount >= 2):
+            for production_building in production_buildings_without_addon:
+                if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, production_building.add_on_position)):
+                    print(f'Can not build add-on, {production_building.name} lifts')
+                    production_building(AbilityId.LIFT)
         
         # if starport is complete and has no reactor, lift it
         if (
@@ -360,12 +360,14 @@ class BuildingsHandler:
                     land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
                     flying_building(AbilityId.LAND, land_position)    
                 case UnitTypeId.FACTORYFLYING:
-                    if (
-                        free_reactors.amount <= 1 and
-                        (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
-                    ):
-                        land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
-                        flying_building(AbilityId.LAND, land_position)
+                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                    flying_building(AbilityId.LAND, land_position)
+                    # if (
+                    #     free_reactors.amount <= 1 and
+                    #     (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
+                    # ):
+                    #     land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                    #     flying_building(AbilityId.LAND, land_position)
                 case UnitTypeId.STARPORTFLYING:
                     if (free_reactors.amount >= 1):
                         print("Land Starport")

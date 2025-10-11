@@ -55,7 +55,9 @@ class Upgrade:
             return resources_updated
         
         print("Search", self.name)
-        building: Unit = self.bot.structures(self.building).ready.idle.random
+        building: Unit = self.bot.structures(self.building).ready.filter(
+            lambda building: len(building.orders) == 0
+        ).random
         if (self.is_ability):
             building(self.ability)
         else:

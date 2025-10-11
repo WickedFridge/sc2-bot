@@ -4,6 +4,7 @@ from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.base import Base
 from bot.utils.colors import BLUE, GREEN, PURPLE, RED, WHITE, YELLOW
@@ -34,7 +35,7 @@ class Macro:
 
     # due to speedmining, some workers sometimes bug
     async def unbug_workers(self):
-        for worker in self.bot.workers.filter(lambda worker: worker.is_idle == False):
+        for worker in (self.bot.units(UnitTypeId.MULE) + self.bot.workers).filter(lambda worker: worker.is_idle == False):
             order: UnitOrder = worker.orders[0]
             townhall_ids: List[int] = [townhall.tag for townhall in self.bot.townhalls]
             positions = self.bot.expansions.taken.positions
@@ -42,6 +43,7 @@ class Macro:
                 order.ability.id == AbilityId.MOVE and order.target in townhall_ids
                 or (
                     (worker.is_repairing or worker.is_attacking)
+                    and self.bot.scouting.situation not in [Situation.CANON_RUSH, Situation.BUNKER_RUSH]
                     and positions and min(worker.distance_to(p) for p in positions) >= 20
                 )
             ):

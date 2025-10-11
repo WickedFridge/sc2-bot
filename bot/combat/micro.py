@@ -29,6 +29,12 @@ class Micro:
             return self.bot.expansions.main.retreat_position
         if (self.bot.scouting.known_enemy_army.supply == 0):
             return self.bot.expansions.last_taken.retreat_position
+        # if one of our expand is getting harassed, choose this one
+        if (self.bot.enemy_units.amount >= 1):
+            # select enemy harassing
+            enemy_units_harassing: Units = self.bot.enemy_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
+            if (enemy_units_harassing.amount >= 1):
+                return self.bot.expansions.taken.closest_to(enemy_units_harassing.center).retreat_position
         return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).retreat_position
     
     async def retreat(self, unit: Unit):
@@ -41,7 +47,7 @@ class Micro:
         
         # TODO: handle retreat when opponent is blocking our way
         local_flying_orbital: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).in_distance_between(unit.position, 0, 10)
-        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(self.bot.game_info.map_center, 5)
+        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(local_flying_orbital.center, -5)
         if (unit.type_id == UnitTypeId.MEDIVAC):
             if (
                 unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])

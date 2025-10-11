@@ -119,6 +119,10 @@ class Expansions:
         return random.choice(self.expansions)
     
     @property
+    def ccs(self) -> Units:
+        return Units([expansion.cc for expansion in self.expansions if expansion.cc is not None], self.bot)
+    
+    @property
     def main(self) -> Optional[Expansion]:
         return self.expansions[0]
     

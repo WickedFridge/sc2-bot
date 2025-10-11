@@ -53,6 +53,9 @@ class ArmyCompositionManager:
     
     @property
     def vikings_amount(self) -> int:
+        # so far we max our viking amount at 36
+        max_viking_amount: int = 36
+
         # we want pretty much matching air supply
         enemy_units: Units = self.wicked.scouting.known_enemy_army.units + self.wicked.enemy_structures
         viking_response: dict[UnitTypeId, int] = {
@@ -77,8 +80,8 @@ class ArmyCompositionManager:
             for unit in enemy_units
         )
 
-        # round up, because 2.3 vikings = 3 vikings in practice
-        return int(math.ceil(viking_amount))
+        # round, because 2.3 vikings = 2 vikings in practice
+        return min(max_viking_amount, round(viking_amount))
     
     @property
     def marauders_ratio(self) -> float:
@@ -96,8 +99,8 @@ class ArmyCompositionManager:
         match unit_type:
             case UnitTypeId.MEDIVAC:
                 return 6
-            case UnitTypeId.REAPER:
-                return 1
+            case UnitTypeId.MARINE:
+                return 30
             case _:
                 return False
 
@@ -127,8 +130,11 @@ class ArmyCompositionManager:
         ghost_count: int = units(UnitTypeId.GHOST).amount
         composition.add(UnitTypeId.GHOST, ghost_count)
         
-        if (self.bot.time >= 120):
-            composition.remove(UnitTypeId.REAPER)
+        # in early game set our composition to only be 1 reaper
+        if (self.bot.time <= 120):
+            composition.set(UnitTypeId.REAPER, 1)
+            composition.set(UnitTypeId.MARINE, 0)
+        else:
             # if we have medivacs and a lot of bio, get the medivac count up to 10
             if (UnitTypeId.MEDIVAC in available_units):
                 # add up to 4 Medivac if we already have a lot of bio
@@ -142,8 +148,8 @@ class ArmyCompositionManager:
                     composition.set(UnitTypeId.MEDIVAC, min(10, round(bio_supply / 8)))
 
             
-            # always fill the rest of the composition with 2 thirds of Marines
-            composition.fill(UnitTypeId.MARINE, 2/3)
+            # always fill the rest of the composition with 1/2 of Marines
+            composition.fill(UnitTypeId.MARINE, 1/2)
             
             # Then, finish with either Ghost or Marines
             if (UnitTypeId.GHOST in self.available_units):
