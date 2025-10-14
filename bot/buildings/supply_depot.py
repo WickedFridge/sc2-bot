@@ -17,25 +17,45 @@ class SupplyDepot(Building):
         self.name = "Supply Depot"
         self.radius = 0.5
     
+    @property
+    def max_depots_pending(self) -> int:
+        """Allow more simultaneous depots as the game progresses."""
+        thresholds = [(160, 4), (120, 3), (42, 2)]
+        for threshold, value in thresholds:
+            if (self.bot.supply_used >= threshold):
+                return value
+        return 1
+    
+    
     @override
     @property
     def conditions(self) -> bool:
-        current_supply: int = self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8
+        current_supply: float = self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
+        pending_depots: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).not_ready
+        for pending_depot in pending_depots:
+            current_supply += pending_depot.build_progress * 8
+        future_supply: float = current_supply + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 + self.bot.already_pending(UnitTypeId.COMMANDCENTER) * 15
         concurrent_supply_depots: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
-        if (current_supply == 15):
-            return self.bot.supply_used == 14
-        if (current_supply == 23):
-            return self.bot.supply_used == 21 or self.bot.scouting.situation == Situation.UNDER_ATTACK
+        
+        if (future_supply >= 200 or concurrent_supply_depots >= self.max_depots_pending):
+            return False
+        
+        if (current_supply <= 15):
+            return self.bot.supply_used >= 14
+        if (current_supply <= 23):
+            return self.bot.supply_used >= 21 or self.bot.scouting.situation == Situation.UNDER_ATTACK
+        if (current_supply <= 46):
+            return self.bot.supply_used >= 35 and self.bot.supply_workers >= 26
+        if (current_supply <= 54):
+            return self.bot.supply_used >= 42 and self.bot.supply_workers >= 30
         return (
-            current_supply < 200
-            and self.bot.supply_left < (self.bot.supply_used - 3) / 6
-            and concurrent_supply_depots <= (self.bot.supply_used - 5) / 60
+            self.bot.supply_left < self.bot.supply_used / 6
         )
     
     @override
     @property
     def position(self) -> Point2:
-        depots: Units = self.bot.structures.of_type({UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED})
+        depots: Units = self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED])
 
         # Filter locations close to finished supply depots
         

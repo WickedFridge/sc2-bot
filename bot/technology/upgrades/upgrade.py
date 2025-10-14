@@ -37,7 +37,7 @@ class Upgrade:
         return (
             self.custom_conditions
             and self.bot.already_pending_upgrade(self.upgrade) == 0
-            and self.bot.structures(self.building).ready.idle.amount >= 1
+            and self.bot.structures(self.building).ready.filter(lambda unit: len(unit.orders) == 0).amount >= 1
             and self.bot.tech_requirement_progress(self.upgrade) == 1
             and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
             and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)

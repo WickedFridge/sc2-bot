@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.9.3"
+VERSION: str = "5.10.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -206,8 +206,10 @@ class WickedBot(Superbot):
         ])
         money_spenders.extend([
             # very important tech
+            self.search.combat_shield.search,
             self.search.infantry_attack_level_1.search,
             self.search.infantry_armor_level_1.search,
+            self.search.concussive_shells.search,
             self.builder.armory.build,
             self.search.infantry_attack_level_2.search,
             self.search.infantry_armor_level_2.search,
@@ -219,8 +221,6 @@ class WickedBot(Superbot):
         money_spenders.extend([
             # advanced tech
             self.search.stimpack.search,
-            self.search.combat_shield.search,
-            self.search.concussive_shells.search,
             self.search.caduceus_reactor.search,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
@@ -282,7 +282,7 @@ class WickedBot(Superbot):
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
         await self.debug.selection()
-        # self.macro.supply_block_update()
+        self.macro.supply_block_update()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()
