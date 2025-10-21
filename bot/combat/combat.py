@@ -282,8 +282,11 @@ class Combat:
                 # if our bio is too low, heal up
                 if (army.bio_health_percentage < 0.7):
                     return Orders.HEAL_UP
-                else:
+                # only drop if opponent doesn't have several phoenixes
+                elif (self.bot.scouting.known_enemy_army.units(UnitTypeId.PHOENIX).amount < 2):
                     return Orders.DROP
+                else:
+                    return Orders.RETREAT
             
             # if we would win a fight, we attack front
             else:
