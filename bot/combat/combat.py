@@ -181,9 +181,15 @@ class Combat:
             lambda unit: unit.type_id in tower_types
         )
 
-        usable_medivacs: Units = army.units.of_type(UnitTypeId.MEDIVAC).filter(
+        usable_medivacs: Units = army.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.health_percentage >= 0.5
         )
+        global_full_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
+            lambda unit: unit.tag not in army.tags and unit.cargo_left == 0
+        )
+        # the amount of medivacs allowed to drop is 2 by default, going up to 4 once we hit 8 medivacs
+        maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
+
         fighting_army_supply: float = army.weighted_supply
         potential_army_supply: float = army.potential_supply
         potential_bio_supply: float = army.potential_bio_supply
@@ -283,7 +289,10 @@ class Combat:
                 if (army.bio_health_percentage < 0.7):
                     return Orders.HEAL_UP
                 # only drop if opponent doesn't have several phoenixes
-                elif (self.bot.scouting.known_enemy_army.units(UnitTypeId.PHOENIX).amount < 2):
+                elif (
+                    self.bot.scouting.known_enemy_army.units(UnitTypeId.PHOENIX).amount < 2
+                    and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
+                ):
                     return Orders.DROP
                 else:
                     return Orders.RETREAT

@@ -19,6 +19,10 @@ class Army:
         self.bot = bot
     
     @property
+    def tags(self) -> List[int]:
+        return self.units.tags
+    
+    @property
     def radius(self) -> float:
         return self.supply * 0.2 + 10
     

@@ -148,6 +148,7 @@ class Debug:
             color: tuple = GREEN if buildable else RED
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
+        
         if (selected_units.amount == 2):
             # draw the pathing grid between the two selected units
             
@@ -187,6 +188,10 @@ class Debug:
                 target_unit: Unit = find_by_tag(self.bot, target)
                 if (target_unit):
                     self.draw_box_on_world(target_unit.position)
+            
+            # draw "virtual range"
+            range: float = unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
+            self.draw_sphere_on_world(unit.position, radius=range, draw_color=ORANGE)
 
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(

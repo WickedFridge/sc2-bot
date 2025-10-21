@@ -245,12 +245,35 @@ class Micro:
         await self.bio_defense(ghost, local_army)
 
 
+    async def reaper_grenade(self, reaper: Unit) -> bool:
+        available_abilities = (await self.bot.get_available_abilities([reaper]))[0]
+        if (AbilityId.KD8CHARGE_KD8CHARGE not in available_abilities):
+            return False
+        potential_targets: Units = self.enemy_units.filter(
+            lambda enemy_unit: (
+                not enemy_unit.is_flying
+                and enemy_unit.distance_to(reaper) <= 5
+            )
+        ).sorted(
+            lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
+        )
+        if (potential_targets.amount == 0):
+            return False
+        target: Unit = potential_targets.first
+        reaper(AbilityId.KD8CHARGE_KD8CHARGE, target.position)
+        return True
+    
     async def reaper(self, reaper: Unit):
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
         SAFETY: int = 2
         enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
         close_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.distance_to(reaper) <= 10)
         menacing_enemy_units: Units = close_enemy_units.filter(lambda unit: unit.distance_to(reaper) <= reaper.radius + unit.radius + unit.ground_range + SAFETY)
+        
+        # if we're launching a grenade, just do it and skip the rest
+        if (await self.reaper_grenade(reaper)):
+            return
+        
         if (reaper.weapon_cooldown == 0):
             # if we can safely shoot, just shoot
             if (menacing_enemy_units.amount == 0 or (menacing_enemy_units.amount <= 3 and reaper.health >= 15)):
