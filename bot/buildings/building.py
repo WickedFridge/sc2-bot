@@ -59,5 +59,5 @@ class Building:
             return resources_updated
         
         position: Point2 = dfs_in_pathing(self.bot, pos, self.bot.game_info.map_center, self.radius, self.has_addon)
-        await self.builder.build(self.unitId, position)
+        await self.builder.build(self.unitId, position, self.radius, self.has_addon)
         return resources_updated

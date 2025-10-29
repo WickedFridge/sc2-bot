@@ -128,7 +128,7 @@ class Debug:
         for expansion in self.bot.expansions.taken:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
             self.draw_text_on_world(expansion.position, f'defended [{expansion.is_defended}]', LIGHTBLUE)
-            defending_bunker: Unit = expansion.defending_bunker
+            defending_bunker: Unit = expansion.defending_structure
             if (defending_bunker):
                 self.draw_text_on_world(below_expansion_point, f'[{defending_bunker.position}]', GREEN)
                 self.draw_grid_on_world(defending_bunker.position, 3, "Bunker")
@@ -171,8 +171,8 @@ class Debug:
             
         for unit in selected_units:
             unit: Unit
-            order: str = "idle" if unit.is_idle else unit.orders[0].__repr__()
-            self.draw_text_on_world(unit.position, f'{unit.name} [{order}]')
+            order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {unit.order_target}')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')

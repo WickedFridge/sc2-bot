@@ -67,16 +67,25 @@ class Expansion:
 
     @property
     def is_safe(self) -> bool:
-        local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
+        local_enemy_ground_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_ground and not unit.is_flying
+        )
+        local_enemy_air_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_ground and unit.is_flying
+        )
+        local_anti_ground_units: Units = self.bot.units.closer_than(8, self.position).filter(
             lambda unit: unit.can_attack_ground
         )
-        local_units: Units = self.bot.units.closer_than(8, self.position).filter(
-            lambda unit: unit.can_attack_ground
+        local_anti_air_units: Units = self.bot.units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_air
         )
-        if (self.defending_bunker and self.defending_bunker.cargo_used >= 1):
-            local_units.append(self.defending_bunker)
+        if (self.defending_structure and self.defending_structure.cargo_used >= 1):
+            local_anti_ground_units.append(self.defending_structure)
         
-        return Army(local_units, self.bot).weighted_supply >= Army(local_enemy_units, self.bot).weighted_supply
+        return (
+            Army(local_anti_ground_units, self.bot).weighted_supply >= Army(local_enemy_ground_units, self.bot).weighted_supply
+            and Army(local_anti_air_units, self.bot).weighted_supply >= Army(local_enemy_air_units, self.bot).weighted_supply
+        )
 
     @property
     def cc(self) -> Optional[Unit]:
@@ -231,8 +240,8 @@ class Expansion:
     @property
     def retreat_position(self) -> Point2:
         if (self.is_defended and self.mineral_fields.amount >= 1):
-            reference_position: Point2 = self.mineral_fields.closest_to(self.defending_bunker).position
-            return center([reference_position, self.defending_bunker.position])
+            reference_position: Point2 = self.mineral_fields.closest_to(self.defending_structure).position
+            return center([reference_position, self.defending_structure.position])
         position: Point2 = self.bunker_ramp or self.bunker_forward
         return center([position, self.mineral_line])
     
@@ -268,7 +277,7 @@ class Expansion:
         return dfs_in_pathing(self.bot, bunker_position.rounded_half, preferred_direction)
     
     @property
-    def defending_bunker(self) -> Optional[Unit]:
+    def defending_structure(self) -> Optional[Unit]:
         if (self.is_defended == False):
             return None
         return self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.closest_to(self.position)

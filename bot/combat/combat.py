@@ -383,7 +383,7 @@ class Combat:
     
     async def handle_bunkers(self):
         for expansion in self.bot.expansions.defended:
-            bunker: Unit = expansion.defending_bunker
+            bunker: Unit = expansion.defending_structure
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.target_in_range(unit)
             )

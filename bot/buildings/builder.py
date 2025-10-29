@@ -22,6 +22,7 @@ from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityBuild
 from bot.utils.fake_order import FakeOrder
+from bot.utils.point2_functions import dfs_in_pathing
 from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -129,24 +130,28 @@ class Builder:
                     print("no free reactor")
 
     
-    async def build(self, unitType: UnitTypeId, position: Point2, placement_step: int = 2):
-        location: Point2 = await self.bot.find_placement(unitType, near=position, placement_step=placement_step)
-        if (location):
-            workers = self.bot.workers.filter(
-                lambda worker: (
-                    worker.is_carrying_resource == False
-                    and (
-                        (worker.is_constructing_scv and self.scv_build_progress(worker) >= 0.95)
-                        or len(worker.orders) == 0
-                        or worker.orders[0].ability.id not in AbilityBuild
+    async def build(self, unitType: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
+        location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
+        workers = self.bot.workers.filter(
+            lambda worker: (
+                worker.is_carrying_resource == False
+                and (
+                    len(worker.orders) == 0
+                    or not worker.is_constructing_scv
+                    or (
+                        worker.is_constructing_scv
+                        and self.scv_build_progress(worker) >= 0.95
+                        and isinstance(worker.order_target, Point2) and worker.order_target.distance_to(worker.position) <= 2
                     )
                 )
             )
-            if (workers.amount):
-                worker: Unit = workers.closest_to(location)
-                worker.build(unitType, location)
-                # TODO : replace with the correct building id
-                worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
+        )
+        if (workers.amount == 0):
+            return
+        worker: Unit = workers.closest_to(location)
+        worker.build(unitType, location)
+        # TODO : replace with the correct building id
+        worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
 
 
     async def find_land_position(self, building: Unit):
