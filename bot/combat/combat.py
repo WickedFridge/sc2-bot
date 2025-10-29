@@ -44,7 +44,27 @@ class Combat:
             result += army.armored_ground_supply
         return result
             
-    def get_army_clusters(self, radius: float = 15) -> List[Army]:
+    def load_clusters(self) -> List[Army]:
+        clusters: List[Army] = []
+        for army in self.armies:
+            units: List[Unit] = []
+            for tag in army.tags:
+                unit: Unit = self.bot.units.find_by_tag(tag)
+                if (unit is not None):
+                    units.append(unit)
+            if (len(units) == 0):
+                continue
+            new_army: Army = Army(Units(units, self.bot), self.bot)
+            clusters.append(new_army)
+        return clusters
+    
+    def get_army_clusters(self, iteration: int, radius: float = 15) -> List[Army]:
+        # calculate the army cluster only every 4 frames
+        if (iteration % 4 != 0 and len(self.armies) >= 0):
+            clusters: List[Army] = self.load_clusters()
+            if (len(clusters) >= 1):
+                return clusters
+
         army: Units = self.bot.units.of_type([
             UnitTypeId.MARINE,
             UnitTypeId.MARAUDER,
@@ -55,7 +75,7 @@ class Combat:
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()
         visited_ids: Set[int] = set()
-        clusters: List[Units] = []
+        clusters: List[Army] = []
 
         # create a first cluster with all Reapers
         reapers: Units = self.bot.units(UnitTypeId.REAPER)
@@ -110,7 +130,7 @@ class Combat:
         # update local armies
         # Scale radius in function of army supply
         # old_armies: List[Army] = self.armies.copy()
-        self.armies = self.get_army_clusters(self.army_radius)
+        self.armies = self.get_army_clusters(iteration, self.army_radius)
         
         for army in self.armies:
             army.orders = self.get_army_orders(army)
@@ -467,6 +487,10 @@ class Combat:
         )
         self.draw_text_on_world(best_edge, "Best Edge", PURPLE)
 
+        for expansion in self.bot.expansions.potential_enemy_bases:
+            self.draw_grid_on_world(expansion.position, text="Potential Enemy Base")
+        
+
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(
@@ -492,7 +516,6 @@ class Combat:
     def draw_grid_on_world(self, pos: Point2, size: int = 3, text: str = ""):
         # if the grid is even, a 2x2 should be rounded first
         point_positions: List[Point2] = []
-        self.draw_text_on_world(pos.rounded_half, text, font_size=10)
         match(size):
             case 2:
                 point_positions = grid_offsets(0.5, initial_position = pos.rounded)
@@ -504,7 +527,8 @@ class Combat:
             draw_color = GREEN if (self.bot.in_pathing_grid(point_position)) else RED
             self.draw_box_on_world(point_position, 0.5, draw_color)
             self.draw_text_on_world(point_position, f'{i}', draw_color, 10)
-
+        self.draw_text_on_world(pos.rounded_half, text, font_size=10)
+        
 
     def draw_text_on_world(self, pos: Point2, text: str, draw_color: tuple = (255, 102, 255), font_size: int = 14) -> None:
         z_height: float = self.bot.get_terrain_z_height(pos)

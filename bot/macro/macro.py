@@ -315,7 +315,7 @@ class Macro:
             break
 
     def supply_block_update(self):
-        if (self.bot.supply_left <= 1):
+        if (self.bot.supply_left <= 1 and self.bot.supply_cap < 200):
             production_buildings_idle: Units = self.bot.structures(
                 [UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND, UnitTypeId.BARRACKS, UnitTypeId.STARPORT]
             ).ready.filter(

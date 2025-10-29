@@ -18,15 +18,18 @@ PICKUP_RANGE: int = 3
 class Execute:
     bot: Superbot
     micro: Micro
+    _drop_target: Point2
+    _last_calculated_drop_target_time: float = 0
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.micro = Micro(bot)
+        self._drop_target = Point2((5,5))
 
     @property
     def default_drop_target(self) -> Point2:
-        # switch drop target every 60 seconds
-        index_base_to_hit = round(self.bot.time / 60) % 3
+        # switch default drop target every 60 seconds
+        index_base_to_hit = round(self.bot.time / 60) % 2
         match (index_base_to_hit):
             case 0:
                 # print("dropping main")
@@ -34,34 +37,30 @@ class Execute:
             case 1:
                 # print("dropping natural")
                 return self.bot.expansions.enemy_b2.mineral_line
-            case 2:
-                # print("dropping b3")
-                return self.bot.expansions.enemy_b3.mineral_line
 
     @property
     def drop_target(self) -> Point2:
+        # Recalculate drop target only every 2 seconds
+        if (self.bot.time - self._last_calculated_drop_target_time >= 2):
+            self._drop_target = self.calculate_drop_target()
+            self._last_calculated_drop_target_time = self.bot.time
+        return self._drop_target
+    
+    def calculate_drop_target(self) -> Point2:
         # if we don't know about enemy army or enemy bases, drop on the default target
-        if (self.bot.scouting.known_enemy_army.units.amount == 0 or self.bot.expansions.enemy_bases.amount == 0):
+        if (self.bot.expansions.potential_enemy_bases.amount == 0):
             return self.default_drop_target
         
-        # otherwise drop on the furthest base from the enemy army
-        enemy_army_center: Point2 = self.bot.scouting.known_enemy_army.center
+        # otherwise drop on the furthest base from the enemy army if there's an army
+        # otherwise drop on the furthest base from our last base
+        furthest_point: Point2 = (
+            self.bot.scouting.known_enemy_army.center
+            if self.bot.scouting.known_enemy_army.units.amount >= 1
+            else self.bot.expansions.taken.last.position
+        )
         
-        # every 3 min of game, assume another base is taken if not scouted
-        potential_enemy_bases: List[Expansion] = []
-        if (self.bot.time / 60 >= 3):
-            if (not self.bot.expansions.enemy_b2.is_enemy and not self.bot.expansions.enemy_b2.is_scouted):
-                potential_enemy_bases.append(self.bot.expansions.enemy_b2)
-        
-        # add b3 + b4 at the same time because we're not sure which base they'll take
-        if (self.bot.time / 60 >= 6):
-            if (not self.bot.expansions.enemy_b3.is_enemy and not self.bot.expansions.enemy_b3.is_scouted):
-                potential_enemy_bases.append(self.bot.expansions.enemy_b3)
-            if (not self.bot.expansions.enemy_b4.is_enemy and not self.bot.expansions.enemy_b4.is_scouted):
-                potential_enemy_bases.append(self.bot.expansions.enemy_b4)
-        
-        sorted_enemy_bases: Expansions = self.bot.expansions.enemy_bases.extended(potential_enemy_bases).sorted(
-            lambda base: base.position._distance_squared(enemy_army_center),
+        sorted_enemy_bases: Expansions = self.bot.expansions.potential_enemy_bases.sorted(
+            lambda base: base.position._distance_squared(furthest_point),
             reverse=True,
         )
         return sorted_enemy_bases.first.mineral_line
@@ -86,8 +85,8 @@ class Execute:
             print("Error: no usable medivacs for drop")
             return
         
-        # Step 1: Select the 2 healthiest Medivacs
-        medivacs_to_use: Units = usable_medivacs.sorted(lambda unit: (-unit.health, -unit.cargo_used, unit.tag)).take(2)
+        # Step 1: Select the 2 fullest Medivacs among the healthy ones
+        medivacs_to_use: Units = usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
 
         # Step 2: Split the medivacs
         medivacs_to_retreat = medivacs.filter(lambda unit: unit.tag not in medivacs_to_use.tags)

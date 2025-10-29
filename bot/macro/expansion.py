@@ -251,7 +251,7 @@ class Expansion:
     @property
     def bunker_forward(self) -> Point2:
         enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
-        bunker_position: Point2 = self.position.towards(enemy_spawn, 3).towards(self.bot.start_location, 2)
+        bunker_position: Point2 = self.position.towards(enemy_spawn, 3)
         return bunker_position.rounded_half
     
     @property

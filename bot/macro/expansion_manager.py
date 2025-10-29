@@ -159,6 +159,22 @@ class Expansions:
         return self.filter(lambda expansion: expansion.is_enemy == True)
 
     @property
+    def potential_enemy_bases(self) -> Optional[Expansions]:
+        # every 3 min of game, assume another base is taken if not scouted
+        potential_enemy_bases: List[Expansion] = []
+        if (self.bot.time / 60 >= 3):
+            if (not self.enemy_b2.is_enemy and not self.enemy_b2.is_scouted):
+                potential_enemy_bases.append(self.enemy_b2)
+        
+        # add b3 + b4 at the same time because we're not sure which base they'll take
+        if (self.bot.time / 60 >= 6):
+            if (not self.enemy_b3.is_enemy and not self.enemy_b3.is_scouted):
+                potential_enemy_bases.append(self.enemy_b3)
+            if (not self.enemy_b4.is_enemy and not self.enemy_b4.is_scouted):
+                potential_enemy_bases.append(self.enemy_b4)
+        return self.enemy_bases.extended(potential_enemy_bases)
+    
+    @property
     def last_taken(self) -> Optional[Expansion]:
         taken_expansions: Expansions = self.taken
         if (taken_expansions.amount == 0):
