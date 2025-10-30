@@ -141,7 +141,9 @@ class Builder:
                     or (
                         worker.is_constructing_scv
                         and self.scv_build_progress(worker) >= 0.95
-                        and isinstance(worker.order_target, Point2) and worker.order_target.distance_to(worker.position) <= 2
+                        and worker.order_target is not None
+                        and isinstance(worker.order_target, Point2)
+                        and worker.order_target.distance_to(worker.position) <= 2
                     )
                 )
             )

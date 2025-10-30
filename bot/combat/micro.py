@@ -151,7 +151,7 @@ class Micro:
         if (medivac.is_active):
             medivac_target: Point2|int = medivac.orders[0].target
             target_position: Point2|None = None
-            if (type(medivac_target) is Point2):
+            if (isinstance(medivac_target, Point2)):
                 target_position = medivac_target
             else:
                 target_unit = self.bot.units.find_by_tag(medivac_target)

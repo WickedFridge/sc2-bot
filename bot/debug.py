@@ -181,7 +181,7 @@ class Debug:
             if (unit.is_idle):
                 break
             target: int|Point2 = unit.orders[0].target
-            if (target is Point2):
+            if (isinstance(target, Point2)):
                 self.draw_box_on_world(target)
             else:
                 # find target unit
