@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.12.4"
+VERSION: str = "5.13.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -115,7 +115,8 @@ class WickedBot(Superbot):
             # await self.client.debug_control_enemy()
             # await self.client.debug_upgrade()
             # await self.client.debug_create_unit([[UnitTypeId.REAPER, 1, self.townhalls.random.position, 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 12, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.BUNKER, 1, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])

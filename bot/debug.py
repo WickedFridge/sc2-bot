@@ -172,7 +172,8 @@ class Debug:
         for unit in selected_units:
             unit: Unit
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
-            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {unit.order_target}')
+            target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target}')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')

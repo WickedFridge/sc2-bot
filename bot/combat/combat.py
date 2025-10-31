@@ -9,6 +9,7 @@ from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE,
 from bot.utils.base import Base
 from bot.utils.point2_functions import grid_offsets
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
@@ -384,8 +385,19 @@ class Combat:
     async def handle_bunkers(self):
         for expansion in self.bot.expansions.defended:
             bunker: Unit = expansion.defending_structure
+            bunker_default_range: int = 6
+            bunker_bonus_range: int = 2 if self.bot.already_pending_upgrade(UpgradeId.HISECAUTOTRACKING) == 1 else 1
+            bunker_ground_range: float = bunker_default_range + bunker_bonus_range + bunker.radius
+            bunker_air_range: float = bunker_default_range + bunker_bonus_range + bunker.radius
+            for passenger in bunker.passengers:
+                bunker_ground_range = max(bunker_ground_range, passenger.ground_range + bunker_bonus_range)
+                bunker_air_range = max(bunker_air_range, passenger.air_range + bunker_bonus_range)
+
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-                lambda unit: bunker.target_in_range(unit)
+                lambda unit: (
+                    (unit.is_flying and bunker.distance_to_squared(unit) <= (bunker_air_range + unit.radius) ** 2)
+                    or (not unit.is_flying and bunker.distance_to_squared(unit) <= (bunker_ground_range + unit.radius) ** 2)
+                )
             )
             enemy_units_potentially_in_range: Units  = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: bunker.distance_to(unit) <= 7 + bunker.radius + unit.radius
@@ -404,7 +416,6 @@ class Combat:
                 if (bunker.cargo_used >= 1):
                     print("unload bunker")
                     bunker(AbilityId.UNLOADALL_BUNKER)
-                # continue
             
             # If bunker under 20 hp, unload
             if (bunker.health <= 20):
@@ -413,6 +424,13 @@ class Combat:
             
             # Attack the weakest enenmy in range
             if (enemy_units_in_range.amount >= 1):
+                # if any units inside the bunkers is full life, stim them
+                if (
+                    self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+                    and any(passenger.health_percentage == 1 for passenger in bunker.passengers)
+                ):
+                    print("stimming passengers")
+                    bunker(AbilityId.EFFECT_STIM)
                 enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
                 bunker.attack(enemy_units_in_range.first)
             
