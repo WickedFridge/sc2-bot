@@ -131,7 +131,8 @@ class Builder:
 
     
     async def build(self, unitType: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
-        location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
+        theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
+        location: Point2 = await self.bot.find_placement(unitType, near=theorical_location)
         workers = self.bot.workers.filter(
             lambda worker: (
                 worker.is_carrying_resource == False
