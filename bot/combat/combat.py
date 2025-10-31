@@ -209,7 +209,8 @@ class Combat:
             lambda unit: unit.tag not in army.tags and unit.cargo_left == 0
         )
         # the amount of medivacs allowed to drop is 2 by default, going up to 4 once we hit 8 medivacs
-        maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
+        # maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
+        maximal_medivacs_dropping: int = 10
 
         fighting_army_supply: float = army.weighted_supply
         potential_army_supply: float = army.potential_supply

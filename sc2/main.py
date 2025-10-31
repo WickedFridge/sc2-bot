@@ -363,8 +363,11 @@ async def _host_game(
             server, map_settings, players, realtime, random_seed, disable_fog, save_replay_as
         )
         # Bot can decide if it wants to launch with 'raw_affects_selection=True'
-        if not isinstance(players[0], Human) and getattr(players[0].ai, "raw_affects_selection", None) is not None:
+        if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
             client.raw_affects_selection = players[0].ai.raw_affects_selection
+        # And 'enable_feature_layer=True'
+        if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
+            client.enable_feature_layer = players[0].ai.enable_feature_layer
 
         result = await _play_game(players[0], client, realtime, portconfig, game_time_limit, rgb_render_config)
         if client.save_replay_path is not None:
@@ -397,6 +400,8 @@ async def _host_game_aiter(
             client = await _setup_host_game(server, map_settings, players, realtime)
             if not isinstance(players[0], Human) and getattr(players[0].ai, "raw_affects_selection", None) is not None:
                 client.raw_affects_selection = players[0].ai.raw_affects_selection
+            if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
+                client.enable_feature_layer = players[0].ai.enable_feature_layer
 
             try:
                 result = await _play_game(players[0], client, realtime, portconfig, game_time_limit)
@@ -434,6 +439,8 @@ async def _join_game(
         # Bot can decide if it wants to launch with 'raw_affects_selection=True'
         if not isinstance(players[1], Human) and getattr(players[1].ai, "raw_affects_selection", None) is not None:
             client.raw_affects_selection = players[1].ai.raw_affects_selection
+        if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
+            client.enable_feature_layer = players[0].ai.enable_feature_layer
 
         result = await _play_game(players[1], client, realtime, portconfig, game_time_limit)
         if save_replay_as is not None:

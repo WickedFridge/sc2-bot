@@ -1,10 +1,11 @@
 import math
-from typing import List, Optional
+from typing import List, Optional, Union
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions import center
+from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -13,6 +14,10 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable
+
+from s2clientprotocol import raw_pb2 as raw_pb
+from s2clientprotocol import sc2api_pb2 as sc_pb
+from s2clientprotocol import ui_pb2 as ui_pb
 
 MAXIMUM_SNIPE_COUNT: int = 2
 
@@ -37,6 +42,62 @@ class Micro:
                 return self.bot.expansions.taken.closest_to(enemy_units_harassing.center).retreat_position
         return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).retreat_position
     
+    async def medivac_unload(self, medivac: Unit):
+        if (medivac.cargo_used == 0):
+            return
+        # unload all units at medivac position
+        if (
+            self.bot.raw_affects_selection is not True
+            or self.bot.enable_feature_layer is not True
+        ):
+            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            return
+        passengers: Units = Units(medivac.passengers, self.bot).sorted(
+            lambda unit: (get_unit_supply(unit.type_id), unit.health_percentage),
+            reverse=True
+        )
+        await self.unload_unit(medivac, passengers.first)
+
+    ## This function was stolen from python-sc2 at
+    ## https://github.com/BurnySc2/python-sc2/pull/108/files
+    ## I have no idea how this works
+    async def unload_unit(self, transporter_unit: Unit, unload_unit: Union[int, Unit]):
+        assert isinstance(transporter_unit, Unit)
+        assert isinstance(unload_unit, (int, Unit))
+        assert hasattr(self.bot, "raw_affects_selection") and self.bot.raw_affects_selection is True
+        assert hasattr(self.bot, "enable_feature_layer") and self.bot.enable_feature_layer is True
+        if isinstance(unload_unit, Unit):
+            unload_unit_tag = unload_unit.tag
+        else:
+            unload_unit_tag = unload_unit
+
+        unload_unit_index = next(
+            (index for index, unit in enumerate(transporter_unit._proto.passengers) if unit.tag == unload_unit_tag),
+            None
+        )
+
+        if unload_unit_index is None:
+            print(f"Unable to find unit {unload_unit} in transporter {transporter_unit}")
+            return
+
+        await self.bot.client._execute(
+            action=sc_pb.RequestAction(
+                actions=[
+                    sc_pb.Action(
+                        action_raw=raw_pb.ActionRaw(
+                            unit_command=raw_pb.ActionRawUnitCommand(ability_id=0, unit_tags=[transporter_unit.tag])
+                        )
+                    ),
+                    sc_pb.Action(
+                        action_ui=ui_pb.ActionUI(
+                            cargo_panel=ui_pb.ActionCargoPanelUnload(unit_index=unload_unit_index)
+                        )
+                    ),
+                ]
+            )
+        )
+
+    
     async def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
@@ -53,8 +114,8 @@ class Micro:
                 unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
                 and enemy_units_in_sight.amount == 0
             ):
-                unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
-            if (not self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
+                await self.medivac_unload(unit)
+            if (not await self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
                 unit.move(retreat_position)
                 if (unit.distance_to(retreat_position) > 15):
                     await self.medivac_boost(unit)
@@ -68,7 +129,7 @@ class Micro:
     
     async def medivac_pickup(self, medivac: Unit, local_army: Units):
         # stop unloading if we are
-        medivac.stop()
+        # medivac.stop()
         await self.medivac_boost(medivac)
         units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         for unit in units_to_pickup:
@@ -78,12 +139,12 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
+    async def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
         if (not self.safety_disengage(medivac, safety_distance)):
             return False
         if (medivac.cargo_used >= 1):
             # unload all units if we can
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            await self.medivac_unload(medivac)
         return True
 
     def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None) -> bool:
@@ -110,7 +171,7 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        if (self.medivac_safety_disengage(medivac)):
+        if (await self.medivac_safety_disengage(medivac)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -122,7 +183,7 @@ class Micro:
         # if our medivac is filled and can unload, unload
         if (medivac.cargo_used >= 1):
             if (self.bot.in_pathing_grid(medivac.position)):
-                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+                await self.medivac_unload(medivac)
             
             ground_allied_units: Units = local_army.filter(lambda unit: unit.is_flying == False)
             ground_enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.is_flying == False)
@@ -161,7 +222,7 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
-        if (self.medivac_safety_disengage(medivac)):
+        if (await self.medivac_safety_disengage(medivac)):
             return
         await self.medivac_heal(medivac, local_army)
 
@@ -182,15 +243,15 @@ class Micro:
 
         # if we are further than 40 from our drop target, unload (we are probably fighting on the middle of the map)
         if (medivac.distance_to(drop_target) > 40):
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
-            self.medivac_safety_disengage(medivac)
+            await self.medivac_unload(medivac)
+            await self.medivac_safety_disengage(medivac)
             return
 
 
         # if we are at the same height, unload all units
         # we need to check the height position of the map
         if (self.bot.get_terrain_height(medivac.position) == self.bot.get_terrain_height(drop_target)):
-            medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac)
+            await self.medivac_unload(medivac)
         
         medivac.move(drop_target)
     

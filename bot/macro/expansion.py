@@ -10,7 +10,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import hq_types
+from bot.utils.unit_tags import hq_types, menacing, worker_types
 
 
 class Expansion:
@@ -67,18 +67,21 @@ class Expansion:
 
     @property
     def is_safe(self) -> bool:
-        local_enemy_ground_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
-            lambda unit: unit.can_attack_ground and not unit.is_flying
+        local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
+            lambda unit: unit.can_attack_ground or unit.type_id in menacing
         )
-        local_enemy_air_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
-            lambda unit: unit.can_attack_ground and unit.is_flying
+        local_enemy_ground_units: Units = local_enemy_units.filter(lambda unit: not unit.is_flying)
+        local_enemy_air_units: Units = local_enemy_units.filter(lambda unit: unit.is_flying)
+        
+        local_units: Units = self.bot.units.closer_than(8, self.position).filter(
+            lambda unit: (
+                unit.type_id not in worker_types
+                and (unit.can_attack or unit.type_id in menacing)
+            )
         )
-        local_anti_ground_units: Units = self.bot.units.closer_than(8, self.position).filter(
-            lambda unit: unit.can_attack_ground
-        )
-        local_anti_air_units: Units = self.bot.units.closer_than(8, self.position).filter(
-            lambda unit: unit.can_attack_air
-        )
+        local_anti_ground_units: Units = local_units.filter(lambda unit: unit.can_attack_ground)
+        local_anti_air_units: Units = local_units.filter(lambda unit: unit.can_attack_air)
+
         if (self.defending_structure and self.defending_structure.cargo_used >= 1):
             local_anti_ground_units.append(self.defending_structure)
         

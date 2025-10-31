@@ -1,5 +1,5 @@
 from time import perf_counter
-from typing import Awaitable, Callable, List, override
+from typing import Awaitable, Callable, override
 from bot.army_composition.army_composition_manager import get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.13.0"
+VERSION: str = "5.14.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -42,6 +42,8 @@ class WickedBot(Superbot):
 
     def __init__(self) -> None:
         super().__init__()
+        self.raw_affects_selection = True
+        self.enable_feature_layer = True
         self.builder = Builder(self)
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)
@@ -93,7 +95,7 @@ class WickedBot(Superbot):
 
         print(f'Game started, version {VERSION}')
         await self.macro.split_workers()
-    
+
     async def on_step(self, iteration: int):
         """
         This code runs continually throughout the game
@@ -116,7 +118,7 @@ class WickedBot(Superbot):
             # await self.client.debug_upgrade()
             # await self.client.debug_create_unit([[UnitTypeId.REAPER, 1, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.BUNKER, 1, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
@@ -282,7 +284,7 @@ class WickedBot(Superbot):
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
-        await self.debug.selection()
+        # await self.debug.selection()
         self.macro.supply_block_update()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)

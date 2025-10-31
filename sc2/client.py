@@ -7,6 +7,7 @@ from s2clientprotocol import debug_pb2 as debug_pb
 from s2clientprotocol import query_pb2 as query_pb
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb
+from s2clientprotocol import common_pb2 as common_pb
 from s2clientprotocol import spatial_pb2 as spatial_pb
 
 from sc2.action import combine_actions
@@ -45,12 +46,19 @@ class Client(Protocol):
 
         self._renderer = None
         self.raw_affects_selection = False
+        self.enable_feature_layer = False
 
     @property
     def in_game(self) -> bool:
         return self._status in {Status.in_game, Status.in_replay}
 
     async def join_game(self, name=None, race=None, observed_player_id=None, portconfig=None, rgb_render_config=None):
+        feature_layer = None
+        if self.enable_feature_layer:
+            feature_layer = sc_pb.SpatialCameraSetup(
+                resolution=common_pb.Size2DI(x=1, y=1),
+                minimap_resolution=common_pb.Size2DI(x=1, y=1),
+            )
         ifopts = sc_pb.InterfaceOptions(
             raw=True,
             score=True,
@@ -59,6 +67,7 @@ class Client(Protocol):
             raw_affects_selection=self.raw_affects_selection,
             raw_crop_to_playable_area=False,
             show_placeholders=True,
+            feature_layer=feature_layer,
         )
 
         if rgb_render_config:

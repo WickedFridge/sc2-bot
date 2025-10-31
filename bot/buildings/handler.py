@@ -82,7 +82,16 @@ class BuildingsHandler:
             )
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
             max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
-            if (workers_repairing_building.amount >= max_workers_repairing_building or workers_repairing.amount >= max_workers_repairing):
+            local_avaiable_workers: Units = (
+                available_workers.closer_than(12, burning_building)
+                if (burning_building.type_id not in must_repair)
+                else available_workers
+            )
+            if (
+                workers_repairing_building.amount >= max_workers_repairing_building
+                or workers_repairing.amount >= max_workers_repairing
+                or local_avaiable_workers.amount == 0
+            ):
                 return
             print(f'pulling worker to repair {burning_building.name} [{workers_repairing_building.amount}/{max_workers_repairing}]')
             repairer: Unit = available_workers.closest_to(burning_building)

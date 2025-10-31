@@ -94,7 +94,7 @@ class Execute:
         # Step 3: Unload and retreat extras
         for medivac in medivacs_to_retreat:
             if medivac.passengers:
-                medivac(AbilityId.UNLOADALLAT_MEDIVAC, medivac.position)  # unload where it is
+                await self.micro.medivac_unload(medivac)
             await self.micro.retreat(medivac)
         
         # Step 4: Check if the best two are full or need more units (don't drop ghosts)
@@ -169,7 +169,7 @@ class Execute:
         # drop units
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
-                unit(AbilityId.UNLOADALLAT_MEDIVAC, unit)
+                await self.micro.medivac_unload(unit)
                 self.micro.medivac_heal(unit, army.units)
             if (unit.type_id == UnitTypeId.REAPER):
                 await self.micro.retreat(unit)
