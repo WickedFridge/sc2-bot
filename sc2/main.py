@@ -363,7 +363,7 @@ async def _host_game(
             server, map_settings, players, realtime, random_seed, disable_fog, save_replay_as
         )
         # Bot can decide if it wants to launch with 'raw_affects_selection=True'
-        if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
+        if not isinstance(players[0], Human) and getattr(players[0].ai, "raw_affects_selection", None) is not None:
             client.raw_affects_selection = players[0].ai.raw_affects_selection
         # And 'enable_feature_layer=True'
         if not isinstance(players[0], Human) and getattr(players[0].ai, "enable_feature_layer", None) is not None:
