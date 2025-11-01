@@ -21,7 +21,10 @@ class Refinery(Building):
     def conditions(self) -> bool:
         if (self.target_geyser is None):
             return False
-        refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount + self.bot.already_pending(UnitTypeId.REFINERY)
+        refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.filter(
+            lambda refinery: self.bot.expansions.taken.vespene_geysers.closest_to(refinery.position).has_vespene
+        ).amount + self.bot.already_pending(UnitTypeId.REFINERY)
+
         max_refineries: int = 8
         workers_amount: int = self.bot.supply_workers
         

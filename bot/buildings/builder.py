@@ -149,7 +149,8 @@ class Builder:
                 )
             )
         )
-        if (workers.amount == 0):
+        if (workers.amount == 0 or location is None):
+            print(f'Error: no available worker or no location found to build {unitType}')
             return
         worker: Unit = workers.closest_to(location)
         worker.build(unitType, location)
