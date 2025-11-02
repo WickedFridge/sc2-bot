@@ -444,20 +444,24 @@ class Execute:
             lambda building: (building.type_id not in building_priorities, building.health + building.shield)
         )
         for unit in army.units:
+            if (unit.type_id == UnitTypeId.RAVEN):
+                unit.move(army.leader.position)
+                continue
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 if (unit.cargo_used >= 4):
                     await self.micro.medivac_fight_drop(unit, local_enemy_buildings.first.position)
                 else:
                     await self.micro.medivac_fight(unit, army.units)
-            else:
-                if (unit.health_percentage >= 0.85):
-                    self.micro.stim_bio(unit)
-                target: Unit = local_enemy_buildings.first
-                if (unit.weapon_cooldown == 0):
-                    in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
-                    if (in_range_enemy_buildings.amount >= 1):
-                        target = in_range_enemy_buildings.first
-                unit.attack(target)
+                continue
+            
+            if (unit.health_percentage >= 0.85):
+                self.micro.stim_bio(unit)
+            target: Unit = local_enemy_buildings.first
+            if (unit.weapon_cooldown == 0):
+                in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
+                if (in_range_enemy_buildings.amount >= 1):
+                    target = in_range_enemy_buildings.first
+            unit.attack(target)
 
     async def attack_nearest_base(self, army: Army):
         # if army is purely air
@@ -468,9 +472,11 @@ class Execute:
         for unit in army.followers:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_fight(unit, army.units)
+                continue
+            if (unit.position.distance_to(army.leader.position) >= 3):
+                unit.move(army.leader.position)
             else:
-                if (unit.position.distance_to(army.leader.position) >= 3):
-                    unit.move(army.leader.position)
+                unit.move(center([unit.position, army.leader.position, nearest_base_target]))
         
     async def chase_buildings(self, army: Army):
         # if army is purely air

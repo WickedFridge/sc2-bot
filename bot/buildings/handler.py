@@ -179,8 +179,10 @@ class BuildingsHandler:
         on_creep_fighting_units: Units = fighting_units.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
-                and not self.bot.enemy_structures.closer_than(15, unit.position).amount
-                and not self.bot.enemy_units(UnitTypeId.BROODLING).closer_than(15, unit.position).amount
+                and not unit.is_flying
+                and self.bot.enemy_structures.closer_than(15, unit.position).amount == 0
+                and self.bot.enemy_units.closer_than(15, unit.position).amount == 0
+                and self.bot.units(UnitTypeId.RAVEN).closer_than(15, unit.position).amount == 0
                 and not self.bot.expansions.closest_to(unit.position).position.distance_to(unit.position) < 15
             )
         )
@@ -208,7 +210,7 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                not unit.is_visible
+                unit.is_visible
                 and unit.is_revealed == False
                 and (unit.is_cloaked or unit.is_burrowed)
                 and fighting_units.closest_distance_to(unit) < 10

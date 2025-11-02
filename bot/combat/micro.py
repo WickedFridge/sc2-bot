@@ -24,6 +24,7 @@ MAXIMUM_SNIPE_COUNT: int = 2
 class Micro:
     bot: Superbot
     snipe_targets: dict[int, int] = {}
+    emp_targets: dict[int, int] = {}
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -131,7 +132,7 @@ class Micro:
     
     async def medivac_pickup(self, medivac: Unit, local_army: Units):
         # stop unloading if we are
-        # medivac.stop()
+        medivac.stop()
         await self.medivac_boost(medivac)
         units_to_pickup: Units = local_army.in_distance_between(medivac, 0, 3).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         for unit in units_to_pickup:
@@ -424,24 +425,39 @@ class Micro:
         await self.bio_fight(ghost, local_army)
 
     def ghost_emp(self, ghost: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(ghost.position, 10)
-        if (close_enemy_units.amount < 1):
+        EMP_HIT_THRESHOLD: int = 50
+        MAXIMUM_EMP_COUNT: int = 1
+        
+        potential_emp_targets: Units = self.get_local_enemy_units(ghost.position, 10).filter(
+            lambda enemy_unit: (
+                (enemy_unit.energy > 0 or enemy_unit.shield > 0)
+                and (
+                    enemy_unit.tag not in self.emp_targets.keys()
+                    or self.emp_targets[enemy_unit.tag] < MAXIMUM_EMP_COUNT
+                )
+            )
+        )
+        if (potential_emp_targets.amount < 1):
             print("no unit close")
             return False
         # find the best position to cast EMP
         best_target: Optional[Unit] = None
         best_hit: float = 0
-        for enemy_unit in close_enemy_units:
+        for enemy_unit in potential_emp_targets:
             hit: float = 0
-            for unit in close_enemy_units.closer_than(1.5, enemy_unit.position):
-                hit += unit.shield if unit.shield < 100 else 100
-                hit += unit.energy if unit.energy < 100 else 100
+            for unit in potential_emp_targets.closer_than(1.5, enemy_unit.position):
+                hit += min(unit.shield, 100)
+                hit += min(unit.energy, 100)
             if (hit > best_hit):
                 best_hit = hit
                 best_target = enemy_unit
-        if (best_target):
+        if (best_target and best_hit >= EMP_HIT_THRESHOLD):
             print("Casting EMP")
             ghost(AbilityId.EMP_EMP, best_target.position)
+            if (best_target.tag in self.snipe_targets.keys()):
+                self.emp_targets[best_target.tag] += 1
+            else:
+                self.emp_targets[best_target.tag] = 1
             return True
         print("no target for EMP")
         return False
@@ -450,12 +466,13 @@ class Micro:
         # if we don't have energy or are already sniping, we just skip
         if (ghost.energy < 50 or ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
             return False
+        GHOST_SNIPE_THRESHOLD: int = 60
         potential_snipe_targets: Units = self.bot.enemy_units.filter(
             lambda enemy_unit: (
                 enemy_unit.can_be_attacked
                 and enemy_unit.is_biological
                 and (enemy_unit.can_attack or enemy_unit.type_id in menacing) 
-                and enemy_unit.health + enemy_unit.shield >= 60
+                and enemy_unit.health + enemy_unit.shield >= GHOST_SNIPE_THRESHOLD
                 and enemy_unit.distance_to(ghost) <= 10
                 and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
                 and (
@@ -522,10 +539,11 @@ class Micro:
         best_hit_count: int = 0
         for enemy_unit in close_enemy_units:
             hit_count: int = close_enemy_units.closer_than(1.5, enemy_unit.position).amount
-            if (hit_count > best_hit_count):
-                best_hit_count = hit_count
+            ally_hit_count: int = self.bot.units.closer_than(1.5, enemy_unit.position).amount
+            if (hit_count - ally_hit_count > best_hit_count):
+                best_hit_count = hit_count - ally_hit_count
                 best_target = enemy_unit
-        if (best_target):
+        if (best_hit_count >= 3 and best_target):
             print("Casting anti armor missile")
             raven(AbilityId.EFFECT_ANTIARMORMISSILE, best_target)
             return True
@@ -558,15 +576,15 @@ class Micro:
 
         available_abilities = (await self.bot.get_available_abilities([raven]))[0]
         if (AbilityId.EFFECT_ANTIARMORMISSILE in available_abilities and raven.energy >= ANTI_ARMOR_MISSILE_ENERGY_COST):
-            if (self.raven_antiarmor_missile(raven)):
+            if (await self.raven_antiarmor_missile(raven)):
                 return
         
         if (AbilityId.BUILDAUTOTURRET_AUTOTURRET in available_abilities and raven.energy >= AUTO_TURRET_ENERGY_COST):
-            if (self.raven_autoturret(raven)):
+            if (await self.raven_autoturret(raven)):
                 return
         
         if (not self.safety_disengage(raven)):
-                raven.move(local_army.center)
+            raven.move(local_army.center)
 
     
     async def bio_disengage(self, bio_unit: Unit):
