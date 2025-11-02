@@ -20,7 +20,7 @@ class StarportTechlab(StarportAddon):
             starports.amount >= 2
             and self.starports_without_addon.idle.amount >= 1
             and (
-                self.bot.composition_manager.should_train(UnitTypeId.RAVEN)
-                or self.bot.composition_manager.should_train(UnitTypeId.LIBERATOR)
+                self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
+                or self.bot.composition_manager.composition[UnitTypeId.LIBERATOR] >= 1
             )
         )

@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "5.14.2"
+VERSION: str = "6.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -42,8 +42,8 @@ class WickedBot(Superbot):
 
     def __init__(self) -> None:
         super().__init__()
-        self.raw_affects_selection = True
-        self.enable_feature_layer = True
+        self.raw_affects_selection = False
+        self.enable_feature_layer = False
         self.builder = Builder(self)
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)

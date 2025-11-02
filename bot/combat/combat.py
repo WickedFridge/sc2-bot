@@ -16,12 +16,13 @@ from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing
-    
+
 class Combat:
     bot: Superbot
     execute: Execute
     armies: List[Army] = []
     bases: List[Base] = []
+    DEFENSE_RANGE_LIMIT: int = 40
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -72,6 +73,7 @@ class Combat:
             UnitTypeId.GHOST,
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
+            UnitTypeId.RAVEN,
         ])
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()
@@ -150,7 +152,9 @@ class Combat:
             )
         )
         # useful in case of canon/bunker rush
-        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing or unit.is_burrowed) + global_enemy_buildings.filter(
+        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(
+            lambda unit: unit.can_attack or unit.type_id in menacing or unit.is_burrowed
+        ) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
@@ -168,7 +172,7 @@ class Combat:
             return Orders.FIGHT_OFFENSE
         
         # if we should defend
-        if (distance_building_to_enemies <= 10):
+        if (distance_building_to_enemies <= 10 and global_enemy_menacing_units_buildings.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT):
             return Orders.DEFEND
 
         # if enemy is a workers, focus them
@@ -270,7 +274,11 @@ class Combat:
             return Orders.PICKUP_LEAVE
                 
         # if we should defend
-        if (distance_building_to_enemies <= 10 and Army(global_enemy_menacing_units_buildings, self.bot).supply >= 12):
+        if (
+            distance_building_to_enemies <= 10
+            and Army(global_enemy_menacing_units_buildings, self.bot).supply >= 12
+            and global_enemy_menacing_units_buildings.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
+        ):
             return Orders.DEFEND
 
         # if enemy is a workers, focus them

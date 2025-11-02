@@ -9,6 +9,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
+from bot.utils.unit_tags import cloaked_units, burrowed_units
 
 if TYPE_CHECKING:
     from bot import WickedBot  # only imported for type hints
@@ -44,6 +45,7 @@ class ArmyCompositionManager:
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
+            UnitTypeId.RAVEN: [UnitTypeId.STARPORTTECHLAB, UnitTypeId.STARPORT],
         }
 
         for unit_type, requirements in unlocks.items():
@@ -130,6 +132,18 @@ class ArmyCompositionManager:
         ghost_count: int = units(UnitTypeId.GHOST).amount
         composition.add(UnitTypeId.GHOST, ghost_count)
         
+        # if we have at least 3 bases and are playing TvZ, we want 1 Raven
+        # Also true if we need detection against cloaked/burrowed units
+        if (
+            self.wicked.structures(UnitTypeId.ORBITALCOMMAND).ready.amount >= 3
+            and (
+                self.wicked.matchup == Matchup.TvZ 
+                or cloaked_units in self.wicked.scouting.known_enemy_composition
+                or burrowed_units in self.wicked.scouting.known_enemy_composition
+            ) 
+        ):
+            composition.set(UnitTypeId.RAVEN, 1)
+        
         # in early game set our composition to only be 1 reaper
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
@@ -158,6 +172,9 @@ class ArmyCompositionManager:
                 composition.fill(UnitTypeId.MARINE)
         
         self.composition = composition
+
+    def get(self, unit_type: UnitTypeId) -> Composition:
+        return self.composition[unit_type]
 
     def should_train(self, unit_type: UnitTypeId) -> bool:
         return self.amount_to_train(unit_type) >= 1

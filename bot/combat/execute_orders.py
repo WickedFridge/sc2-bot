@@ -197,6 +197,8 @@ class Execute:
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
+                case UnitTypeId.RAVEN:
+                    await self.micro.raven(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
@@ -219,6 +221,8 @@ class Execute:
                     await self.micro.ghost_defense(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
+                case UnitTypeId.RAVEN:
+                    await self.micro.raven(unit, army.units)
                 case _:
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
@@ -236,6 +240,8 @@ class Execute:
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
+                case UnitTypeId.RAVEN:
+                    await self.micro.raven(unit, army.units)
                 case _:
                     if (self.bot.enemy_units.amount >= 1):
                         closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
@@ -395,6 +401,10 @@ class Execute:
                     # if we should use grenade, do it and skip the rest of the logic
                     if (await self.micro.reaper_grenade(unit)):
                         continue
+                
+                if (unit.type_id == UnitTypeId.RAVEN):
+                    await self.micro.raven(unit, army.units)
+                    continue
                 
                 # calculate the range of the unit based on its movement speed + range + cooldown
                 range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown

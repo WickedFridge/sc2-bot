@@ -36,7 +36,10 @@ class Starport(Building):
         if (self.starport_amount == 1):
             return (
                 self.bot.townhalls.amount >= 3
-                and self.bot.composition_manager.vikings_amount >= 8
+                and (
+                    self.bot.composition_manager.vikings_amount >= 8
+                    or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
+                )
             )
         return False
             

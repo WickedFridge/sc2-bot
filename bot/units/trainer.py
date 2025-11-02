@@ -7,6 +7,7 @@ from bot.units.ghost import Ghost
 from bot.units.marauder import Marauder
 from bot.units.marine import Marine
 from bot.units.medivac import Medivac
+from bot.units.raven import Raven
 from bot.units.reaper import Reaper
 from bot.units.scv import Scv
 from bot.units.train import Train
@@ -31,6 +32,7 @@ class Trainer:
     medivac: Medivac
     ghost: Ghost
     viking: Viking
+    raven: Raven
     army_trainers: Dict[UnitTypeId, Train]
     
     def __init__(self, bot: Superbot, combat: Combat) -> None:
@@ -43,6 +45,7 @@ class Trainer:
         self.medivac = Medivac(self)
         self.ghost = Ghost(self)
         self.viking = Viking(self)
+        self.raven = Raven(self)
         
         self.army_trainers = {
             UnitTypeId.REAPER: self.reaper,
@@ -51,6 +54,7 @@ class Trainer:
             UnitTypeId.MEDIVAC: self.medivac,
             UnitTypeId.GHOST: self.ghost,
             UnitTypeId.VIKINGFIGHTER: self.viking,
+            UnitTypeId.RAVEN: self.raven,
         }
     
     @property

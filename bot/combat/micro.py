@@ -4,7 +4,7 @@ from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
-from bot.utils.point2_functions import center
+from bot.utils.point2_functions import center, dfs_in_pathing
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
@@ -99,6 +99,8 @@ class Micro:
 
     
     async def retreat(self, unit: Unit):
+        # TODO: handle retreat when opponent is blocking our way
+        
         if (self.bot.townhalls.amount == 0):
             return
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
@@ -106,9 +108,9 @@ class Micro:
         if (unit.type_id in bio_stimmable and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         
-        # TODO: handle retreat when opponent is blocking our way
-        local_flying_orbital: Units = self.bot.structures(UnitTypeId.ORBITALCOMMANDFLYING).in_distance_between(unit.position, 0, 10)
-        retreat_position = self.retreat_position if local_flying_orbital.amount == 0 else self.retreat_position.towards(local_flying_orbital.center, -5)
+        # Don't get in the way of flying townhalls
+        local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
+        retreat_position = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
         if (unit.type_id == UnitTypeId.MEDIVAC):
             if (
                 unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
@@ -484,6 +486,62 @@ class Micro:
         ):
             bio_unit(AbilityId.EFFECT_STIM)
 
+    async def raven_antiarmor_missile(self, raven: Unit) -> bool:
+        close_enemy_units: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(raven) <= 10)
+        if (close_enemy_units.amount < 3):
+            return False
+        # find the best position to cast anti armor missile
+        best_target: Optional[Unit] = None
+        best_hit_count: int = 0
+        for enemy_unit in close_enemy_units:
+            hit_count: int = close_enemy_units.closer_than(1.5, enemy_unit.position).amount
+            if (hit_count > best_hit_count):
+                best_hit_count = hit_count
+                best_target = enemy_unit
+        if (best_target):
+            print("Casting anti armor missile")
+            raven(AbilityId.EFFECT_ANTIARMORMISSILE, best_target)
+            return True
+        return False
+    
+    async def raven_autoturret(self, raven: Unit) -> bool:
+        close_enemy_units: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(raven) <= 8)
+        if (close_enemy_units.amount == 0):
+            return False
+        # find a position to cast auto turret
+        target_enemy: Unit = close_enemy_units.sorted(
+            lambda enemy_unit: (
+                -enemy_unit.health + enemy_unit.shield,
+                enemy_unit.distance_to(raven)
+            )
+        ).first
+        location: Point2 = await self.bot.find_placement(UnitTypeId.AUTOTURRET, near=target_enemy.position)
+        if (location):
+            print("Casting auto turret")
+            raven(AbilityId.BUILDAUTOTURRET_AUTOTURRET, location)
+            return True
+        else:
+            print("No valid location found for auto turret")
+            return False
+    
+    async def raven(self, raven: Unit, local_army: Units):
+        # if we have enough energy, cast anti armor missile on the closest group of enemy units
+        ANTI_ARMOR_MISSILE_ENERGY_COST: int = 75
+        AUTO_TURRET_ENERGY_COST: int = 50
+
+        available_abilities = (await self.bot.get_available_abilities([raven]))[0]
+        if (AbilityId.EFFECT_ANTIARMORMISSILE in available_abilities and raven.energy >= ANTI_ARMOR_MISSILE_ENERGY_COST):
+            if (self.raven_antiarmor_missile(raven)):
+                return
+        
+        if (AbilityId.BUILDAUTOTURRET_AUTOTURRET in available_abilities and raven.energy >= AUTO_TURRET_ENERGY_COST):
+            if (self.raven_autoturret(raven)):
+                return
+        
+        if (not self.safety_disengage(raven)):
+                raven.move(local_army.center)
+
+    
     async def bio_disengage(self, bio_unit: Unit):
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
         
