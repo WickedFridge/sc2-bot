@@ -34,6 +34,7 @@ class BarracksAddon(Building):
                     UnitTypeId.BARRACKSTECHLAB,
                     UnitTypeId.BARRACKSREACTOR,
                     UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSTECHLAB,
                 ]
             case Matchup.TvT:        
                 return [

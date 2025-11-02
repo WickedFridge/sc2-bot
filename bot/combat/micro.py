@@ -438,7 +438,6 @@ class Micro:
             )
         )
         if (potential_emp_targets.amount < 1):
-            print("no unit close")
             return False
         # find the best position to cast EMP
         best_target: Optional[Unit] = None
@@ -454,12 +453,11 @@ class Micro:
         if (best_target and best_hit >= EMP_HIT_THRESHOLD):
             print("Casting EMP")
             ghost(AbilityId.EMP_EMP, best_target.position)
-            if (best_target.tag in self.snipe_targets.keys()):
+            if (best_target.tag in self.emp_targets.keys()):
                 self.emp_targets[best_target.tag] += 1
             else:
                 self.emp_targets[best_target.tag] = 1
             return True
-        print("no target for EMP")
         return False
     
     def ghost_snipe(self, ghost: Unit) -> bool:
