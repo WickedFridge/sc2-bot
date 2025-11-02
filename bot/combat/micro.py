@@ -303,7 +303,9 @@ class Micro:
             await self.bio_fight(bio, local_army)
             
     async def ghost_defense(self, ghost: Unit, local_army: Units):
-        if (self.ghost_snipe):
+        if (self.ghost_emp(ghost)):
+            return
+        if (self.ghost_snipe(ghost)):
             return
         await self.bio_defense(ghost, local_army)
 
@@ -415,10 +417,35 @@ class Micro:
 
     
     async def ghost(self, ghost: Unit, local_army: Units):
+        if (self.ghost_emp(ghost)):
+            return
         if (self.ghost_snipe(ghost)):
             return
         await self.bio_fight(ghost, local_army)
 
+    def ghost_emp(self, ghost: Unit) -> bool:
+        close_enemy_units: Units = self.get_local_enemy_units(ghost.position, 10)
+        if (close_enemy_units.amount < 1):
+            print("no unit close")
+            return False
+        # find the best position to cast EMP
+        best_target: Optional[Unit] = None
+        best_hit: float = 0
+        for enemy_unit in close_enemy_units:
+            hit: float = 0
+            for unit in close_enemy_units.closer_than(1.5, enemy_unit.position):
+                hit += unit.shield if unit.shield < 100 else 100
+                hit += unit.energy if unit.energy < 100 else 100
+            if (hit > best_hit):
+                best_hit = hit
+                best_target = enemy_unit
+        if (best_target):
+            print("Casting EMP")
+            ghost(AbilityId.EMP_EMP, best_target.position)
+            return True
+        print("no target for EMP")
+        return False
+    
     def ghost_snipe(self, ghost: Unit) -> bool:
         # if we don't have energy or are already sniping, we just skip
         if (ghost.energy < 50 or ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
@@ -487,7 +514,7 @@ class Micro:
             bio_unit(AbilityId.EFFECT_STIM)
 
     async def raven_antiarmor_missile(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(raven) <= 10)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10)
         if (close_enemy_units.amount < 3):
             return False
         # find the best position to cast anti armor missile
@@ -505,7 +532,7 @@ class Micro:
         return False
     
     async def raven_autoturret(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(raven) <= 8)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10)
         if (close_enemy_units.amount == 0):
             return False
         # find a position to cast auto turret
@@ -707,7 +734,7 @@ class Micro:
         )
         return enemy_units_in_range
     
-    def get_local_enemy_units(self, position: Point2) -> Units:
+    def get_local_enemy_units(self, position: Point2, radius: float = 20) -> Units:
         global_enemy_units: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.can_be_attacked
@@ -715,7 +742,7 @@ class Micro:
             )
         )
         local_enemy_units: Units = global_enemy_units.filter(
-            lambda unit: unit.distance_to(position) <= 20
+            lambda unit: unit.distance_to(position) <= radius
         )
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: unit.type_id in tower_types and unit.can_be_attacked
