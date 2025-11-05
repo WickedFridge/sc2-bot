@@ -69,6 +69,9 @@ dev = [
 license-files = []
 package-dir = { sc2 = "sc2" }
 
+[tool.setuptools.package-data]
+sc2 = ["py.typed", "*.pyi"]
+
 [build-system]
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/#choosing-a-build-backend
 # https://setuptools.pypa.io/en/latest/userguide/package_discovery.html#custom-discovery
