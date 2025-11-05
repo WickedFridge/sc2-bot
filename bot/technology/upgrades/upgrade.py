@@ -23,7 +23,7 @@ class Upgrade:
     requirements_buildings: List[UnitTypeId] = []
     name: str
     is_ability: bool = False
-
+    block_gas_only: bool = False
     
     def __init__(self, search_manager: Search):
         self.bot = search_manager.bot
@@ -52,6 +52,12 @@ class Upgrade:
         resources_updated: Resources
         can_build, resources_updated = resources.update(searching_cost)
         if (can_build == False):
+            if (
+                self.block_gas_only
+                and resources_updated.vespene.short
+                and resources_updated.minerals.short
+            ):
+                resources_updated.minerals.short = False
             return resources_updated
         
         print("Search", self.name)

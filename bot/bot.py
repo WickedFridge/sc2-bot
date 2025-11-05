@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "6.2.1"
+VERSION: str = "6.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -209,6 +209,7 @@ class WickedBot(Superbot):
         ])
         money_spenders.extend([
             # very important tech
+            self.search.stimpack.search,
             self.search.combat_shield.search,
             self.search.infantry_attack_level_1.search,
             self.search.infantry_armor_level_1.search,
@@ -223,7 +224,6 @@ class WickedBot(Superbot):
         money_spenders.extend(self.trainer.ordered_army_trainers)
         money_spenders.extend([
             # advanced tech
-            self.search.stimpack.search,
             self.search.caduceus_reactor.search,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
@@ -266,6 +266,7 @@ class WickedBot(Superbot):
         await self.combat.select_orders(iteration)
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
+        await self.combat.micro_planetary_fortresses()
 
         # Scout with some SCV
         await self.scout.b2_against_proxy()

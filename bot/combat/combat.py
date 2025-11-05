@@ -57,6 +57,7 @@ class Combat:
             if (len(units) == 0):
                 continue
             new_army: Army = Army(Units(units, self.bot), self.bot)
+            new_army.orders = army.orders
             clusters.append(new_army)
         return clusters
     
@@ -135,6 +136,8 @@ class Combat:
         # old_armies: List[Army] = self.armies.copy()
         self.armies = self.get_army_clusters(iteration, self.army_radius)
         
+        # if (iteration % 4 != 0):
+        #     return
         for army in self.armies:
             army.orders = self.get_army_orders(army)
 
@@ -257,6 +260,8 @@ class Combat:
                         return Orders.FIGHT_DROP
                     else:
                         return Orders.RETREAT
+                elif (fighting_army_supply >= local_enemy_supply * 1.5):
+                    return Orders.FIGHT_CHASE
                 else:
                     return Orders.FIGHT_OFFENSE
             if (distance_building_to_enemies <= BASE_SIZE):
@@ -350,6 +355,9 @@ class Combat:
                     await self.execute.heal_up(army)
                 
                 case Orders.FIGHT_OFFENSE:
+                    await self.execute.fight(army)
+                
+                case Orders.FIGHT_CHASE:
                     await self.execute.fight(army)
 
                 case Orders.FIGHT_DROP:
@@ -475,6 +483,15 @@ class Combat:
             for unit in bio_should_load:
                 bunker(AbilityId.LOAD_BUNKER, unit)
 
+    async def micro_planetary_fortresses(self):
+        for pf in self.bot.units(UnitTypeId.PLANETARYFORTRESS):
+            enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+                lambda unit: pf.target_in_range(unit)
+            )
+            if (enemy_units_in_range.amount >= 1 and pf.weapon_cooldown == 0):
+                enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
+                pf.attack(enemy_units_in_range.first)
+
     
     async def debug_army_orders(self):
         color: tuple = WHITE
@@ -483,6 +500,7 @@ class Combat:
             Orders.RETREAT: GREEN,
             Orders.HEAL_UP: GREEN,
             Orders.FIGHT_OFFENSE: RED,
+            Orders.FIGHT_CHASE: RED,
             Orders.FIGHT_DROP: RED,
             Orders.FIGHT_DEFENSE: ORANGE,
             Orders.FIGHT_DISENGAGE: ORANGE,

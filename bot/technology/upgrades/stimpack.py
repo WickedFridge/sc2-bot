@@ -4,12 +4,12 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
-
 class Stimpack(Upgrade):
     upgrade = UpgradeId.STIMPACK
     building = UnitTypeId.BARRACKSTECHLAB
     ability = AbilityId.BARRACKSTECHLABRESEARCH_STIMPACK
     name = "Stimpack"
+    block_gas_only = True
 
     @override
     @property
