@@ -445,7 +445,7 @@ class Execute:
         )
         for unit in army.units:
             if (unit.type_id == UnitTypeId.RAVEN):
-                unit.move(army.leader.position)
+                self.micro.raven(unit, army)
                 continue
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 if (unit.cargo_used >= 4):
