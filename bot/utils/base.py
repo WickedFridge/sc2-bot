@@ -4,6 +4,7 @@ from bot.combat.threats import Threat
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
+from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -183,6 +184,29 @@ class Base:
         max_workers_repairing: int = max(5, self.workers.amount / 3)
         self.repair_units(self.available_workers, damaged_workers, max_workers_repairing)
 
+    def get_worker_amount_to_pull(self, enemy_units: Units) -> int:
+        specific_amount_to_pull: dict[UnitTypeId, int] = {
+            UnitTypeId.REAPER: 2.5,
+            UnitTypeId.MARINE: 1.5,
+            UnitTypeId.MARAUDER: 3.5,
+            UnitTypeId.ZERGLING: 1.5,
+            UnitTypeId.BANELING: 0,
+            UnitTypeId.ROACH: 3,
+            UnitTypeId.HELLION: 2.5,
+            UnitTypeId.ZEALOT: 4,
+            UnitTypeId.STALKER: 4,
+            UnitTypeId.IMMORTAL: 5,
+        }
+        
+        amount_to_pull: float = 0
+        for enemy_unit in enemy_units:
+            if (enemy_unit.type_id in specific_amount_to_pull):
+                amount_to_pull += specific_amount_to_pull[enemy_unit.type_id]
+            else:
+                amount_to_pull += get_unit_supply(enemy_unit) * 2
+
+        return round(amount_to_pull)
+    
     def attack_threat(self) -> None:
         if (self.available_workers.amount == 0):
             print("no workers to pull, o7")
@@ -194,9 +218,7 @@ class Base:
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)
 
-        attackable_enemy_army: Army = Army(attackable_enemy_units, self.bot)
-        
-        max_worker_to_pull: int = round(min(self.workers.amount, attackable_enemy_army.supply * 2))
+        max_worker_to_pull: int = self.get_worker_amount_to_pull(attackable_enemy_units)
         workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)
         workers_to_pullback: Units = workers_pulled.filter(lambda unit: (unit.health < SCV_HEALTH_THRESHOLD))
 
@@ -217,7 +239,7 @@ class Base:
         workers_to_pull: Units = self.available_workers.filter(
             lambda unit: (unit.health >= SCV_HEALTH_THRESHOLD)
         ).sorted(
-            lambda unit: (-unit.health_percentage, unit.distance_to(attackable_enemy_army.center))
+            lambda unit: (-unit.health_percentage, unit.distance_to(attackable_enemy_units.center))
         ).take(additional_workers_needed)
         
 
