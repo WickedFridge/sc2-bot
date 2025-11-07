@@ -8,7 +8,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types
+from ..utils.unit_tags import tower_types, worker_types, menacing
 
 class Base:
     bot: Superbot
@@ -187,24 +187,68 @@ class Base:
         if (self.available_workers.amount == 0):
             print("no workers to pull, o7")
             return
-        attackable_enemy_units: Units = self.enemy_units.filter(
+        
+        SCV_HEALTH_THRESHOLD: int = 15
+        local_enemy_units: Units = self.enemy_units.closer_than(self.BASE_SIZE, self.position).filter(lambda unit: unit.can_attack or unit.type_id in menacing)
+        attackable_enemy_units: Units = local_enemy_units.filter(
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)
 
-        for worker in self.available_workers:
-            enemy_units_on_main_ramp: Units = attackable_enemy_units.filter(
+        attackable_enemy_army: Army = Army(attackable_enemy_units, self.bot)
+        
+        max_worker_to_pull: int = round(min(self.workers.amount, attackable_enemy_army.supply * 2))
+        workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)
+        workers_to_pullback: Units = workers_pulled.filter(lambda unit: (unit.health < SCV_HEALTH_THRESHOLD))
+
+        # pull workers back to mining if not needed
+        if (workers_to_pullback.amount >= 1):
+            print(f'pulling {workers_to_pullback.amount} workers back to mining')
+        for worker in workers_to_pullback:
+            closest_mineral: Unit = self.bot.mineral_field.closest_to(self.position)
+            worker.gather(closest_mineral)
+
+        additional_workers_needed: int = max_worker_to_pull - (workers_pulled.amount - workers_to_pullback.amount)
+
+        if (additional_workers_needed <= 0):
+            return
+        
+        print(f'pulling {additional_workers_needed} workers')
+        
+        workers_to_pull: Units = self.available_workers.filter(
+            lambda unit: (unit.health >= SCV_HEALTH_THRESHOLD)
+        ).sorted(
+            lambda unit: (-unit.health_percentage, unit.distance_to(attackable_enemy_army.center))
+        ).take(additional_workers_needed)
+        
+
+        for worker in workers_to_pull:
+            enemy_units_not_on_main_ramp: Units = attackable_enemy_units.filter(
                 lambda unit: (
-                    unit.position.distance_to(self.bot.main_base_ramp.top_center) <= 5
-                    and unit.position.distance_to(self.bot.main_base_ramp.bottom_center) <= 5
+                    unit.position.distance_to(self.bot.main_base_ramp.top_center) > 5
+                    and unit.position.distance_to(self.bot.main_base_ramp.bottom_center) > 5
+                )
+            )
+            wall_depots_lifted: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).filter(
+                lambda unit: (
+                    unit.type_id != UnitTypeId.SUPPLYDEPOTLOWERED
+                    and unit.position.distance_to(self.bot.main_base_ramp.top_center) <= 5
                 )
             )
             # Don't pull workers from the main if the wall is up and units are outside
+            
             if (
                 self.bot.expansions.closest_to(worker).position == self.bot.expansions.main.position
-                and enemy_units_on_main_ramp.amount >= 1
+                and enemy_units_not_on_main_ramp.amount == 0
+                and wall_depots_lifted.amount >= 1
             ):
                 return
-            if (attackable_enemy_units.amount >= 1):
+            
+            # if we're being attacked by flying/invisible units, move away if we're in range
+            if (attackable_enemy_units.amount == 0):
+                closest_enemy: Unit = local_enemy_units.closest_to(worker)
+                if (closest_enemy.target_in_range(worker)):
+                    Micro.move_away(worker, closest_enemy.position, 1)
+            else:
                 # attack enemy units in range if we can (choose the weakest one)
                 enemy_in_range: Units = attackable_enemy_units.filter(
                     lambda unit: unit.distance_to(worker) <= 1
@@ -220,11 +264,9 @@ class Base:
                 ):
                     bunker: Unit = self.buildings(UnitTypeId.BUNKER).closest_to(worker)
                     worker.move(bunker.position.towards(worker))
-                else:
+                elif (worker.type_id != UnitTypeId.MULE):
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     worker.attack(target)
-            else:
-                Micro.move_away(worker, self.enemy_units.closest_to(worker), 1)
                 
     def no_threat(self) -> None:
         # ask all chasing SCVs to stop

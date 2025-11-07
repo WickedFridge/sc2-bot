@@ -757,12 +757,14 @@ class Micro:
                 and unit.type_id not in dont_attack
             )
         )
-        local_enemy_units: Units = global_enemy_units.filter(
-            lambda unit: unit.distance_to(position) <= radius
-        )
+        local_enemy_units: Units = global_enemy_units.closer_than(radius, position)
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.type_id in tower_types and unit.can_be_attacked
-        )
+            lambda unit: (
+                unit.type_id in tower_types
+                and unit.can_be_attacked
+            )
+        ).closer_than(radius, position)
+
         return local_enemy_units + local_enemy_towers
 
     def get_local_enemy_buildings(self, position: Point2) -> Units:

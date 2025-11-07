@@ -32,8 +32,16 @@ class BuildingsHandler:
                 and structure.type_id != UnitTypeId.ORBITALCOMMAND
                 and structure.type_id != UnitTypeId.PLANETARYFORTRESS
                 and self.is_being_constructed(structure) == False
+                and self.bot.workers.filter(
+                    lambda worker: (
+                        worker.is_constructing_scv
+                        and worker.orders[0].target == structure.tag
+                    )
+                ).amount == 0
             )
         )
+
+
         for incomplete_building in incomplete_buildings:
             closest_worker: Unit = self.bot.workers.collecting.closest_to(incomplete_building)
             print("ordering SCV to finish", incomplete_building.name)
@@ -83,9 +91,9 @@ class BuildingsHandler:
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
             max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
             local_avaiable_workers: Units = (
-                available_workers.closer_than(12, burning_building)
+                available_workers.closer_than(6, burning_building)
                 if (burning_building.type_id not in must_repair)
-                else available_workers
+                else available_workers.closer_than(12, burning_building)
             )
             if (
                 workers_repairing_building.amount >= max_workers_repairing_building
@@ -211,9 +219,9 @@ class BuildingsHandler:
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.is_visible
-                and unit.is_revealed == False
                 and (unit.is_cloaked or unit.is_burrowed)
                 and fighting_units.closest_distance_to(unit) < 10
+                and self.bot.units(UnitTypeId.RAVEN).closer_than(15, unit).amount == 0
             )
         )
         
