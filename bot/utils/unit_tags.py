@@ -35,6 +35,7 @@ tower_types: List[UnitTypeId] = [
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
+    UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.MEDIVAC,
     UnitTypeId.RAVEN,
     UnitTypeId.BANELING,

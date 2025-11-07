@@ -3,8 +3,10 @@ from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.units import Units
+from bot.utils.unit_tags import cloaked_units, menacing
 
 
 class Ebay(Building):
@@ -24,11 +26,24 @@ class Ebay(Building):
             + self.bot.already_pending(UnitTypeId.STARPORT)
         )
         medivac_count: float = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
+        need_detection: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
+        cloaked_attacking_units: Units = self.bot.scouting.known_enemy_army.units(cloaked_units).filter(lambda unit: unit.can_attack or unit.type_id in menacing)
 
+        # If we can't build ebays yet, don't
+        if (ebay_tech_requirement < 1):
+            return False
+    
+        # If we need detection and have no ebays, build one
+        if (
+            ebays_count == 0
+            and need_detection
+            and cloaked_attacking_units.amount >= 1
+        ):
+            return True
+        
         # We want 2 ebays once we have a 3rd CC and a Starport
         return (
-            ebay_tech_requirement == 1
-            and ebays_count < 2
+            ebays_count < 2
             and self.bot.townhalls.amount >= 3
             and starport_count >= 1
             and medivac_count >= 2
