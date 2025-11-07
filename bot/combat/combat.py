@@ -175,7 +175,7 @@ class Combat:
             return Orders.FIGHT_OFFENSE
         
         # if we should defend
-        if (distance_building_to_enemies <= 10 and global_enemy_menacing_units_buildings.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT):
+        if (distance_building_to_enemies <= 10 and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT):
             return Orders.DEFEND
 
         # if enemy is a workers, focus them
