@@ -41,8 +41,8 @@ class Expansion:
         return False
     
     @property
-    def is_scouted(self) -> bool:
-        return self.bot.state.visibility[self.position.rounded] != 0
+    def is_unknown(self) -> bool:
+        return self.bot.state.visibility[self.position.rounded] == 0
     
     @property
     def is_visible(self) -> bool:
@@ -55,7 +55,7 @@ class Expansion:
     @property
     def is_enemy(self) -> bool:
         # if is enemy main unscouted, return True
-        if (self.position == self.bot.enemy_start_locations[0] and not self.is_scouted):
+        if (self.position == self.bot.enemy_start_locations[0] and self.is_unknown):
             return True
 
         enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in hq_types)
