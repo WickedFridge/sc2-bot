@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "6.4.3"
+VERSION: str = "6.5.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -132,6 +132,7 @@ class WickedBot(Superbot):
         # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
         await self.map.update()
+        self.expansions.update_scout_status()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)

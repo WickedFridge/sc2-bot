@@ -509,7 +509,9 @@ class Execute:
 
     def scout(self, army: Army):
         for reaper in army.units:
-            if (self.bot.state.visibility[self.bot.expansions.enemy_b2.position.rounded] == 0):
+            if (self.bot.expansions.enemy_b2.is_unknown):
                 reaper.move(self.bot.expansions.enemy_b2.mineral_line)
-            else:
+            elif (self.bot.expansions.enemy_main.is_unknown or self.bot.expansions.enemy_main.is_enemy):
                 reaper.move(self.bot.expansions.enemy_main.mineral_line)
+            else:
+                reaper.move(self.bot.expansions.oldest_scout.mineral_line)

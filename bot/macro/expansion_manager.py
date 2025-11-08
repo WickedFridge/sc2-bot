@@ -48,6 +48,13 @@ class Expansions:
         sorted_expansions = sorted(self.expansions, key=key, reverse=reverse)
         return Expansions(self.bot, sorted_expansions)
     
+    def sorted_by_oldest_scout(self) -> Expansions:
+        return self.sorted(lambda expansion: expansion.last_scouted)
+    
+    def update_scout_status(self):
+        for expansion in self.expansions:
+            expansion.update_scout_status() 
+    
     @property
     def amount(self) -> int:
         return self.expansions.__len__()
@@ -215,6 +222,10 @@ class Expansions:
     @property
     def vespene(self) -> int:
         return sum(expansion.vespene for expansion in self.expansions)
+
+    @property
+    def oldest_scout(self) -> Expansion:
+        return self.sorted_by_oldest_scout().first
     
     def townhalls_not_on_slot(self, type_ids: Optional[List[UnitTypeId] | UnitTypeId] = None) -> Units:
         townhalls: Units = (

@@ -18,6 +18,7 @@ class Expansion:
     position: Point2
     distance_from_main: float
     radius: int = 12
+    last_scouted: float = 0
 
     def __init__(self, bot: BotAI, position: Point2, distance: float) -> None:
         self.bot = bot
@@ -352,3 +353,7 @@ class Expansion:
 
         # If no valid point is found (unlikely), return the original position
         return start
+    
+    def update_scout_status(self):
+        if (self.bot.state.visibility[self.position.rounded] == 2):
+            self.last_scouted = self.bot.time

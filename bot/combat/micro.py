@@ -555,7 +555,7 @@ class Micro:
         return False
     
     async def raven_autoturret(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 4)
         if (close_enemy_units.amount == 0):
             return False
         # find a position to cast auto turret
@@ -707,26 +707,9 @@ class Micro:
         )
         
         if (enemy_bases.amount >= 1):
-            return enemy_bases.closest_to(unit)
+            return enemy_bases.closest_to(unit).position
         else:
-            for possible_expansion in possible_enemy_expansion_positions:
-                if (self.bot.state.visibility[possible_expansion.rounded] == 0):
-                    return possible_expansion
-            for possible_expansion in possible_enemy_expansion_positions:
-                if (self.bot.state.visibility[possible_expansion.rounded] == 1):
-                    return possible_expansion
-            print("Error : A building is hidden somewhere ?")
-            
-            # return a different base every minute so that we check somewhere different
-            match (self.bot.time // 60 % 4):
-                case 0:
-                    return enemy_main_position
-                case 1:
-                    return self.bot.expansions.enemy_b2.position
-                case 2:
-                    return self.bot.expansions.enemy_b3.position
-                case 3:
-                    return self.bot.expansions.enemy_b4.position
+            return self.bot.expansions.oldest_scout.position
 
     def move_away(selected: Unit, enemy: Unit|Point2, distance: int = 2):
         selected_position: Point2 = selected.position
