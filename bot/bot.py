@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "6.4.2"
+VERSION: str = "6.4.3"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -255,7 +255,8 @@ class WickedBot(Superbot):
             (self.minerals, False),
             (self.vespene, False)
         )
-        for i, money_spender in enumerate(money_spenders):
+
+        for money_spender in money_spenders:
             if (resources.is_short_both):
                 break
             resources = await money_spender(resources)
@@ -273,6 +274,7 @@ class WickedBot(Superbot):
 
         # Debug stuff
         
+        end_time: float = perf_counter()
         # await self.debug.drop_path()
         await self.combat.debug_drop_target()
         # await self.debug.unscouted_b2()
@@ -294,7 +296,6 @@ class WickedBot(Superbot):
         await self.debug.spawn_test_units()
         await self.debug.composition_manager()
         await self.debug.composition_priorities()
-        end_time: float = perf_counter()
         
         self.client.debug_text_screen(
             f'Step Time: {(end_time - start_time)*1000:.2f} ms',

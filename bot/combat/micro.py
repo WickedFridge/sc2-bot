@@ -100,21 +100,24 @@ class Micro:
 
     
     async def retreat(self, unit: Unit):
-        # TODO: handle retreat when opponent is blocking our way
-        
         if (self.bot.townhalls.amount == 0):
             return
+        
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         enemy_units_in_sight: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(unit) <= 10)
+        
         if (unit.type_id in bio_stimmable and enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
         
         # Don't get in the way of flying townhalls
         local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
         retreat_position = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
+        
+        # handle smooth medivac retreat
         if (unit.type_id == UnitTypeId.MEDIVAC):
+            # unload at 2/3 of the way
             if (
-                unit.distance_to(retreat_position) < unit.distance_to(self.bot.enemy_start_locations[0])
+                unit.distance_to(retreat_position) * 2 < unit.distance_to(self.bot.expansions.enemy_main.position)
                 and enemy_units_in_sight.amount == 0
             ):
                 await self.medivac_unload(unit)
@@ -150,24 +153,28 @@ class Micro:
             await self.medivac_unload(medivac)
         return True
 
-    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None) -> bool:
+    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None, retreat_position: Optional[Point2] = None) -> bool:
         if (safety_distance is None):
-            safety_distance =  -1 + 3 * (1 - math.pow(flying_unit.health_percentage, 2))
+            safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
                 (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
-                and enemy_unit.is_facing(flying_unit, math.pi / 2)
-                and enemy_unit.distance_to(flying_unit) <= enemy_unit.radius + enemy_unit.air_range + safety_distance
+                and enemy_unit.distance_to(flying_unit) <= flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
             )
         )
         if (menacing_enemy_units.amount == 0):
             return False
         
         # if medivac in danger, move towards a better retreat position
-        best_retreat_position: Point2 = flying_unit.position.towards(self.retreat_position, 3 - safety_distance).towards(menacing_enemy_units.center, -max(1, safety_distance))
-        flying_unit.move(best_retreat_position)
-        # Micro.move_away(flying_unit, menacing_enemy_units.center, max(1, safety_distance))
+        retreat_direction: Point2 = flying_unit.position
+        for enemy_unit in menacing_enemy_units:
+            margin: float = flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
+            excess_distance: float = margin - enemy_unit.distance_to(flying_unit)
+            retreat_direction = retreat_direction.towards(enemy_unit, -excess_distance)
+        retreat_direction = retreat_direction.towards(self.retreat_position, 3.5 - safety_distance)
+        
+        flying_unit.move(retreat_direction)
         return True
 
     async def medivac_disengage(self, medivac: Unit, local_army: Units):

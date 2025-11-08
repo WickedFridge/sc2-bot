@@ -1,3 +1,4 @@
+import math
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -145,5 +146,6 @@ def weighted_units_supply(units: Units) -> float:
     army_supply: float = 0
     for unit in units:
         health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health_max + unit.shield_max)
-        army_supply += supply[unit.type_id] * health_percentage
+        health_ratio: float = (1 - math.cos(math.pi * health_percentage)) / 2
+        army_supply += supply[unit.type_id] * health_ratio
     return army_supply

@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
+from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from bot.utils.unit_supply import get_unit_supply
@@ -122,8 +123,8 @@ class ArmyCompositionManager:
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
-        # only start making marauders once we have at least 8 marines
-        if (UnitTypeId.MARAUDER in available_units and marine_count >= 8):
+        # only start making marauders once we have at least 8 marines unless we're in danger
+        if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.situation == Situation.UNDER_ATTACK)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
             composition.add(UnitTypeId.MARAUDER, marauder_count)

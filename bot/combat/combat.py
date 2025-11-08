@@ -219,7 +219,7 @@ class Combat:
         # maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
         maximal_medivacs_dropping: int = 10
 
-        fighting_army_supply: float = army.weighted_supply
+        weighted_army_supply: float = army.weighted_supply
         potential_army_supply: float = army.potential_supply
         potential_bio_supply: float = army.potential_bio_supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
@@ -250,8 +250,8 @@ class Combat:
             # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
             if (
                 stim_completed and (
-                    fighting_army_supply >= local_enemy_supply
-                    or potential_army_supply >= local_enemy_supply * 1.25
+                    weighted_army_supply >= local_enemy_supply
+                    or potential_army_supply >= local_enemy_supply * 1.5
                 )
             ):
                 if (potential_army_supply >= army.supply * 2):
@@ -260,7 +260,7 @@ class Combat:
                         return Orders.FIGHT_DROP
                     else:
                         return Orders.RETREAT
-                elif (fighting_army_supply >= local_enemy_supply * 1.5):
+                elif (weighted_army_supply >= local_enemy_supply * 2):
                     return Orders.FIGHT_CHASE
                 else:
                     return Orders.FIGHT_OFFENSE
@@ -268,14 +268,14 @@ class Combat:
                 return Orders.FIGHT_DEFENSE
             if (
                 army.ground_units.amount >= 6 and (
-                    fighting_army_supply >= local_enemy_supply * 0.7
+                    weighted_army_supply >= local_enemy_supply * 0.7
                     or potential_army_supply >= local_enemy_supply * 0.9    
                 )
             ):
                 print(f'disengaging')
                 return Orders.FIGHT_DISENGAGE
             
-            print(f'army too strong [{round(fighting_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.25, 1)}], not taking the fight')
+            print(f'army too strong [{round(weighted_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.25, 1)}], not taking the fight')
             return Orders.PICKUP_LEAVE
                 
         # if we should defend
