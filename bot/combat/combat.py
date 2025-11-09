@@ -8,8 +8,8 @@ from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
 from bot.utils.point2_functions import grid_offsets
+from bot.utils.unit_cargo import get_building_cargo
 from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
@@ -476,12 +476,32 @@ class Combat:
                 continue
 
             # load the bunker with bio
-            # prioritize marines, then marauders
-            bio_should_load: Units = bio_in_range(UnitTypeId.MARINE).take(bunker.cargo_left)
-            if (bio_should_load.amount < 4):
-                bio_should_load += bio_in_range(UnitTypeId.MARAUDER).take(bunker.cargo_left - bio_should_load.amount)
-            for unit in bio_should_load:
-                bunker(AbilityId.LOAD_BUNKER, unit)
+            # prioritize marines, then marauders, unless enemy army is mostly armored
+            default_load_priority: List[UnitTypeId] = [
+                UnitTypeId.GHOST,
+                UnitTypeId.MARINE,
+                UnitTypeId.MARAUDER,
+                UnitTypeId.REAPER,
+            ]
+            armored_load_priority: List[UnitTypeId] = [
+                UnitTypeId.MARAUDER,
+                UnitTypeId.GHOST,
+                UnitTypeId.MARINE,
+                UnitTypeId.REAPER,
+            ] 
+            enemy_army: Army = Army(enemy_units_menacing, self.bot)
+            load_priority: List[UnitTypeId] = armored_load_priority if enemy_army.armored_ratio >= 0.5 else default_load_priority
+            
+            cargo_left: int = bunker.cargo_left
+            for unit_type in load_priority:
+                unit_cargo: int = get_building_cargo(unit_type)
+                if (unit_cargo > cargo_left):
+                    continue
+                for unit in bio_in_range(unit_type):
+                    bunker(AbilityId.LOAD_BUNKER, unit)
+                    cargo_left -= unit_cargo
+                    if (unit_cargo > cargo_left):
+                        break
 
     async def micro_planetary_fortresses(self):
         for pf in self.bot.units(UnitTypeId.PLANETARYFORTRESS):

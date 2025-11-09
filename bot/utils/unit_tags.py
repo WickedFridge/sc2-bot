@@ -50,6 +50,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.LURKER,
     UnitTypeId.VIPER,
     UnitTypeId.CREEPTUMOR,
+    UnitTypeId.CREEPTUMORQUEEN,
+    UnitTypeId.CREEPTUMORBURROWED,
     UnitTypeId.CARRIER,
     UnitTypeId.SENTRY,
 ]

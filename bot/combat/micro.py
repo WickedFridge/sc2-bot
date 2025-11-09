@@ -374,8 +374,10 @@ class Micro:
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
-        other_enemy_fighting_units: Units = self.enemy_fighting_units
-        other_enemy_fighting_units.sort(key = lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.health + enemy_unit.shield))
+        # TODO improve this
+        other_enemy_fighting_units: Units = self.enemy_fighting_units.sorted(
+            lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
+        )
         enemy_buildings: Units = self.bot.enemy_structures
         enemy_buildings_in_range = enemy_buildings.filter(
             lambda building: bio_unit.target_in_range(building)
@@ -667,6 +669,7 @@ class Micro:
 
             enemy_to_fight.sort(
                 key=lambda enemy_unit: (
+                    enemy_unit.shield,
                     enemy_unit.shield + enemy_unit.health
                 )
             )

@@ -53,6 +53,12 @@ class Army:
         return get_units_supply(armored_ground_units)
     
     @property
+    def armored_ratio(self) -> float:
+        if (self.supply == 0):
+            return 0
+        return self.armored_ground_supply / self.supply
+    
+    @property
     def flying_fighting_supply(self) -> float:
         return get_units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
 
