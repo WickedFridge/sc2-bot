@@ -194,6 +194,21 @@ class Debug:
             range: float = unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
             self.draw_sphere_on_world(unit.position, radius=range, draw_color=ORANGE)
 
+    def danger_map(self):
+        selected_units: Units = self.bot.units.selected
+        if (selected_units.amount == 0):
+            return
+        center_position: Point2 = selected_units.center.rounded
+        for i in range(-8, 8):
+            for j in range(-8, 8):
+                new_position: Point2 = center_position + Point2((i, j))
+                danger: float = self.bot.map.danger[new_position]
+                if (danger == 0 or danger >= 999):
+                    continue
+                red_amount: int = min(255, int(danger * 255 / 40))
+                color: tuple[int, int, int] = (red_amount, 255 - red_amount, 128)
+                self.draw_text_on_world(new_position, str(round(danger, 1)), color)
+    
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
             lambda unit: (

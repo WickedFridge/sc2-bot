@@ -1,4 +1,5 @@
 from typing import List, Set
+from bot.macro.map.danger_map import DangerMap
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
 from bot.macro.macro import BASE_SIZE
@@ -12,6 +13,7 @@ from bot.utils.unit_cargo import get_building_cargo
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.pixel_map import PixelMap
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
@@ -22,11 +24,13 @@ class Combat:
     execute: Execute
     armies: List[Army] = []
     bases: List[Base] = []
+    # danger_map: DangerMap
     DEFENSE_RANGE_LIMIT: int = 40
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.execute = Execute(bot)
+        # self.danger_map = DangerMap(bot)
     
     @property
     def army_supply(self) -> float:
@@ -502,7 +506,7 @@ class Combat:
                     cargo_left -= unit_cargo
                     if (unit_cargo > cargo_left):
                         break
-
+    
     async def micro_planetary_fortresses(self):
         for pf in self.bot.units(UnitTypeId.PLANETARYFORTRESS):
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
@@ -554,8 +558,7 @@ class Combat:
 
         for expansion in self.bot.expansions.potential_enemy_bases:
             self.draw_grid_on_world(expansion.position, text="Potential Enemy Base")
-        
-
+    
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_sphere_out(

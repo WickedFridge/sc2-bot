@@ -7,7 +7,7 @@ from bot.combat.combat import Combat
 from bot.debug import Debug
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
-from bot.macro.map import MapData, get_map
+from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.scouting.scouting import Scouting, get_scouting
@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "6.6.0"
+VERSION: str = "7.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -110,6 +110,7 @@ class WickedBot(Superbot):
             await self.expansions.set_expansion_list()
             self.map.initialize()
             await self.macro.speed_mining.start()
+            self.map.danger.init_danger_map()
 
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
@@ -265,6 +266,7 @@ class WickedBot(Superbot):
 
         
         # Control Attacking Units
+        self.map.danger.update()
         await self.combat.select_orders(iteration)
         await self.combat.execute_orders()
         await self.combat.handle_bunkers()
@@ -294,6 +296,7 @@ class WickedBot(Superbot):
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()
         # await self.debug.wall_placement()
+        self.debug.danger_map()
         await self.debug.spawn_test_units()
         await self.debug.composition_manager()
         await self.debug.composition_priorities()

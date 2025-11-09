@@ -1,7 +1,7 @@
 from collections import deque
 import math
 from typing import List, Literal, Optional, Tuple
-from bot.macro.map import get_map
+from bot.macro.map.map import get_map
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.position import Point2

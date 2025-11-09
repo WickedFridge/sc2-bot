@@ -129,7 +129,9 @@ class Micro:
         if (unit.distance_to(retreat_position) < 5):
             return
         if (enemy_units_in_range.amount >= 1):
-            Micro.move_away(unit, enemy_units_in_range.closest_to(unit), 5)
+            safest_spot: Point2 = self.bot.map.danger.safest_point_near(unit)
+            unit.move(safest_spot)
+            # Micro.move_away(unit, enemy_units_in_range.closest_to(unit), 5)
         else:
             unit.move(retreat_position)
     
@@ -356,18 +358,17 @@ class Micro:
                     reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
             # if we can't safely shoot, move away
             else:
-                Micro.move_away(reaper, menacing_enemy_units.center, 3)
+                safest_spot: Point2 = self.bot.map.danger.safest_point_near(reaper.position, 4)
+                reaper.move(safest_spot)
         else:
             if (menacing_enemy_units.amount >= 1):
-                Micro.move_away(reaper, menacing_enemy_units.center, 3)
+                safest_spot: Point2 = self.bot.map.danger.safest_point_near(reaper.position, 4)
+                reaper.move(safest_spot)
             elif (enemy_units_in_range.amount <= 1):
                 reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
             else:
-                # figure out later what to do
+                # we shouldn't be here
                 pass
-                # target: Point2 = center([reaper.position.towards(enemy_units_in_range.center, 2), reaper.position.towards(self.enemy_units)])
-                # reaper.move()
-
         
     
     async def bio_fight(self, bio_unit: Unit, local_army: Units):
@@ -544,24 +545,27 @@ class Micro:
         # find the best position to cast anti armor missile
         best_target: Optional[Unit] = None
         best_hit_count: int = 0
+        HEALTH_THRESHOLD: int = 200
         for enemy_unit in close_enemy_units:
-            hit_count: int = close_enemy_units.closer_than(1.5, enemy_unit.position).amount
-            ally_hit_count: int = self.bot.units.closer_than(1.5, enemy_unit.position).amount
+            enemy_hits: Units = close_enemy_units.closer_than(1.5, enemy_unit.position)
+            ally_hits: Units = self.bot.units.closer_than(1.5, enemy_unit.position)
+            hit_count: int = sum([enemy.health + enemy.shield for enemy in enemy_hits])
+            ally_hit_count: int = sum([ally.health + ally.shield for ally in ally_hits])
             if (hit_count - ally_hit_count > best_hit_count):
                 best_hit_count = hit_count - ally_hit_count
                 best_target = enemy_unit
-        if (best_hit_count >= 3 and best_target):
+        if (best_hit_count >= HEALTH_THRESHOLD and best_target):
             print("Casting anti armor missile")
             raven(AbilityId.EFFECT_ANTIARMORMISSILE, best_target)
             return True
         return False
     
     async def raven_autoturret(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 4)
-        if (close_enemy_units.amount == 0):
+        potential_targets: Units = self.get_local_enemy_units(raven.position, 4)
+        if (potential_targets.amount == 0):
             return False
         # find a position to cast auto turret
-        target_enemy: Unit = close_enemy_units.sorted(
+        target_enemy: Unit = potential_targets.sorted(
             lambda enemy_unit: (
                 -enemy_unit.health + enemy_unit.shield,
                 enemy_unit.distance_to(raven)
@@ -675,14 +679,17 @@ class Micro:
             )
             unit.attack(enemy_to_fight.first)
         else:
+            safest_spot: Point2 = self.bot.map.danger.safest_point_near(unit.position, 5)
+            unit.move(safest_spot)
+            
             # only run away from unit with smaller range that are facing (chasing us)
-            closest_enemy: Unit = enemy_units_in_range.closest_to(unit)
-            if(
-                (closest_enemy.can_attack or closest_enemy.type_id in menacing)
-                and closest_enemy.is_facing(unit, math.pi)
-                and closest_enemy.ground_range < unit.ground_range
-            ):
-                Micro.move_away(unit, closest_enemy)
+            # closest_enemy: Unit = enemy_units_in_range.closest_to(unit)
+            # if(
+            #     (closest_enemy.can_attack or closest_enemy.type_id in menacing)
+            #     and closest_enemy.is_facing(unit, math.pi)
+            #     and closest_enemy.ground_range < unit.ground_range
+            # ):
+            #     Micro.move_away(unit, closest_enemy)
 
     def attack_nearest_base(self, unit: Unit):
         target_position: Point2 = self.get_nearest_base_target(unit)
@@ -711,6 +718,8 @@ class Micro:
         
         if (enemy_bases.amount >= 1):
             return enemy_bases.closest_to(unit).position
+        elif (self.bot.expansions.enemy_main.is_unknown):
+            return self.bot.expansions.enemy_main.position
         else:
             return self.bot.expansions.oldest_scout.position
 
