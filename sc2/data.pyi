@@ -8,8 +8,9 @@ This stub file (PEP 561 compliant) allows type checkers like Pylance, Pyright,
 and mypy to understand the structure and members of these enums.
 """
 
+from __future__ import annotations
+
 from enum import Enum
-from typing import Dict, Set
 
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -96,7 +97,7 @@ class ChatChannel(Enum):
 # Enums created from common_pb2
 class Race(Enum):
     """StarCraft II race enum.
-    
+
     Members:
         NoRace: No race specified
         Terran: Terran race
@@ -104,6 +105,7 @@ class Race(Enum):
         Protoss: Protoss race
         Random: Random race selection
     """
+
     NoRace: int
     Terran: int
     Zerg: int
@@ -143,11 +145,13 @@ class Attribute(Enum):
     Hover: int
     Heroic: int
     Summoned: int
+    Invalid: int
 
 class TargetType(Enum):
     Ground: int
     Air: int
     Any: int
+    Invalid: int
 
 class Target(Enum):
     # Note: The protobuf enum member 'None' is a Python keyword,
@@ -160,11 +164,11 @@ class Target(Enum):
 # Enums created from error_pb2
 class ActionResult(Enum):
     """Action result codes from game engine.
-    
+
     This enum contains a large number of members (~200+) representing
-    various action results and error conditions. Only the most commonly
-    used members are listed here. All members are available at runtime.
+    various action results and error conditions.
     """
+
     Success: int
     NotSupported: int
     Error: int
@@ -207,10 +211,181 @@ class ActionResult(Enum):
     BuildTechRequirementsNotMet: int
     CantFindPlacementLocation: int
     CantBuildOnThat: int
-    # ... approximately 150+ more members exist at runtime
+    CantBuildTooCloseToDropOff: int
+    CantBuildLocationInvalid: int
+    CantSeeBuildLocation: int
+    CantBuildTooCloseToCreepSource: int
+    CantBuildTooCloseToResources: int
+    CantBuildTooFarFromWater: int
+    CantBuildTooFarFromCreepSource: int
+    CantBuildTooFarFromBuildPowerSource: int
+    CantBuildOnDenseTerrain: int
+    CantTrainTooFarFromTrainPowerSource: int
+    CantLandLocationInvalid: int
+    CantSeeLandLocation: int
+    CantLandTooCloseToCreepSource: int
+    CantLandTooCloseToResources: int
+    CantLandTooFarFromWater: int
+    CantLandTooFarFromCreepSource: int
+    CantLandTooFarFromBuildPowerSource: int
+    CantLandTooFarFromTrainPowerSource: int
+    CantLandOnDenseTerrain: int
+    AddOnTooFarFromBuilding: int
+    MustBuildRefineryFirst: int
+    BuildingIsUnderConstruction: int
+    CantFindDropOff: int
+    CantLoadOtherPlayersUnits: int
+    NotEnoughRoomToLoadUnit: int
+    CantUnloadUnitsThere: int
+    CantWarpInUnitsThere: int
+    CantLoadImmobileUnits: int
+    CantRechargeImmobileUnits: int
+    CantRechargeUnderConstructionUnits: int
+    CantLoadThatUnit: int
+    NoCargoToUnload: int
+    LoadAllNoTargetsFound: int
+    NotWhileOccupied: int
+    CantAttackWithoutAmmo: int
+    CantHoldAnyMoreAmmo: int
+    TechRequirementsNotMet: int
+    MustLockdownUnitFirst: int
+    MustTargetUnit: int
+    MustTargetInventory: int
+    MustTargetVisibleUnit: int
+    MustTargetVisibleLocation: int
+    MustTargetWalkableLocation: int
+    MustTargetPawnableUnit: int
+    YouCantControlThatUnit: int
+    YouCantIssueCommandsToThatUnit: int
+    MustTargetResources: int
+    RequiresHealTarget: int
+    RequiresRepairTarget: int
+    NoItemsToDrop: int
+    CantHoldAnyMoreItems: int
+    CantHoldThat: int
+    TargetHasNoInventory: int
+    CantDropThisItem: int
+    CantMoveThisItem: int
+    CantPawnThisUnit: int
+    MustTargetCaster: int
+    CantTargetCaster: int
+    MustTargetOuter: int
+    CantTargetOuter: int
+    MustTargetYourOwnUnits: int
+    CantTargetYourOwnUnits: int
+    MustTargetFriendlyUnits: int
+    CantTargetFriendlyUnits: int
+    MustTargetNeutralUnits: int
+    CantTargetNeutralUnits: int
+    MustTargetEnemyUnits: int
+    CantTargetEnemyUnits: int
+    MustTargetAirUnits: int
+    CantTargetAirUnits: int
+    MustTargetGroundUnits: int
+    CantTargetGroundUnits: int
+    MustTargetStructures: int
+    CantTargetStructures: int
+    MustTargetLightUnits: int
+    CantTargetLightUnits: int
+    MustTargetArmoredUnits: int
+    CantTargetArmoredUnits: int
+    MustTargetBiologicalUnits: int
+    CantTargetBiologicalUnits: int
+    MustTargetHeroicUnits: int
+    CantTargetHeroicUnits: int
+    MustTargetRoboticUnits: int
+    CantTargetRoboticUnits: int
+    MustTargetMechanicalUnits: int
+    CantTargetMechanicalUnits: int
+    MustTargetPsionicUnits: int
+    CantTargetPsionicUnits: int
+    MustTargetMassiveUnits: int
+    CantTargetMassiveUnits: int
+    MustTargetMissile: int
+    CantTargetMissile: int
+    MustTargetWorkerUnits: int
+    CantTargetWorkerUnits: int
+    MustTargetEnergyCapableUnits: int
+    CantTargetEnergyCapableUnits: int
+    MustTargetShieldCapableUnits: int
+    CantTargetShieldCapableUnits: int
+    MustTargetFlyers: int
+    CantTargetFlyers: int
+    MustTargetBuriedUnits: int
+    CantTargetBuriedUnits: int
+    MustTargetCloakedUnits: int
+    CantTargetCloakedUnits: int
+    MustTargetUnitsInAStasisField: int
+    CantTargetUnitsInAStasisField: int
+    MustTargetUnderConstructionUnits: int
+    CantTargetUnderConstructionUnits: int
+    MustTargetDeadUnits: int
+    CantTargetDeadUnits: int
+    MustTargetRevivableUnits: int
+    CantTargetRevivableUnits: int
+    MustTargetHiddenUnits: int
+    CantTargetHiddenUnits: int
+    CantRechargeOtherPlayersUnits: int
+    MustTargetHallucinations: int
+    CantTargetHallucinations: int
+    MustTargetInvulnerableUnits: int
+    CantTargetInvulnerableUnits: int
+    MustTargetDetectedUnits: int
+    CantTargetDetectedUnits: int
+    CantTargetUnitWithEnergy: int
+    CantTargetUnitWithShields: int
+    MustTargetUncommandableUnits: int
+    CantTargetUncommandableUnits: int
+    MustTargetPreventDefeatUnits: int
+    CantTargetPreventDefeatUnits: int
+    MustTargetPreventRevealUnits: int
+    CantTargetPreventRevealUnits: int
+    MustTargetPassiveUnits: int
+    CantTargetPassiveUnits: int
+    MustTargetStunnedUnits: int
+    CantTargetStunnedUnits: int
+    MustTargetSummonedUnits: int
+    CantTargetSummonedUnits: int
+    MustTargetUser1: int
+    CantTargetUser1: int
+    MustTargetUnstoppableUnits: int
+    CantTargetUnstoppableUnits: int
+    MustTargetResistantUnits: int
+    CantTargetResistantUnits: int
+    MustTargetDazedUnits: int
+    CantTargetDazedUnits: int
+    CantLockdown: int
+    CantMindControl: int
+    MustTargetDestructibles: int
+    CantTargetDestructibles: int
+    MustTargetItems: int
+    CantTargetItems: int
+    NoCalldownAvailable: int
+    WaypointListFull: int
+    MustTargetRace: int
+    CantTargetRace: int
+    MustTargetSimilarUnits: int
+    CantTargetSimilarUnits: int
+    CantFindEnoughTargets: int
+    AlreadySpawningLarva: int
+    CantTargetExhaustedResources: int
+    CantUseMinimap: int
+    CantUseInfoPanel: int
+    OrderQueueIsFull: int
+    CantHarvestThatResource: int
+    HarvestersNotRequired: int
+    AlreadyTargeted: int
+    CantAttackWeaponsDisabled: int
+    CouldntReachTarget: int
+    TargetIsOutOfRange: int
+    TargetIsTooClose: int
+    TargetIsOutOfArc: int
+    CantFindTeleportLocation: int
+    InvalidItemClass: int
+    CantFindCancelOrder: int
 
 # Module-level dictionaries
-race_worker: Dict[Race, UnitTypeId]
-race_townhalls: Dict[Race, Set[UnitTypeId]]
-warpgate_abilities: Dict[AbilityId, AbilityId]
-race_gas: Dict[Race, UnitTypeId]
+race_worker: dict[Race, UnitTypeId]
+race_townhalls: dict[Race, set[UnitTypeId]]
+warpgate_abilities: dict[AbilityId, AbilityId]
+race_gas: dict[Race, UnitTypeId]

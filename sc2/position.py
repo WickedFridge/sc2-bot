@@ -142,7 +142,7 @@ class Pointlike(tuple):
 
 class Point2(Pointlike):
     @classmethod
-    def from_proto(cls, data) -> Point2:
+    def from_proto(cls, data: common_pb.Point2D) -> Point2:
         """
         :param data:
         """
@@ -324,7 +324,7 @@ class Point2(Pointlike):
 
 class Point3(Point2):
     @classmethod
-    def from_proto(cls, data) -> Point3:
+    def from_proto(cls, data: common_pb.Point) -> Point3:
         """
         :param data:
         """
