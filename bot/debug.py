@@ -199,10 +199,15 @@ class Debug:
         if (selected_units.amount == 0):
             return
         center_position: Point2 = selected_units.center.rounded
+        flying_units_only: bool = all([selected_unit.is_flying for selected_unit in selected_units])
         for i in range(-8, 8):
             for j in range(-8, 8):
                 new_position: Point2 = center_position + Point2((i, j))
-                danger: float = self.bot.map.danger[new_position]
+                danger: float = (
+                    self.bot.map.danger.air[new_position]
+                    if flying_units_only
+                    else self.bot.map.danger.ground[new_position]
+                )
                 if (danger == 0 or danger >= 999):
                     continue
                 red_amount: int = min(255, int(danger * 255 / 40))

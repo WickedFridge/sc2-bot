@@ -131,7 +131,6 @@ class Micro:
         if (enemy_units_in_range.amount >= 1):
             safest_spot: Point2 = self.bot.map.danger.safest_point_near(unit)
             unit.move(safest_spot)
-            # Micro.move_away(unit, enemy_units_in_range.closest_to(unit), 5)
         else:
             unit.move(retreat_position)
     
@@ -148,14 +147,14 @@ class Micro:
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
     async def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
-        if (not self.safety_disengage(medivac, safety_distance)):
+        if (not self.safety_disengage(medivac, safety_distance, self.retreat_position)):
             return False
         if (medivac.cargo_used >= 1):
             # unload all units if we can
             await self.medivac_unload(medivac)
         return True
 
-    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None, retreat_position: Optional[Point2] = None) -> bool:
+    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None, prefered_direction: Optional[Point2] = None) -> bool:
         if (safety_distance is None):
             safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
@@ -169,14 +168,8 @@ class Micro:
             return False
         
         # if medivac in danger, move towards a better retreat position
-        retreat_direction: Point2 = flying_unit.position
-        for enemy_unit in menacing_enemy_units:
-            margin: float = flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
-            excess_distance: float = margin - enemy_unit.distance_to(flying_unit)
-            retreat_direction = retreat_direction.towards(enemy_unit, -excess_distance)
-        retreat_direction = retreat_direction.towards(self.retreat_position, 3.5 - safety_distance)
-        
-        flying_unit.move(retreat_direction)
+        safest_spot: Point2 = self.bot.map.danger.safest_point_near(flying_unit.position, 4, True, prefered_direction)
+        flying_unit.move(safest_spot)
         return True
 
     async def medivac_disengage(self, medivac: Unit, local_army: Units):
@@ -334,8 +327,8 @@ class Micro:
         )
         if (potential_targets.amount == 0):
             return False
-        target: Unit = potential_targets.first
-        reaper(AbilityId.KD8CHARGE_KD8CHARGE, target.position)
+        best_target: Point2 = self.bot.map.danger.most_dangerous_point(reaper, 5)
+        reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     
     async def reaper(self, reaper: Unit):
@@ -362,7 +355,7 @@ class Micro:
                 reaper.move(safest_spot)
         else:
             if (menacing_enemy_units.amount >= 1):
-                safest_spot: Point2 = self.bot.map.danger.safest_point_near(reaper.position, 4)
+                safest_spot: Point2 = self.bot.map.danger.safest_point_near(reaper.position, 4, self.retreat_position)
                 reaper.move(safest_spot)
             elif (enemy_units_in_range.amount <= 1):
                 reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
@@ -419,7 +412,7 @@ class Micro:
             else:
                 # if (self.bot.scouting.known_enemy_army.flying_fighting_supply == 0):
                 #     viking(AbilityId.MORPH_VIKINGASSAULTMODE)
-                if (not self.safety_disengage(viking)):
+                if (not self.safety_disengage(viking, prefered_direction=local_units.center)):
                     viking.move(local_units.center)
 
         # if we're not on cooldown, either disengage or follow our army
@@ -646,12 +639,16 @@ class Micro:
                 elif (unit.distance_to(retreat_position) > 2):
                     unit.move(retreat_position)
                 else:
-                    Micro.move_away(unit, enemy_units.closest_to(unit))
+                    safest_spot: Point2 = self.bot.map.danger.safest_point_near(bunker.position, 3)
+                    unit.move(safest_spot)
+                    # Micro.move_away(unit, enemy_units.closest_to(unit))
             else:
                 if (unit.weapon_ready):
                     unit.attack(enemy_units.closest_to(unit))
                 else:
-                    Micro.move_away(unit, enemy_units.closest_to(unit))
+                    safest_spot: Point2 = self.bot.map.danger.safest_point_near(bunker.position, 3)
+                    unit.move(safest_spot)
+                    # Micro.move_away(unit, enemy_units.closest_to(unit))
     
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
         if (enemy_units_in_range.amount == 0):
@@ -681,15 +678,6 @@ class Micro:
         else:
             safest_spot: Point2 = self.bot.map.danger.safest_point_near(unit.position, 5)
             unit.move(safest_spot)
-            
-            # only run away from unit with smaller range that are facing (chasing us)
-            # closest_enemy: Unit = enemy_units_in_range.closest_to(unit)
-            # if(
-            #     (closest_enemy.can_attack or closest_enemy.type_id in menacing)
-            #     and closest_enemy.is_facing(unit, math.pi)
-            #     and closest_enemy.ground_range < unit.ground_range
-            # ):
-            #     Micro.move_away(unit, closest_enemy)
 
     def attack_nearest_base(self, unit: Unit):
         target_position: Point2 = self.get_nearest_base_target(unit)
@@ -721,7 +709,7 @@ class Micro:
         elif (self.bot.expansions.enemy_main.is_unknown):
             return self.bot.expansions.enemy_main.position
         else:
-            return self.bot.expansions.oldest_scout.position
+            return self.bot.expansions.sorted(lambda expansion: expansion.distance_from_main, True).sorted_by_oldest_scout()
 
     def move_away(selected: Unit, enemy: Unit|Point2, distance: int = 2):
         selected_position: Point2 = selected.position

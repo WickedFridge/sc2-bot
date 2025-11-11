@@ -110,7 +110,7 @@ supply[UnitTypeId.PHOTONCANNON] = 3
 # Tier 1
 supply[UnitTypeId.PROBE] = 1
 supply[UnitTypeId.ZEALOT] = 2
-supply[UnitTypeId.STALKER] = 2
+supply[UnitTypeId.STALKER] = 3
 supply[UnitTypeId.SENTRY] = 2
 supply[UnitTypeId.ADEPT] = 2
 # Tier 2

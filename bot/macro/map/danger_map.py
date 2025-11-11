@@ -8,24 +8,17 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ...utils.unit_tags import tower_types, menacing
 
-
-class DangerMap:
+class InfluenceMap:
+    bot: BotAI
     map: np.ndarray[np.float32]
-    dynamic_block_grid: np.ndarray[bool]
-    wall_distance: np.ndarray
-    FALLOFF_LEVELS: List[tuple[float, float]] = [
-        (1.00, 1.0),   # inside range
-        (0.50, 2.0),   # medium threat
-        (0.25, 4.0),   # low threat
-        (0.05, 8.0),   # very low threat
-    ]
-
-    def __init__(self, bot: BotAI) -> None:
+    
+    def __init__(self, bot: BotAI, map: np.ndarray) -> None:
         self.bot = bot
+        self.map = map
 
     def __getitem__(self, pos: Point2) -> float:
         new_pos: Point2 = pos.rounded
-        height, width = self.map.shape
+        height, width = self.shape
         
         if (not (0 <= new_pos.x < width and 0 <= new_pos.y < height)):
             print(f'Error: {pos} is out of range')
@@ -40,14 +33,35 @@ class DangerMap:
     def __iter__(self) -> Iterator[Point2]:
         return iter(self.map)
     
+    @property
+    def shape(self):
+        return self.map.shape
+
+
+class DangerMap:
+    ground: InfluenceMap
+    air: InfluenceMap
+    dynamic_block_grid: InfluenceMap
+    wall_distance: np.ndarray
+    FALLOFF_LEVELS: List[tuple[float, float]] = [
+        (1.00, 1.0),   # inside range
+        (0.50, 2.0),   # medium threat
+        (0.25, 4.0),   # low threat
+        (0.05, 8.0),   # very low threat
+    ]
+
+    def __init__(self, bot: BotAI) -> None:
+        self.bot = bot
+    
     def init_danger_map(self):
-        self.map = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
-        self.init_dynamic_block_grid()
+        self.ground = InfluenceMap(self.bot, self.bot.game_info.pathing_grid.data_numpy.astype(np.float32))
+        self.air = self.init_empty_map()
+        self.dynamic_block_grid = self.init_empty_map(bool)
         self.compute_wall_distance()
 
-    def init_dynamic_block_grid(self):
+    def init_empty_map(self, dtype = np.float32) -> InfluenceMap:
         height, width = self.bot.game_info.pathing_grid.data_numpy.shape
-        self.dynamic_block_grid: np.ndarray[bool] = np.zeros((height, width), dtype=bool)
+        return InfluenceMap(self.bot, np.zeros((height, width), dtype=dtype))
     
     def compute_wall_distance(self):
         """
@@ -92,7 +106,7 @@ class DangerMap:
         return mask
     
     def update_dynamic_block_grid(self):
-        self.dynamic_block_grid[:] = False  # reset
+        self.dynamic_block_grid.map[:] = False  # reset
 
         for structure in self.bot.structures.not_flying:
             if (structure.type_id == UnitTypeId.SUPPLYDEPOTLOWERED):
@@ -112,12 +126,12 @@ class DangerMap:
             y1 = max(0, cy - radius)
             y2 = min(self.dynamic_block_grid.shape[0], cy + radius + 1)
 
-            self.dynamic_block_grid[y1:y2, x1:x2] = True
+            self.dynamic_block_grid.map[y1:y2, x1:x2] = True
     
-    def update_map(self, position: Point2, radius: float, value: float, min_radius: float = 0.0):
+    def update_map(self, position: Point2, radius: float, value: float, air: bool = False, min_radius: float = 0.0):
         ux: int = int(position.x)
         uy: int = int(position.y)
-        height, width = self.map.shape
+        height, width = self.ground.shape
         
         kernel = self.influence_kernel(radius)
         
@@ -131,7 +145,7 @@ class DangerMap:
         ky1 = y1 - (uy - radius)
         ky2 = ky1 + (y2 - y1)
 
-        submap = self.map[y1:y2, x1:x2]
+        submap = self.air.map[y1:y2, x1:x2] if air else self.ground.map[y1:y2, x1:x2]
         subkernel = kernel[ky1:ky2, kx1:kx2]
 
         if (min_radius > 0):
@@ -147,32 +161,41 @@ class DangerMap:
         
     def update(self):
         # Reset to zeros
-        self.map[:] = 0
+        self.ground.map[:] = 0
+        self.air.map[:] = 0
         dangerous_enemy_units: Units = self.bot.enemy_units + self.bot.enemy_structures(tower_types)
 
         for unit in dangerous_enemy_units:
-            if (not unit.can_attack_ground):
-                continue
-
-            dps: float = unit.ground_dps
-            if (dps == 0 and unit.type_id in menacing):
-                dps = 10
-            base_range: float = unit.ground_range if unit.ground_range >= 2 else 2
+            unit_position: Point2 = unit.position.rounded
+            ground_dps: float = unit.ground_dps
+            ground_range: float = unit.ground_range
+            
+            # melee unit don't have exactly 0 range
+            if (unit.can_attack_ground and ground_range == 0):
+                ground_range = 1.5
+            
+            air_dps: float = unit.air_dps
+            air_range: float = unit.air_range
+            
+            # TODO : handle menacing special units
+            if (ground_dps == 0 and unit.type_id in menacing):
+                ground_dps = 10
+            
             move_speed: float = unit.movement_speed
             minimum_range: float = 2 if unit.type_id == UnitTypeId.SIEGETANKSIEGED else 0
 
-            unit_position: Point2 = unit.position.rounded
-            
             for weight, ms_factor in self.FALLOFF_LEVELS:
-                radius = int(base_range + move_speed * ms_factor)
-                self.update_map(unit_position, radius, dps * weight, minimum_range)
+                ground_radius = int(ground_range + move_speed * ms_factor)
+                self.update_map(unit_position, ground_radius, ground_dps * weight, False, minimum_range)
+                air_radius = int(air_range + move_speed * ms_factor)
+                self.update_map(unit_position, air_radius, air_dps * weight, True, minimum_range)
 
         # === Wall Danger ===
         # Distance 0 → unpathable → 999
         # Distance 1 → dangerous * 0.5
         # Distance 2 → dangerous * 0.25
         # >2 → safe-ish
-        self.map += np.where(
+        self.ground.map += np.where(
             self.wall_distance == 0,
             999,  # totally blocked
             np.exp(-self.wall_distance * 0.75) * 5.0
@@ -180,17 +203,19 @@ class DangerMap:
 
         # === Absolute blockers (buildings + cliffs) ===
         static_blocked = (self.bot.game_info.pathing_grid.data_numpy == 0)
-        blocked = self.dynamic_block_grid | static_blocked
+        blocked = self.dynamic_block_grid.map | static_blocked
 
-        self.map[blocked] = 999
+        self.ground.map[blocked] = 999
 
-    def safest_point_near(self, pos: Point2 | Unit, radius: int = 5) -> Point2:
+    def get_masked_values(
+        self, pos: Point2 | Unit, radius: int = 5, air: bool = False
+    ) -> tuple[int, int, np.ma.MaskedArray]:
         rounded: Point2 = pos.position.rounded
         x = int(rounded.x)
         y = int(rounded.y)
 
         # Map bounds
-        h, w = self.map.shape
+        h, w = self.ground.shape
 
         x1 = max(0, x - radius)
         x2 = min(w, x + radius + 1)
@@ -198,17 +223,78 @@ class DangerMap:
         y2 = min(h, y + radius + 1)
 
         # Extract sub-map
-        submap = self.map[y1:y2, x1:x2]
+        submap = self.air.map[y1:y2, x1:x2] if air else self.ground.map[y1:y2, x1:x2]
 
         # Mask only tiles within circular radius
         yy, xx = np.ogrid[y1:y2, x1:x2]
         dist_sq = (xx - x) ** 2 + (yy - y) ** 2
         circle_mask = dist_sq <= radius * radius
 
-        # Apply mask
-        masked_values = np.where(circle_mask, submap, float("inf"))
+        # Valid tiles = inside circle AND not environment (999)
+        valid_mask = circle_mask & (submap != 999)
+        
+        # Create masked array: mask=True means INVALID tile
+        masked_values = np.ma.masked_array(submap, mask=~valid_mask)
 
+        return x1, y1, masked_values
+    
+    def most_dangerous_point(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):
+        x1, y1, masked_values = self.get_masked_values(pos, radius, air)
+        
         # Find safest (minimum danger)
-        iy, ix = np.unravel_index(masked_values.argmin(), masked_values.shape)
+        iy, ix = np.unravel_index(masked_values.argmax(), masked_values.shape)
 
         return Point2((x1 + ix, y1 + iy))
+    
+    def safest_point_near(
+            self,
+            pos: Point2 | Unit,
+            radius: int = 5,
+            air: bool = False,
+            direction: Point2 | None = None,
+            max_variation: float = 0.05
+        ) -> Point2:
+        
+        rounded: Point2 = pos.position.rounded
+        x = int(rounded.x)
+        y = int(rounded.y)
+
+        # Get masked array
+        x1, y1, masked_values = self.get_masked_values(pos, radius, air)
+
+        # Minimum danger among *valid* tiles
+        min_value: float = masked_values.min()  # masked entries ignored
+        
+        # Handle negative danger correctly
+        # Allow tiles whose danger is within |min_value| * max_variation
+        variation: float = abs(min_value) * max_variation
+        threshold: float = min_value + variation
+
+        # Find candidate indices (masked entries are auto-skipped)
+        candidates = np.where(masked_values <= threshold)
+        candidate_points: List[Point2] = [
+            Point2((x1 + ix, y1 + iy))
+            for iy, ix in zip(candidates[0], candidates[1])
+        ]
+        
+        # If only one candidate → done
+        if len(candidate_points) == 1:
+            return candidate_points[0]
+        
+        # --- TIEBREAKER #1: direction ---
+        if (direction is not None):
+            dir_vec = (direction - rounded).normalized()
+
+            def directional_score(p: Point2) -> float:
+                v = (p - rounded).to2
+                return v.dot(dir_vec)
+
+            return max(candidate_points, key=directional_score)
+        
+        # --- TIEBREAKER #2: minimize distance to center ---
+        def distance_score(p: Point2) -> float:
+            dx = p.x - x
+            dy = p.y - y
+            return dx * dx + dy * dy
+
+        return min(candidate_points, key=distance_score)
