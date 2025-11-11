@@ -427,10 +427,13 @@ class Execute:
                     # if we're not on cooldown and workers are really close, run away
                     if (unit.weapon_cooldown > 0):
                         if (enemy_workers_close.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
-                            Micro.move_away(unit, enemy_workers_close.closest_to(unit).position, 1)
+                            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, enemy_workers_close.closest_to(unit))
+                            unit.move(safest_spot)
                         else:
                             # move towards the unit but not too close
-                            unit.move(target.position.towards(unit, 3))
+                            # best_position: Point2 = self.bot.map.danger.safest_spot_towards(unit, target)
+                            best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target)
+                            unit.move(best_position)
                     # if we're on cooldown, shoot at it
                     else:
                         unit.attack(target)

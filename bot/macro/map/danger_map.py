@@ -1,12 +1,24 @@
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 import numpy as np
 from functools import lru_cache
 from sc2.bot_ai import BotAI
+from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ...utils.unit_tags import tower_types, menacing
+
+def center(points: List[Point2]) -> Optional[Point2]:
+    length: int = points.__len__()
+    if (length == 0):
+        return None
+    x: float = 0
+    y: float = 0
+    for point in points:
+        x += point.x
+        y += point.y
+    return Point2((x / length, y / length))
 
 class InfluenceMap:
     bot: BotAI
@@ -181,7 +193,7 @@ class DangerMap:
             if (ground_dps == 0 and unit.type_id in menacing):
                 ground_dps = 10
             
-            move_speed: float = unit.movement_speed
+            move_speed: float = unit.real_speed
             minimum_range: float = 2 if unit.type_id == UnitTypeId.SIEGETANKSIEGED else 0
 
             for weight, ms_factor in self.FALLOFF_LEVELS:
@@ -190,6 +202,41 @@ class DangerMap:
                 air_radius = int(air_range + move_speed * ms_factor)
                 self.update_map(unit_position, air_radius, air_dps * weight, True, minimum_range)
 
+        # === Effects and Exceptions
+        # effect_data: dict[EffectId, dict[str, float | bool]] = {
+        #     EffectId.PSISTORMPERSISTENT: {
+        #         'radius': 2,
+        #         'dps': 23.3,
+        #         'ground': True,
+        #         'air': True
+        #     }
+        # }
+        
+        for effect in self.bot.state.effects:
+            match(effect.id):
+                case EffectId.PSISTORMPERSISTENT:
+                    radius: int = 2
+                    dps: float = 23.3
+                    self.update_map(center(effect.positions), radius, dps, False)
+                    self.update_map(center(effect.positions), radius, dps, True)
+                case EffectId.RAVAGERCORROSIVEBILECP:
+                    # 60 is the amount of damage, not sure about dps here
+                    radius: float = 1
+                    dps: float = 60
+                    self.update_map(center(effect.positions), radius, dps, False)
+                    self.update_map(center(effect.positions), radius, dps, True)
+                case EffectId.BLINDINGCLOUDCP:
+                    # let's put 60 as "very dangerous"
+                    radius: float = 2
+                    dps: float = 60
+                    self.update_map(center(effect.positions), radius, dps, False)
+                    self.update_map(center(effect.positions), radius, dps, True)
+                case EffectId.LURKERMP:
+                    radius: float = 1
+                    dps: float = 20
+                    for position in effect.positions:
+                        self.update_map(position, radius, dps, False)
+        
         # === Wall Danger ===
         # Distance 0 → unpathable → 999
         # Distance 1 → dangerous * 0.5
@@ -238,6 +285,75 @@ class DangerMap:
 
         return x1, y1, masked_values
     
+    def pick_tile(
+        self,
+        pos: Point2 | Unit,
+        radius: float,
+        air: bool,
+        score_fn: callable,
+        prefer_direction: Point2 | None = None,
+    ):
+        # Base position
+        rounded_radius: int = round(radius)
+        rounded: Point2 = pos.position.rounded
+        x: int = int(rounded.x)
+        y: int = int(rounded.y)
+
+        # Get the masked window: returns x1, y1, masked_values
+        x1, y1, masked_values = self.get_masked_values(rounded, rounded_radius, air)
+    
+        # Build candidate tiles (masked values auto-skip)
+        ys, xs = np.where(~masked_values.mask)
+
+        # Precompute direction vector if provided
+        if (prefer_direction is not None):
+            vec: Point2 = prefer_direction - pos
+            length: float = (vec.x * vec.x + vec.y * vec.y) ** 0.5
+
+            if (length < 1e-6):
+                Dx = Dy = None
+            else:
+                Dx = vec.x / length
+                Dy = vec.y / length
+        else:
+            Dx = Dy = None
+
+        ys, xs = np.where(~masked_values.mask)
+
+        best_point: Point2 | None = None
+        best_score: float | None = None
+
+        for iy, ix in zip(ys, xs):
+            value: float = masked_values[iy, ix]
+            px: int = x1 + ix
+            py: int = y1 + iy
+
+            dx: int = px - x
+            dy: int = py - y
+
+            if (Dx is not None):
+                # 1. Forward/backward component
+                towards: float = dx * Dx + dy * Dy  # dot product
+
+                # 2. Perpendicular spreading component
+                proj_x: float = towards * Dx
+                proj_y: float = towards * Dy
+                perp_x: float = dx - proj_x
+                perp_y: float = dy - proj_y
+                extend: float = (perp_x * perp_x + perp_y * perp_y) ** 0.5
+            else:
+                towards: float = 0.0
+                extend: float = 0.0
+
+            # Compute score
+            score: float = score_fn(value, towards, extend)
+
+            if (best_score is None or score > best_score):
+                best_score = score
+                best_point = Point2((px, py))
+
+        return best_point
+
     def most_dangerous_point(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):
         x1, y1, masked_values = self.get_masked_values(pos, radius, air)
         
@@ -246,55 +362,56 @@ class DangerMap:
 
         return Point2((x1 + ix, y1 + iy))
     
-    def safest_point_near(
-            self,
-            pos: Point2 | Unit,
-            radius: int = 5,
-            air: bool = False,
-            direction: Point2 | None = None,
-            max_variation: float = 0.05
-        ) -> Point2:
-        
-        rounded: Point2 = pos.position.rounded
-        x = int(rounded.x)
-        y = int(rounded.y)
+    def best_attacking_spot(self, unit: Unit, target: Unit) -> Point2:
+        air: bool = target.is_flying
+        radius: int = unit.radius + target.radius
+        if (air):
+            radius += unit.air_range
+        else:
+            radius += unit.ground_range
 
-        # Get masked array
-        x1, y1, masked_values = self.get_masked_values(pos, radius, air)
+        return self.pick_tile(
+            target.position,
+            radius,
+            air,
+            score_fn=lambda value, towards, extend: (-value + extend / 2 + towards),
+            prefer_direction=unit.position,
+        )
+    
+    def safest_spot_around(self, unit: Unit) -> Point2:
+        radius: int = round(unit.real_speed * 1.4)
+        air: bool = unit.is_flying
 
-        # Minimum danger among *valid* tiles
-        min_value: float = masked_values.min()  # masked entries ignored
-        
-        # Handle negative danger correctly
-        # Allow tiles whose danger is within |min_value| * max_variation
-        variation: float = abs(min_value) * max_variation
-        threshold: float = min_value + variation
+        return self.pick_tile(
+            unit.position,
+            radius,
+            air,
+            score_fn=lambda value, towards, extend: (-value - extend),
+            prefer_direction=None,
+        )
+    
+    
+    
+    def safest_spot_towards(self, unit: Unit, direction: Point2 | Unit) -> Point2:
+        radius: int = round(unit.real_speed * 1.4)
+        air: bool = unit.is_flying
 
-        # Find candidate indices (masked entries are auto-skipped)
-        candidates = np.where(masked_values <= threshold)
-        candidate_points: List[Point2] = [
-            Point2((x1 + ix, y1 + iy))
-            for iy, ix in zip(candidates[0], candidates[1])
-        ]
-        
-        # If only one candidate → done
-        if len(candidate_points) == 1:
-            return candidate_points[0]
-        
-        # --- TIEBREAKER #1: direction ---
-        if (direction is not None):
-            dir_vec = (direction - rounded).normalized()
+        return self.pick_tile(
+            unit.position,
+            radius,
+            air,
+            score_fn=lambda value, towards, extend: (-value + towards),
+            prefer_direction=direction.position,
+        )
+    
+    def safest_spot_away(self, unit: Unit, direction: Point2 | Unit) -> Point2:
+        radius: int = round(unit.real_speed * 1.4)
+        air: bool = unit.is_flying
 
-            def directional_score(p: Point2) -> float:
-                v = (p - rounded).to2
-                return v.dot(dir_vec)
-
-            return max(candidate_points, key=directional_score)
-        
-        # --- TIEBREAKER #2: minimize distance to center ---
-        def distance_score(p: Point2) -> float:
-            dx = p.x - x
-            dy = p.y - y
-            return dx * dx + dy * dy
-
-        return min(candidate_points, key=distance_score)
+        return self.pick_tile(
+            unit.position,
+            radius,
+            air,
+            score_fn=lambda value, towards, extend: (-value - towards),
+            prefer_direction=direction.position,
+        )

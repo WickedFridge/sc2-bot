@@ -208,8 +208,8 @@ class Debug:
                     if flying_units_only
                     else self.bot.map.danger.ground[new_position]
                 )
-                if (danger == 0 or danger >= 999):
-                    continue
+                # if (danger == 0 or danger >= 999):
+                #     continue
                 red_amount: int = min(255, int(danger * 255 / 40))
                 color: tuple[int, int, int] = (red_amount, 255 - red_amount, 128)
                 self.draw_text_on_world(new_position, str(round(danger, 1)), color)

@@ -24,7 +24,7 @@ class SpeedMining:
         self.mineral_target_dict: Dict[Point2, Point2] = {}
 
     async def start(self):
-        self.calculate_targets()
+        self.calculate_expansion_locations()
 
     async def execute(self) -> bool:
         if (len(self.ai.townhalls) < 1 or (not self.enable_on_return and not self.enable_on_mine)):
@@ -76,13 +76,13 @@ class SpeedMining:
                     worker.move(target)
                     worker(AbilityId.SMART, mf, True)
 
-    def calculate_targets(self):
-        centers: List[Point2] = self.ai.expansion_locations_list
-        print("centers: ", centers.__len__())
+    def calculate_expansion_locations(self):
+        expansion_locations: List[Point2] = self.ai.expansion_locations_list
+        print("Expansions: ", expansion_locations.__len__())
 
         for mf in self.ai.mineral_field:
             target: Point2 = mf.position
-            center = target.closest(centers)
+            center = target.closest(expansion_locations)
             target = target.towards(center, MINING_RADIUS)
             close = self.ai.mineral_field.closer_than(MINING_RADIUS, target)
             for mf2 in close:

@@ -99,7 +99,7 @@ class Army:
     
     @property
     def composition(self) -> dict[UnitTypeId, int]:
-        return Army.get_composition(self.fighting_units)
+        return Army.get_composition(self.units)
 
     @property
     def bio_health_percentage(self) -> float:
