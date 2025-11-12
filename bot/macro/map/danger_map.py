@@ -363,18 +363,30 @@ class DangerMap:
         return Point2((x1 + ix, y1 + iy))
     
     def best_attacking_spot(self, unit: Unit, target: Unit) -> Point2:
-        air: bool = target.is_flying
-        radius: int = unit.radius + target.radius
-        if (air):
-            radius += unit.air_range
+        target_air: bool = target.is_flying
+        distance: float = unit.radius + target.radius
+        if (target_air):
+            distance += unit.air_range
         else:
-            radius += unit.ground_range
+            distance += unit.ground_range
+        
+        target_range: float = unit.radius + target.radius
+        if (unit.is_flying):
+            target_range += target.air_range
+        else:
+            target_range += target.ground_range
+        
+        # we want to be in range, but not too close from melee unit, but still out of range of ranged units
+        ideal_range: float = min(max(target_range + 1, distance * 0.8), distance)
+        range_bias: float = -(abs(distance - ideal_range))
+        weight_t: float = 0.5
+        weight_r: float = 1.0
 
         return self.pick_tile(
             target.position,
-            radius,
-            air,
-            score_fn=lambda value, towards, extend: (-value + extend / 2 + towards),
+            distance,
+            target_air,
+            score_fn=lambda value, towards, extend: (-value + extend / 2 + towards * weight_t + range_bias * weight_r),
             prefer_direction=unit.position,
         )
     
@@ -389,7 +401,6 @@ class DangerMap:
             score_fn=lambda value, towards, extend: (-value - extend),
             prefer_direction=None,
         )
-    
     
     
     def safest_spot_towards(self, unit: Unit, direction: Point2 | Unit) -> Point2:

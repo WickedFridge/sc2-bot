@@ -13,7 +13,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable
+from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable, building_priorities
 
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb
@@ -121,7 +121,13 @@ class Micro:
                 and enemy_units_in_sight.amount == 0
             ):
                 await self.medivac_unload(unit)
-            if (not await self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
+            away_from_attacks: Point2 = self.retreat_position
+            if (enemy_units_in_range.amount >= 1):
+                away_from_attacks = unit.position.towards(enemy_units_in_range.center, -2)
+            if (enemy_units_in_sight.amount >= 1):
+                away_from_attacks = unit.position.towards(enemy_units_in_sight.center, -2)
+            prefered_direction: Point2 = center([unit.position.towards(self.retreat_position, 2), away_from_attacks])
+            if (not await self.medivac_safety_disengage(unit, prefered_direction) and unit.distance_to(retreat_position) > 3):
                 unit.move(retreat_position)
                 if (unit.distance_to(retreat_position) > 15):
                     await self.medivac_boost(unit)
@@ -146,17 +152,16 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    async def medivac_safety_disengage(self, medivac: Unit, safety_distance: Optional[float] = None) -> bool:
-        if (not self.safety_disengage(medivac, safety_distance, self.retreat_position)):
+    async def medivac_safety_disengage(self, medivac: Unit, prefered_direction: Optional[Point2] = None) -> bool:
+        if (not self.safety_disengage(medivac, prefered_direction)):
             return False
         if (medivac.cargo_used >= 1):
             # unload all units if we can
             await self.medivac_unload(medivac)
         return True
 
-    def safety_disengage(self, flying_unit: Unit, safety_distance: Optional[float] = None, prefered_direction: Optional[Point2] = None) -> bool:
-        if (safety_distance is None):
-            safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
+    def safety_disengage(self, flying_unit: Unit, prefered_direction: Optional[Point2] = None) -> bool:
+        safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
             lambda enemy_unit: (
@@ -167,7 +172,10 @@ class Micro:
         if (menacing_enemy_units.amount == 0):
             return False
         
-        # if medivac in danger, move towards a better retreat position
+        # if flying unit in danger, move towards a better retreat position
+        if (prefered_direction is None):
+            closest_unit_position: Point2 = menacing_enemy_units.closest_to(flying_unit).position
+            prefered_direction = flying_unit.position.towards(closest_unit_position, -2)
         safest_spot: Point2 = self.bot.map.danger.safest_spot_away(flying_unit, prefered_direction)
         flying_unit.move(safest_spot)
         return True
@@ -176,7 +184,7 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        if (await self.medivac_safety_disengage(medivac)):
+        if (await self.medivac_safety_disengage(medivac, local_army.center)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -227,7 +235,7 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
-        if (await self.medivac_safety_disengage(medivac)):
+        if (await self.medivac_safety_disengage(medivac, local_army.center)):
             return
         await self.medivac_heal(medivac, local_army)
 
@@ -336,7 +344,7 @@ class Micro:
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
         SAFETY: int = 2
         enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
-        close_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.distance_to(reaper) <= 10)
+        close_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.distance_to(reaper) <= 20)
         menacing_enemy_units: Units = close_enemy_units.filter(lambda unit: unit.distance_to(reaper) <= reaper.radius + unit.radius + unit.ground_range + SAFETY)
         
         # if we're launching a grenade, just do it and skip the rest
@@ -355,65 +363,100 @@ class Micro:
                 # safest_spot is preferably away from menacing enemy_units
                 safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
                 reaper.move(safest_spot)
-        else:
+        elif (reaper.weapon_cooldown <= 1):
             best_target: Unit = close_enemy_units.closest_to(reaper)
             best_attack_spot: Point2 = self.bot.map.danger.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
-        
-    
-    async def bio_fight(self, bio_unit: Unit, local_army: Units):
-        local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
-        local_medivacs_with_cargo: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
-        enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
-        potential_targets: Units = self.get_potential_targets(bio_unit)
-        # calculate the range of the unit based on its movement speed + range + cooldown
-        
-        # TODO improve this
-        other_enemy_fighting_units: Units = self.enemy_fighting_units.sorted(
-            lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
-        )
-        enemy_buildings: Units = self.bot.enemy_structures
-        enemy_buildings_in_range = enemy_buildings.filter(
-            lambda building: bio_unit.target_in_range(building)
-        )
-        
-        # TODO refactor this
-        # if any enemy has short range, we kite backwards
-        if (any([enemy_unit.ground_range <= 4 for enemy_unit in enemy_units_in_range])):
-            if (enemy_units_in_range.amount >= 1):
-                self.stim_bio(bio_unit)
-                self.hit_n_run(bio_unit, enemy_units_in_range)
-            elif (other_enemy_fighting_units.amount >= 1):
-                if (enemy_buildings_in_range.amount >= 1 and bio_unit.weapon_ready):
-                    self.stim_bio(bio_unit)
-                    bio_unit.attack(enemy_buildings_in_range.closest_to(bio_unit))
-                # if everything isn't unloaded, regroup before attacking
-                elif (local_medivacs_with_cargo):
-                    bio_unit.move(local_army.center)
-                else:
-                    self.stim_bio(bio_unit)
-                    bio_unit.attack(other_enemy_fighting_units.closest_to(bio_unit))
-            else:
-                print("ERROR: no enemy fighting units")
-        
-        # otherwise we kite forward
         else:
-            if (potential_targets.amount >= 1):
-                self.stim_bio(bio_unit)
-                self.kite_forward(bio_unit, potential_targets)
-            elif (other_enemy_fighting_units.amount >= 1):
-                if (enemy_buildings_in_range.amount >= 1 and bio_unit.weapon_ready):
-                    self.stim_bio(bio_unit)
-                    bio_unit.attack(enemy_buildings_in_range.closest_to(bio_unit))
-                # if everything isn't unloaded, regroup before attacking
-                elif (local_medivacs_with_cargo):
-                    bio_unit.move(local_army.center)
-                else:
-                    self.stim_bio(bio_unit)
-                    bio_unit.attack(other_enemy_fighting_units.closest_to(bio_unit))
+            closest_enemy: Unit = close_enemy_units.closest_to(reaper)
+            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, closest_enemy)
+            reaper.move(safest_spot)
+
+
+    async def bio_fight(self, unit: Unit, local_army: Units):
+        enemy_units_in_range = self.get_enemy_units_in_range(unit)
+        potential_targets: Units = self.get_potential_targets(unit)
+        buildings_in_range = self.bot.enemy_structures.filter(
+            lambda building: unit.target_in_range(building)
+        ).sorted(
+            lambda building: (building.type_id not in building_priorities, building.health + building.shield)
+        )
+        local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
+        loaded_medivacs: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
+        has_melee_threat: bool = any([enemy_unit.ground_range <= 4 for enemy_unit in enemy_units_in_range])
+        other_enemies: Units = self.enemy_fighting_units.sorted(
+            lambda enemy_unit: (enemy_unit.distance_to(unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
+        )
+        
+        # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
+        if (has_melee_threat and self.handle_melee_engagement(
+            unit,
+            enemy_units_in_range,
+            other_enemies,
+        )):
+            return
+
+        # ----- CASE 2: PURE RANGED ENGAGEMENT (pressure forward) -----
+        if (self.handle_ranged_engagement(
+            unit,
+            potential_targets,
+            other_enemies,
+        )):
+            return
+        
+        # SECONDARY CASE: No targets, but enemy units exist
+        if (buildings_in_range.amount >= 1 and unit.weapon_ready):
+            self.stim_bio(unit)
+            unit.attack(buildings_in_range.first)
+            return
+        
+        # if everything isn't unloaded, regroup before attacking
+        if (loaded_medivacs):
+            unit.move(local_army.center)
+            return
+        
+        self.stim_bio(unit)
+        target: Unit = other_enemies.closest_to(unit)
+        best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target)
+        unit.move(best_position)
 
         
+    def handle_melee_engagement(
+        self,
+        unit: Unit,
+        enemy_units_in_range: Units,
+        other_enemies: Units,
+    ) -> bool:
+        if (enemy_units_in_range.amount == 0 and other_enemies.amount == 0):        
+            print("ERROR: no enemy fighting units")
+            return True
+        
+        # If someone is in range → hit'n'run
+        if (enemy_units_in_range.amount >= 1):
+            self.stim_bio(unit)
+            self.hit_n_run(unit, enemy_units_in_range)
+            return True
+        return False
 
+    
+    def handle_ranged_engagement(
+        self,
+        unit: Unit,
+        potential_targets: Units,
+        other_enemies: Units,
+    ) -> bool:
+        if (potential_targets.amount == 0 and other_enemies.amount == 0):        
+            print("ERROR: no enemy fighting units")
+            return True
+        
+        # PRIMARY CASE: There are valid targets
+        if (potential_targets.amount >= 1):
+            self.stim_bio(unit)
+            self.kite_forward(unit, potential_targets)
+            return True
+        return False
+    
+        
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
         if (viking.weapon_cooldown <= 0.25):
@@ -432,11 +475,11 @@ class Micro:
             else:
                 # if (self.bot.scouting.known_enemy_army.flying_fighting_supply == 0):
                 #     viking(AbilityId.MORPH_VIKINGASSAULTMODE)
-                if (not self.safety_disengage(viking, prefered_direction=local_units.center)):
+                if (not self.safety_disengage(viking, local_units.center)):
                     viking.move(local_units.center)
 
         # if we're not on cooldown, either disengage or follow our army
-        elif (not self.safety_disengage(viking, prefered_direction=local_units.center)):
+        elif (not self.safety_disengage(viking, local_units.center)):
             viking.move(local_units.center)
 
     
@@ -607,7 +650,7 @@ class Micro:
             if (await self.raven_autoturret(raven)):
                 return
         
-        if (not self.safety_disengage(raven)):
+        if (not self.safety_disengage(raven, local_army.center)):
             raven.move(local_army.center)
 
     
@@ -726,7 +769,7 @@ class Micro:
             )
             unit.attack(enemy_to_fight.first)
         else:
-            safest_spot: Point2 = self.bot.map.danger.safest_point_away(unit.position, 5)
+            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             unit.move(safest_spot)
 
     def attack_nearest_base(self, unit: Unit):
