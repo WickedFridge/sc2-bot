@@ -2,10 +2,26 @@
 from enum import Enum
 from google.protobuf.message import Message
 
+class AvailableAbility(Message):
+    ability_id: int
+    requires_point: bool
+    def __init__(self, ability_id: int = ..., requires_point: bool = ...) -> None: ...
+
+class ImageData(Message):
+    bits_per_pixel: int
+    size: Size2DI
+    data: bytes
+    def __init__(self, bits_per_pixel: int = ..., size: Size2DI = ..., data: bytes = ...) -> None: ...
+
 class PointI(Message):
     x: int
     y: int
     def __init__(self, x: int = ..., y: int = ...) -> None: ...
+
+class RectangleI(Message):
+    p0: PointI
+    p1: PointI
+    def __init__(self, p0: PointI = ..., p1: PointI = ...) -> None: ...
 
 class Point2D(Message):
     x: float
@@ -17,6 +33,11 @@ class Point(Message):
     y: float
     z: float
     def __init__(self, x: float = ..., y: float = ..., z: float = ...) -> None: ...
+
+class Size2DI(Message):
+    x: int
+    y: int
+    def __init__(self, x: int = ..., y: int = ...) -> None: ...
 
 class Race(Enum):
     NoRace: int
