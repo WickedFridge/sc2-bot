@@ -802,7 +802,7 @@ class Micro:
         elif (self.bot.expansions.enemy_main.is_unknown):
             return self.bot.expansions.enemy_main.position
         else:
-            return self.bot.expansions.sorted(lambda expansion: expansion.distance_from_main, True).sorted_by_oldest_scout()
+            return self.bot.expansions.sorted(lambda expansion: expansion.distance_from_main, True).sorted_by_oldest_scout().first.position
 
     def move_away(selected: Unit, enemy: Unit|Point2, distance: int = 2):
         selected_position: Point2 = selected.position
