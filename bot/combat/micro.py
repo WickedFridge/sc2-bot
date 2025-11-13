@@ -561,11 +561,13 @@ class Micro:
         return True
             
     def stim_bio(self, bio_unit: Unit):
+        DANGER_THRESHOLD: float = 5
         if (
             self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1
             or bio_unit.has_buff(BuffId.STIMPACK)
             or bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
             or bio_unit.type_id == UnitTypeId.GHOST
+            or self.bot.map.danger.ground[bio_unit.position] <= DANGER_THRESHOLD
         ):
             return
         

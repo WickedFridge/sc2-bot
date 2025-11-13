@@ -90,9 +90,10 @@ class Execute:
 
         # Step 2: Split the medivacs
         medivacs_to_retreat = medivacs.filter(lambda unit: unit.tag not in medivacs_to_use.tags)
+        flyers_to_retreat = army.units.filter(lambda unit: unit.is_flying and unit.type_id != UnitTypeId.MEDIVAC)
         
         # Step 3: Unload and retreat extras
-        for medivac in medivacs_to_retreat:
+        for medivac in medivacs_to_retreat + flyers_to_retreat:
             if medivac.passengers:
                 await self.micro.medivac_unload(medivac)
             await self.micro.retreat(medivac)
