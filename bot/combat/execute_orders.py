@@ -432,7 +432,7 @@ class Execute:
                         else:
                             # move towards the unit but not too close
                             # best_position: Point2 = self.bot.map.danger.safest_spot_towards(unit, target)
-                            best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target)
+                            best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target, 1)
                             unit.move(best_position)
                     # if we're on cooldown, shoot at it
                     else:
