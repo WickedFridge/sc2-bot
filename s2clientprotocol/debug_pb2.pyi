@@ -4,7 +4,7 @@ from .common_pb2 import Point, Point2D
 
 class DebugCommand(Message):
     draw: DebugDraw
-    game_state: DebugGameState
+    game_state: int
     create_unit: DebugCreateUnit
     kill_unit: DebugKillUnit
     test_process: DebugTestProcess
@@ -14,7 +14,7 @@ class DebugCommand(Message):
     def __init__(
         self,
         draw: DebugDraw = ...,
-        game_state: DebugGameState = ...,
+        game_state: int = ...,
         create_unit: DebugCreateUnit = ...,
         kill_unit: DebugKillUnit = ...,
         test_process: DebugTestProcess = ...,
@@ -116,9 +116,9 @@ class Test(Enum):
     exit: int
 
 class DebugTestProcess(Message):
-    test: Test
+    test: int
     delay_ms: int
-    def __init__(self, test: Test = ..., delay_ms: int = ...) -> None: ...
+    def __init__(self, test: int = ..., delay_ms: int = ...) -> None: ...
 
 class DebugSetScore(Message):
     score: float
@@ -129,8 +129,8 @@ class EndResult(Enum):
     DeclareVictory: int
 
 class DebugEndGame(Message):
-    end_result: EndResult
-    def __init__(self, end_result: EndResult = ...) -> None: ...
+    end_result: int
+    def __init__(self, end_result: int = ...) -> None: ...
 
 class UnitValue(Enum):
     Energy: int
@@ -138,12 +138,12 @@ class UnitValue(Enum):
     Shields: int
 
 class DebugSetUnitValue(Message):
-    unit_value: UnitValue
+    unit_value: int
     value: float
     unit_tag: int
     def __init__(
         self,
-        unit_value: UnitValue = ...,
+        unit_value: int = ...,
         value: float = ...,
         unit_tag: int = ...,
     ) -> None: ...

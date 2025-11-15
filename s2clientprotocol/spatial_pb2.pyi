@@ -142,8 +142,8 @@ class Type(Enum):
 
 class ActionSpatialUnitSelectionPoint(Message):
     selection_screen_coord: PointI
-    type: Type
-    def __init__(self, selection_screen_coord: PointI = ..., type: Type = ...) -> None: ...
+    type: int
+    def __init__(self, selection_screen_coord: PointI = ..., type: int = ...) -> None: ...
 
 class ActionSpatialUnitSelectionRect(Message):
     selection_screen_coord: list[RectangleI]

@@ -4,10 +4,9 @@ from enum import Enum
 from google.protobuf.message import Message
 
 from s2clientprotocol.spatial_pb2 import ActionSpatial, ObservationFeatureLayer, ObservationRender
-from .common_pb2 import Race, Point2D, Size2DI, AvailableAbility
+from .common_pb2 import Point2D, Size2DI, AvailableAbility
 from .data_pb2 import AbilityData, UnitTypeData, UpgradeData, BuffData, EffectData
 from .debug_pb2 import DebugCommand
-from .error_pb2 import ActionResult
 from .query_pb2 import RequestQuery, ResponseQuery
 from .raw_pb2 import ActionRaw, ObservationRaw, StartRaw
 from .ui_pb2 import ActionUI, ObservationUI
@@ -90,7 +89,7 @@ class Response(Message):
     debug: ResponseDebug
     id: int
     error: list[str]
-    status: Status
+    status: int
     def __init__(
         self,
         create_game: ResponseCreateGame = ...,
@@ -117,7 +116,7 @@ class Response(Message):
         debug: ResponseDebug = ...,
         id: int = ...,
         error: list[str] = ...,
-        status: Status = ...,
+        status: int = ...,
     ) -> None: ...
 
 class Status(Enum):
@@ -162,12 +161,12 @@ class ResponseCreateGame(Message):
         InvalidPlayerSetup: int
         MultiplayerUnsupported: int
 
-    error: Error
+    error: int
     error_details: str
-    def __init__(self, error: Error = ..., error_details: str = ...) -> None: ...
+    def __init__(self, error: int = ..., error_details: str = ...) -> None: ...
 
 class RequestJoinGame(Message):
-    race: Race
+    race: int
     observed_player_id: int
     options: InterfaceOptions
     server_ports: PortSet
@@ -177,7 +176,7 @@ class RequestJoinGame(Message):
     host_ip: str
     def __init__(
         self,
-        race: Race = ...,
+        race: int = ...,
         observed_player_id: int = ...,
         options: InterfaceOptions = ...,
         server_ports: PortSet = ...,
@@ -209,9 +208,9 @@ class ResponseJoinGame(Message):
         OtherError: int
 
     player_id: int
-    error: Error
+    error: int
     error_details: str
-    def __init__(self, player_id: int = ..., error: Error = ..., error_details: str = ...) -> None: ...
+    def __init__(self, player_id: int = ..., error: int = ..., error_details: str = ...) -> None: ...
 
 class RequestRestartGame(Message):
     def __init__(self) -> None: ...
@@ -220,10 +219,10 @@ class ResponseRestartGame(Message):
     class Error(Enum):
         LaunchError: int
 
-    error: Error
+    error: int
     error_details: str
     need_hard_reset: bool
-    def __init__(self, error: Error = ..., error_details: str = ..., need_hard_reset: bool = ...) -> None: ...
+    def __init__(self, error: int = ..., error_details: str = ..., need_hard_reset: bool = ...) -> None: ...
 
 class RequestStartReplay(Message):
     replay_path: str
@@ -256,9 +255,9 @@ class ResponseStartReplay(Message):
         MissingOptions: int
         LaunchError: int
 
-    error: Error
+    error: int
     error_details: str
-    def __init__(self, error: Error = ..., error_details: str = ...) -> None: ...
+    def __init__(self, error: int = ..., error_details: str = ...) -> None: ...
 
 class RequestMapCommand(Message):
     trigger_cmd: str
@@ -268,9 +267,9 @@ class ResponseMapCommand(Message):
     class Error(Enum):
         NoTriggerError: int
 
-    error: Error
+    error: int
     error_details: str
-    def __init__(self, error: Error = ..., error_details: str = ...) -> None: ...
+    def __init__(self, error: int = ..., error_details: str = ...) -> None: ...
 
 class RequestLeaveGame(Message):
     def __init__(self) -> None: ...
@@ -346,8 +345,8 @@ class RequestAction(Message):
     def __init__(self, actions: list[Action] = ...) -> None: ...
 
 class ResponseAction(Message):
-    result: list[ActionResult]
-    def __init__(self, result: list[ActionResult] = ...) -> None: ...
+    result: list[int]
+    def __init__(self, result: list[int] = ...) -> None: ...
 
 class RequestObserverAction(Message):
     actions: list[ObserverAction]
@@ -442,7 +441,7 @@ class ResponseReplayInfo(Message):
     data_version: str
     data_build: int
     base_build: int
-    error: Error
+    error: int
     error_details: str
     def __init__(
         self,
@@ -455,7 +454,7 @@ class ResponseReplayInfo(Message):
         data_version: str = ...,
         data_build: int = ...,
         base_build: int = ...,
-        error: Error = ...,
+        error: int = ...,
         error_details: str = ...,
     ) -> None: ...
 
@@ -476,8 +475,8 @@ class ResponseSaveMap(Message):
     class Error(Enum):
         InvalidMapData: int
 
-    error: Error
-    def __init__(self, error: Error = ...) -> None: ...
+    error: int
+    def __init__(self, error: int = ...) -> None: ...
 
 class RequestPing(Message):
     def __init__(self) -> None: ...
@@ -528,18 +527,18 @@ class AIBuild(Enum):
     Air: int
 
 class PlayerSetup(Message):
-    type: PlayerType
-    race: Race
-    difficulty: Difficulty
+    type: int
+    race: int
+    difficulty: int
     player_name: str
-    ai_build: AIBuild
+    ai_build: int
     def __init__(
         self,
-        type: PlayerType = ...,
-        race: Race = ...,
-        difficulty: Difficulty = ...,
+        type: int = ...,
+        race: int = ...,
+        difficulty: int = ...,
         player_name: str = ...,
-        ai_build: AIBuild = ...,
+        ai_build: int = ...,
     ) -> None: ...
 
 class SpatialCameraSetup(Message):
@@ -582,20 +581,20 @@ class InterfaceOptions(Message):
 
 class PlayerInfo(Message):
     player_id: int
-    type: PlayerType
-    race_requested: Race
-    race_actual: Race
-    difficulty: Difficulty
-    ai_build: AIBuild
+    type: int
+    race_requested: int
+    race_actual: int
+    difficulty: int
+    ai_build: int
     player_name: str
     def __init__(
         self,
         player_id: int = ...,
-        type: PlayerType = ...,
-        race_requested: Race = ...,
-        race_actual: Race = ...,
-        difficulty: Difficulty = ...,
-        ai_build: AIBuild = ...,
+        type: int = ...,
+        race_requested: int = ...,
+        race_actual: int = ...,
+        difficulty: int = ...,
+        ai_build: int = ...,
         player_name: str = ...,
     ) -> None: ...
 
@@ -629,7 +628,7 @@ class PlayerCommon(Message):
 class Observation(Message):
     game_loop: int
     player_common: PlayerCommon
-    alerts: list[Alert]
+    alerts: list[int]
     abilities: list[AvailableAbility]
     score: Score
     raw_data: ObservationRaw
@@ -640,7 +639,7 @@ class Observation(Message):
         self,
         game_loop: int = ...,
         player_common: PlayerCommon = ...,
-        alerts: list[Alert] = ...,
+        alerts: list[int] = ...,
         abilities: list[AvailableAbility] = ...,
         score: Score = ...,
         raw_data: ObservationRaw = ...,
@@ -671,15 +670,15 @@ class Channel(Enum):
     Team: int
 
 class ActionChat(Message):
-    channel: Channel
+    channel: int
     message: str
-    def __init__(self, channel: Channel = ..., message: str = ...) -> None: ...
+    def __init__(self, channel: int = ..., message: str = ...) -> None: ...
 
 class ActionError(Message):
     unit_tag: int
     ability_id: int
-    result: ActionResult
-    def __init__(self, unit_tag: int = ..., ability_id: int = ..., result: ActionResult = ...) -> None: ...
+    result: int
+    def __init__(self, unit_tag: int = ..., ability_id: int = ..., result: int = ...) -> None: ...
 
 class ObserverAction(Message):
     player_perspective: ActionObserverPlayerPerspective
@@ -743,5 +742,5 @@ class Result(Enum):
 
 class PlayerResult(Message):
     player_id: int
-    result: Result
-    def __init__(self, player_id: int = ..., result: Result = ...) -> None: ...
+    result: int
+    def __init__(self, player_id: int = ..., result: int = ...) -> None: ...

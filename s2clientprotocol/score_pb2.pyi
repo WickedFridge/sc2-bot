@@ -7,12 +7,12 @@ class ScoreType(Enum):
     Melee: int
 
 class Score(Message):
-    score_type: ScoreType
+    score_type: int
     score: int
     score_details: ScoreDetails
     def __init__(
         self,
-        score_type: ScoreType = ...,
+        score_type: int = ...,
         score: int = ...,
         score_details: ScoreDetails = ...,
     ) -> None: ...

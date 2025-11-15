@@ -1,6 +1,5 @@
 from google.protobuf.message import Message
 from .common_pb2 import Point2D, AvailableAbility
-from .error_pb2 import ActionResult
 
 class RequestQuery(Message):
     pathing: list[RequestQueryPathing]
@@ -68,5 +67,5 @@ class RequestQueryBuildingPlacement(Message):
     ) -> None: ...
 
 class ResponseQueryBuildingPlacement(Message):
-    result: ActionResult
-    def __init__(self, result: ActionResult = ...) -> None: ...
+    result: int
+    def __init__(self, result: int = ...) -> None: ...

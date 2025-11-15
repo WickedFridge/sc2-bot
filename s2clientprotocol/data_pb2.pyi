@@ -1,6 +1,5 @@
 from enum import Enum
 from google.protobuf.message import Message
-from .common_pb2 import Race
 
 class Target(Enum):
     # NONE: int
@@ -18,7 +17,7 @@ class AbilityData(Message):
     hotkey: str
     remaps_to_ability_id: int
     available: bool
-    target: Target
+    target: int
     allow_minimap: bool
     allow_autocast: bool
     is_building: bool
@@ -35,7 +34,7 @@ class AbilityData(Message):
         hotkey: str = ...,
         remaps_to_ability_id: int = ...,
         available: bool = ...,
-        target: Target = ...,
+        target: int = ...,
         allow_minimap: bool = ...,
         allow_autocast: bool = ...,
         is_building: bool = ...,
@@ -58,9 +57,9 @@ class Attribute(Enum):
     Summoned: int
 
 class DamageBonus(Message):
-    attribute: Attribute
+    attribute: int
     bonus: float
-    def __init__(self, attribute: Attribute = ..., bonus: float = ...) -> None: ...
+    def __init__(self, attribute: int = ..., bonus: float = ...) -> None: ...
 
 class TargetType(Enum):
     Ground: int
@@ -68,7 +67,7 @@ class TargetType(Enum):
     Any: int
 
 class Weapon(Message):
-    type: TargetType
+    type: int
     damage: float
     damage_bonus: list[DamageBonus]
     attacks: int
@@ -76,7 +75,7 @@ class Weapon(Message):
     speed: float
     def __init__(
         self,
-        type: TargetType = ...,
+        type: int = ...,
         damage: float = ...,
         damage_bonus: list[DamageBonus] = ...,
         attacks: int = ...,
@@ -94,7 +93,7 @@ class UnitTypeData(Message):
     food_required: float
     food_provided: float
     ability_id: int
-    race: Race
+    race: int
     build_time: float
     has_vespene: bool
     has_minerals: bool
@@ -118,7 +117,7 @@ class UnitTypeData(Message):
         food_required: float = ...,
         food_provided: float = ...,
         ability_id: int = ...,
-        race: Race = ...,
+        race: int = ...,
         build_time: float = ...,
         has_vespene: bool = ...,
         has_minerals: bool = ...,

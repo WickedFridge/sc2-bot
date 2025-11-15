@@ -117,8 +117,8 @@ class RallyTarget(Message):
     def __init__(self, point: Point = ..., tag: int = ...) -> None: ...
 
 class Unit(Message):
-    display_type: DisplayType
-    alliance: Alliance
+    display_type: int
+    alliance: int
     tag: int
     unit_type: int
     owner: int
@@ -126,7 +126,7 @@ class Unit(Message):
     facing: float
     radius: float
     build_progress: float
-    cloak: CloakState
+    cloak: int
     buff_ids: list[int]
     detect_range: float
     radar_range: float
@@ -163,8 +163,8 @@ class Unit(Message):
     rally_targets: list[RallyTarget]
     def __init__(
         self,
-        display_type: DisplayType = ...,
-        alliance: Alliance = ...,
+        display_type: int = ...,
+        alliance: int = ...,
         tag: int = ...,
         unit_type: int = ...,
         owner: int = ...,
@@ -172,7 +172,7 @@ class Unit(Message):
         facing: float = ...,
         radius: float = ...,
         build_progress: float = ...,
-        cloak: CloakState = ...,
+        cloak: int = ...,
         buff_ids: list[int] = ...,
         detect_range: float = ...,
         radar_range: float = ...,
@@ -221,14 +221,14 @@ class Event(Message):
 class Effect(Message):
     effect_id: int
     pos: list[Point2D]
-    alliance: Alliance
+    alliance: int
     owner: int
     radius: float
     def __init__(
         self,
         effect_id: int = ...,
         pos: list[Point2D] = ...,
-        alliance: Alliance = ...,
+        alliance: int = ...,
         owner: int = ...,
         radius: float = ...,
     ) -> None: ...

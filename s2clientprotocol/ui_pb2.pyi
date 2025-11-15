@@ -132,9 +132,9 @@ class ControlGroupAction(Enum):
     AppendAndSteal: int
 
 class ActionControlGroup(Message):
-    action: ControlGroupAction
+    action: int
     control_group_index: int
-    def __init__(self, action: ControlGroupAction = ..., control_group_index: int = ...) -> None: ...
+    def __init__(self, action: int = ..., control_group_index: int = ...) -> None: ...
 
 class ActionSelectArmy(Message):
     selection_add: bool
@@ -154,8 +154,8 @@ class ActionSelectIdleWorker(Message):
         All: int
         AddAll: int
 
-    type: Type
-    def __init__(self, type: Type = ...) -> None: ...
+    type: int
+    def __init__(self, type: int = ...) -> None: ...
 
 class ActionMultiPanel(Message):
     class Type(Enum):
@@ -164,9 +164,9 @@ class ActionMultiPanel(Message):
         SelectAllOfType: int
         DeselectAllOfType: int
 
-    type: Type
+    type: int
     unit_index: int
-    def __init__(self, type: Type = ..., unit_index: int = ...) -> None: ...
+    def __init__(self, type: int = ..., unit_index: int = ...) -> None: ...
 
 class ActionCargoPanelUnload(Message):
     unit_index: int
