@@ -1,5 +1,6 @@
 # https://github.com/Blizzard/s2client-proto/blob/bff45dae1fc685e6acbaae084670afb7d1c0832c/s2clientprotocol/common.proto
 from enum import Enum
+
 from google.protobuf.message import Message
 
 class AvailableAbility(Message):

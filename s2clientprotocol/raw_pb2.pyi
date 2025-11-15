@@ -1,6 +1,8 @@
 from enum import Enum
+
 from google.protobuf.message import Message
-from .common_pb2 import Point2D, Point, Size2DI, ImageData, RectangleI
+
+from .common_pb2 import ImageData, Point, Point2D, RectangleI, Size2DI
 
 class StartRaw(Message):
     map_size: Size2DI

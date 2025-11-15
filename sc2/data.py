@@ -14,7 +14,6 @@ from s2clientprotocol import data_pb2 as data_pb
 from s2clientprotocol import error_pb2 as error_pb
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb
-
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 

@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from enum import Enum
+
 from google.protobuf.message import Message
 
 from s2clientprotocol.spatial_pb2 import ActionSpatial, ObservationFeatureLayer, ObservationRender
-from .common_pb2 import Point2D, Size2DI, AvailableAbility
-from .data_pb2 import AbilityData, UnitTypeData, UpgradeData, BuffData, EffectData
+
+from .common_pb2 import AvailableAbility, Point2D, Size2DI
+from .data_pb2 import AbilityData, BuffData, EffectData, UnitTypeData, UpgradeData
 from .debug_pb2 import DebugCommand
 from .query_pb2 import RequestQuery, ResponseQuery
 from .raw_pb2 import ActionRaw, ObservationRaw, StartRaw
-from .ui_pb2 import ActionUI, ObservationUI
-
 from .score_pb2 import Score
+from .ui_pb2 import ActionUI, ObservationUI
 
 class Request(Message):
     create_game: RequestCreateGame

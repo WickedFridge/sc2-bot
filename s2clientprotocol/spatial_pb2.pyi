@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from enum import Enum
+
 from google.protobuf.message import Message
+
 from .common_pb2 import ImageData, PointI, RectangleI
 
 class ObservationFeatureLayer(Message):

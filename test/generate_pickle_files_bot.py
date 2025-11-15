@@ -12,7 +12,6 @@ from loguru import logger
 
 # pyre-ignore[21]
 from s2clientprotocol import sc2api_pb2 as sc_pb
-
 from sc2 import maps
 from sc2.bot_ai import BotAI
 from sc2.data import Difficulty, Race

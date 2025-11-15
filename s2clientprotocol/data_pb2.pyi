@@ -1,4 +1,5 @@
 from enum import Enum
+
 from google.protobuf.message import Message
 
 class Target(Enum):

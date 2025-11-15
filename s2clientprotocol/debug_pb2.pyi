@@ -1,5 +1,7 @@
 from enum import Enum
+
 from google.protobuf.message import Message
+
 from .common_pb2 import Point, Point2D
 
 class DebugCommand(Message):

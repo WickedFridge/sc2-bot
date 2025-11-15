@@ -1,5 +1,6 @@
 from google.protobuf.message import Message
-from .common_pb2 import Point2D, AvailableAbility
+
+from .common_pb2 import AvailableAbility, Point2D
 
 class RequestQuery(Message):
     pathing: list[RequestQueryPathing]

@@ -16,7 +16,6 @@ from loguru import logger
 
 # pyre-ignore[21]
 from s2clientprotocol import sc2api_pb2 as sc_pb
-
 from sc2.cache import property_cache_once_per_frame
 from sc2.constants import (
     ALL_GAS,

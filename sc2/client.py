@@ -12,7 +12,6 @@ from s2clientprotocol import query_pb2 as query_pb
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb
 from s2clientprotocol import spatial_pb2 as spatial_pb
-
 from sc2.action import combine_actions
 from sc2.data import ActionResult, ChatChannel, Race, Result, Status
 from sc2.game_data import AbilityData, GameData
