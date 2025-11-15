@@ -119,3 +119,7 @@ cloaked_units: List[UnitTypeId] = [
     UnitTypeId.OBSERVERSIEGEMODE,
     UnitTypeId.DARKTEMPLAR,
 ]
+friendly_fire: List[UnitTypeId] = [
+    UnitTypeId.KD8CHARGE,
+    UnitTypeId.KD8CHARGEWEAPON,
+]

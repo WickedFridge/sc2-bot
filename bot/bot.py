@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "7.3.4"
+VERSION: str = "7.4.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -165,6 +165,13 @@ class WickedBot(Superbot):
         await self.buildings.reposition_buildings()
         await self.buildings.salvage_bunkers()
         
+        # Control Attacking Units
+        self.map.danger.update()
+        await self.combat.select_orders(iteration)
+        await self.combat.execute_orders()
+        await self.combat.handle_bunkers()
+        await self.combat.micro_planetary_fortresses()
+
         # Spend Money
         
         money_spender_names: List[str] = [
@@ -264,14 +271,6 @@ class WickedBot(Superbot):
             resources = await money_spender(resources)
 
 
-        
-        # Control Attacking Units
-        self.map.danger.update()
-        await self.combat.select_orders(iteration)
-        await self.combat.execute_orders()
-        await self.combat.handle_bunkers()
-        await self.combat.micro_planetary_fortresses()
-
         # Scout with some SCV
         await self.scout.b2_against_proxy()
 
@@ -296,6 +295,8 @@ class WickedBot(Superbot):
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()
         # await self.debug.wall_placement()
+        # self.debug.full_composition(iteration)
+        # self.debug.full_effects(iteration)
         self.debug.danger_map()
         await self.debug.spawn_test_units()
         await self.debug.composition_manager()

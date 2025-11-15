@@ -3,7 +3,9 @@ import math
 from typing import List, Optional
 
 from bot.utils.army import Army
-from bot.utils.point2_functions import dfs_in_pathing, center, find_closest_bottom_ramp, grid_offsets
+from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
+from bot.utils.point2_functions.utils import center
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId

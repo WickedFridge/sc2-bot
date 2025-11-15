@@ -1,24 +1,15 @@
+import math
 from typing import Iterator, List, Optional
 import numpy as np
 from functools import lru_cache
+from bot.utils.point2_functions.utils import center
 from sc2.bot_ai import BotAI
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ...utils.unit_tags import tower_types, menacing
-
-def center(points: List[Point2]) -> Optional[Point2]:
-    length: int = points.__len__()
-    if (length == 0):
-        return None
-    x: float = 0
-    y: float = 0
-    for point in points:
-        x += point.x
-        y += point.y
-    return Point2((x / length, y / length))
+from ...utils.unit_tags import tower_types, menacing, friendly_fire
 
 class InfluenceMap:
     bot: BotAI
@@ -140,43 +131,74 @@ class DangerMap:
 
             self.dynamic_block_grid.map[y1:y2, x1:x2] = True
     
-    def update_map(self, position: Point2, radius: float, value: float, air: bool = False, min_radius: float = 0.0):
-        ux: int = int(position.x)
-        uy: int = int(position.y)
+    def update_map(
+        self,
+        position: Point2,
+        radius: float,
+        dps: float,
+        air: bool = False,
+        min_radius: float = 0.0,
+        density_alpha: float = 0.3,
+    ):
+        # exact float center
+        cx: float = position.x
+        cy: float = position.y
+
         height, width = self.ground.shape
+        submap: np.ndarray = self.air.map if air else self.ground.map
+
+        if (radius <= 0):
+            return
+
+        # decide integer grid cells to consider (cell centers at integer (x,y) coordinates)
+        x_min: int = math.floor(cx - radius)
+        x_max: int = math.ceil(cx + radius)   # inclusive range end
+        y_min: int = math.floor(cy - radius)
+        y_max: int = math.ceil(cy + radius)   # inclusive range end
+
+        # clip to map bounds
+        x_min_clipped: int = max(0, x_min)
+        x_max_clipped: int = min(width - 1, x_max)
+        y_min_clipped: int = max(0, y_min)
+        y_max_clipped: int = min(height - 1, y_max)
+
+        if (x_max_clipped < x_min_clipped or y_max_clipped < y_min_clipped):
+            return
+
+        xs = np.arange(x_min_clipped, x_max_clipped + 1)
+        ys = np.arange(y_min_clipped, y_max_clipped + 1)
+
+        # meshgrid of integer cell coordinates
+        YY, XX = np.meshgrid(ys, xs, indexing="ij")  # shape (Ny, Nx) matching sub-slices
         
-        kernel = self.influence_kernel(radius)
-        
-        x1 = max(0, ux - radius)
-        x2 = min(width, ux + radius + 1)
-        y1 = max(0, uy - radius)
-        y2 = min(height, uy + radius + 1)
+        # distances from exact position to each cell center
+        dx = XX.astype(float) - cx
+        dy = YY.astype(float) - cy
+        dist = np.sqrt(dx * dx + dy * dy)
 
-        kx1 = x1 - (ux - radius)
-        kx2 = kx1 + (x2 - x1)
-        ky1 = y1 - (uy - radius)
-        ky2 = ky1 + (y2 - y1)
+        # -------- 1) Uniform density inside radius --------
+        density: float = (dist <= radius).astype(float)
 
-        submap = self.air.map[y1:y2, x1:x2] if air else self.ground.map[y1:y2, x1:x2]
-        subkernel = kernel[ky1:ky2, kx1:kx2]
-
+        # Apply inner hole if needed
         if (min_radius > 0):
-            # Create a mask for the inner circle to exclude
-            y_idx, x_idx = np.ogrid[-radius:radius+1, -radius:radius+1]
-            inner_mask = (x_idx**2 + y_idx**2) <= (min_radius**2)
-            inner_submask = inner_mask[ky1:ky2, kx1:kx2]
-            
-            # Remove inner area from kernel
-            subkernel = subkernel & (~inner_submask)
+            density[dist <= min_radius] = 0.0
 
-        submap[subkernel] += value
+        # -------- 2) Center bonus (optional) --------
+        # makes center moderately more dangerous because escaping takes longer
+        with np.errstate(divide="ignore", invalid="ignore"):
+            center_bonus: np.ndarray = 1.0 + density_alpha * np.clip(1.0 - dist / radius, 0.0, 1.0)
+
+        # -------- 3) Combine --------
+        delta: np.ndarray = dps * density * center_bonus
+
+        submap[y_min_clipped : y_max_clipped + 1, x_min_clipped : x_max_clipped + 1] += delta
         
     def update(self):
         # Reset to zeros
         self.ground.map[:] = 0
         self.air.map[:] = 0
         dangerous_enemy_units: Units = self.bot.enemy_units + self.bot.enemy_structures(tower_types)
-
+        
         for unit in dangerous_enemy_units:
             unit_position: Point2 = unit.position.rounded
             ground_dps: float = unit.ground_dps
@@ -191,7 +213,7 @@ class DangerMap:
             
             # TODO : handle menacing special units
             if (ground_dps == 0 and unit.type_id in menacing):
-                ground_dps = 10
+                ground_dps = 15
             
             move_speed: float = unit.real_speed
             minimum_range: float = 2 if unit.type_id == UnitTypeId.SIEGETANKSIEGED else 0
@@ -203,34 +225,36 @@ class DangerMap:
                 self.update_map(unit_position, air_radius, air_dps * weight, True, minimum_range)
 
         # === Effects and Exceptions
-        # effect_data: dict[EffectId, dict[str, float | bool]] = {
-        #     EffectId.PSISTORMPERSISTENT: {
-        #         'radius': 2,
-        #         'dps': 23.3,
-        #         'ground': True,
-        #         'air': True
-        #     }
-        # }
-        
         for effect in self.bot.state.effects:
+            effect_center: Point2 = (
+                effect.positions.pop()
+                if (len(effect.positions) == 1)
+                else center(effect.positions)
+            )
+                
             match(effect.id):
+                case "KD8CHARGE":
+                    # KD8 does only 5 damage but let's estimate knockoff as 15
+                    radius: int = 1
+                    dps: float = 20
+                    self.update_map(effect_center, radius, dps, False)
                 case EffectId.PSISTORMPERSISTENT:
                     radius: int = 2
                     dps: float = 23.3
-                    self.update_map(center(effect.positions), radius, dps, False)
-                    self.update_map(center(effect.positions), radius, dps, True)
+                    self.update_map(effect_center, radius, dps, False)
+                    self.update_map(effect_center, radius, dps, True)
                 case EffectId.RAVAGERCORROSIVEBILECP:
                     # 60 is the amount of damage, not sure about dps here
                     radius: float = 1
                     dps: float = 60
-                    self.update_map(center(effect.positions), radius, dps, False)
-                    self.update_map(center(effect.positions), radius, dps, True)
+                    self.update_map(effect_center, radius, dps, False)
+                    self.update_map(effect_center, radius, dps, True)
                 case EffectId.BLINDINGCLOUDCP:
-                    # let's put 60 as "very dangerous"
-                    radius: float = 2
-                    dps: float = 60
-                    self.update_map(center(effect.positions), radius, dps, False)
-                    self.update_map(center(effect.positions), radius, dps, True)
+                    # let's put 30 as "very dangerous"
+                    radius: int = 2
+                    dps: float = 30
+                    self.update_map(effect_center, radius, dps, False)
+                    self.update_map(effect_center, radius, dps, True)
                 case EffectId.LURKERMP:
                     radius: float = 1
                     dps: float = 20
@@ -418,14 +442,14 @@ class DangerMap:
             prefer_direction=direction.position,
         )
     
-    def safest_spot_away(self, unit: Unit, direction: Point2 | Unit) -> Point2:
-        radius: int = round(unit.real_speed * 1.4)
+    def safest_spot_away(self, unit: Unit, direction: Point2 | Unit, range_modifier: float = 1) -> Point2:
+        radius: int = max(2, round(unit.real_speed * 1.4 * range_modifier))
         air: bool = unit.is_flying
 
         return self.pick_tile(
             unit.position,
             radius,
             air,
-            score_fn=lambda value, towards, extend: (-value - towards),
+            score_fn=lambda value, towards, extend: (-value - 2 * towards + extend),
             prefer_direction=direction.position,
         )

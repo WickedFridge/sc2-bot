@@ -4,7 +4,7 @@ from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
-from bot.utils.point2_functions import center, dfs_in_pathing
+from bot.utils.point2_functions.utils import center
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
@@ -175,7 +175,7 @@ class Micro:
         # if flying unit in danger, move towards a better retreat position
         if (prefered_direction is None):
             closest_unit_position: Point2 = menacing_enemy_units.closest_to(flying_unit).position
-            prefered_direction = flying_unit.position.towards(closest_unit_position, -2)
+            prefered_direction = flying_unit.position.towards(closest_unit_position, 2)
         safest_spot: Point2 = self.bot.map.danger.safest_spot_away(flying_unit, prefered_direction)
         flying_unit.move(safest_spot)
         return True
@@ -494,9 +494,9 @@ class Micro:
         EMP_HIT_THRESHOLD: int = 50
         MAXIMUM_EMP_COUNT: int = 1
         
-        potential_emp_targets: Units = self.get_local_enemy_units(ghost.position, 10).filter(
+        potential_emp_targets: Units = self.get_local_enemy_units(ghost.position, 10, only_menacing=True).filter(
             lambda enemy_unit: (
-                (enemy_unit.energy > 0 or enemy_unit.shield > 0)
+                enemy_unit.energy > 0 or enemy_unit.shield > 0
                 and (
                     enemy_unit.tag not in self.emp_targets.keys()
                     or self.emp_targets[enemy_unit.tag] < MAXIMUM_EMP_COUNT
@@ -531,13 +531,14 @@ class Micro:
         if (ghost.energy < 50 or ghost.is_using_ability(AbilityId.EFFECT_GHOSTSNIPE)):
             return False
         GHOST_SNIPE_THRESHOLD: int = 60
-        potential_snipe_targets: Units = self.bot.enemy_units.filter(
+        potential_snipe_targets: Units = self.get_local_enemy_units(
+            ghost.position,
+            radius=10,
+            only_menacing=True,
+        ).filter(
             lambda enemy_unit: (
-                enemy_unit.can_be_attacked
-                and enemy_unit.is_biological
-                and (enemy_unit.can_attack or enemy_unit.type_id in menacing) 
+                enemy_unit.is_biological
                 and enemy_unit.health + enemy_unit.shield >= GHOST_SNIPE_THRESHOLD
-                and enemy_unit.distance_to(ghost) <= 10
                 and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
                 and (
                     enemy_unit.tag not in self.snipe_targets.keys()
@@ -597,7 +598,7 @@ class Micro:
             bio_unit(AbilityId.EFFECT_STIM)
 
     async def raven_antiarmor_missile(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10, only_menacing=True)
         if (close_enemy_units.amount < 3):
             return False
         # find the best position to cast anti armor missile
@@ -619,7 +620,7 @@ class Micro:
         return False
     
     async def raven_autoturret(self, raven: Unit) -> bool:
-        potential_targets: Units = self.get_local_enemy_units(raven.position, 4)
+        potential_targets: Units = self.get_local_enemy_units(raven.position, 5)
         if (potential_targets.amount == 0):
             return False
         # find a position to cast auto turret
@@ -655,6 +656,50 @@ class Micro:
         if (not self.safety_disengage(raven, local_army.center)):
             raven.move(local_army.center)
 
+    
+    async def harass(self, unit: Unit, workers: Units):
+        if (unit.type_id in bio_stimmable and unit.health_percentage >= 0.85):
+            self.stim_bio(unit)
+        
+        # calculate the range of the unit based on its movement speed + range + cooldown
+        range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
+        closest_worker: Unit = workers.closest_to(unit)
+        worker_potential_targets: Units = workers.filter(
+            lambda worker: unit.distance_to(worker) <= range + worker.radius
+        ).sorted(
+            lambda worker: ((worker.health + worker.shield), worker.distance_to(unit))
+        )
+
+        buildings_in_range: Units = self.bot.enemy_structures.filter(
+            lambda building: unit.target_in_range(building)
+        ).sorted(
+            lambda building: (building.type_id not in building_priorities, building.health + building.shield)
+        )
+        
+        # first case : we're dangerously close to a worker + low on life => retreat to a safer spot
+        if (unit.health <= 10 and workers.closest_distance_to(unit) <= 1.5):
+            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
+            unit.move(safest_spot)
+            return
+        
+        # in these case we should target a worker
+        if (worker_potential_targets.amount >= 1 or unit.weapon_cooldown > 0 or buildings_in_range.amount == 0):
+            # define the best target
+            target: Unit = worker_potential_targets.first if worker_potential_targets.amount >= 1 else closest_worker
+            # if we're not on cooldown and workers are really close, run away
+            if (unit.weapon_cooldown > 0):
+                if (workers.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
+                    safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
+                    unit.move(safest_spot)
+                else:
+                    # move towards the unit but not too close
+                    best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target, risk=1)
+                    unit.move(best_position)
+            # if we're on cooldown, shoot at it
+            else:
+                unit.attack(target)
+        else:
+            unit.attack(buildings_in_range.first)
     
     async def bio_disengage(self, bio_unit: Unit):
         enemy_units_in_range = self.get_enemy_units_in_range(bio_unit)
@@ -722,6 +767,8 @@ class Micro:
         enemy_armored_units: Units = enemy_targets.filter(lambda enemy_unit: enemy_unit.is_armored)
         enemy_to_fight: Units = enemy_targets
         
+        enemy_to_fight.first.buffs
+
         # choose a better target if the unit has bonus damage
         if (unit.bonus_damage):
             match(unit.bonus_damage[1]):
@@ -734,6 +781,7 @@ class Micro:
 
         enemy_to_fight.sort(
             key=lambda enemy_unit: (
+                BuffId.RAVENSHREDDERMISSILEARMORREDUCTION in enemy_unit.buffs,
                 enemy_unit.shield,
                 enemy_unit.shield + enemy_unit.health
             )
@@ -765,6 +813,7 @@ class Micro:
 
             enemy_to_fight.sort(
                 key=lambda enemy_unit: (
+                    BuffId.RAVENSHREDDERMISSILEARMORREDUCTION in enemy_unit.buffs,
                     enemy_unit.shield,
                     enemy_unit.shield + enemy_unit.health
                 )
@@ -844,11 +893,16 @@ class Micro:
         )
         return enemy_units_in_range
     
-    def get_local_enemy_units(self, position: Point2, radius: float = 20) -> Units:
+    def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False) -> Units:
         global_enemy_units: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.can_be_attacked
                 and unit.type_id not in dont_attack
+                and (
+                    not only_menacing
+                    or unit.can_attack
+                    or unit.type_id in menacing
+                )
             )
         )
         local_enemy_units: Units = global_enemy_units.closer_than(radius, position)

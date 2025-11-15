@@ -1,12 +1,14 @@
 import json
 import math
-from typing import List, Optional
+from typing import List, Optional, Set
 from bot.army_composition.composition import Composition
 from bot.macro.expansion import Expansion
 from bot.superbot import Superbot
+from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
-from bot.utils.point2_functions import grid_offsets
+from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_functions import find_by_tag
+from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -225,6 +227,25 @@ class Debug:
             self.draw_sphere_on_world(unit.position, radius=1, draw_color=YELLOW)
             self.draw_text_on_world(unit.position, f'{unit.type_id.name} [{unit.health}/{unit.health_max}]', YELLOW)
 
+    
+    def full_effects(self, iteration: int):
+        if (iteration % 10 != 0):
+            return
+        effects: Set[EffectData] = self.bot.state.effects
+        print("full effects")
+        print(effects)
+        for effect in effects:
+            print(f'effect {effect.id}')
+            for i, position in enumerate(effect.positions):
+                print(f'position[{i}] = {position}')
+    
+    def full_composition(self, iteration: int):
+        if (iteration % 10 != 0):
+            return
+        units: Units = self.bot.units + self.bot.structures
+        army: Army = Army(units, self.bot)
+        print("full units")
+        print(army.recap)
     
     async def loaded_stuff(self, iteration: int):
         if (iteration % 10 != 0):

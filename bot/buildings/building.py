@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional
 
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
-from bot.utils.point2_functions import dfs_in_pathing
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from sc2.bot_ai import BotAI
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId

@@ -4,7 +4,7 @@ from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
-from bot.utils.point2_functions import center
+from bot.utils.point2_functions.utils import center
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -392,54 +392,18 @@ class Execute:
             return
         
         for unit in army.units:
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_fight(unit, army.units)
-            else:
-                if (unit.health_percentage >= 0.85):
-                    self.micro.stim_bio(unit)
-                
-                if (unit.type_id == UnitTypeId.REAPER):
-                    # if we should use grenade, do it and skip the rest of the logic
-                    if (await self.micro.reaper_grenade(unit)):
-                        continue
-                
-                if (unit.type_id == UnitTypeId.RAVEN):
+            match(unit.type_id):
+                case UnitTypeId.MEDIVAC:
+                    await self.micro.medivac_fight(unit, army.units)
+                case UnitTypeId.RAVEN:
                     await self.micro.raven(unit, army.units)
-                    continue
-                
-                # calculate the range of the unit based on its movement speed + range + cooldown
-                range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
-                closest_worker: Unit = enemy_workers_close.closest_to(unit)
-                worker_potential_targets: Units = enemy_workers_close.filter(
-                    lambda worker: unit.distance_to(worker) <= range + worker.radius
-                ).sorted(
-                    lambda worker: ((worker.health + worker.shield), worker.distance_to(unit))
-                )
-
-                buildings_in_range: Units = self.bot.enemy_structures.filter(
-                    lambda building: unit.target_in_range(building)
-                ).sorted(
-                    lambda building: (building.type_id not in building_priorities, building.health + building.shield)
-                )
-                # in these case we should target a worker
-                if (worker_potential_targets.amount >= 1 or unit.weapon_cooldown > 0 or buildings_in_range.amount == 0):
-                    # define the best target
-                    target: Unit = worker_potential_targets.first if worker_potential_targets.amount >= 1 else closest_worker
-                    # if we're not on cooldown and workers are really close, run away
-                    if (unit.weapon_cooldown > 0):
-                        if (enemy_workers_close.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
-                            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, enemy_workers_close.closest_to(unit))
-                            unit.move(safest_spot)
-                        else:
-                            # move towards the unit but not too close
-                            # best_position: Point2 = self.bot.map.danger.safest_spot_towards(unit, target)
-                            best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target, 1)
-                            unit.move(best_position)
-                    # if we're on cooldown, shoot at it
-                    else:
-                        unit.attack(target)
-                else:
-                    unit.attack(buildings_in_range.first)                    
+                case UnitTypeId.VIKINGFIGHTER:
+                    unit.move(army.center)
+                case UnitTypeId.REAPER:
+                    if (not await self.micro.reaper_grenade(unit)):
+                        await self.micro.harass(unit, enemy_workers_close)
+                case _:
+                    await self.micro.harass(unit, enemy_workers_close)
     
     async def kill_buildings(self, army: Army, radius: float):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(

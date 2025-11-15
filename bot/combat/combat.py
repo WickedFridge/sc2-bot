@@ -1,3 +1,4 @@
+import math
 from typing import List, Set
 from bot.macro.map.danger_map import DangerMap
 from bot.combat.execute_orders import Execute
@@ -8,7 +9,7 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
-from bot.utils.point2_functions import grid_offsets
+from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_cargo import get_building_cargo
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -41,7 +42,7 @@ class Combat:
 
     @property
     def army_radius(self) -> float:
-        return self.army_supply * 0.15 + 10
+        return math.sqrt(self.army_supply) + 10
 
     @property
     def armored_supply(self) -> float:

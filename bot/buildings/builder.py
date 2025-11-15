@@ -22,7 +22,7 @@ from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityBuild
 from bot.utils.fake_order import FakeOrder
-from bot.utils.point2_functions import dfs_in_pathing
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from sc2.game_info import Ramp
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -227,23 +227,3 @@ class Builder:
             color=draw_color,
             size=font_size,
         )
-    
-    def find_closest_bottom_ramp(self, position: Point2) -> Ramp:
-        return self._find_closest_ramp(position, "bottom")
-    
-    def find_closest_top_ramp(self, position: Point2) -> Ramp:
-        return self._find_closest_ramp(position, "top")
-    
-    def _find_closest_ramp(self, position: Point2, extremity: Literal["top","bottom"]):
-        closest_ramp: Ramp = self.bot.game_info.map_ramps[0]
-        for ramp in self.bot.game_info.map_ramps:
-            match extremity:
-                case "top":
-                    if (ramp.top_center.distance_to(position) < closest_ramp.top_center.distance_to(position)):
-                        closest_ramp = ramp
-                case "bottom":
-                    if (ramp.bottom_center.distance_to(position) < closest_ramp.bottom_center.distance_to(position)):
-                        closest_ramp = ramp
-                case _:
-                    print("Error : specify top or bottom of the ramp")
-        return closest_ramp

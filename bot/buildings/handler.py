@@ -4,7 +4,8 @@ from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.matchup import Matchup
-from bot.utils.point2_functions import center, dfs_in_pathing, points_to_build_addon
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
+from bot.utils.point2_functions.utils import center, points_to_build_addon
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
