@@ -142,7 +142,9 @@ class Pointlike(tuple):
 
 class Point2(Pointlike):
     @classmethod
-    def from_proto(cls, data: common_pb.Point2D) -> Point2:
+    def from_proto(
+        cls, data: common_pb.Point | common_pb.Point2D | common_pb.Size2DI | common_pb.PointI | Point2 | Point3
+    ) -> Point2:
         """
         :param data:
         """
@@ -324,7 +326,7 @@ class Point2(Pointlike):
 
 class Point3(Point2):
     @classmethod
-    def from_proto(cls, data: common_pb.Point) -> Point3:
+    def from_proto(cls, data: common_pb.Point | Point3) -> Point3:
         """
         :param data:
         """
@@ -355,6 +357,13 @@ class Point3(Point2):
 
 
 class Size(Point2):
+    @classmethod
+    def from_proto(cls, data: common_pb.Point | common_pb.Point2D | common_pb.Size2DI | common_pb.PointI) -> Size:
+        """
+        :param data:
+        """
+        return cls((data.x, data.y))
+
     @property
     def width(self) -> float:
         return self[0]
@@ -366,7 +375,7 @@ class Size(Point2):
 
 class Rect(tuple):
     @classmethod
-    def from_proto(cls, data) -> Rect:
+    def from_proto(cls, data: common_pb.RectangleI) -> Rect:
         """
         :param data:
         """

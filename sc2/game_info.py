@@ -9,6 +9,7 @@ from functools import cached_property
 
 import numpy as np
 
+from s2clientprotocol import sc2api_pb2
 from sc2.pixel_map import PixelMap
 from sc2.player import Player
 from sc2.position import Point2, Rect, Size
@@ -217,7 +218,7 @@ class Ramp:
 
 
 class GameInfo:
-    def __init__(self, proto) -> None:
+    def __init__(self, proto: sc2api_pb2.ResponseGameInfo) -> None:
         self._proto = proto
         self.players: list[Player] = [Player.from_proto(p) for p in self._proto.player_info]
         self.map_name: str = self._proto.map_name

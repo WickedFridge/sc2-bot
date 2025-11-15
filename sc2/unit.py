@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
+from s2clientprotocol import raw_pb2
 from sc2.cache import CacheDict
 from sc2.constants import (
     CAN_BE_ATTACKED,
@@ -71,7 +72,7 @@ class RallyTarget:
     tag: int | None = None
 
     @classmethod
-    def from_proto(cls, proto: Any) -> RallyTarget:
+    def from_proto(cls, proto: raw_pb2.RallyTarget) -> RallyTarget:
         return cls(
             Point2.from_proto(proto.point),
             proto.tag if proto.HasField("tag") else None,
@@ -85,7 +86,7 @@ class UnitOrder:
     progress: float = 0
 
     @classmethod
-    def from_proto(cls, proto: Any, bot_object: BotAI) -> UnitOrder:
+    def from_proto(cls, proto: raw_pb2.UnitOrder, bot_object: BotAI) -> UnitOrder:
         target: int | Point2 | None = proto.target_unit_tag
         if proto.HasField("target_world_space_pos"):
             target = Point2.from_proto(proto.target_world_space_pos)
@@ -106,7 +107,7 @@ class Unit:
 
     def __init__(
         self,
-        proto_data,
+        proto_data: raw_pb2.Unit,
         bot_object: BotAI,
         distance_calculation_index: int = -1,
         base_build: int = -1,
@@ -1034,7 +1035,7 @@ class Unit:
         from the first order, returns None if the unit is idle"""
         if self.orders:
             target = self.orders[0].target
-            if isinstance(target, int):
+            if target is None or isinstance(target, int):
                 return target
             return Point2.from_proto(target)
         return None

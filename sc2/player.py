@@ -4,6 +4,7 @@ from __future__ import annotations
 from abc import ABC
 from pathlib import Path
 
+from s2clientprotocol import sc2api_pb2
 from sc2.bot_ai import BotAI
 from sc2.data import AIBuild, Difficulty, PlayerType, Race
 
@@ -107,7 +108,7 @@ class Player(AbstractPlayer):
         self.actual_race: Race = actual_race
 
     @classmethod
-    def from_proto(cls, proto) -> Player:
+    def from_proto(cls, proto: sc2api_pb2.PlayerInfo) -> Player:
         if PlayerType(proto.type) == PlayerType.Observer:
             return cls(proto.player_id, PlayerType(proto.type), None, None, None)
         return cls(
