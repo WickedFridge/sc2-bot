@@ -1,7 +1,7 @@
 from collections import deque
 import math
 from typing import List, Literal, Optional, Tuple
-from bot.macro.map.map import get_map
+from bot.macro.map.map import MapData, get_map
 from sc2.bot_ai import BotAI
 from sc2.game_info import Ramp
 from sc2.position import Point2
@@ -67,12 +67,21 @@ def points_to_build_addon(building_position: Point2) -> List[Point2]:
 def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, radius: int = 1, has_addon: bool = False) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
         The radius in tiles around the position to search for valid buildable positions."""
-    map = get_map(bot)
+    map: MapData = get_map(bot)
     # If already valid, return it
     start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)
     if (has_addon):
         start_placement_grid += points_to_build_addon(position)
-    if all((bot.in_placement_grid(pos) and map.in_building_grid(pos)) for pos in start_placement_grid):
+    if all(
+        (
+            pos.x >= 0 and pos.y >= 0
+            and pos.x <= map.building_grid.width - 1
+            and pos.y <= map.building_grid.height - 1
+            and bot.in_placement_grid(pos)
+            and map.in_building_grid(pos)
+        )
+        for pos in start_placement_grid
+    ):
         return position
     
     # Normalize to get step direction (either -1, 0, or 1)

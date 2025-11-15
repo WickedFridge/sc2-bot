@@ -364,11 +364,11 @@ class Micro:
                 safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
                 reaper.move(safest_spot)
         elif (reaper.weapon_cooldown <= 1):
-            best_target: Unit = close_enemy_units.closest_to(reaper)
+            best_target: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
             best_attack_spot: Point2 = self.bot.map.danger.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
         else:
-            closest_enemy: Unit = close_enemy_units.closest_to(reaper)
+            closest_enemy: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
             safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, closest_enemy)
             reaper.move(safest_spot)
 
