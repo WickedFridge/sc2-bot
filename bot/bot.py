@@ -22,7 +22,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "7.4.0"
+VERSION: str = "7.5.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -155,6 +155,7 @@ class WickedBot(Superbot):
         await self.buildings.cancel_buildings()
         await self.buildings.finish_construction()
         await self.builder.supply_depot.move_worker_first()
+        await self.builder.command_center.move_worker_expand()
 
         # Control buildings
         await self.buildings.drop_mules()

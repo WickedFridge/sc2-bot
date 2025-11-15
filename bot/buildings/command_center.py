@@ -2,8 +2,11 @@ from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.utils.matchup import Matchup
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.unit import Unit
+from sc2.units import Units
 
 
 class CommandCenter(Building):
@@ -50,3 +53,20 @@ class CommandCenter(Building):
                 return near_cc_position
             case _:
                 return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
+            
+    
+    async def move_worker_expand(self):
+        # move SCV for first expand
+        if (self.bot.time >= 100):
+            return
+        rax_builder: Units = self.bot.workers.filter(
+            lambda unit: (
+                len(unit.orders) == 1
+                and unit.orders[0].ability.id == AbilityId.TERRANBUILD_BARRACKS
+            )
+        )
+        if (rax_builder.amount == 0):
+            return
+        print("queue gather command for expand")
+        mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
+        rax_builder.first.gather(mineral_field, True)

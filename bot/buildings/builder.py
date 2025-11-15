@@ -135,8 +135,9 @@ class Builder:
         location: Point2 = await self.bot.find_placement(unitType, near=theorical_location)
         workers = self.bot.workers.filter(
             lambda worker: (
-                worker.is_carrying_resource == False
-                and (
+                # worker.is_carrying_resource == False
+                # and (
+                (
                     len(worker.orders) == 0
                     or not worker.is_constructing_scv
                     or (

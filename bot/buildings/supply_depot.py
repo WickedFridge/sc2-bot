@@ -76,7 +76,13 @@ class SupplyDepot(Building):
     async def move_worker_first(self):
         # move SCV for first depot
         workers_mining: Units = self.bot.workers.filter(
-            lambda worker: worker.is_collecting or len(worker.orders) == 2 and worker.orders[1] == AbilityId.HARVEST_GATHER_SCV
+            lambda worker: (
+                worker.is_collecting
+                or (
+                    len(worker.orders) == 2
+                    and worker.orders[1] == AbilityId.HARVEST_GATHER_SCV
+                )
+            )
         )
         if (
             self.bot.supply_used == 13

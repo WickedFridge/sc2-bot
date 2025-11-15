@@ -417,7 +417,16 @@ class DangerMap:
             prefer_direction=unit.position,
         )
     
-    def safest_spot_around(self, unit: Unit) -> Point2:
+    def safest_spot_around_point(self, spot: Point2, radius: float = 4, air: bool = False) -> Point2:
+        return self.pick_tile(
+            spot,
+            radius,
+            air,
+            score_fn=lambda value, towards, extend: (-value - extend),
+            prefer_direction=None,
+        )
+    
+    def safest_spot_around_unit(self, unit: Unit) -> Point2:
         radius: int = round(unit.real_speed * 1.4)
         air: bool = unit.is_flying
 

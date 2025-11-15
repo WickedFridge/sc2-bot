@@ -121,13 +121,7 @@ class Micro:
                 and enemy_units_in_sight.amount == 0
             ):
                 await self.medivac_unload(unit)
-            away_from_attacks: Point2 = self.retreat_position
-            if (enemy_units_in_range.amount >= 1):
-                away_from_attacks = unit.position.towards(enemy_units_in_range.center, -2)
-            if (enemy_units_in_sight.amount >= 1):
-                away_from_attacks = unit.position.towards(enemy_units_in_sight.center, -2)
-            prefered_direction: Point2 = center([unit.position.towards(self.retreat_position, 2), away_from_attacks])
-            if (not await self.medivac_safety_disengage(unit, prefered_direction) and unit.distance_to(retreat_position) > 3):
+            if (not await self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
                 unit.move(retreat_position)
                 if (unit.distance_to(retreat_position) > 15):
                     await self.medivac_boost(unit)
@@ -152,15 +146,15 @@ class Micro:
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
     
-    async def medivac_safety_disengage(self, medivac: Unit, prefered_direction: Optional[Point2] = None) -> bool:
-        if (not self.safety_disengage(medivac, prefered_direction)):
+    async def medivac_safety_disengage(self, medivac: Unit) -> bool:
+        if (not self.safety_disengage(medivac)):
             return False
-        if (medivac.cargo_used >= 1):
-            # unload all units if we can
+        # Unload if we're very low on life
+        if (medivac.cargo_used >= 1 and medivac.health_percentage <= 0.25):
             await self.medivac_unload(medivac)
         return True
 
-    def safety_disengage(self, flying_unit: Unit, prefered_direction: Optional[Point2] = None) -> bool:
+    def safety_disengage(self, flying_unit: Unit) -> bool:
         safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
         menacing_enemy_units: Units = self.enemy_units.filter(
@@ -173,10 +167,15 @@ class Micro:
             return False
         
         # if flying unit in danger, move towards a better retreat position
-        if (prefered_direction is None):
-            closest_unit_position: Point2 = menacing_enemy_units.closest_to(flying_unit).position
-            prefered_direction = flying_unit.position.towards(closest_unit_position, 2)
-        safest_spot: Point2 = self.bot.map.danger.safest_spot_away(flying_unit, prefered_direction)
+        retreat_direction: Point2 = flying_unit.position
+        for enemy_unit in menacing_enemy_units:
+            margin: float = flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
+            excess_distance: float = margin - enemy_unit.distance_to(flying_unit)
+            retreat_direction = retreat_direction.towards(enemy_unit, -excess_distance)
+        retreat_direction = retreat_direction.towards(self.retreat_position, 3.5 - safety_distance)
+        
+        # this should help us avoid splash damage like Storms and Biles
+        safest_spot: Point2 = self.bot.map.danger.safest_spot_around_point(retreat_direction, air=True)
         flying_unit.move(safest_spot)
         return True
 
@@ -184,7 +183,7 @@ class Micro:
         # boost if we can
         await self.medivac_boost(medivac)
         
-        if (await self.medivac_safety_disengage(medivac, local_army.center)):
+        if (await self.medivac_safety_disengage(medivac)):
             return
         
         # if medivac not in danger, heal the closest damaged unit
@@ -235,14 +234,11 @@ class Micro:
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.medivac_boost(medivac)
         
-        if (await self.medivac_safety_disengage(medivac, local_army.center)):
+        if (await self.medivac_safety_disengage(medivac)):
             return
         await self.medivac_heal(medivac, local_army)
 
     async def medivac_fight_drop(self, medivac: Unit, drop_target: Point2):
-        # first boost
-        await self.medivac_boost(medivac)
-        
         # if there's a base closer than our drop target, we attack it
         # if we don't know any enemy base, we just drop the enemy main
         closest_enemy_base: Expansion = (
@@ -254,19 +250,18 @@ class Micro:
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
             drop_target = closest_enemy_base.mineral_line
 
-        # if we are further than 40 from our drop target, unload (we are probably fighting on the middle of the map)
-        if (medivac.distance_to(drop_target) > 40):
-            await self.medivac_unload(medivac)
-            await self.medivac_safety_disengage(medivac)
+        # if we are close to the drop target, boost and move towards it
+        if (
+            medivac.distance_to(drop_target) <= 40
+            and self.bot.get_terrain_height(medivac.position) != self.bot.get_terrain_height(drop_target)
+        ):
+            await self.medivac_boost(medivac)
+            medivac.move(drop_target)
             return
 
-
-        # if we are at the same height, unload all units
-        # we need to check the height position of the map
-        if (self.bot.get_terrain_height(medivac.position) == self.bot.get_terrain_height(drop_target)):
-            await self.medivac_unload(medivac)
-        
-        medivac.move(drop_target)
+        # otherwise just unload and survive
+        await self.medivac_unload(medivac)
+        await self.medivac_safety_disengage(medivac)
     
     async def medivac_heal(self, medivac: Unit, local_army: Units):
         # heal damaged ally in local army
@@ -475,11 +470,11 @@ class Micro:
             else:
                 # if (self.bot.scouting.known_enemy_army.flying_fighting_supply == 0):
                 #     viking(AbilityId.MORPH_VIKINGASSAULTMODE)
-                if (not self.safety_disengage(viking, local_units.center)):
+                if (not self.safety_disengage(viking)):
                     viking.move(local_units.center)
 
         # if we're not on cooldown, either disengage or follow our army
-        elif (not self.safety_disengage(viking, local_units.center)):
+        elif (not self.safety_disengage(viking)):
             viking.move(local_units.center)
 
     
@@ -653,7 +648,7 @@ class Micro:
             if (await self.raven_autoturret(raven)):
                 return
         
-        if (not self.safety_disengage(raven, local_army.center)):
+        if (not self.safety_disengage(raven)):
             raven.move(local_army.center)
 
     
@@ -749,14 +744,14 @@ class Micro:
                 elif (unit.distance_to(retreat_position) > 2):
                     unit.move(retreat_position)
                 else:
-                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around(bunker)
+                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around_unit(bunker)
                     unit.move(safest_spot)
                     # Micro.move_away(unit, enemy_units.closest_to(unit))
             else:
                 if (unit.weapon_ready):
                     unit.attack(enemy_units.closest_to(unit))
                 else:
-                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around(bunker)
+                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around_unit(bunker)
                     unit.move(safest_spot)
                     # Micro.move_away(unit, enemy_units.closest_to(unit))
     
