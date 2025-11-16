@@ -52,6 +52,9 @@ class DangerMap:
         (0.25, 4.0),   # low threat
         (0.05, 8.0),   # very low threat
     ]
+    exceptions: List[UnitTypeId] = [
+        UnitTypeId.DISRUPTORPHASED
+    ]
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -131,6 +134,48 @@ class DangerMap:
 
             self.dynamic_block_grid.map[y1:y2, x1:x2] = True
     
+    def fix_exceptions(self, unit: Unit):
+        print(f'range : {unit.ground_range}')
+        print(f'dps : {unit.ground_dps}')
+    
+    def get_unit_property(self, unit: Unit) -> tuple[Point2, float, float, float, float, float, float]:
+        position: Point2 = unit.position
+        # health: float = unit.health + unit.shield
+        ground_dps: float = unit.ground_dps
+        ground_range: float = unit.ground_range
+        air_dps: float = unit.air_dps
+        air_range: float = unit.air_range
+        movement_speed: float = unit.real_speed * 1.4
+        minimum_range: float = 0
+
+        # melee unit don't have exactly 0 range
+        if (unit.can_attack_ground and ground_range == 0):
+            ground_range = 1
+
+        match(unit.type_id):
+            case UnitTypeId.SIEGETANK:
+                minimum_range = 2
+            case UnitTypeId.DISRUPTORPHASED:
+                ground_dps = 100
+                ground_range = 1.5
+            case UnitTypeId.BANELING:
+                ground_dps = 30
+                ground_range += 2.2
+            case _:
+                pass
+
+        return (
+            position,
+            # health,
+            ground_dps,
+            ground_range,
+            air_dps,
+            air_range,
+            movement_speed,
+            minimum_range
+        )
+        
+    
     def update_map(
         self,
         position: Point2,
@@ -200,28 +245,29 @@ class DangerMap:
         dangerous_enemy_units: Units = self.bot.enemy_units + self.bot.enemy_structures(tower_types)
         
         for unit in dangerous_enemy_units:
-            unit_position: Point2 = unit.position.rounded
-            ground_dps: float = unit.ground_dps
-            ground_range: float = unit.ground_range
+            (
+                unit_position,
+                ground_dps,
+                ground_range,
+                air_dps,
+                air_range,
+                move_speed,
+                minimum_range,
+            ) = self.get_unit_property(unit)
             
-            # melee unit don't have exactly 0 range
-            if (unit.can_attack_ground and ground_range == 0):
-                ground_range = 1.5
-            
-            air_dps: float = unit.air_dps
-            air_range: float = unit.air_range
             
             # TODO : handle menacing special units
             if (ground_dps == 0 and unit.type_id in menacing):
                 ground_dps = 15
-            
+                            
             move_speed: float = unit.real_speed
             minimum_range: float = 2 if unit.type_id == UnitTypeId.SIEGETANKSIEGED else 0
+            # normalize with a smaller ratio
 
             for weight, ms_factor in self.FALLOFF_LEVELS:
-                ground_radius = int(ground_range + move_speed * ms_factor)
+                ground_radius = ground_range + move_speed * ms_factor
                 self.update_map(unit_position, ground_radius, ground_dps * weight, False, minimum_range)
-                air_radius = int(air_range + move_speed * ms_factor)
+                air_radius = air_range + move_speed * ms_factor
                 self.update_map(unit_position, air_radius, air_dps * weight, True, minimum_range)
 
         # === Effects and Exceptions
@@ -316,7 +362,7 @@ class DangerMap:
         air: bool,
         score_fn: callable,
         prefer_direction: Point2 | None = None,
-    ):
+    ) -> Point2:
         # Base position
         rounded_radius: int = round(radius)
         rounded: Point2 = pos.position.rounded
@@ -376,6 +422,9 @@ class DangerMap:
                 best_score = score
                 best_point = Point2((px, py))
 
+        if (best_point is None):
+            print("Error - no best point found")
+            return prefer_direction or pos
         return best_point
 
     def most_dangerous_point(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):

@@ -34,7 +34,6 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.AUTOTURRET,
 ]
 menacing: List[UnitTypeId] = [
-    UnitTypeId.KD8CHARGEWEAPON,
     UnitTypeId.WIDOWMINE,
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.MEDIVAC,
@@ -120,6 +119,6 @@ cloaked_units: List[UnitTypeId] = [
     UnitTypeId.DARKTEMPLAR,
 ]
 friendly_fire: List[UnitTypeId] = [
-    UnitTypeId.KD8CHARGE,
-    UnitTypeId.KD8CHARGEWEAPON,
+    UnitTypeId.WIDOWMINE,
+    UnitTypeId.SIEGETANK,
 ]

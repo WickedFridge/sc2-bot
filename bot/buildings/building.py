@@ -53,7 +53,7 @@ class Building:
         ]
 
     def on_complete(self):
-        if (self.bot.build_order.build.is_completed):
+        if (self.bot.build_order.build.is_completed or self.ignore_build_order):
             return
         checked: bool = self.bot.build_order.build.check(self.unitId)
         if (not checked):

@@ -50,6 +50,8 @@ from sc2.constants import (
     UNIT_COLOSSUS,
     UNIT_ORACLE,
     UNIT_PHOTONCANNON,
+    UNIT_SENTRY,
+    UNIT_VOIDRAY,
     transforming,
 )
 from sc2.data import Alliance, Attribute, CloakState, Race, Target, race_gas, warpgate_abilities
@@ -218,7 +220,7 @@ class Unit:
     def can_attack(self) -> bool:
         """ Checks if the unit can attack at all. """
         # TODO BATTLECRUISER doesnt have weapons in proto?!
-        return bool(self._weapons) or self.type_id in {UNIT_BATTLECRUISER, UNIT_ORACLE}
+        return bool(self._weapons) or self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY}
 
     @property
     def can_attack_both(self) -> bool:
@@ -228,7 +230,7 @@ class Unit:
     @cached_property
     def can_attack_ground(self) -> bool:
         """ Checks if the unit can attack ground units. """
-        if self.type_id in {UNIT_BATTLECRUISER, UNIT_ORACLE}:
+        if self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY}:
             return True
         if self._weapons:
             return any(weapon.type in TARGET_GROUND for weapon in self._weapons)
@@ -237,6 +239,12 @@ class Unit:
     @cached_property
     def ground_dps(self) -> float:
         """ Returns the dps against ground units. Does not include upgrades. """
+        if self.type_id == UNIT_BATTLECRUISER:
+            return 49.8
+        if self.type_id == UNIT_SENTRY:
+            return 8.4
+        if self.type_id == UNIT_VOIDRAY:
+            return 16.8
         if self.can_attack_ground:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_GROUND), None)
             if weapon:
@@ -248,6 +256,10 @@ class Unit:
         """ Returns the range against ground units. Does not include upgrades. """
         if self.type_id == UNIT_ORACLE:
             return 4
+        if self.type_id == UNIT_SENTRY:
+            return 5
+        if self.type_id == UNIT_VOIDRAY:
+            return 6
         if self.type_id == UNIT_BATTLECRUISER:
             return 6
         if self.can_attack_ground:
@@ -268,6 +280,12 @@ class Unit:
     @cached_property
     def air_dps(self) -> float:
         """ Returns the dps against air units. Does not include upgrades. """
+        if self.type_id == UNIT_BATTLECRUISER:
+            return 31.1
+        if self.type_id == UNIT_SENTRY:
+            return 8.4
+        if self.type_id == UNIT_VOIDRAY:
+            return 16.8
         if self.can_attack_air:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_AIR), None)
             if weapon:
@@ -277,7 +295,11 @@ class Unit:
     @cached_property
     def air_range(self) -> float:
         """ Returns the range against air units. Does not include upgrades. """
+        if self.type_id == UNIT_SENTRY:
+            return 5
         if self.type_id == UNIT_BATTLECRUISER:
+            return 6
+        if self.type_id == UNIT_VOIDRAY:
             return 6
         if self.can_attack_air:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_AIR), None)

@@ -155,12 +155,8 @@ class Execute:
         retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
         await self.pickup(usable_medivacs, ground_units)
         for medivac in retreating_medivacs:
-            menacing_enemy_units: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.can_attack_air and unit.distance_to(medivac) <= unit.air_range + 2 
-            )
-            if (menacing_enemy_units.amount >= 1):
-                Micro.move_away(medivac, menacing_enemy_units.center, 5)
-            else:
+            should_disengage: bool = await self.micro.medivac_safety_disengage(medivac)
+            if (not should_disengage):
                 await self.micro.retreat(medivac)
 
         other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id != UnitTypeId.MEDIVAC)
