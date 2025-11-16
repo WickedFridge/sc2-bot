@@ -10,3 +10,4 @@ class Reaper(Train):
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Reaper'
         self.order_id = AbilityId.BARRACKSTRAIN_REAPER
+        self.check_build_order = True

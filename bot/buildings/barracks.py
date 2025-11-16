@@ -33,16 +33,22 @@ class Barracks(Building):
     
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         townhall_amount: int = self.bot.townhalls.ready.amount
         barracks_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.BARRACKS)
         barracks_pending, barracks_total, base_amount = self._barracks_info()
 
+        if (self.bot.build_order.build.is_completed):
+            return (
+                townhall_amount >= 1
+                and barracks_tech_requirement == 1
+                and barracks_pending < base_amount
+                and barracks_total < self.max_barracks
+            )    
+
         return (
             townhall_amount >= 1
             and barracks_tech_requirement == 1
-            and barracks_pending < base_amount
-            and barracks_total < self.max_barracks
         )
     
     @override

@@ -16,7 +16,7 @@ class Armory(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         armory_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ARMORY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
         armory_count: int = self.bot.structures(UnitTypeId.ARMORY).ready.amount + self.bot.already_pending(UnitTypeId.ARMORY)

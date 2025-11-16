@@ -21,7 +21,7 @@ class Starport(Building):
     
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         starport_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.STARPORT)
         if (starport_tech_requirement < 1):
             return False

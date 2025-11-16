@@ -16,7 +16,7 @@ class GhostAcademy(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         ghost_academy_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.GHOSTACADEMY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL2)
         ghost_academy_count: int = self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount + self.bot.already_pending(UnitTypeId.GHOSTACADEMY)

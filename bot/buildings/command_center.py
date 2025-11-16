@@ -18,7 +18,7 @@ class CommandCenter(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
         medivac_count: int = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
@@ -27,10 +27,14 @@ class CommandCenter(Building):
         orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount + self.bot.already_pending(UnitTypeId.ORBITALCOMMAND)
 
         match(townhalls_count):
-            case 0 | 1:
-                return orbital_count >= 1
-            case 2:
-                return medivac_count >= 2 or self.bot.minerals >= 600
+            # case 0 | 1:
+            #     return orbital_count >= 1
+            # case 2:
+            #     return medivac_count >= 2 or self.bot.minerals >= 600
+            
+            # build order handles that
+            case 0 | 1 | 2:
+                return True
             case _:
                 return (
                     townhalls_count <= base_count + 2 and

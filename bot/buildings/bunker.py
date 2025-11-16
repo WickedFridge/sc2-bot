@@ -12,6 +12,7 @@ class Bunker(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.BUNKER
         self.name = "Bunker"
+        self.ignore_build_order = True
 
     @property
     def expansions_without_defense(self) -> Expansions:
@@ -24,7 +25,7 @@ class Bunker(Building):
     
     @override
     @property
-    def conditions(self) -> bool:    
+    def custom_conditions(self) -> bool:    
         bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
         defense_count: float = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.amount + max(
             self.bot.already_pending(UnitTypeId.BUNKER),

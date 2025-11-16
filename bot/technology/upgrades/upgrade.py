@@ -41,7 +41,18 @@ class Upgrade:
             and self.bot.tech_requirement_progress(self.upgrade) == 1
             and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
             and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
+            and (
+                self.upgrade in self.bot.build_order.build.pending_ids
+                or self.bot.build_order.build.completed_steps
+            )
         )
+    
+    def on_complete(self):
+        if (self.bot.build_order.build.is_completed):
+            return
+        checked: bool = self.bot.build_order.build.check(self.upgrade)
+        if (not checked):
+            print(f'Error check build order for step {self.upgrade}')
     
     async def search(self, resources: Resources) -> Resources:
         if (not self.conditions):
@@ -70,4 +81,5 @@ class Upgrade:
             building.research(self.upgrade)
         # add a fake order to the building so that we know it's not idle anymore
         building.orders.append(FakeOrder(self.ability))
+        self.on_complete()
         return resources_updated

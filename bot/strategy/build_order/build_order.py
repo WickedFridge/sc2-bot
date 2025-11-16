@@ -1,0 +1,127 @@
+
+from typing import List
+from sc2.bot_ai import BotAI
+from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
+
+''' Reaper Expand
+
+supply
+rax
+gas
+reaper
+orbital
+command center
+bunker
+rax #2
+rax reactor
+facto
+rax tech lab
+gas
+starport
+facto reactor
+
+'''
+
+class BuildOrderStep:
+    bot: BotAI
+    step_id: UnitTypeId | UpgradeId
+    workers: int
+    supply: int
+    townhalls: int
+    requirements: tuple[UnitTypeId, int, bool]
+    upgrades_required: List[UpgradeId]
+    checked: bool = False
+    
+    def __init__(
+        self,
+        bot: BotAI,
+        name: str,
+        step_id: UnitTypeId | UpgradeId,
+        workers: int = 0,
+        supply: int = 0,
+        townhalls: int = 1,
+        requirements: List[tuple[UnitTypeId, int, bool]] = None,
+        upgrades_required: List[UpgradeId] = None,
+    ) -> None:
+        self.bot = bot
+        self.name = name
+        self.step_id = step_id
+        self.workers = workers
+        self.supply = supply
+        self.townhalls = townhalls
+        self.requirements = requirements or []
+        self.upgrades_required = upgrades_required or []
+
+    @property
+    def can_check(self) -> bool:
+        if (self.bot.townhalls.amount < self.townhalls):
+            return False
+        if (self.bot.supply_used < self.supply):
+            return False
+        if (self.bot.supply_workers < self.workers):
+            return False
+        for unit_type, amount_required, completed in self.requirements:
+            unit_count: int = (
+                self.bot.structures(unit_type).ready.amount
+                + self.bot.units(unit_type).ready.amount
+            )
+            if (not completed):
+                unit_count += self.bot.already_pending(unit_type)
+            if (unit_count < amount_required):
+                return False
+        if (any(self.bot.already_pending_upgrade(upgrade) < 1 for upgrade in self.upgrades_required)):
+            return False
+        return True
+    
+    def try_complete(self) -> bool:
+        if (not self.checked and self.can_check):
+            self.checked = True
+            return True
+        return False
+
+
+class BuildOrder:
+    steps: List[BuildOrderStep]
+    name: str
+
+    def __init__(self, bot: BotAI):
+        self.bot = bot
+    
+    # steps not yet completed
+    @property
+    def unchecked(self) -> List[BuildOrderStep]:
+        return [step for step in self.steps if not step.checked]
+    
+    @property
+    def pending_ids(self) -> List[UnitTypeId | UpgradeId]:
+        return [step.step_id for step in self.steps if not step.checked and step.can_check]
+    
+    @property
+    def is_completed(self) -> bool:
+        return len(self.unchecked) == 0
+    
+    # steps already completed
+    @property
+    def completed_steps(self) -> List[BuildOrderStep]:
+        return [step for step in self.steps if step.checked]
+    
+    # next step to execute
+    @property
+    def next(self) -> BuildOrderStep | None:
+        return next((step for step in self.steps if not step.checked), None)
+    
+    def check(self, step_id: UnitTypeId) -> bool:
+        for step in self.unchecked:
+            if (step.step_id == step_id):
+                step.checked = True
+                print(f'Build order - {step.name} Checked')
+                return True
+        return False
+    
+    def update(self) -> bool:
+        updated: bool = False
+        for step in self.steps:
+            if (step.try_complete()):
+                updated = True
+        return updated

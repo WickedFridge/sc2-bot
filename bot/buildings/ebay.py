@@ -17,7 +17,7 @@ class Ebay(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         ebay_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ENGINEERINGBAY)
         ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount + self.bot.already_pending(UnitTypeId.ENGINEERINGBAY)
         starport_count: float = (

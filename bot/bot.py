@@ -11,6 +11,7 @@ from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.scouting.scouting import Scouting, get_scouting
+from bot.strategy.build_order.manager import get_build_order
 from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
 from bot.technology.search import Search
@@ -22,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "7.5.0"
+VERSION: str = "8.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -86,6 +87,11 @@ class WickedBot(Superbot):
     def composition_manager(self):
         return get_composition_manager(self)
 
+    @override
+    @property
+    def build_order(self):
+        return get_build_order(self)
+
 
     async def on_start(self):
         """
@@ -106,11 +112,13 @@ class WickedBot(Superbot):
         # General Game Stuff
         if (iteration == 1):
             await self.greetings()
-            await self.tag_game()
             await self.expansions.set_expansion_list()
             self.map.initialize()
             await self.macro.speed_mining.start()
             self.map.danger.init_danger_map()
+            self.build_order.select_build(self.matchup)
+            await self.tag_game()
+            
 
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
@@ -300,6 +308,7 @@ class WickedBot(Superbot):
         # self.debug.full_effects(iteration)
         self.debug.danger_map()
         await self.debug.spawn_test_units()
+        await self.debug.build_order()
         await self.debug.composition_manager()
         await self.debug.composition_priorities()
         
@@ -322,6 +331,7 @@ class WickedBot(Superbot):
     async def tag_game(self):
         await self.client.chat_send(f'Tag:{self.matchup}', False)
         print(f'Matchup : {self.matchup}')
+        await self.client.chat_send(f'Build : {self.build_order.build.name}', False)
         self.tag_to_update = False
 
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):

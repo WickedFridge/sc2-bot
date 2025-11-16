@@ -33,7 +33,7 @@ class FactoryAddon(Building):
     
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         factories_available_amount, starport_amount, starport_with_reactor_amount, free_reactors_amount = self._factory_info()
 
         return (
@@ -59,7 +59,7 @@ class FactoryAddon(Building):
 
             print(f'Build {self.name}')
             factory.build(self.unitId)
-
+            self.on_complete()
         return resources_updated
     
 class FactoryReactor(FactoryAddon):

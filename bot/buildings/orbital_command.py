@@ -12,6 +12,7 @@ class OrbitalCommand(UpgradeBuilding):
         self.abilityId = AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND
         self.name = "Orbital Command"
         self.base_building_id = UnitTypeId.COMMANDCENTER
+        self.ignore_build_order = True
 
     @override
     @property
@@ -23,7 +24,7 @@ class OrbitalCommand(UpgradeBuilding):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         orbital_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
         ccs_amount: int = self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle.amount
         if (not orbital_tech_available or ccs_amount == 0):

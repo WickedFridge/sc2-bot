@@ -12,7 +12,7 @@ class StarportReactor(StarportAddon):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         # if we have 2 starports, and one of them doesn't have an addon
         # and we have raven / liberator in our composition

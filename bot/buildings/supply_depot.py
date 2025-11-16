@@ -1,9 +1,7 @@
-from typing import FrozenSet, Set, override
+from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
-from bot.macro.resources import Resources
 from bot.strategy.strategy_types import Situation
-from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -16,6 +14,7 @@ class SupplyDepot(Building):
         self.unitId = UnitTypeId.SUPPLYDEPOT
         self.name = "Supply Depot"
         self.radius = 0.5
+        self.ignore_build_order = True
     
     @property
     def max_depots_pending(self) -> int:
@@ -29,7 +28,7 @@ class SupplyDepot(Building):
     
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         current_supply: float = self.bot.supply_cap + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         pending_depots: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).not_ready
         for pending_depot in pending_depots:

@@ -22,7 +22,7 @@ class PlanetaryFortress(UpgradeBuilding):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         pf_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.PLANETARYFORTRESS) >= 0.9
         townhalls_amount: int = self.bot.townhalls.ready.amount
         if (townhalls_amount <= 3 or not pf_tech_available):

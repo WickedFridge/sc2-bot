@@ -2,6 +2,7 @@ from bot.army_composition.army_composition_manager import ArmyCompositionManager
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.map import MapData
 from bot.scouting.scouting import Scouting
+from bot.strategy.build_order.manager import BuildOrderManager
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -29,6 +30,9 @@ class Superbot(BotAI):
     def composition_manager(self) -> ArmyCompositionManager:
         pass
 
+    @property
+    def build_order(self) -> BuildOrderManager:
+        pass
 
     @property
     def orbital_tech_available(self) -> bool:

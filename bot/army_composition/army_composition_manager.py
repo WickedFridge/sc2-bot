@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
+from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
@@ -146,8 +147,19 @@ class ArmyCompositionManager:
             composition.set(UnitTypeId.RAVEN, 1)
         
         # in early game set our composition to only be 1 reaper
-        if (self.bot.time <= 120):
+        if (
+            self.wicked.build_order.build.name == BuildOrderName.KOKA_BUILD
+            and self.bot.time <= 120
+        ):
             composition.set(UnitTypeId.REAPER, 1)
+            composition.set(UnitTypeId.MARINE, 0)
+        
+        # In case of 2rax Reapers we want 3 of those
+        elif (
+            self.wicked.build_order.build.name == BuildOrderName.TWO_RAX_REAPERS
+            and self.bot.time <= 150
+        ):
+            composition.set(UnitTypeId.REAPER, 3)
             composition.set(UnitTypeId.MARINE, 0)
         else:
             # if we have medivacs and a lot of bio, get the medivac count up to 10

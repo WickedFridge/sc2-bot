@@ -329,7 +329,7 @@ class Macro:
 
         self.bot.client.debug_text_screen(
             f"Supply Block Time: {self.supply_block_time}",
-            (0.05, 0.05),
+            (0.5, 0.01),
             GREEN,
             12,
         )

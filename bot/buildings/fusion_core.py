@@ -15,7 +15,7 @@ class FusionCore(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         fusion_core_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.FUSIONCORE)
         fusion_core_count: int = self.bot.structures(UnitTypeId.FUSIONCORE).ready.amount + self.bot.already_pending(UnitTypeId.FUSIONCORE)
         starport_count: float = (

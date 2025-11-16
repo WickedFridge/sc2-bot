@@ -3,6 +3,7 @@ import math
 from typing import List, Optional, Set
 from bot.army_composition.composition import Composition
 from bot.macro.expansion import Expansion
+from bot.strategy.build_order.build_order import BuildOrder
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
@@ -398,6 +399,17 @@ class Debug:
         await self.bot.client.debug_show_map()
             
 
+    async def build_order(self):
+        build_order: BuildOrder = self.bot.build_order.build
+        for i, step in enumerate(build_order.steps):
+            position: Point2 = Point2((0.9, 0.3 + 0.015 * (i + 1)))
+            color = RED
+            if (step.can_check):
+                color = YELLOW
+            if (step.checked):
+                color = GREEN
+            self.draw_text_on_screen(step.name, position, color, font_size=14)
+    
     async def composition_manager(self):
         composition: Composition = self.bot.composition_manager.composition
         for i, (string, color) in enumerate(composition.debug_info):

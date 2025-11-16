@@ -95,7 +95,7 @@ class BarracksAddon(Building):
     
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         return (
             self.barracks_without_addon.amount >= 1
             and self.next_addon == self.unitId
@@ -119,6 +119,7 @@ class BarracksAddon(Building):
             print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')
             print(f'Build {self.name}')
             barracks.build(self.unitId)
+            self.on_complete()
         return resources_updated
 
 class BarracksReactor(BarracksAddon):

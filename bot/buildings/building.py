@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Optional
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
-from sc2.bot_ai import BotAI
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -20,14 +19,26 @@ class Building:
     abilityId: Optional[AbilityId] = None
     name: str
     radius: float = 1
+    ignore_build_order: bool = False
 
     def __init__(self, build: Builder):
         self.bot = build.bot
         self.builder = build
     
     @property
+    def custom_conditions(self) -> bool:
+        return True
+    
+    @property
     def conditions(self) -> bool:
-        pass
+        return (
+            self.custom_conditions
+            and (
+                self.ignore_build_order
+                or self.unitId in self.bot.build_order.build.pending_ids
+                or self.bot.build_order.build.is_completed
+            )
+        )
 
     @property
     def position(self) -> Point2 | None:
@@ -40,6 +51,14 @@ class Building:
             UnitTypeId.FACTORY,
             UnitTypeId.STARPORT,
         ]
+
+    def on_complete(self):
+        if (self.bot.build_order.build.is_completed):
+            return
+        checked: bool = self.bot.build_order.build.check(self.unitId)
+        if (not checked):
+            print(f'Error check build order for step {self.unitId}')
+            print(f'pending ids: {self.bot.build_order.build.pending_ids}')
 
     async def build(self, resources: Resources) -> Resources:
         if (not self.conditions):
@@ -60,4 +79,5 @@ class Building:
         
         position: Point2 = dfs_in_pathing(self.bot, pos, self.bot.game_info.map_center, self.radius, self.has_addon)
         await self.builder.build(self.unitId, position, self.radius, self.has_addon)
+        self.on_complete()
         return resources_updated

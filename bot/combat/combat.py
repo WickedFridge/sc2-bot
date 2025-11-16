@@ -74,6 +74,7 @@ class Combat:
                 return clusters
 
         army: Units = self.bot.units.of_type([
+            UnitTypeId.REAPER,
             UnitTypeId.MARINE,
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST,
@@ -81,15 +82,42 @@ class Combat:
             UnitTypeId.VIKINGFIGHTER,
             UnitTypeId.RAVEN,
         ])
+
         # deep copy to ensure self.units isn't modified
         units_copy: Units = army.copy()
         visited_ids: Set[int] = set()
         clusters: List[Army] = []
 
         # create a first cluster with all Reapers
-        reapers: Units = self.bot.units(UnitTypeId.REAPER)
-        if (reapers.amount >= 1):
-            clusters.append(Army(Units(reapers, self.bot), self.bot))
+        # reapers: Units = self.bot.units(UnitTypeId.REAPER)
+        # if (reapers.amount >= 1):
+        #     clusters.append(Army(Units(reapers, self.bot), self.bot))
+        
+        # for unit in self.bot.units(UnitTypeId.REAPER):
+        #     if unit.tag in visited_ids:
+        #         continue  # Skip if already visited
+
+        #     # Start a new cluster
+        #     cluster: List[Unit] = []
+        #     stack: List[int] = [unit.tag]
+
+        #     while(stack):
+        #         current_id: int = stack.pop()
+        #         if current_id in visited_ids:
+        #             continue
+                
+        #         visited_ids.add(current_id)
+        #         cluster.append(units_copy.find_by_tag(current_id))
+
+        #         # Find neighbors within the radius
+        #         for other_unit in units_copy:
+        #             if (
+        #                 other_unit.tag not in visited_ids
+        #                 and unit.position.distance_to(other_unit.position) <= radius
+        #             ):
+        #                 stack.append(other_unit.tag)
+
+        #     clusters.append(Army(Units(cluster, self.bot), self.bot))
         
         for unit in units_copy:
             if unit.tag in visited_ids:

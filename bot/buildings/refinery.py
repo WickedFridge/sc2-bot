@@ -18,7 +18,7 @@ class Refinery(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
             return False
         refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.filter(
@@ -29,20 +29,26 @@ class Refinery(Building):
         workers_amount: int = self.bot.supply_workers
         
         match(refinery_amount):
+            # Build order handles first 2 gas
             case 0:
-                # build first refinery as soon as we have a barracks and at least 15 SCVs
-                return (
-                self.bot.structures(UnitTypeId.BARRACKS).amount > 0
-                and workers_amount >= 15
-            )
-
+                return True
             case 1:
-                # build second refinery as soon as we have a factory and at least 21 SCVs
-                return (
-                    self.bot.structures(UnitTypeId.FACTORY).amount > 0
-                    and self.bot.townhalls.amount >= 2
-                    and workers_amount >= 21
-                )
+                return True
+            
+            # case 0:
+            #     # build first refinery as soon as we have a barracks and at least 15 SCVs
+            #     return (
+            #     self.bot.structures(UnitTypeId.BARRACKS).amount > 0
+            #     and workers_amount >= 15
+            # )
+
+            # case 1:
+            #     # build second refinery as soon as we have a factory and at least 21 SCVs
+            #     return (
+            #         self.bot.structures(UnitTypeId.FACTORY).amount > 0
+            #         and self.bot.townhalls.amount >= 2
+            #         and workers_amount >= 21
+            #     )
             
             case 2:
                 # build third rafinery as long as we have 3CCs, 4 rax and at least 40 SCVs  
@@ -118,4 +124,5 @@ class Refinery(Building):
             worker: Unit = workers.closest_to(self.target_geyser)
             worker.build_gas(self.target_geyser)
             print(f'Build {self.name}')
+            self.on_complete()
             return resources_updated

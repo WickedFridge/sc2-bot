@@ -28,4 +28,5 @@ class UpgradeBuilding(Building):
                 return resources_updated
             print(f'Upgrade {self.name}')
             cc(self.abilityId)
+            self.on_complete()
         return resources_updated

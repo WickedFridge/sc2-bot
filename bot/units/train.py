@@ -23,6 +23,7 @@ class Train:
     order_id: AbilityId
     name: str
     i: int = 0
+    check_build_order: bool = False
         
     def __init__(self, trainer: Trainer) -> None:
         self.bot = trainer.bot
@@ -66,6 +67,14 @@ class Train:
     def log(self, i: int) -> None:
         print(f'Train {self.name}')
 
+    def on_complete(self):
+        if (self.bot.build_order.build.is_completed):
+            return
+        checked: bool = self.bot.build_order.build.check(self.unitId)
+        if (self.check_build_order and not checked):
+            print(f'Error check build order for step {self.unitId}')
+            print(f'pending ids: {self.bot.build_order.build.pending_ids}')
+
     async def train(self, resources: Resources) -> Resources:
         if (not self.conditions):
             return resources
@@ -85,4 +94,5 @@ class Train:
             # add a fake order so that other function know that we are not idle anymore
             building.orders.append(FakeOrder(self.order_id))
             self.i += 1
+            self.on_complete()
         return resources_updated

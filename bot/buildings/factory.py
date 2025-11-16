@@ -12,7 +12,7 @@ class Factory(Building):
 
     @override
     @property
-    def conditions(self) -> bool:
+    def custom_conditions(self) -> bool:
         facto_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.FACTORY)
         max_factories: int = 1
         factories_amount: int = (
@@ -20,17 +20,16 @@ class Factory(Building):
             + self.bot.structures(UnitTypeId.FACTORYFLYING).ready.amount
             + self.bot.already_pending(UnitTypeId.FACTORY)
         )
-        # barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).ready.amount
-        addons_amount: int = (
-            self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount
-            + self.bot.structures(UnitTypeId.BARRACKSTECHLAB).amount
-        )
+        # addons_amount: int = (
+        #     self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount
+        #     + self.bot.structures(UnitTypeId.BARRACKSTECHLAB).amount
+        # )
 
         # We want 1 factory so far
         return (
             facto_tech_requirement == 1
-            and self.bot.townhalls.amount >= 2
-            and addons_amount >= 1
+            # and self.bot.townhalls.amount >= 2
+            # and addons_amount >= 1
             and factories_amount < max_factories
         )
     
