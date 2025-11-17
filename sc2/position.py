@@ -5,7 +5,7 @@ import itertools
 import math
 import random
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, SupportsFloat, SupportsIndex
+from typing import TYPE_CHECKING, Self, SupportsFloat, SupportsIndex
 
 # pyre-fixme[21]
 from s2clientprotocol import common_pb2 as common_pb
@@ -21,33 +21,35 @@ def _sign(num: SupportsFloat | SupportsIndex) -> float:
     return math.copysign(1, num)
 
 
-class Pointlike(tuple):
+class Pointlike(tuple[float, float]):
     @property
-    def position(self) -> Pointlike:
+    def position(self) -> Self:
         return self
 
-    def distance_to(self, target: Unit | Point2) -> float:
+    def distance_to(self, target: Unit | Pointlike) -> float:
         """Calculate a single distance from a point or unit to another point or unit
 
         :param target:"""
         p = target.position
         return math.hypot(self[0] - p[0], self[1] - p[1])
 
-    def distance_to_point2(self, p: Point2 | tuple[float, float]) -> float:
+    def distance_to_point2(self, p: tuple[float, float] | tuple[float, float, float]) -> float:
         """Same as the function above, but should be a bit faster because of the dropped asserts
         and conversion.
 
         :param p:"""
         return math.hypot(self[0] - p[0], self[1] - p[1])
 
-    def _distance_squared(self, p2: Point2) -> float:
+    def _distance_squared(self, p2: tuple[float, float] | tuple[float, float, float]) -> float:
         """Function used to not take the square root as the distances will stay proportionally the same.
         This is to speed up the sorting process.
 
         :param p2:"""
         return (self[0] - p2[0]) ** 2 + (self[1] - p2[1]) ** 2
 
-    def sort_by_distance(self, ps: Units | Iterable[Point2]) -> list[Point2]:
+    def sort_by_distance(
+        self, ps: Units | Iterable[tuple[float, float] | tuple[float, float, float]]
+    ) -> list[Unit | tuple[float, float] | tuple[float, float, float]]:
         """This returns the target points sorted as list.
         You should not pass a set or dict since those are not sortable.
         If you want to sort your units towards a point, use 'units.sorted_by_distance_to(point)' instead.
@@ -55,7 +57,7 @@ class Pointlike(tuple):
         :param ps:"""
         return sorted(ps, key=lambda p: self.distance_to_point2(p.position))
 
-    def closest(self, ps: Units | Iterable[Point2]) -> Unit | Point2:
+    def closest(self, ps: Units | Iterable[Point2]) -> Unit | Pointlike:
         """This function assumes the 2d distance is meant
 
         :param ps:"""
@@ -96,14 +98,14 @@ class Pointlike(tuple):
                 furthest_distance = distance
         return furthest_distance
 
-    def offset(self, p) -> Pointlike:
+    def offset(self, p: tuple[float, float]) -> Self:
         """
 
         :param p:
         """
         return self.__class__(a + b for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
-    def unit_axes_towards(self, p) -> Pointlike:
+    def unit_axes_towards(self, p: tuple[float, float]) -> Self:
         """
 
         :param p:
@@ -130,7 +132,7 @@ class Pointlike(tuple):
             a + (b - a) / d * distance for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0)
         )
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: tuple[float, float] | tuple[float, float, float]) -> bool:
         try:
             return all(abs(a - b) <= EPSILON for a, b in itertools.zip_longest(self, other, fillvalue=0))
         except TypeError:
@@ -156,10 +158,9 @@ class Point2(Pointlike):
         return common_pb.Point2D(x=self.x, y=self.y)
 
     @property
-    # pyre-fixme[11]
     def as_PointI(self) -> common_pb.PointI:
         """Represents points on the minimap. Values must be between 0 and 64."""
-        return common_pb.PointI(x=self.x, y=self.y)
+        return common_pb.PointI(x=int(self[0]), y=int(self[1]))
 
     @property
     def rounded(self) -> Point2:
@@ -201,15 +202,16 @@ class Point2(Pointlike):
     def offset(self, p: Point2) -> Point2:
         return Point2((self[0] + p[0], self[1] + p[1]))
 
-    def random_on_distance(self, distance) -> Point2:
+    def random_on_distance(self, distance: float | tuple[float, float] | list[float]) -> Point2:
         if isinstance(distance, (tuple, list)):  # interval
-            distance = distance[0] + random.random() * (distance[1] - distance[0])
-
-        assert distance > 0, "Distance is not greater than 0"
+            dist = distance[0] + random.random() * (distance[1] - distance[0])
+        else:
+            dist = distance
+        assert dist > 0, "Distance is not greater than 0"
         angle = random.random() * 2 * math.pi
 
         dx, dy = math.cos(angle), math.sin(angle)
-        return Point2((self.x + dx * distance, self.y + dy * distance))
+        return Point2((self.x + dx * dist, self.y + dy * dist))
 
     def towards_with_random_angle(
         self,
@@ -250,7 +252,7 @@ class Point2(Pointlike):
         return {intersect1, intersect2}
 
     @property
-    def neighbors4(self) -> set:
+    def neighbors4(self) -> set[Point2]:
         return {
             Point2((self.x - 1, self.y)),
             Point2((self.x + 1, self.y)),
@@ -259,7 +261,7 @@ class Point2(Pointlike):
         }
 
     @property
-    def neighbors8(self) -> set:
+    def neighbors8(self) -> set[Point2]:
         return self.neighbors4 | {
             Point2((self.x - 1, self.y - 1)),
             Point2((self.x - 1, self.y + 1)),
@@ -373,7 +375,7 @@ class Size(Point2):
         return self[1]
 
 
-class Rect(tuple):
+class Rect(tuple[float, float, float, float]):
     @classmethod
     def from_proto(cls, data: common_pb.RectangleI) -> Rect:
         """
@@ -416,5 +418,5 @@ class Rect(tuple):
     def center(self) -> Point2:
         return Point2((self.x + self.width / 2, self.y + self.height / 2))
 
-    def offset(self, p) -> Rect:
+    def offset(self, p: tuple[float, float]) -> Rect:
         return self.__class__((self[0] + p[0], self[1] + p[1], self[2], self[3]))
