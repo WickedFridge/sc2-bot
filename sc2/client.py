@@ -22,6 +22,7 @@ from sc2.position import Point2, Point3
 from sc2.protocol import ConnectionAlreadyClosedError, Protocol, ProtocolError
 from sc2.renderer import Renderer
 from sc2.unit import Unit
+from sc2.unit_command import UnitCommand
 from sc2.units import Units
 
 
@@ -193,9 +194,9 @@ class Client(Protocol):
         result = await self._execute(game_info=sc_pb.RequestGameInfo())
         return GameInfo(result.game_info)
 
-    async def actions(self, actions, return_successes: bool = False):
+    async def actions(self, actions: list[UnitCommand], return_successes: bool = False) -> list[ActionResult]:
         if not actions:
-            return None
+            return []
         if not isinstance(actions, list):
             actions = [actions]
 

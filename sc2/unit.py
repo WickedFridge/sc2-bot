@@ -63,6 +63,7 @@ from sc2.unit_command import UnitCommand
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
+    from sc2.bot_ai_internal import BotAIInternal
     from sc2.game_data import AbilityData, UnitTypeData
 
 
@@ -108,7 +109,7 @@ class Unit:
     def __init__(
         self,
         proto_data: raw_pb2.Unit,
-        bot_object: BotAI,
+        bot_object: BotAI | BotAIInternal,
         distance_calculation_index: int = -1,
         base_build: int = -1,
     ) -> None:
@@ -119,7 +120,7 @@ class Unit:
         :param base_build:
         """
         self._proto = proto_data
-        self._bot_object: BotAI = bot_object
+        self._bot_object = bot_object
         self.game_loop: int = bot_object.state.game_loop
         self.base_build = base_build
         # Index used in the 2D numpy array to access the 2D distance between two units
@@ -706,7 +707,7 @@ class Unit:
             # TODO: hardcode hellbats when they have blueflame or attack upgrades
             for bonus in weapon.damage_bonus:
                 # More about damage bonus https://github.com/Blizzard/s2client-proto/blob/b73eb59ac7f2c52b2ca585db4399f2d3202e102a/s2clientprotocol/data.proto#L55
-                if bonus.attribute in target._type_data.attributes:
+                if bonus.attribute in target._type_data._proto.attributes:
                     bonus_damage_per_upgrade = (
                         0
                         if not self.attack_upgrade_level
