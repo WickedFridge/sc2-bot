@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Iterable
 
 from google.protobuf.message import Message
 
@@ -89,7 +90,7 @@ class Response(Message):
     ping: ResponsePing
     debug: ResponseDebug
     id: int
-    error: list[str]
+    error: Iterable[str]
     status: int
     def __init__(
         self,
@@ -116,7 +117,7 @@ class Response(Message):
         ping: ResponsePing = ...,
         debug: ResponseDebug = ...,
         id: int = ...,
-        error: list[str] = ...,
+        error: Iterable[str] = ...,
         status: int = ...,
     ) -> None: ...
 
@@ -132,7 +133,7 @@ class Status(Enum):
 class RequestCreateGame(Message):
     local_map: LocalMap
     battlenet_map_name: str
-    player_setup: list[PlayerSetup]
+    player_setup: Iterable[PlayerSetup]
     disable_fog: bool
     random_seed: int
     realtime: bool
@@ -140,7 +141,7 @@ class RequestCreateGame(Message):
         self,
         local_map: LocalMap = ...,
         battlenet_map_name: str = ...,
-        player_setup: list[PlayerSetup] = ...,
+        player_setup: Iterable[PlayerSetup] = ...,
         disable_fog: bool = ...,
         random_seed: int = ...,
         realtime: bool = ...,
@@ -171,7 +172,7 @@ class RequestJoinGame(Message):
     observed_player_id: int
     options: InterfaceOptions
     server_ports: PortSet
-    client_ports: list[PortSet]
+    client_ports: Iterable[PortSet]
     shared_port: int
     player_name: str
     host_ip: str
@@ -181,7 +182,7 @@ class RequestJoinGame(Message):
         observed_player_id: int = ...,
         options: InterfaceOptions = ...,
         server_ports: PortSet = ...,
-        client_ports: list[PortSet] = ...,
+        client_ports: Iterable[PortSet] = ...,
         shared_port: int = ...,
         player_name: str = ...,
         host_ip: str = ...,
@@ -301,17 +302,17 @@ class RequestGameInfo(Message):
 
 class ResponseGameInfo(Message):
     map_name: str
-    mod_names: list[str]
+    mod_names: Iterable[str]
     local_map_path: str
-    player_info: list[PlayerInfo]
+    player_info: Iterable[PlayerInfo]
     start_raw: StartRaw
     options: InterfaceOptions
     def __init__(
         self,
         map_name: str = ...,
-        mod_names: list[str] = ...,
+        mod_names: Iterable[str] = ...,
         local_map_path: str = ...,
-        player_info: list[PlayerInfo] = ...,
+        player_info: Iterable[PlayerInfo] = ...,
         start_raw: StartRaw = ...,
         options: InterfaceOptions = ...,
     ) -> None: ...
@@ -322,18 +323,18 @@ class RequestObservation(Message):
     def __init__(self, disable_fog: bool = ..., game_loop: int = ...) -> None: ...
 
 class ResponseObservation(Message):
-    actions: list[Action]
-    action_errors: list[ActionError]
+    actions: Iterable[Action]
+    action_errors: Iterable[ActionError]
     observation: Observation
-    player_result: list[PlayerResult]
-    chat: list[ChatReceived]
+    player_result: Iterable[PlayerResult]
+    chat: Iterable[ChatReceived]
     def __init__(
         self,
-        actions: list[Action] = ...,
-        action_errors: list[ActionError] = ...,
+        actions: Iterable[Action] = ...,
+        action_errors: Iterable[ActionError] = ...,
         observation: Observation = ...,
-        player_result: list[PlayerResult] = ...,
-        chat: list[ChatReceived] = ...,
+        player_result: Iterable[PlayerResult] = ...,
+        chat: Iterable[ChatReceived] = ...,
     ) -> None: ...
 
 class ChatReceived(Message):
@@ -342,16 +343,16 @@ class ChatReceived(Message):
     def __init__(self, player_id: int = ..., message: str = ...) -> None: ...
 
 class RequestAction(Message):
-    actions: list[Action]
-    def __init__(self, actions: list[Action] = ...) -> None: ...
+    actions: Iterable[Action]
+    def __init__(self, actions: Iterable[Action] = ...) -> None: ...
 
 class ResponseAction(Message):
-    result: list[int]
-    def __init__(self, result: list[int] = ...) -> None: ...
+    result: Iterable[int]
+    def __init__(self, result: Iterable[int] = ...) -> None: ...
 
 class RequestObserverAction(Message):
-    actions: list[ObserverAction]
-    def __init__(self, actions: list[ObserverAction] = ...) -> None: ...
+    actions: Iterable[ObserverAction]
+    def __init__(self, actions: Iterable[ObserverAction] = ...) -> None: ...
 
 class ResponseObserverAction(Message):
     def __init__(self) -> None: ...
@@ -380,18 +381,18 @@ class RequestData(Message):
     ) -> None: ...
 
 class ResponseData(Message):
-    abilities: list[AbilityData]
-    units: list[UnitTypeData]
-    upgrades: list[UpgradeData]
-    buffs: list[BuffData]
-    effects: list[EffectData]
+    abilities: Iterable[AbilityData]
+    units: Iterable[UnitTypeData]
+    upgrades: Iterable[UpgradeData]
+    buffs: Iterable[BuffData]
+    effects: Iterable[EffectData]
     def __init__(
         self,
-        abilities: list[AbilityData] = ...,
-        units: list[UnitTypeData] = ...,
-        upgrades: list[UpgradeData] = ...,
-        buffs: list[BuffData] = ...,
-        effects: list[EffectData] = ...,
+        abilities: Iterable[AbilityData] = ...,
+        units: Iterable[UnitTypeData] = ...,
+        upgrades: Iterable[UpgradeData] = ...,
+        buffs: Iterable[BuffData] = ...,
+        effects: Iterable[EffectData] = ...,
     ) -> None: ...
 
 class RequestSaveReplay(Message):
@@ -435,7 +436,7 @@ class ResponseReplayInfo(Message):
 
     map_name: str
     local_map_path: str
-    player_info: list[PlayerInfoExtra]
+    player_info: Iterable[PlayerInfoExtra]
     game_duration_loops: int
     game_duration_seconds: float
     game_version: str
@@ -448,7 +449,7 @@ class ResponseReplayInfo(Message):
         self,
         map_name: str = ...,
         local_map_path: str = ...,
-        player_info: list[PlayerInfoExtra] = ...,
+        player_info: Iterable[PlayerInfoExtra] = ...,
         game_duration_loops: int = ...,
         game_duration_seconds: float = ...,
         game_version: str = ...,
@@ -463,9 +464,9 @@ class RequestAvailableMaps(Message):
     def __init__(self) -> None: ...
 
 class ResponseAvailableMaps(Message):
-    local_map_paths: list[str]
-    battlenet_map_names: list[str]
-    def __init__(self, local_map_paths: list[str] = ..., battlenet_map_names: list[str] = ...) -> None: ...
+    local_map_paths: Iterable[str]
+    battlenet_map_names: Iterable[str]
+    def __init__(self, local_map_paths: Iterable[str] = ..., battlenet_map_names: Iterable[str] = ...) -> None: ...
 
 class RequestSaveMap(Message):
     map_path: str
@@ -496,8 +497,8 @@ class ResponsePing(Message):
     ) -> None: ...
 
 class RequestDebug(Message):
-    debug: list[DebugCommand]
-    def __init__(self, debug: list[DebugCommand] = ...) -> None: ...
+    debug: Iterable[DebugCommand]
+    def __init__(self, debug: Iterable[DebugCommand] = ...) -> None: ...
 
 class ResponseDebug(Message):
     def __init__(self) -> None: ...
@@ -629,8 +630,8 @@ class PlayerCommon(Message):
 class Observation(Message):
     game_loop: int
     player_common: PlayerCommon
-    alerts: list[int]
-    abilities: list[AvailableAbility]
+    alerts: Iterable[int]
+    abilities: Iterable[AvailableAbility]
     score: Score
     raw_data: ObservationRaw
     feature_layer_data: ObservationFeatureLayer
@@ -640,8 +641,8 @@ class Observation(Message):
         self,
         game_loop: int = ...,
         player_common: PlayerCommon = ...,
-        alerts: list[int] = ...,
-        abilities: list[AvailableAbility] = ...,
+        alerts: Iterable[int] = ...,
+        abilities: Iterable[AvailableAbility] = ...,
         score: Score = ...,
         raw_data: ObservationRaw = ...,
         feature_layer_data: ObservationFeatureLayer = ...,
@@ -708,8 +709,8 @@ class ActionObserverCameraFollowPlayer(Message):
     def __init__(self, player_id: int = ...) -> None: ...
 
 class ActionObserverCameraFollowUnits(Message):
-    unit_tags: list[int]
-    def __init__(self, unit_tags: list[int] = ...) -> None: ...
+    unit_tags: Iterable[int]
+    def __init__(self, unit_tags: Iterable[int] = ...) -> None: ...
 
 class Alert(Enum):
     AlertError: int

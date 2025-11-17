@@ -1,29 +1,31 @@
+from typing import Iterable
+
 from google.protobuf.message import Message
 
 from .common_pb2 import AvailableAbility, Point2D
 
 class RequestQuery(Message):
-    pathing: list[RequestQueryPathing]
-    abilities: list[RequestQueryAvailableAbilities]
-    placements: list[RequestQueryBuildingPlacement]
+    pathing: Iterable[RequestQueryPathing]
+    abilities: Iterable[RequestQueryAvailableAbilities]
+    placements: Iterable[RequestQueryBuildingPlacement]
     ignore_resource_requirements: bool
     def __init__(
         self,
-        pathing: list[RequestQueryPathing] = ...,
-        abilities: list[RequestQueryAvailableAbilities] = ...,
-        placements: list[RequestQueryBuildingPlacement] = ...,
+        pathing: Iterable[RequestQueryPathing] = ...,
+        abilities: Iterable[RequestQueryAvailableAbilities] = ...,
+        placements: Iterable[RequestQueryBuildingPlacement] = ...,
         ignore_resource_requirements: bool = ...,
     ) -> None: ...
 
 class ResponseQuery(Message):
-    pathing: list[ResponseQueryPathing]
-    abilities: list[ResponseQueryAvailableAbilities]
-    placements: list[ResponseQueryBuildingPlacement]
+    pathing: Iterable[ResponseQueryPathing]
+    abilities: Iterable[ResponseQueryAvailableAbilities]
+    placements: Iterable[ResponseQueryBuildingPlacement]
     def __init__(
         self,
-        pathing: list[ResponseQueryPathing] = ...,
-        abilities: list[ResponseQueryAvailableAbilities] = ...,
-        placements: list[ResponseQueryBuildingPlacement] = ...,
+        pathing: Iterable[ResponseQueryPathing] = ...,
+        abilities: Iterable[ResponseQueryAvailableAbilities] = ...,
+        placements: Iterable[ResponseQueryBuildingPlacement] = ...,
     ) -> None: ...
 
 class RequestQueryPathing(Message):
@@ -46,12 +48,12 @@ class RequestQueryAvailableAbilities(Message):
     def __init__(self, unit_tag: int = ...) -> None: ...
 
 class ResponseQueryAvailableAbilities(Message):
-    abilities: list[AvailableAbility]
+    abilities: Iterable[AvailableAbility]
     unit_tag: int
     unit_type_id: int
     def __init__(
         self,
-        abilities: list[AvailableAbility] = ...,
+        abilities: Iterable[AvailableAbility] = ...,
         unit_tag: int = ...,
         unit_type_id: int = ...,
     ) -> None: ...

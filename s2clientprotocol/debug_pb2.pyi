@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Iterable
 
 from google.protobuf.message import Message
 
@@ -26,16 +27,16 @@ class DebugCommand(Message):
     ) -> None: ...
 
 class DebugDraw(Message):
-    text: list[DebugText]
-    lines: list[DebugLine]
-    boxes: list[DebugBox]
-    spheres: list[DebugSphere]
+    text: Iterable[DebugText]
+    lines: Iterable[DebugLine]
+    boxes: Iterable[DebugBox]
+    spheres: Iterable[DebugSphere]
     def __init__(
         self,
-        text: list[DebugText] = ...,
-        lines: list[DebugLine] = ...,
-        boxes: list[DebugBox] = ...,
-        spheres: list[DebugSphere] = ...,
+        text: Iterable[DebugText] = ...,
+        lines: Iterable[DebugLine] = ...,
+        boxes: Iterable[DebugBox] = ...,
+        spheres: Iterable[DebugSphere] = ...,
     ) -> None: ...
 
 class Line(Message):
@@ -109,8 +110,8 @@ class DebugCreateUnit(Message):
     ) -> None: ...
 
 class DebugKillUnit(Message):
-    tag: list[int]
-    def __init__(self, tag: list[int] = ...) -> None: ...
+    tag: Iterable[int]
+    def __init__(self, tag: Iterable[int] = ...) -> None: ...
 
 class Test(Enum):
     hang: int

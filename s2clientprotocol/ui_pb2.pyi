@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Iterable
 
 from google.protobuf.message import Message
 
 class ObservationUI(Message):
-    groups: list[ControlGroup]
+    groups: Iterable[ControlGroup]
     single: SinglePanel
     multi: MultiPanel
     cargo: CargoPanel
     production: ProductionPanel
     def __init__(
         self,
-        groups: list[ControlGroup] = ...,
+        groups: Iterable[ControlGroup] = ...,
         single: SinglePanel = ...,
         multi: MultiPanel = ...,
         cargo: CargoPanel = ...,
@@ -62,28 +63,28 @@ class SinglePanel(Message):
     attack_upgrade_level: int
     armor_upgrade_level: int
     shield_upgrade_level: int
-    buffs: list[int]
+    buffs: Iterable[int]
     def __init__(
         self,
         unit: UnitInfo = ...,
         attack_upgrade_level: int = ...,
         armor_upgrade_level: int = ...,
         shield_upgrade_level: int = ...,
-        buffs: list[int] = ...,
+        buffs: Iterable[int] = ...,
     ) -> None: ...
 
 class MultiPanel(Message):
-    units: list[UnitInfo]
-    def __init__(self, units: list[UnitInfo] = ...) -> None: ...
+    units: Iterable[UnitInfo]
+    def __init__(self, units: Iterable[UnitInfo] = ...) -> None: ...
 
 class CargoPanel(Message):
     unit: UnitInfo
-    passengers: list[UnitInfo]
+    passengers: Iterable[UnitInfo]
     slots_available: int
     def __init__(
         self,
         unit: UnitInfo = ...,
-        passengers: list[UnitInfo] = ...,
+        passengers: Iterable[UnitInfo] = ...,
         slots_available: int = ...,
     ) -> None: ...
 
@@ -94,13 +95,13 @@ class BuildItem(Message):
 
 class ProductionPanel(Message):
     unit: UnitInfo
-    build_queue: list[UnitInfo]
-    production_queue: list[BuildItem]
+    build_queue: Iterable[UnitInfo]
+    production_queue: Iterable[BuildItem]
     def __init__(
         self,
         unit: UnitInfo = ...,
-        build_queue: list[UnitInfo] = ...,
-        production_queue: list[BuildItem] = ...,
+        build_queue: Iterable[UnitInfo] = ...,
+        production_queue: Iterable[BuildItem] = ...,
     ) -> None: ...
 
 class ActionUI(Message):

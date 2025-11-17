@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Iterable
 
 from google.protobuf.message import Message
 
@@ -148,6 +149,6 @@ class ActionSpatialUnitSelectionPoint(Message):
     def __init__(self, selection_screen_coord: PointI = ..., type: int = ...) -> None: ...
 
 class ActionSpatialUnitSelectionRect(Message):
-    selection_screen_coord: list[RectangleI]
+    selection_screen_coord: Iterable[RectangleI]
     selection_add: bool
-    def __init__(self, selection_screen_coord: list[RectangleI] = ..., selection_add: bool = ...) -> None: ...
+    def __init__(self, selection_screen_coord: Iterable[RectangleI] = ..., selection_add: bool = ...) -> None: ...

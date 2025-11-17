@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Iterable
 
 from google.protobuf.message import Message
 
@@ -70,7 +71,7 @@ class TargetType(Enum):
 class Weapon(Message):
     type: int
     damage: float
-    damage_bonus: list[DamageBonus]
+    damage_bonus: Iterable[DamageBonus]
     attacks: int
     range: float
     speed: float
@@ -78,7 +79,7 @@ class Weapon(Message):
         self,
         type: int = ...,
         damage: float = ...,
-        damage_bonus: list[DamageBonus] = ...,
+        damage_bonus: Iterable[DamageBonus] = ...,
         attacks: int = ...,
         range: float = ...,
         speed: float = ...,
@@ -99,14 +100,14 @@ class UnitTypeData(Message):
     has_vespene: bool
     has_minerals: bool
     sight_range: float
-    tech_alias: list[int]
+    tech_alias: Iterable[int]
     unit_alias: int
     tech_requirement: int
     require_attached: bool
-    attributes: list[int]
+    attributes: Iterable[int]
     movement_speed: float
     armor: float
-    weapons: list[Weapon]
+    weapons: Iterable[Weapon]
     def __init__(
         self,
         unit_id: int = ...,
@@ -123,14 +124,14 @@ class UnitTypeData(Message):
         has_vespene: bool = ...,
         has_minerals: bool = ...,
         sight_range: float = ...,
-        tech_alias: list[int] = ...,
+        tech_alias: Iterable[int] = ...,
         unit_alias: int = ...,
         tech_requirement: int = ...,
         require_attached: bool = ...,
-        attributes: list[int] = ...,
+        attributes: Iterable[int] = ...,
         movement_speed: float = ...,
         armor: float = ...,
-        weapons: list[Weapon] = ...,
+        weapons: Iterable[Weapon] = ...,
     ) -> None: ...
 
 class UpgradeData(Message):
