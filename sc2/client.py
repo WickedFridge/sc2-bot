@@ -157,7 +157,7 @@ class Client(Protocol):
         return await self._execute(step=sc_pb.RequestStep(count=step_size))
 
     async def get_game_data(self) -> GameData:
-        result = await self._execute(
+        result: sc_pb.ResponseData = await self._execute(
             data=sc_pb.RequestData(ability_id=True, unit_type_id=True, upgrade_id=True, buff_id=True, effect_id=True)
         )
         return GameData(result.data)

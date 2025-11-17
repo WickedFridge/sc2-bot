@@ -103,7 +103,7 @@ class UnitTypeData(Message):
     unit_alias: int
     tech_requirement: int
     require_attached: bool
-    attributes: list[Attribute]
+    attributes: list[int]
     movement_speed: float
     armor: float
     weapons: list[Weapon]
@@ -127,7 +127,7 @@ class UnitTypeData(Message):
         unit_alias: int = ...,
         tech_requirement: int = ...,
         require_attached: bool = ...,
-        attributes: list[Attribute] = ...,
+        attributes: list[int] = ...,
         movement_speed: float = ...,
         armor: float = ...,
         weapons: list[Weapon] = ...,

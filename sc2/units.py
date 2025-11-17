@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
 
 
-class Units(list):
+class Units(list[Unit]):
     """A collection of Unit objects. Makes it easy to select units by selectors."""
 
     @classmethod

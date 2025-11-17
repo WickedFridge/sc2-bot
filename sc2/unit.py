@@ -163,37 +163,37 @@ class Unit:
     @property
     def is_structure(self) -> bool:
         """Checks if the unit is a structure."""
-        return IS_STRUCTURE in self._type_data.attributes
+        return IS_STRUCTURE in self._type_data._proto.attributes
 
     @property
     def is_light(self) -> bool:
         """Checks if the unit has the 'light' attribute."""
-        return IS_LIGHT in self._type_data.attributes
+        return IS_LIGHT in self._type_data._proto.attributes
 
     @property
     def is_armored(self) -> bool:
         """Checks if the unit has the 'armored' attribute."""
-        return IS_ARMORED in self._type_data.attributes
+        return IS_ARMORED in self._type_data._proto.attributes
 
     @property
     def is_biological(self) -> bool:
         """Checks if the unit has the 'biological' attribute."""
-        return IS_BIOLOGICAL in self._type_data.attributes
+        return IS_BIOLOGICAL in self._type_data._proto.attributes
 
     @property
     def is_mechanical(self) -> bool:
         """Checks if the unit has the 'mechanical' attribute."""
-        return IS_MECHANICAL in self._type_data.attributes
+        return IS_MECHANICAL in self._type_data._proto.attributes
 
     @property
     def is_massive(self) -> bool:
         """Checks if the unit has the 'massive' attribute."""
-        return IS_MASSIVE in self._type_data.attributes
+        return IS_MASSIVE in self._type_data._proto.attributes
 
     @property
     def is_psionic(self) -> bool:
         """Checks if the unit has the 'psionic' attribute."""
-        return IS_PSIONIC in self._type_data.attributes
+        return IS_PSIONIC in self._type_data._proto.attributes
 
     @cached_property
     def tech_alias(self) -> list[UnitTypeId] | None:

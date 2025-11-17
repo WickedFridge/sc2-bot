@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import enum
 
-# pyre-ignore[21]
 from s2clientprotocol import common_pb2 as common_pb
 from s2clientprotocol import data_pb2 as data_pb
 from s2clientprotocol import error_pb2 as error_pb
