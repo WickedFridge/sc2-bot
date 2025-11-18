@@ -5,7 +5,7 @@ import itertools
 import math
 import random
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, Self, SupportsFloat, SupportsIndex, overload
+from typing import TYPE_CHECKING, SupportsFloat, SupportsIndex, overload
 
 # pyre-fixme[21]
 from s2clientprotocol import common_pb2 as common_pb
@@ -23,7 +23,7 @@ def _sign(num: SupportsFloat | SupportsIndex) -> float:
 
 class Pointlike(tuple[float, float]):
     @property
-    def position(self) -> Self:
+    def position(self) -> Pointlike:
         return self
 
     def distance_to(self, target: Unit | Pointlike) -> float:
@@ -127,21 +127,21 @@ class Pointlike(tuple[float, float]):
                 furthest_distance = distance
         return furthest_distance
 
-    def offset(self, p: tuple[float, float]) -> Self:
+    def offset(self, p: tuple[float, float]) -> Pointlike:
         """
 
         :param p:
         """
         return self.__class__(a + b for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
-    def unit_axes_towards(self, p: tuple[float, float]) -> Self:
+    def unit_axes_towards(self, p: tuple[float, float]) -> Pointlike:
         """
 
         :param p:
         """
         return self.__class__(_sign(b - a) for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
-    def towards(self, p: Unit | Pointlike, distance: int | float = 1, limit: bool = False) -> Self:
+    def towards(self, p: Unit | Pointlike, distance: int | float = 1, limit: bool = False) -> Pointlike:
         """
 
         :param p:
