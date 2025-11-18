@@ -5,7 +5,7 @@ import itertools
 import math
 import random
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Self, SupportsFloat, SupportsIndex
+from typing import TYPE_CHECKING, Self, SupportsFloat, SupportsIndex, overload
 
 # pyre-fixme[21]
 from s2clientprotocol import common_pb2 as common_pb
@@ -77,7 +77,11 @@ class Pointlike(tuple[float, float]):
                 closest_distance = distance
         return closest_distance
 
-    def furthest(self, ps: Units | Iterable[Point2]) -> Unit | Pointlike:
+    @overload
+    def furthest(self, ps: Units) -> Unit: ...
+    @overload
+    def furthest(self, ps: Iterable[Point2]) -> Point2: ...
+    def furthest(self, ps: Units | Iterable[Point2]) -> Unit | Point2:
         """This function assumes the 2d distance is meant
 
         :param ps: Units object, or iterable of Unit or Point2"""
@@ -112,7 +116,7 @@ class Pointlike(tuple[float, float]):
         """
         return self.__class__(_sign(b - a) for a, b in itertools.zip_longest(self, p[: len(self)], fillvalue=0))
 
-    def towards(self, p: Unit | Pointlike, distance: int | float = 1, limit: bool = False) -> Pointlike:
+    def towards(self, p: Unit | Pointlike, distance: int | float = 1, limit: bool = False) -> Self:
         """
 
         :param p:
@@ -199,7 +203,7 @@ class Point2(Pointlike):
         """Rounds each number in the tuple to the amount of given decimals."""
         return Point2((round(self[0], decimals), round(self[1], decimals)))
 
-    def offset(self, p: Point2) -> Point2:
+    def offset(self, p: tuple[float, float]) -> Point2:
         return Point2((self[0] + p[0], self[1] + p[1]))
 
     def random_on_distance(self, distance: float | tuple[float, float] | list[float]) -> Point2:

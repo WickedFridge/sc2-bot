@@ -13,8 +13,6 @@ from pathlib import Path
 from typing import Any
 
 import aiohttp
-
-# pyre-ignore[21]
 import portpicker
 from aiohttp.client_ws import ClientWebSocketResponse
 from loguru import logger

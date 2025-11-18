@@ -123,10 +123,10 @@ class Ramp:
         raise Exception("Not implemented. Trying to access a ramp that has a wrong amount of upper points.")
 
     @cached_property
-    def corner_depots(self) -> frozenset[Point2]:
+    def corner_depots(self) -> set[Point2]:
         """Finds the 2 depot positions on the outside"""
         if not self.upper2_for_ramp_wall:
-            return frozenset()
+            return set()
         if len(self.upper2_for_ramp_wall) == 2:
             points = set(self.upper2_for_ramp_wall)
             p1 = points.pop().offset((self.x_offset, self.y_offset))
@@ -134,7 +134,7 @@ class Ramp:
             center = p1.towards(p2, p1.distance_to_point2(p2) / 2)
             depot_position = self.depot_in_middle
             if depot_position is None:
-                return frozenset()
+                return set()
             # Offset from middle depot to corner depots is (2, 1)
             intersects = center.circle_intersection(depot_position, 5**0.5)
             return intersects

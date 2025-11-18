@@ -83,7 +83,7 @@ class Common:
         "larva_count",
     ]
 
-    def __init__(self, proto) -> None:
+    def __init__(self, proto: sc2api_pb2.PlayerCommon) -> None:
         self._proto = proto
 
     def __getattr__(self, attr) -> int:

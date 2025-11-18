@@ -101,13 +101,13 @@ class Player(AbstractPlayer):
         p_type: PlayerType,
         requested_race: Race,
         difficulty: Difficulty | None = None,
-        actual_race: Race = None,
+        actual_race: Race | None = None,
         name: str | None = None,
         ai_build: AIBuild | None = None,
     ) -> None:
         super().__init__(p_type, requested_race, difficulty=difficulty, name=name, ai_build=ai_build)
         self.id: int = player_id
-        self.actual_race: Race = actual_race
+        self.actual_race: Race | None = actual_race
 
     @classmethod
     def from_proto(cls, proto: sc2api_pb2.PlayerInfo) -> Player:
@@ -171,7 +171,9 @@ class BotProcess(AbstractPlayer):
             return f"Bot {self.name}({self.race.name} from {self.launch_list})"
         return f"Bot({self.race.name} from {self.launch_list})"
 
-    def cmd_line(self, sc2port: int | str, matchport: int | str, hostaddress: str, realtime: bool = False) -> list[str]:
+    def cmd_line(
+        self, sc2port: int | str, matchport: int | str | None, hostaddress: str, realtime: bool = False
+    ) -> list[str]:
         """
 
         :param sc2port: the port that the launched sc2 instance listens to

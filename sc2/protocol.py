@@ -9,7 +9,6 @@ from loguru import logger
 
 # pyre-fixme[21]
 from s2clientprotocol import sc2api_pb2 as sc_pb
-
 from sc2.data import Status
 
 
@@ -34,7 +33,7 @@ class Protocol:
         # pyre-fixme[11]
         self._status: Status | None = None
 
-    async def __request(self, request):
+    async def __request(self, request: sc_pb.Request) -> sc_pb.Response:
         logger.debug(f"Sending request: {request!r}")
         try:
             await self._ws.send_bytes(request.SerializeToString())
@@ -65,7 +64,8 @@ class Protocol:
         logger.debug("Response received")
         return response
 
-    async def _execute(self, **kwargs):
+    # TODO Add types using @overload with various request args and response types
+    async def _execute(self, **kwargs) -> sc_pb.Response:
         assert len(kwargs) == 1, "Only one request allowed by the API"
 
         response = await self.__request(sc_pb.Request(**kwargs))
