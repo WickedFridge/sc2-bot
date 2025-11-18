@@ -78,7 +78,7 @@ class AbilityData:
     ability_ids: list[int] = [ability_id.value for ability_id in AbilityId][1:]  # sorted list
 
     @classmethod
-    def id_exists(cls, ability_id: data_pb2.AbilityData | int) -> bool:
+    def id_exists(cls, ability_id: int) -> bool:
         assert isinstance(ability_id, int), f"Wrong type: {ability_id} is not int"
         if ability_id == 0:
             return False
