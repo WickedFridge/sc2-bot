@@ -232,7 +232,7 @@ async def _play_game(
     return result
 
 
-async def _play_replay(client, ai, realtime: bool = False, player_id: int = 0):
+async def _play_replay(client: Client, ai, realtime: bool = False, player_id: int = 0):
     ai._initialize_variables()
 
     game_data = await client.get_game_data()
@@ -773,7 +773,7 @@ async def a_run_multiple_games_nokill(matches: list[GameMatch]) -> list[dict[Abs
 
     # Start the matches
     results = []
-    controllers = []
+    controllers: list[Controller] = []
     for m in matches:
         logger.info(f"Starting match {1 + len(results)} / {len(matches)}: {m}")
         result = None
