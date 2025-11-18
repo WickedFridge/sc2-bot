@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from s2clientprotocol import score_pb2
 
 
