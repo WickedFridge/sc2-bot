@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math
-from typing import List, Literal
+from typing import List
 from bot.buildings.armory import Armory
 from bot.buildings.barracks_addon import BarracksReactor, BarracksTechlab
 from bot.buildings.barracks import Barracks
@@ -20,10 +20,9 @@ from bot.buildings.starportreactor import StarportReactor
 from bot.buildings.starporttechlab import StarportTechlab
 from bot.buildings.supply_depot import SupplyDepot
 from bot.superbot import Superbot
-from bot.utils.ability_tags import AbilityBuild
 from bot.utils.fake_order import FakeOrder
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
-from sc2.game_info import Ramp
+from bot.utils.unit_functions import scv_build_progress
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -74,6 +73,28 @@ class Builder:
         self.missile_turret = MissileTurret(self)
         self.refinery = Refinery(self)
 
+    @property
+    def worker_builders(self) -> Units:
+        return self.bot.workers.filter(
+            lambda worker: (
+                (
+                    worker.is_carrying_resource == False
+                    or self.bot.time <= 200
+                )
+                and (
+                    len(worker.orders) == 0
+                    or not worker.is_constructing_scv
+                    or (
+                        worker.is_constructing_scv
+                        and scv_build_progress(self.bot, worker) >= 0.95
+                        and worker.orders[0].target is not None
+                        and isinstance(worker.orders[0].target, Point2)
+                        and worker.orders[0].target.distance_to(worker.position) <= 2
+                    )
+                )
+            )
+        )
+    
     async def switch_addons(self):
         # if starport is complete and has no reactor, lift it
         if (
@@ -133,23 +154,7 @@ class Builder:
     async def build(self, unitType: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
         location: Point2 = await self.bot.find_placement(unitType, near=theorical_location)
-        workers = self.bot.workers.filter(
-            lambda worker: (
-                # worker.is_carrying_resource == False
-                # and (
-                (
-                    len(worker.orders) == 0
-                    or not worker.is_constructing_scv
-                    or (
-                        worker.is_constructing_scv
-                        and self.scv_build_progress(worker) >= 0.95
-                        and worker.orders[0].target is not None
-                        and isinstance(worker.orders[0].target, Point2)
-                        and worker.orders[0].target.distance_to(worker.position) <= 2
-                    )
-                )
-            )
-        )
+        workers: Units = self.worker_builders
         if (workers.amount == 0 or location is None):
             print(f'Error: no available worker or no location found to build {unitType}')
             return
@@ -189,12 +194,6 @@ class Builder:
         ]
         return addon_points
 
-
-    def scv_build_progress(self, scv: Unit) -> float:
-        if (not scv.is_constructing_scv):
-            return 1
-        building: Unit = self.bot.structures.closest_to(scv)
-        return 1 if building.is_ready else building.build_progress
     
     def is_being_constructed(self, building: Unit) -> bool:
         return (

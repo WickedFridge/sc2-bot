@@ -20,7 +20,7 @@ class GhostAcademy(Building):
         ghost_academy_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.GHOSTACADEMY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL2)
         ghost_academy_count: int = self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount + self.bot.already_pending(UnitTypeId.GHOSTACADEMY)
-        supply_min: int = 140 if self.bot.matchup == Matchup.TvP else 120
+        supply_min: int = 120
 
         # We want a ghost academy once we have at least 4 bases and 2/2 started
         # but no ghost in TvT

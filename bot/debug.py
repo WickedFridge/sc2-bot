@@ -8,7 +8,7 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.point2_functions.utils import grid_offsets
-from bot.utils.unit_functions import find_by_tag
+from bot.utils.unit_functions import find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -176,7 +176,7 @@ class Debug:
             unit: Unit
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
             target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
-            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target}')
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (build : {scv_build_progress(self.bot, unit)})')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
@@ -402,13 +402,14 @@ class Debug:
     async def build_order(self):
         build_order: BuildOrder = self.bot.build_order.build
         for i, step in enumerate(build_order.steps):
-            position: Point2 = Point2((0.9, 0.3 + 0.015 * (i + 1)))
+            position: Point2 = Point2((0, 0.3 + 0.015 * (i + 1)))
             color = RED
-            if (step.can_check):
+            can_check, why = step.can_check_debug()
+            if (can_check):
                 color = YELLOW
             if (step.checked):
                 color = GREEN
-            self.draw_text_on_screen(step.name, position, color, font_size=14)
+            self.draw_text_on_screen(f'{step.name} {why}', position, color, font_size=14)
     
     async def composition_manager(self):
         composition: Composition = self.bot.composition_manager.composition

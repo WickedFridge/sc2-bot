@@ -11,14 +11,14 @@ class KokaBuild(BuildOrder):
     def __init__(self, bot: BotAI):
         super().__init__(bot)
         self.steps = [
-            BuildOrderStep(bot, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),
-            BuildOrderStep(bot, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
+            BuildOrderStep(bot, 'rax', UnitTypeId.BARRACKS),
+            BuildOrderStep(bot, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)], workers=15),
             BuildOrderStep(bot, 'reaper', UnitTypeId.REAPER, requirements=[(UnitTypeId.BARRACKS, 1, True)]),
             BuildOrderStep(bot, 'expand', UnitTypeId.COMMANDCENTER, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
             BuildOrderStep(bot, 'rax #2', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.BUNKER, 1, False)]),
             BuildOrderStep(bot, 'reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.REAPER, 1, True)]),
             BuildOrderStep(bot, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
-            BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.FACTORY, 1, False)]),
+            BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.FACTORY, 1, False)], workers=21, townhalls=2),
             BuildOrderStep(bot, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
             BuildOrderStep(bot, 'starport', UnitTypeId.STARPORT, requirements=[(UnitTypeId.FACTORY, 1, True)]),
             BuildOrderStep(bot, 'facto reactor', UnitTypeId.FACTORYREACTOR, requirements=[(UnitTypeId.STARPORT, 1, False)]),

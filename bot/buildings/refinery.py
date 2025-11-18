@@ -110,16 +110,7 @@ class Refinery(Building):
         if (can_build == False):
             return resources_updated
         
-        workers = self.bot.workers.filter(
-                lambda worker: (
-                    worker.is_carrying_resource == False
-                    and (
-                        (worker.is_constructing_scv and self.builder.scv_build_progress(worker) >= 0.9)
-                        or worker.orders.__len__() == 0
-                        or worker.orders[0].ability.id not in AbilityBuild
-                    )
-                )
-            )
+        workers: Units = self.builder.worker_builders
         if (workers.amount):
             worker: Unit = workers.closest_to(self.target_geyser)
             worker.build_gas(self.target_geyser)

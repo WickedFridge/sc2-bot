@@ -122,3 +122,14 @@ friendly_fire: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
     UnitTypeId.SIEGETANK,
 ]
+build_order_structures: List[UnitTypeId] = [
+    UnitTypeId.REFINERY,
+    UnitTypeId.COMMANDCENTER,
+    UnitTypeId.BARRACKS,
+    UnitTypeId.FACTORY,
+    UnitTypeId.STARPORT,
+    UnitTypeId.ENGINEERINGBAY,
+    UnitTypeId.ARMORY,
+    UnitTypeId.BARRACKSTECHLAB,
+    UnitTypeId.BARRACKSREACTOR
+]

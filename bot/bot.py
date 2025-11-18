@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.1.0"
+VERSION: str = "8.1.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -118,8 +118,6 @@ class WickedBot(Superbot):
             self.map.danger.init_danger_map()
             self.build_order.select_build(self.matchup)
             await self.tag_game()
-            
-
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
@@ -132,6 +130,7 @@ class WickedBot(Superbot):
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
+        
         start_time: float = perf_counter()
         await self.check_surrend_condition()
         # Update random tag
@@ -142,6 +141,7 @@ class WickedBot(Superbot):
         self.structures_memory = self.structures.copy()
         await self.map.update()
         self.expansions.update_scout_status()
+        self.build_order.sanity_check()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)
@@ -182,27 +182,6 @@ class WickedBot(Superbot):
         await self.combat.micro_planetary_fortresses()
 
         # Spend Money
-        
-        money_spender_names: List[str] = [
-            'orbital_command',
-            'supply_depot',
-            'workers',
-            'barracks_techlab',
-            'barracks_reactor',
-            'factory_reactor',
-            'tech',
-            'armory',
-            'medivac',
-            'infantry',
-            'ebay',
-            'bunker',
-            'starport',
-            'factory',
-            'barracks',
-            'refinery',
-            'command_center',
-        ]
-
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
         money_spenders.extend([
             # basic economy
@@ -306,7 +285,7 @@ class WickedBot(Superbot):
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
-        self.debug.danger_map()
+        # self.debug.danger_map()
         await self.debug.spawn_test_units()
         await self.debug.build_order()
         await self.debug.composition_manager()

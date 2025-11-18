@@ -3,6 +3,7 @@ from typing import List
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from bot.utils.unit_tags import build_order_structures
 
 ''' Reaper Expand
 
@@ -53,6 +54,27 @@ class BuildOrderStep:
         self.requirements = requirements or []
         self.upgrades_required = upgrades_required or []
 
+    def can_check_debug(self) -> tuple[bool, str]:
+        if (self.bot.townhalls.amount < self.townhalls):
+            return False, f'(not enough townhalls)'
+        if (self.bot.supply_used < self.supply):
+            return False, f'(not enough supply)'
+        if (self.bot.supply_workers < self.workers):
+            return False, f'(not enough workers)'
+        for unit_type, amount_required, completed in self.requirements:
+            unit_count: int = (
+                self.bot.structures(unit_type).ready.amount
+                + self.bot.units(unit_type).ready.amount
+            )
+            if (not completed):
+                unit_count += self.bot.already_pending(unit_type)
+            if (unit_count < amount_required):
+                return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
+        for upgrade in self.upgrades_required:
+            if (self.bot.already_pending_upgrade(upgrade) < 1):
+                return False, f'(upgrade {upgrade} not ready)'
+        return True, ''
+    
     @property
     def can_check(self) -> bool:
         if (self.bot.townhalls.amount < self.townhalls):
@@ -70,8 +92,9 @@ class BuildOrderStep:
                 unit_count += self.bot.already_pending(unit_type)
             if (unit_count < amount_required):
                 return False
-        if (any(self.bot.already_pending_upgrade(upgrade) < 1 for upgrade in self.upgrades_required)):
-            return False
+        for upgrade in self.upgrades_required:
+            if (self.bot.already_pending_upgrade(upgrade) < 1):
+                return False
         return True
     
     def try_complete(self) -> bool:
@@ -106,6 +129,19 @@ class BuildOrder:
     def completed_steps(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if step.checked]
     
+    @property
+    def completed_buildings(self) -> dict[UnitTypeId, int]:
+        completed: dict[UnitTypeId, int] = {}
+        for step in self.completed_steps:
+            unit_id: UnitTypeId = step.step_id
+            if (unit_id in build_order_structures):
+                if (unit_id in completed.keys()):
+                    completed[unit_id] += 1
+                else:
+                    completed[unit_id] = 1
+        return completed
+
+    
     # next step to execute
     @property
     def next(self) -> BuildOrderStep | None:
@@ -118,10 +154,3 @@ class BuildOrder:
                 print(f'Build order - {step.name} Checked')
                 return True
         return False
-    
-    def update(self) -> bool:
-        updated: bool = False
-        for step in self.steps:
-            if (step.try_complete()):
-                updated = True
-        return updated
