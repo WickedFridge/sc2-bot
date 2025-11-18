@@ -4,7 +4,7 @@ from __future__ import annotations
 import itertools
 import math
 import random
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Self, SupportsFloat, SupportsIndex, overload
 
 # pyre-fixme[21]
@@ -47,9 +47,30 @@ class Pointlike(tuple[float, float]):
         :param p2:"""
         return (self[0] - p2[0]) ** 2 + (self[1] - p2[1]) ** 2
 
+    @overload
+    def sort_by_distance(self, ps: Units) -> Sequence[Unit]: ...
+    @overload
+    def sort_by_distance(self, ps: Iterable[Point3]) -> Sequence[Point3]: ...
+    @overload
+    def sort_by_distance(self, ps: Iterable[Point2]) -> Sequence[Point2]: ...
+    @overload
+    def sort_by_distance(self, ps: Iterable[tuple[float, float]]) -> Sequence[tuple[float, float]]: ...
+    @overload
+    def sort_by_distance(self, ps: Iterable[tuple[float, float, float]]) -> Sequence[tuple[float, float, float]]: ...
     def sort_by_distance(
-        self, ps: Units | Iterable[tuple[float, float] | tuple[float, float, float]]
-    ) -> list[Unit | tuple[float, float] | tuple[float, float, float]]:
+        self,
+        ps: Units
+        | Iterable[Point3]
+        | Iterable[Point2]
+        | Iterable[tuple[float, float]]
+        | Iterable[tuple[float, float, float]],
+    ) -> (
+        Sequence[Unit]
+        | Sequence[Point3]
+        | Sequence[Point2]
+        | Sequence[tuple[float, float]]
+        | Sequence[tuple[float, float, float]]
+    ):
         """This returns the target points sorted as list.
         You should not pass a set or dict since those are not sortable.
         If you want to sort your units towards a point, use 'units.sorted_by_distance_to(point)' instead.
@@ -57,7 +78,11 @@ class Pointlike(tuple[float, float]):
         :param ps:"""
         return sorted(ps, key=lambda p: self.distance_to_point2(p.position))
 
-    def closest(self, ps: Units | Iterable[Point2]) -> Unit | Pointlike:
+    @overload
+    def closest(self, ps: Units) -> Unit: ...
+    @overload
+    def closest(self, ps: Iterable[Point2]) -> Point2: ...
+    def closest(self, ps: Units | Iterable[Point2]) -> Unit | Point2:
         """This function assumes the 2d distance is meant
 
         :param ps:"""
