@@ -480,7 +480,7 @@ class Client(Protocol):
         self,
         text: str,
         pos: Point2 | Point3 | tuple[float, float] | list[float],
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         size: int = 8,
     ) -> None:
         """
@@ -501,7 +501,7 @@ class Client(Protocol):
         self,
         text: str,
         pos: Point2 | Point3 | tuple[float, float] | list[float],
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         size: int = 8,
     ):
         return self.debug_text_screen(text, pos, color, size)
@@ -510,7 +510,7 @@ class Client(Protocol):
         self,
         text: str,
         pos: Unit | Point3,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         size: int = 8,
     ) -> None:
         """
@@ -531,7 +531,7 @@ class Client(Protocol):
         self,
         text: str,
         pos: Unit | Point3,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         size: int = 8,
     ):
         return self.debug_text_world(text, pos, color, size)
@@ -540,7 +540,7 @@ class Client(Protocol):
         self,
         p0: Unit | Point3,
         p1: Unit | Point3,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         """
         Draws a line from p0 to p1.
@@ -561,7 +561,7 @@ class Client(Protocol):
         self,
         p_min: Unit | Point3,
         p_max: Unit | Point3,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         """
         Draws a box with p_min and p_max as corners of the box.
@@ -582,7 +582,7 @@ class Client(Protocol):
         self,
         pos: Unit | Point3,
         half_vertex_length: float = 0.25,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         """
         Draws a box center at a position 'pos', with box side lengths (vertices) of two times 'half_vertex_length'.
@@ -602,7 +602,7 @@ class Client(Protocol):
         self,
         p: Unit | Point3,
         r: float,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         """
         Draws a sphere at point p with radius r.
@@ -781,7 +781,7 @@ class Client(Protocol):
 
 class DrawItem:
     @staticmethod
-    def to_debug_color(color: tuple[float, float] | list[float] | Point3 | None = None) -> debug_pb.Color:
+    def to_debug_color(color: tuple[float, float, float] | list[float] | Point3 | None = None) -> debug_pb.Color:
         """Helper function for color conversion"""
         if color is None:
             return debug_pb.Color(r=255, g=255, b=255)
@@ -805,7 +805,7 @@ class DrawItemScreenText(DrawItem):
     def __init__(
         self,
         start_point: Point2,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         text: str = "",
         font_size: int = 8,
     ) -> None:
@@ -831,7 +831,7 @@ class DrawItemWorldText(DrawItem):
     def __init__(
         self,
         start_point: Point3 = None,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
         text: str = "",
         font_size: int = 8,
     ) -> None:
@@ -858,7 +858,7 @@ class DrawItemLine(DrawItem):
         self,
         start_point: Point3 = None,
         end_point: Point3 = None,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         self._start_point: Point3 = start_point
         self._end_point: Point3 = end_point
@@ -879,7 +879,7 @@ class DrawItemBox(DrawItem):
         self,
         start_point: Point3 = None,
         end_point: Point3 = None,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         self._start_point: Point3 = start_point
         self._end_point: Point3 = end_point
@@ -901,7 +901,7 @@ class DrawItemSphere(DrawItem):
         self,
         start_point: Point3 = None,
         radius: float = None,
-        color: tuple[float, float] | list[float] | Point3 | None = None,
+        color: tuple[float, float, float] | list[float] | Point3 | None = None,
     ) -> None:
         self._start_point: Point3 = start_point
         self._radius: float = radius
