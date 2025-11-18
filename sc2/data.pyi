@@ -10,12 +10,11 @@ and mypy to understand the structure and members of these enums.
 
 from __future__ import annotations
 
-from enum import Enum, IntEnum
+from enum import Enum
 
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 
-# Enums created from sc2api_pb2
 class CreateGameError(Enum):
     MissingMap = 1
     InvalidMapPath = 2
@@ -26,7 +25,7 @@ class CreateGameError(Enum):
     InvalidPlayerSetup = 7
     MultiplayerUnsupported = 8
 
-class PlayerType(IntEnum):
+class PlayerType(Enum):
     Participant = 1
     Computer = 2
     Observer = 3
@@ -94,8 +93,7 @@ class ChatChannel(Enum):
     Broadcast = 1
     Team = 2
 
-# Enums created from common_pb2
-class Race(IntEnum):
+class Race(Enum):
     """StarCraft II race enum.
 
     Members:
@@ -132,7 +130,6 @@ class CloakState(Enum):
     NotCloaked = 4
     CloakedAllied = 5
 
-# Enums created from data_pb2
 class Attribute(Enum):
     Light = 1
     Armored = 2
@@ -160,7 +157,6 @@ class Target(Enum):
     PointOrUnit = 3
     PointOrNone = 4
 
-# Enums created from error_pb2
 class ActionResult(Enum):
     """Action result codes from game engine.
 
