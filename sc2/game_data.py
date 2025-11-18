@@ -224,7 +224,6 @@ class UnitTypeData:
         return UnitTypeId(self._proto.unit_alias)
 
     @property
-    # pyre-ignore[11]
     def race(self) -> Race:
         return Race(self._proto.race)
 
@@ -235,8 +234,7 @@ class UnitTypeData:
     @property
     def cost_zerg_corrected(self) -> Cost:
         """This returns 25 for extractor and 200 for spawning pool instead of 75 and 250 respectively"""
-        # pyre-ignore[16]
-        if self.race.value == Race.Zerg and Attribute.Structure in self.attributes:
+        if self.race == Race.Zerg and Attribute.Structure.value in self._proto.attributes:
             return Cost(self._proto.mineral_cost - 50, self._proto.vespene_cost, self._proto.build_time)
         return self.cost
 
