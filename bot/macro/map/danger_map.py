@@ -161,6 +161,15 @@ class DangerMap:
             case UnitTypeId.BANELING:
                 ground_dps = 30
                 ground_range += 2.2
+            case UnitTypeId.ADEPTPHASESHIFT:
+                ground_dps = 10
+                ground_range = 4
+            case UnitTypeId.CARRIER:
+                # zone around carrier is dangerous
+                ground_dps = 30
+                ground_range = 12
+                ground_dps = 30
+                air_range = 12
             case _:
                 pass
 

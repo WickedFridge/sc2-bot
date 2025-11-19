@@ -116,4 +116,4 @@ class Refinery(Building):
             worker.build_gas(self.target_geyser)
             print(f'Build {self.name}')
             self.on_complete()
-            return resources_updated
+        return resources_updated
