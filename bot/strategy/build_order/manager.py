@@ -25,6 +25,7 @@ class BuildOrderManager:
 
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}
+        modifier: int = 0
         for step in self.build.completed_steps:
             unit_id: UnitTypeId = step.step_id
             if (unit_id not in build_order_structures):
@@ -43,6 +44,8 @@ class BuildOrderManager:
                     UnitTypeId.ORBITALCOMMANDFLYING,
                     UnitTypeId.PLANETARYFORTRESS,
                 ])
+                # don't count the CC from the main in the BO
+                modifier -= 1
             if (unit_id == UnitTypeId.BARRACKS):
                 unit_ids.append(UnitTypeId.BARRACKSFLYING)
             if (unit_id == UnitTypeId.FACTORY):
@@ -54,7 +57,7 @@ class BuildOrderManager:
                     UnitTypeId.REACTOR,
                     UnitTypeId.STARPORTREACTOR
                 ])
-            building_amount: int = self.bot.structures(unit_ids).amount + sum([self.bot.already_pending(id) for id in unit_ids])
+            building_amount: int = self.bot.structures(unit_ids).amount + sum([self.bot.already_pending(id) for id in unit_ids]) + modifier
             if (building_amount < completed[unit_id]):
                 print(f'Error in build order detected, unchecking -- {unit_id}')
                 step.checked = False
