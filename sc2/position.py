@@ -43,7 +43,7 @@ class Pointlike(tuple[float, ...]):
         """Calculate a single distance from a point or unit to another point or unit
 
         :param target:"""
-        p: Point2 | Point3 = target if hasattr(target, "position") else target  # pyright: ignore[reportAssignmentType]
+        p: tuple[float, ...] = target if isinstance(target, tuple) else target.position
         return math.hypot(self[0] - p[0], self[1] - p[1])
 
     def distance_to_point2(self, p: _PointLike) -> float:
@@ -66,7 +66,7 @@ class Pointlike(tuple[float, ...]):
         If you want to sort your units towards a point, use 'units.sorted_by_distance_to(point)' instead.
 
         :param ps:"""
-        return sorted(ps, key=lambda p: self.distance_to_point2(p.position if hasattr(p, "position") else p))  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportArgumentType]
+        return sorted(ps, key=lambda p: self.distance_to_point2(p if isinstance(p, tuple) else p.position))
 
     def closest(self, ps: Iterable[_TPosLike]) -> _TPosLike:
         """This function assumes the 2d distance is meant
@@ -74,7 +74,7 @@ class Pointlike(tuple[float, ...]):
         :param ps:"""
         assert ps, "ps is empty"
 
-        return min(ps, key=lambda p: self.distance_to_point2(p if hasattr(p, "position") else p))  # pyright: ignore[reportArgumentType]
+        return min(ps, key=lambda p: self.distance_to_point2(p if isinstance(p, tuple) else p.position))
 
     def distance_to_closest(self, ps: Iterable[_TPosLike]) -> float:
         """This function assumes the 2d distance is meant
@@ -82,7 +82,7 @@ class Pointlike(tuple[float, ...]):
         assert ps, "ps is empty"
         closest_distance = math.inf
         for p in ps:
-            p2: Point2 | Point3 = p if hasattr(p, "position") else p  # pyright: ignore[reportAssignmentType]
+            p2: tuple[float, ...] = p if isinstance(p, tuple) else p.position
             distance = self.distance_to_point2(p2)
             if distance <= closest_distance:
                 closest_distance = distance
@@ -94,7 +94,7 @@ class Pointlike(tuple[float, ...]):
         :param ps: Units object, or iterable of Unit or Point2"""
         assert ps, "ps is empty"
 
-        return max(ps, key=lambda p: self.distance_to_point2(p if hasattr(p, "position") else p))  # pyright: ignore[reportArgumentType]
+        return max(ps, key=lambda p: self.distance_to_point2(p if isinstance(p, tuple) else p.position))
 
     def distance_to_furthest(self, ps: Iterable[_PosLike]) -> float:
         """This function assumes the 2d distance is meant
@@ -103,7 +103,7 @@ class Pointlike(tuple[float, ...]):
         assert ps, "ps is empty"
         furthest_distance = -math.inf
         for p in ps:
-            p2: Point2 | Point3 = p if hasattr(p, "position") else p  # pyright: ignore[reportAssignmentType]
+            p2: tuple[float, ...] = p if isinstance(p, tuple) else p.position
             distance = self.distance_to_point2(p2)
             if distance >= furthest_distance:
                 furthest_distance = distance
@@ -130,7 +130,7 @@ class Pointlike(tuple[float, ...]):
         :param distance:
         :param limit:
         """
-        p2: Point2 | Point3 = p if hasattr(p, "position") else p  # pyright: ignore[reportAssignmentType]
+        p2: tuple[float, ...] = p if isinstance(p, tuple) else p.position
         # assert self != p, f"self is {self}, p is {p}"
         # TODO test and fix this if statement
         if self == p2:
