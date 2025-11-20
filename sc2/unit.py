@@ -58,7 +58,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.position import Point2, Point3
+from sc2.position import HasPosition2D, Point2, Point3, _PointLike
 from sc2.unit_command import UnitCommand
 
 if TYPE_CHECKING:
@@ -103,7 +103,7 @@ class UnitOrder:
         return f"UnitOrder({self.ability}, {self.target}, {self.progress})"
 
 
-class Unit:
+class Unit(HasPosition2D):
     class_cache = CacheDict()
 
     def __init__(
@@ -529,7 +529,7 @@ class Unit:
         return self._proto.pos.x, self._proto.pos.y
 
     @cached_property
-    def position(self) -> Point2:
+    def position(self) -> Point2:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Returns the 2d position of the unit."""
         return Point2.from_proto(self._proto.pos)
 
@@ -538,7 +538,7 @@ class Unit:
         """Returns the 3d position of the unit."""
         return Point3.from_proto(self._proto.pos)
 
-    def distance_to(self, p: Unit | Point2) -> float:
+    def distance_to(self, p: Unit | _PointLike) -> float:
         """Using the 2d distance between self and p.
         To calculate the 3d distance, use unit.position3d.distance_to(p)
 
@@ -548,7 +548,7 @@ class Unit:
             return self._bot_object._distance_squared_unit_to_unit(self, p) ** 0.5
         return self._bot_object.distance_math_hypot(self.position_tuple, p)
 
-    def distance_to_squared(self, p: Unit | Point2) -> float:
+    def distance_to_squared(self, p: Unit | _PointLike) -> float:
         """Using the 2d distance squared between self and p. Slightly faster than distance_to, so when filtering a lot of units, this function is recommended to be used.
         To calculate the 3d distance, use unit.position3d.distance_to(p)
 

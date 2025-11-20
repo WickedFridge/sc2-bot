@@ -33,7 +33,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.pixel_map import PixelMap
-from sc2.position import Point2
+from sc2.position import Point2, _PointLike
 from sc2.unit import Unit
 from sc2.unit_command import UnitCommand
 from sc2.units import Units
@@ -1016,16 +1016,16 @@ class BotAIInternal(ABC):
     @final
     @staticmethod
     def distance_math_hypot(
-        p1: tuple[float, float] | Point2,
-        p2: tuple[float, float] | Point2,
+        p1: _PointLike,
+        p2: _PointLike,
     ) -> float:
         return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
     @final
     @staticmethod
     def distance_math_hypot_squared(
-        p1: tuple[float, float] | Point2,
-        p2: tuple[float, float] | Point2,
+        p1: _PointLike,
+        p2: _PointLike,
     ) -> float:
         return pow(p1[0] - p2[0], 2) + pow(p1[1] - p2[1], 2)
 
