@@ -21,7 +21,7 @@ class BuildOrderManager:
         self.build = KokaBuild(bot)
 
     def select_build(self, matchup: Matchup):
-        pass
+        return
         if (matchup == Matchup.TvT):
             self.build = TwoRaxReapers(self.bot)
         else:

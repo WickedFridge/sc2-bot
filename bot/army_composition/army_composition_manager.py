@@ -119,7 +119,12 @@ class ArmyCompositionManager:
         for unit_type in available_units:
             if (self.default_amount(unit_type)):
                 composition.set(unit_type, self.default_amount(unit_type))
-
+        
+        # build order specific modifications
+        build_order_driven: bool = self.wicked.build_order.build.modify_composition(composition)
+        if (build_order_driven):
+            return composition
+        
         
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
@@ -146,46 +151,32 @@ class ArmyCompositionManager:
         ):
             composition.set(UnitTypeId.RAVEN, 1)
         
-        # in early game set our composition to only be 1 reaper
-        if (
-            self.wicked.build_order.build.name == BuildOrderName.KOKA_BUILD
-            and self.bot.time <= 120
-        ):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
+        # if we have medivacs and a lot of bio, get the medivac count up to 10
+        if (UnitTypeId.MEDIVAC in available_units):
+            # add up to 4 Medivac if we already have a lot of bio
+            bio_supply: int = (
+                Army(self.wicked.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]), self.wicked).supply
+                + self.bot.already_pending(UnitTypeId.MARINE) * 1
+                + self.bot.already_pending(UnitTypeId.MARAUDER) * 2
+                + self.bot.already_pending(UnitTypeId.GHOST) * 3
+            )
+            if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
+                composition.set(UnitTypeId.MEDIVAC, min(10, round(bio_supply / 8)))
+
         
-        # In case of 2rax Reapers we want 3 of those
-        elif (
-            self.wicked.build_order.build.name == BuildOrderName.TWO_RAX_REAPERS
-            and self.bot.time <= 150
-        ):
-            composition.set(UnitTypeId.REAPER, 3)
-            composition.set(UnitTypeId.MARINE, 0)
+        # always fill the rest of the composition with 1/2 of Marines
+        composition.fill(UnitTypeId.MARINE, 1/2)
+        
+        # Then, finish with either Ghost or Marines
+        if (UnitTypeId.GHOST in self.available_units):
+            composition.fill(UnitTypeId.GHOST)
         else:
-            # if we have medivacs and a lot of bio, get the medivac count up to 10
-            if (UnitTypeId.MEDIVAC in available_units):
-                # add up to 4 Medivac if we already have a lot of bio
-                bio_supply: int = (
-                    Army(self.wicked.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]), self.wicked).supply
-                    + self.bot.already_pending(UnitTypeId.MARINE) * 1
-                    + self.bot.already_pending(UnitTypeId.MARAUDER) * 2
-                    + self.bot.already_pending(UnitTypeId.GHOST) * 3
-                )
-                if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
-                    composition.set(UnitTypeId.MEDIVAC, min(10, round(bio_supply / 8)))
+            composition.fill(UnitTypeId.MARINE)
+        return composition
 
-            
-            # always fill the rest of the composition with 1/2 of Marines
-            composition.fill(UnitTypeId.MARINE, 1/2)
-            
-            # Then, finish with either Ghost or Marines
-            if (UnitTypeId.GHOST in self.available_units):
-                composition.fill(UnitTypeId.GHOST)
-            else:
-                composition.fill(UnitTypeId.MARINE)
+    def update_composition(self) -> None:
+        self.composition = self.calculate_composition()
         
-        self.composition = composition
-
     def get(self, unit_type: UnitTypeId) -> Composition:
         return self.composition[unit_type]
 

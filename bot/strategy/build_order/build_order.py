@@ -1,5 +1,6 @@
 
 from typing import List
+from bot.army_composition.composition import Composition
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -138,3 +139,6 @@ class BuildOrder:
                 step.print_check()
                 return True
         return False
+    
+    def modify_composition(self, composition: Composition) -> None:
+        pass

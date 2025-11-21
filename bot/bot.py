@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.1.4"
+VERSION: str = "8.1.6"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -155,7 +155,7 @@ class WickedBot(Superbot):
         await self.scouting.detect_enemy_upgrades()
         await self.macro.update_threat_level()
         await self.strategy.update_situation()
-        self.composition_manager.calculate_composition()
+        self.composition_manager.update_composition()
         
         # Specific Worker Management
         await self.macro.workers_response_to_threat()

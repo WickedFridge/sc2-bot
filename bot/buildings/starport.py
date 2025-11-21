@@ -22,26 +22,21 @@ class Starport(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
-        starport_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.STARPORT)
-        if (starport_tech_requirement < 1):
-            return False
+        if (self.bot.build_order.build.is_completed == False):
+            return True
         
-        # We want 1st starport after we have a 2nd base
-        # if (self.starport_amount == 0):
-        #     return self.bot.townhalls.amount >= 2
+        if (self.starport_amount < 1):
+            return True
         
-        
-        # TODO we will see this later
-        # We want 2nd starport after we have a 3rd base if our composition is mostly air units
-        if (self.starport_amount >= 1):
-            return (
-                self.bot.townhalls.amount >= 3
-                and (
-                    self.bot.composition_manager.vikings_amount >= 8
-                    or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
-                )
+        # We want 2nd/3rd starport after we have a 3rd base if our composition is mostly air units
+        return (
+            self.bot.townhalls.amount >= 3
+            and self.starport_amount < 2
+            and (
+                self.bot.composition_manager.vikings_amount >= 4 * self.starport_amount
+                or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
             )
-        return True
+        )
             
     @override
     @property
