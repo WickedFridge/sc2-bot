@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 import bot
 from bot.strategy.build_order.build_order import BuildOrder
+from bot.strategy.build_order.dummy_build import Dummybuild
 from bot.strategy.build_order.koka_build import KokaBuild
 from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
@@ -20,32 +21,26 @@ class BuildOrderManager:
         self.build = KokaBuild(bot)
 
     def select_build(self, matchup: Matchup):
+        pass
         if (matchup == Matchup.TvT):
             self.build = TwoRaxReapers(self.bot)
+        else:
+            self.build = KokaBuild(self.bot)
 
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}
-        modifier: int = 0
-        for step in self.build.completed_steps:
+        for step in self.build.steps:
             unit_id: UnitTypeId = step.step_id
             if (unit_id not in build_order_structures):
                 continue
+            should_check: bool = step.checked
             if (unit_id in completed.keys()):
                 completed[unit_id] += 1
             else:
                 completed[unit_id] = 1
             
-            # add flying buildings and other CCs
+            # add flying buildings
             unit_ids: List[UnitTypeId] = [unit_id]
-            if (unit_id == UnitTypeId.COMMANDCENTER):
-                unit_ids.extend([
-                    UnitTypeId.ORBITALCOMMAND,
-                    UnitTypeId.COMMANDCENTERFLYING,
-                    UnitTypeId.ORBITALCOMMANDFLYING,
-                    UnitTypeId.PLANETARYFORTRESS,
-                ])
-                # don't count the CC from the main in the BO
-                modifier -= 1
             if (unit_id == UnitTypeId.BARRACKS):
                 unit_ids.append(UnitTypeId.BARRACKSFLYING)
             if (unit_id == UnitTypeId.FACTORY):
@@ -53,15 +48,19 @@ class BuildOrderManager:
             if (unit_id == UnitTypeId.STARPORT):
                 unit_ids.append(UnitTypeId.STARPORTFLYING)
             if (unit_id == UnitTypeId.FACTORYREACTOR):
-                unit_ids.extend([
-                    UnitTypeId.REACTOR,
-                    UnitTypeId.STARPORTREACTOR
-                ])
-            building_amount: int = self.bot.structures(unit_ids).amount + sum([self.bot.already_pending(id) for id in unit_ids]) + modifier
-            if (building_amount < completed[unit_id]):
-                print(f'Error in build order detected, unchecking -- {unit_id}')
-                step.checked = False
-
+                unit_ids.append(UnitTypeId.STARPORTREACTOR)
+            
+            building_amount: int = self.bot.structures(unit_ids).ready.amount + sum([self.bot.already_pending(id) for id in unit_ids])
+            # specific case of CommandCenter since we start with one
+            if (unit_id == UnitTypeId.COMMANDCENTER):
+                building_amount = self.bot.townhalls.ready.amount + self.bot.already_pending(unit_id) - 1
+            
+            should_check = building_amount >= completed[unit_id]
+            if (should_check != step.checked):
+                step.checked = should_check
+                print(f'buildings {unit_ids}: {building_amount}/{completed[unit_id]}')
+                step.print_check()
+                
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager

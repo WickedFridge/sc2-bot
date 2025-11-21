@@ -33,7 +33,6 @@ class StarportAddon(Building):
             if (can_build == False):
                 continue
             
-            print(f'Build {self.name}')
             starport.build(self.unitId)
             self.on_complete()
         return resources_updated

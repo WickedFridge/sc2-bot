@@ -1,3 +1,4 @@
+from typing import override
 from bot.buildings.building import Building
 from bot.macro.resources import Resources
 from sc2.game_data import Cost
@@ -14,6 +15,10 @@ class UpgradeBuilding(Building):
     def base_buildings(self) -> Units:
         return self.bot.structures(self.base_building_id).ready.idle
     
+    @override
+    def on_complete(self):
+        print(f'Upgrade {self.name}')
+    
     async def upgrade(self, resources: Resources) -> Resources:
         if (not self.conditions):
             return resources
@@ -26,7 +31,6 @@ class UpgradeBuilding(Building):
             can_build, resources_updated = resources.update(building_cost)
             if (can_build == False):
                 return resources_updated
-            print(f'Upgrade {self.name}')
             cc(self.abilityId)
             self.on_complete()
         return resources_updated

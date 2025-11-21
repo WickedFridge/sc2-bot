@@ -114,6 +114,5 @@ class Refinery(Building):
         if (workers.amount):
             worker: Unit = workers.closest_to(self.target_geyser)
             worker.build_gas(self.target_geyser)
-            print(f'Build {self.name}')
             self.on_complete()
         return resources_updated

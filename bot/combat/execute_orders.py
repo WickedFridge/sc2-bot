@@ -167,7 +167,7 @@ class Execute:
         for unit in army.units:
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_unload(unit)
-                self.micro.medivac_heal(unit, army.units)
+                await self.micro.medivac_heal(unit, army.units)
             if (unit.type_id == UnitTypeId.REAPER):
                 await self.micro.retreat(unit)
             # group units that aren't near the center

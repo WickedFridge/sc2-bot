@@ -131,5 +131,6 @@ build_order_structures: List[UnitTypeId] = [
     UnitTypeId.ENGINEERINGBAY,
     UnitTypeId.ARMORY,
     UnitTypeId.BARRACKSTECHLAB,
-    UnitTypeId.BARRACKSREACTOR
+    UnitTypeId.BARRACKSREACTOR,
+    UnitTypeId.FACTORYREACTOR,
 ]

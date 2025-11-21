@@ -57,7 +57,6 @@ class FactoryAddon(Building):
             if (can_build == False):
                 return resources_updated
 
-            print(f'Build {self.name}')
             factory.build(self.unitId)
             self.on_complete()
         return resources_updated

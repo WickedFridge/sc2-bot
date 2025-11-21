@@ -5,25 +5,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from bot.utils.unit_tags import build_order_structures
 
-''' Reaper Expand
-
-supply
-rax
-gas
-reaper
-orbital
-command center
-bunker
-rax #2
-rax reactor
-facto
-rax tech lab
-gas
-starport
-facto reactor
-
-'''
-
 class BuildOrderStep:
     bot: BotAI
     step_id: UnitTypeId | UpgradeId
@@ -55,6 +36,8 @@ class BuildOrderStep:
         self.upgrades_required = upgrades_required or []
 
     def can_check_debug(self) -> tuple[bool, str]:
+        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
+            return False, f'(tech requirement not ready)'
         if (self.bot.townhalls.amount < self.townhalls):
             return False, f'(not enough townhalls)'
         if (self.bot.supply_used < self.supply):
@@ -77,6 +60,8 @@ class BuildOrderStep:
     
     @property
     def can_check(self) -> bool:
+        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
+            return False
         if (self.bot.townhalls.amount < self.townhalls):
             return False
         if (self.bot.supply_used < self.supply):
@@ -97,11 +82,10 @@ class BuildOrderStep:
                 return False
         return True
     
-    def try_complete(self) -> bool:
-        if (not self.checked and self.can_check):
-            self.checked = True
-            return True
-        return False
+    def print_check(self) -> None:
+        checked_character: str = 'X' if self.checked else ' '
+        print(f'[{checked_character}] BO -- {self.name}')
+
 
 
 class BuildOrder:
@@ -151,6 +135,6 @@ class BuildOrder:
         for step in self.unchecked:
             if (step.step_id == step_id):
                 step.checked = True
-                print(f'Build order - {step.name} Checked')
+                step.print_check()
                 return True
         return False

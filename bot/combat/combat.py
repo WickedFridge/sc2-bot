@@ -353,12 +353,18 @@ class Combat:
             if (
                 potential_army_supply < potential_enemy_supply
             ):
-                # if our bio is too low, heal up
+                # if our bio is too low, heal up if we have enough energy
                 if (army.bio_health_percentage < 0.7):
-                    return Orders.HEAL_UP
-                # only drop if opponent doesn't have several phoenixes
+                    medivacs_with_energy: Units = usable_medivacs.filter(
+                        lambda unit: unit.energy >= 20
+                    )
+                    if (medivacs_with_energy.amount >= 1):
+                        return Orders.HEAL_UP
+                    else:
+                        return Orders.RETREAT
+                # only drop if opponent doesn't have enough anti air
                 elif (
-                    self.bot.scouting.known_enemy_army.units(UnitTypeId.PHOENIX).amount < 2
+                    self.bot.scouting.known_enemy_army.units([UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR]).amount < 2
                     and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
                 ):
                     return Orders.DROP

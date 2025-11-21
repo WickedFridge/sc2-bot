@@ -27,13 +27,13 @@ class Starport(Building):
             return False
         
         # We want 1st starport after we have a 2nd base
-        if (self.starport_amount == 0):
-            return self.bot.townhalls.amount >= 2
+        # if (self.starport_amount == 0):
+        #     return self.bot.townhalls.amount >= 2
         
         
         # TODO we will see this later
         # We want 2nd starport after we have a 3rd base if our composition is mostly air units
-        if (self.starport_amount == 1):
+        if (self.starport_amount >= 1):
             return (
                 self.bot.townhalls.amount >= 3
                 and (
@@ -41,7 +41,7 @@ class Starport(Building):
                     or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
                 )
             )
-        return False
+        return True
             
     @override
     @property

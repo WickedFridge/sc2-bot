@@ -53,12 +53,7 @@ class Building:
         ]
 
     def on_complete(self):
-        if (self.bot.build_order.build.is_completed or self.ignore_build_order):
-            return
-        checked: bool = self.bot.build_order.build.check(self.unitId)
-        if (not checked):
-            print(f'Error check build order for step {self.unitId}')
-            print(f'pending ids: {self.bot.build_order.build.pending_ids}')
+        print(f'Build {self.name}')
 
     async def build(self, resources: Resources) -> Resources:
         if (not self.conditions):
@@ -71,7 +66,6 @@ class Building:
         if (can_build == False):
             return resources_updated
         
-        print(f'Build {self.name}')
         pos: Point2 | None = self.position
         if (pos is None):
             print("Error, no valid position for {self.name}")

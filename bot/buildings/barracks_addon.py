@@ -117,7 +117,6 @@ class BarracksAddon(Building):
                 continue
             
             print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')
-            print(f'Build {self.name}')
             barracks.build(self.unitId)
             self.on_complete()
         return resources_updated

@@ -6,7 +6,7 @@ from sc2.ids.upgrade_id import UpgradeId
 
 
 class KokaBuild(BuildOrder):
-    name: BuildOrderName = BuildOrderName.KOKA_BUILD
+    name: BuildOrderName = BuildOrderName.KOKA_BUILD.value
 
     def __init__(self, bot: BotAI):
         super().__init__(bot)
