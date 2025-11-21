@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.1.6"
+VERSION: str = "8.2.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"

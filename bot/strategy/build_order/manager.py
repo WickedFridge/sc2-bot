@@ -1,7 +1,8 @@
 from __future__ import annotations
 from typing import List
-import bot
+from random import random
 from bot.strategy.build_order.build_order import BuildOrder
+from bot.strategy.build_order.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.dummy_build import Dummybuild
 from bot.strategy.build_order.koka_build import KokaBuild
 from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
@@ -21,11 +22,14 @@ class BuildOrderManager:
         self.build = KokaBuild(bot)
 
     def select_build(self, matchup: Matchup):
-        return
-        if (matchup == Matchup.TvT):
+        self.build = CCFirstTwoRax(self.bot)
+        random_value: float = random() * 3
+        if (random_value < 1):
             self.build = TwoRaxReapers(self.bot)
-        else:
+        elif (random_value < 2):
             self.build = KokaBuild(self.bot)
+        else:
+            self.build = CCFirstTwoRax(self.bot)
 
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}
@@ -41,6 +45,8 @@ class BuildOrderManager:
             
             # add flying buildings
             unit_ids: List[UnitTypeId] = [unit_id]
+            if (unit_id == UnitTypeId.SUPPLYDEPOT):
+                unit_ids.append(UnitTypeId.SUPPLYDEPOTLOWERED)
             if (unit_id == UnitTypeId.BARRACKS):
                 unit_ids.append(UnitTypeId.BARRACKSFLYING)
             if (unit_id == UnitTypeId.FACTORY):
