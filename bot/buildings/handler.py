@@ -246,7 +246,7 @@ class BuildingsHandler:
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
     async def lift_townhalls(self):
-        townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND]).ready.idle
+        townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot.ready.idle
         # calculate the optimal worker count based on mineral field left in bases
         optimal_worker_count: int = (
             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)

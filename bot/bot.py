@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.3.0"
+VERSION: str = "8.4.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -266,19 +266,16 @@ class WickedBot(Superbot):
         
         end_time: float = perf_counter()
         # await self.debug.drop_path()
-        await self.combat.debug_drop_target()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
         # await self.debug.building_grid()
-        await self.combat.debug_army_orders()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
         # await self.debug.selection()
-        self.macro.supply_block_update()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()
@@ -286,6 +283,9 @@ class WickedBot(Superbot):
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
         # self.debug.danger_map()
+        # self.macro.supply_block_update()
+        await self.combat.debug_army_orders()
+        await self.combat.debug_drop_target()
         await self.debug.spawn_test_units()
         await self.debug.build_order()
         await self.debug.composition_manager()

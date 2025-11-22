@@ -144,7 +144,7 @@ class Execute:
             if (medivacs.amount == 0):
                 await self.micro.retreat(unit)
                 break
-            unit.move(medivacs.closest_to(unit))
+            unit.move(medivacs.filter(lambda m: m.cargo_left >= 1).closest_to(unit))
         
         # medivacs boost and pickup
         for medivac in medivacs:

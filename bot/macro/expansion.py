@@ -1,6 +1,6 @@
 from collections import deque
 import math
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from bot.utils.army import Army
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
@@ -8,54 +8,55 @@ from bot.utils.point2_functions.utils import center
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from bot.utils.unit_tags import hq_types, menacing, worker_types
+from functools import cached_property
 
-
-class Expansion:
-    bot: BotAI
+class Expansion(CachedClass):
     position: Point2
     distance_from_main: float
     radius: int = 12
     last_scouted: float = 0
 
     def __init__(self, bot: BotAI, position: Point2, distance: float) -> None:
-        self.bot = bot
+        super().__init__(bot)
         self.position = position
         self.distance_from_main = distance
 
-    @property
+    @cached_property
     def is_main(self) -> bool:
         return self.position == self.bot.start_location
     
-    @property
+    @custom_cache_once_per_frame
     def is_taken(self) -> bool:
         townhalls: Units = self.bot.townhalls
         if (townhalls.amount == 0):
             return False
-        if (townhalls.not_flying.amount >= 1 and townhalls.not_flying.closest_distance_to(self.position) == 0):
-            return True
+        for th in townhalls.not_flying:
+            if (th.position == self.position):
+                return True
         for townhall in townhalls.flying:
             if (townhall.order_target == self.position):
                 return True
         return False
     
-    @property
+    @custom_cache_once_per_frame
     def is_unknown(self) -> bool:
         return self.bot.state.visibility[self.position.rounded] == 0
     
-    @property
+    @custom_cache_once_per_frame
     def is_visible(self) -> bool:
         return self.bot.state.visibility[self.position.rounded] == 2
     
-    @property
+    @custom_cache_once_per_frame
     def is_populated(self) -> bool:
         return self.bot.structures.closest_distance_to(self.position) <= 5
     
-    @property
+    @custom_cache_once_per_frame
     def is_enemy(self) -> bool:
         # if is enemy main unscouted, return True
         if (self.position == self.bot.enemy_start_locations[0] and self.is_unknown):
@@ -64,11 +65,11 @@ class Expansion:
         enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in hq_types)
         return enemy_townhalls.amount > 0 and enemy_townhalls.closest_distance_to(self.position) == 0
     
-    @property
+    @custom_cache_once_per_frame
     def is_ready(self) -> bool:
         return self.is_taken and self.cc.is_ready and not self.cc.is_flying
 
-    @property
+    @custom_cache_once_per_frame
     def is_safe(self) -> bool:
         local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
             lambda unit: unit.can_attack_ground or unit.type_id in menacing
@@ -93,7 +94,7 @@ class Expansion:
             and Army(local_anti_air_units, self.bot).weighted_supply >= Army(local_enemy_air_units, self.bot).weighted_supply
         )
 
-    @property
+    @custom_cache_once_per_frame
     def cc(self) -> Optional[Unit]:
         if (not self.is_taken):
             return None
@@ -103,11 +104,11 @@ class Expansion:
                 return townhall
         return None
     
-    @property
+    @custom_cache_once_per_frame
     def mineral_fields(self) -> Units:
         return self.bot.mineral_field.closer_than(10, self.position)
     
-    @property
+    @custom_cache_once_per_frame
     def refineries(self) -> Units:
         return self.bot.structures(UnitTypeId.REFINERY).ready.closer_than(10, self.position).filter(
             lambda refinery: self.bot.vespene_geyser.filter(
@@ -115,11 +116,11 @@ class Expansion:
             ).amount == 1
         )
     
-    @property
+    @custom_cache_once_per_frame
     def vespene_geysers(self) -> Units:
         return self.bot.vespene_geyser.closer_than(10, self.position)
     
-    @property
+    @custom_cache_once_per_frame
     def vespene_geysers_refinery(self) -> Units:
         return self.bot.vespene_geyser.filter(
             lambda geyser: geyser.has_vespene and self.bot.structures(UnitTypeId.REFINERY).ready.closer_than(10, self.position).filter(
@@ -127,21 +128,21 @@ class Expansion:
             ).amount == 1
         )
     
-    @property
+    @custom_cache_once_per_frame
     def minerals(self) -> int:
         minerals: int = 0
         for mf in self.mineral_fields:
             minerals += mf.mineral_contents
         return minerals
     
-    @property
+    @custom_cache_once_per_frame
     def vespene(self) -> int:
         vespene: int = 0
         for vg in self.vespene_geysers_refinery:
             vespene += vg.vespene_contents
         return vespene
 
-    @property
+    @custom_cache_once_per_frame
     def mineral_workers(self) -> Units:
         if (self.mineral_fields.amount == 0):
             return Units([], self.bot)
@@ -157,7 +158,7 @@ class Expansion:
             )
         )
     
-    @property
+    @custom_cache_once_per_frame
     def vespene_workers(self) -> Units:
         return self.bot.workers.closer_than(10, self.position).filter(
             lambda worker: (
@@ -166,39 +167,39 @@ class Expansion:
             )
         )
 
-    @property
+    @custom_cache_once_per_frame
     def mineral_worker_count(self) -> int:
         return self.mineral_workers.amount
 
-    @property
+    @custom_cache_once_per_frame
     def vespene_worker_count(self) -> int:
         return sum(refinery.assigned_harvesters for refinery in self.refineries)
     
-    @property
+    @custom_cache_once_per_frame
     def optimal_mineral_workers(self) -> float:
         if self.mineral_fields.amount == 0:
             return 0
         return sum(worker_amount_mineral_field(mf.mineral_contents) for mf in self.mineral_fields)
 
-    @property
+    @custom_cache_once_per_frame
     def optimal_vespene_workers(self) -> float:
         if self.refineries.amount == 0:
             return 0
         return sum(worker_amount_vespene_geyser(vg.vespene_contents) for vg in self.vespene_geysers_refinery)
 
-    @property
+    @custom_cache_once_per_frame
     def mineral_saturation(self) -> float:
         if (self.optimal_mineral_workers == 0):
             return -1
         return self.mineral_worker_count / self.optimal_mineral_workers
 
-    @property
+    @custom_cache_once_per_frame
     def vespene_saturation(self) -> float:
         if (self.optimal_vespene_workers == 0):
             return -1
         return self.vespene_worker_count / self.optimal_vespene_workers
 
-    @property
+    @custom_cache_once_per_frame
     def desired_vespene_saturation(self) -> float:
         """
         Returns desired gas saturation between 0 and 1 based on mineral saturation:
@@ -222,28 +223,28 @@ class Expansion:
 
         return saturation
     
-    @property
+    @cached_property
     def mineral_line(self) -> Point2:
         resources: Units = self.mineral_fields + self.vespene_geysers
         if (resources.amount == 0):
             return self.position.towards(self.bot.game_info.map_center, 5)
         return resources.center
 
-    @property
+    @custom_cache_once_per_frame
     def is_defended(self) -> bool:
         defenses: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready
         if (defenses.amount == 0):
             return False
         return (defenses.closest_distance_to(self.position) <= 12)
     
-    @property
+    @custom_cache_once_per_frame
     def detects(self) -> bool:
         turrets: Units = self.bot.structures(UnitTypeId.MISSILETURRET).ready
         if (turrets.amount == 0):
             return False
         return (turrets.closest_distance_to(self.position) <= 12)
     
-    @property
+    @custom_cache_once_per_frame
     def retreat_position(self) -> Point2:
         if (self.is_defended and self.mineral_fields.amount >= 1):
             reference_position: Point2 = self.mineral_fields.closest_to(self.defending_structure).position
@@ -251,7 +252,7 @@ class Expansion:
         position: Point2 = self.bunker_ramp or self.bunker_forward
         return center([position, self.mineral_line])
     
-    @property
+    @custom_cache_once_per_frame
     def bunker_forward_in_pathing(self) -> Point2 | None:
         """Finds the nearest buildable position for a bunker, avoiding the Command Center's hitbox."""
 
@@ -263,13 +264,13 @@ class Expansion:
         preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
         return dfs_in_pathing(self.bot, start, preferred_direction)     
 
-    @property
+    @cached_property
     def bunker_forward(self) -> Point2:
         enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
         bunker_position: Point2 = self.position.towards(enemy_spawn, 3)
         return bunker_position.rounded_half
     
-    @property
+    @custom_cache_once_per_frame
     def bunker_ramp(self) -> Optional[Point2]:
         closest_ramp_bottom: Point2 = find_closest_bottom_ramp(self.bot, self.position).bottom_center
         if (self.position.distance_to(closest_ramp_bottom) >= 15):
@@ -282,17 +283,17 @@ class Expansion:
         preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
         return dfs_in_pathing(self.bot, bunker_position.rounded_half, preferred_direction)
     
-    @property
+    @custom_cache_once_per_frame
     def defending_structure(self) -> Optional[Unit]:
         if (self.is_defended == False):
             return None
         return self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.closest_to(self.position)
     
-    @property
+    @custom_cache_once_per_frame
     def is_scouted(self) -> bool:
         return len(self.unscouted_points) == 0
     
-    @property
+    @custom_cache_once_per_frame
     def unscouted_points(self) -> List[Point2]:
         # Returns a list of all unscouted points within a circle of radius around the position
         radius: int = self.radius

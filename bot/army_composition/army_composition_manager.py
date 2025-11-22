@@ -8,6 +8,7 @@ from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from bot.utils.unit_supply import get_unit_supply
 from sc2.bot_ai import BotAI
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
@@ -18,12 +19,11 @@ if TYPE_CHECKING:
 
 composition_manager: ArmyCompositionManager | None = None
 
-class ArmyCompositionManager:
-    bot: BotAI
+class ArmyCompositionManager(CachedClass):
     composition: Composition
 
     def __init__(self, bot: BotAI) -> None:
-        self.bot = bot
+        super().__init__(bot)
         self.composition = Composition(bot, 0)
 
     def __is_available(self, unit_upgrade_type: UnitTypeId|UpgradeId) -> bool:
@@ -36,7 +36,7 @@ class ArmyCompositionManager:
     def wicked(self) -> WickedBot:
         return self.bot  # type: ignore
 
-    @property
+    @custom_cache_once_per_frame
     def available_units(self) -> List[UnitTypeId]:
         available_units: List[UnitTypeId] = []
         

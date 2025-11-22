@@ -32,6 +32,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
+from cython_extensions import cy_unit_pending
 
 if TYPE_CHECKING:
     from sc2.game_info import Ramp
@@ -851,6 +852,12 @@ class BotAI(BotAIInternal):
         """
         if isinstance(unit_type, UpgradeId):
             return self.already_pending_upgrade(unit_type)
+        # try:
+        #     amount: int = cy_unit_pending(self, unit_type)
+        #     return amount
+        # except Exception:
+        #     return 0
+        
         try:
             ability = self.game_data.units[unit_type.value].creation_ability.exact_id
         except AttributeError:

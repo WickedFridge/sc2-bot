@@ -4,6 +4,7 @@ import random
 from typing import Any, Callable, Generator, List, Optional
 from bot.macro.expansion import Expansion
 from sc2.bot_ai import BotAI
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -11,12 +12,12 @@ from sc2.units import Units
 
 expansions: Expansions | None = None
 
-class Expansions:
+class Expansions(CachedClass):
     bot: BotAI
     expansions: List[Expansion]
 
     def __init__(self, bot: BotAI, expansions: Optional[List[Expansion]] = None) -> None:
-        self.bot = bot
+        super().__init__(bot)
         self.expansions = expansions if expansions is not None else []
 
     def __iter__(self) -> Generator[Expansion, None, None]:
@@ -79,43 +80,43 @@ class Expansions:
     def positions(self) -> List[Point2]:
         return [expansion.position for expansion in self.expansions]
     
-    @property
+    @custom_cache_once_per_frame
     def taken(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == True)
     
-    @property
+    @custom_cache_once_per_frame
     def populated(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_populated == True)
     
-    @property
+    @custom_cache_once_per_frame
     def detecting(self) -> Expansions:
         return self.filter(lambda expansion: expansion.detects == True)
     
-    @property
+    @custom_cache_once_per_frame
     def not_detecting(self) -> Expansions:
         return self.filter(lambda expansion: expansion.detects == False)
 
-    @property
+    @custom_cache_once_per_frame
     def ready(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_ready == True)
 
-    @property
+    @custom_cache_once_per_frame
     def safe(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_safe == True)
 
-    @property
+    @custom_cache_once_per_frame
     def free(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == False)
 
-    @property
+    @custom_cache_once_per_frame
     def defended(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_defended == True)
     
-    @property
+    @custom_cache_once_per_frame
     def not_defended(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_defended == False)
     
-    @property
+    @custom_cache_once_per_frame
     def without_main(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_main == False)
     
@@ -165,7 +166,7 @@ class Expansions:
     def enemy_bases(self) -> Optional[Expansions]:
         return self.filter(lambda expansion: expansion.is_enemy == True)
 
-    @property
+    @custom_cache_once_per_frame
     def potential_enemy_bases(self) -> Optional[Expansions]:
         # every 3 min of game, assume another base is taken if not scouted
         potential_enemy_bases: List[Expansion] = []
@@ -199,7 +200,7 @@ class Expansions:
     def townhalls(self) -> Units:
         return Units([expansion.cc for expansion in self.taken.expansions], self.bot)
     
-    @property
+    @custom_cache_once_per_frame
     def mineral_fields(self) -> Units:
         mineral_fields: List[Units] = []
         for expansion in self.taken.expansions:
@@ -207,7 +208,7 @@ class Expansions:
                 mineral_fields.append(mineral_field)
         return Units(mineral_fields, self.bot)
 
-    @property
+    @custom_cache_once_per_frame
     def vespene_geysers(self) -> Units:
         vespene_geysers: List[Units] = []
         for expansion in self.taken.expansions:
@@ -223,33 +224,30 @@ class Expansions:
     def vespene(self) -> int:
         return sum(expansion.vespene for expansion in self.expansions)
 
-    @property
+    @custom_cache_once_per_frame
     def oldest_scout(self) -> Expansion:
         return self.sorted_by_oldest_scout().first
     
-    def townhalls_not_on_slot(self, type_ids: Optional[List[UnitTypeId] | UnitTypeId] = None) -> Units:
-        townhalls: Units = (
-            self.bot.townhalls if type_ids is None
-            else self.bot.townhalls(type_ids)
-        )
+    @custom_cache_once_per_frame
+    def townhalls_not_on_slot(self) -> Units:
+        townhalls: Units = self.bot.townhalls([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND])
         
-        # TODO : the commented code is very slow
         # it is supposed to check if a base is depleated
 
         # if every mineral field is depleted and every geyser is depleted, we return an empty list
-        # if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
-        #     return Units([], self.bot)
+        if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
+            return Units([], self.bot)
 
         # Return townhalls that are either not on an expansion slot, or a depleted expansion
         return townhalls.filter(
             lambda townhall: (
                 townhall.tag not in self.townhalls.tags
-                # or (
-                #     (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
-                #     and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
-                #         lambda vespene: vespene.has_vespene
-                #     ).amount == 0
-                # )
+                or (
+                    (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
+                    and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
+                        lambda vespene: vespene.has_vespene
+                    ).amount == 0
+                )
             )
         )
 

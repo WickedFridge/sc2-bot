@@ -5,6 +5,7 @@ from bot.scouting.scouting import Scouting
 from bot.strategy.build_order.manager import BuildOrderManager
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
+from sc2.cache import property_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -39,7 +40,7 @@ class Superbot(BotAI):
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
     
     
-    @property
+    @property_cache_once_per_frame
     def units_with_passengers(self) -> Units:
         units: Units = self.units.copy()
         if (units.amount == 0):

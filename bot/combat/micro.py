@@ -1,11 +1,12 @@
 import math
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
 from bot.utils.unit_supply import get_unit_supply
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -21,15 +22,16 @@ from s2clientprotocol import ui_pb2 as ui_pb
 
 MAXIMUM_SNIPE_COUNT: int = 2
 
-class Micro:
+class Micro(CachedClass):
     bot: Superbot
     snipe_targets: dict[int, int] = {}
     emp_targets: dict[int, int] = {}
     
     def __init__(self, bot: Superbot) -> None:
-        self.bot = bot
+        super().__init__(bot)
+
     
-    @property
+    @custom_cache_once_per_frame
     def retreat_position(self) -> Point2:
         if (self.bot.expansions.taken.amount <= 1):
             return self.bot.expansions.main.retreat_position
@@ -856,17 +858,17 @@ class Micro:
         target: Point2 = selected_position.__add__(offset)
         selected.move(selected_position.towards(target, distance))
 
-    @property
+    @custom_cache_once_per_frame
     def enemy_towers(self) -> Units:
         enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
         return enemy_towers
     
-    @property
+    @custom_cache_once_per_frame
     def enemy_units(self) -> Units:
         enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
         return enemy_units + self.enemy_towers
     
-    @property
+    @custom_cache_once_per_frame
     def enemy_fighting_units(self) -> Units:
         return self.enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing)
         

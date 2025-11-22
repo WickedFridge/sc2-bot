@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from random import random
+import random
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.dummy_build import Dummybuild
@@ -25,30 +25,26 @@ class BuildOrderManager:
     def select_build(self, matchup: Matchup):
         match(matchup):
             case Matchup.TvT:
-                self.build = self.randomly_select_build([
+                self.build = random.choice([
                     TwoRaxReapers(self.bot),
                     KokaBuild(self.bot),
                 ])
             case Matchup.TvZ:
-                self.build = self.randomly_select_build([
+                self.build = random.choice([
                     TwoRaxReapers(self.bot),
                     KokaBuild(self.bot),
                     CCFirstTwoRax(self.bot)
                 ])
             case Matchup.TvP:
-                self.build = self.randomly_select_build([
+                self.build = random.choice([
                     KokaBuild(self.bot),
                     CCFirstTwoRax(self.bot)
                 ])
             case _:
-                self.build = self.randomly_select_build([
+                self.build = random.choice([
                     KokaBuild(self.bot),
                     TwoRaxReapers(self.bot),
                 ])
-
-    def randomly_select_build(self, builds: List[BuildOrder]) -> BuildOrder:
-        index: int = int(random() * len(builds))
-        return builds[index]
     
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}
