@@ -11,7 +11,7 @@ supply[UnitTypeId.MULE] = 0
 supply[UnitTypeId.AUTOTURRET] = 2
 supply[UnitTypeId.MISSILETURRET] = 0
 supply[UnitTypeId.BUNKER] = 8
-supply[UnitTypeId.PLANETARYFORTRESS] = 12
+supply[UnitTypeId.PLANETARYFORTRESS] = 20
 supply[UnitTypeId.NUKE] = 50
 # Tier 1
 supply[UnitTypeId.SCV] = 1

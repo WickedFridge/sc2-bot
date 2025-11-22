@@ -186,6 +186,14 @@ class Army:
             or (self.cargo_left == 0 and self.units(UnitTypeId.MEDIVAC).amount >= 2)
         )
     
+    @property
+    def average_ground_range(self) -> float:
+        attacking_units: Units = self.ground_units.filter(lambda unit: unit.can_attack)
+        if (attacking_units.amount == 0):
+            return 0
+        total_range: float = sum([unit.ground_range for unit in attacking_units])
+        return total_range / attacking_units.amount
+    
     def detect_units(self, enemy_units: Units) -> None:
         for enemy in enemy_units:
             if (enemy.tag in self.units.tags):

@@ -380,13 +380,22 @@ class Micro(CachedClass):
         )
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         loaded_medivacs: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
-        has_melee_threat: bool = any([enemy_unit.ground_range <= 4 for enemy_unit in enemy_units_in_range])
+        
+        # TODO : Implement this
+        # Determine if we should kite back or pressure forward
+        # This depends on the enemy range + movement speed
+        # If their average range is less than our range, kite back
+        # If their average speed is less than our speed, and their range similar, kite back
+        # Otherwise, pressure forward
+        
+        average_ground_range: float = Army(local_army, self.bot).average_ground_range
+        shorter_range: bool = any([enemy_unit.ground_range < average_ground_range for enemy_unit in enemy_units_in_range])
         other_enemies: Units = self.enemy_fighting_units.sorted(
             lambda enemy_unit: (enemy_unit.distance_to(unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
         )
         
         # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
-        if (has_melee_threat and self.handle_melee_engagement(
+        if (shorter_range and self.handle_melee_engagement(
             unit,
             enemy_units_in_range,
             other_enemies,
@@ -885,7 +894,13 @@ class Micro(CachedClass):
     def get_enemy_units_in_range(self, unit: Unit) -> Units:
         if (unit is None):
             return Units([], self.bot)
-        enemy_units_in_range: Units = self.enemy_units.filter(
+        attackable_enemy_units: Units = self.enemy_units.filter(
+            lambda enemy: (
+                (unit.can_attack_ground and enemy.is_flying == False)
+                or (unit.can_attack_air and enemy.is_flying == True)
+            )
+        )
+        enemy_units_in_range: Units = attackable_enemy_units.filter(
             lambda enemy: unit.target_in_range(enemy)
         )
         return enemy_units_in_range

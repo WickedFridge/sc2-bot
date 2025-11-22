@@ -71,6 +71,10 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def is_safe(self) -> bool:
+        # Positions with high HP PF are considered safe
+        if (self.cc and self.cc.type_id == UnitTypeId.PLANETARYFORTRESS and self.cc.health_percentage >= 0.6):
+            return True
+
         local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.position).filter(
             lambda unit: unit.can_attack_ground or unit.type_id in menacing
         )

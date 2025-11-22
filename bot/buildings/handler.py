@@ -140,18 +140,7 @@ class BuildingsHandler:
 
     async def drop_mules(self):
         # find biggest mineral fields near a full base
-        mineral_fields: Units = Units([], self.bot)
-        ready_townhalls: Units = self.bot.structures(UnitTypeId.COMMANDCENTER).ready + self.bot.structures(UnitTypeId.ORBITALCOMMAND) 
-        for townhall in ready_townhalls :
-            mineral_fields += self.bot.mineral_field.closer_than(10, townhall)
-
-        if (mineral_fields.amount == 0):
-            return
-        enemy_units: Units = self.bot.enemy_units
-        safe_mineral_fields: Units = (
-            mineral_fields if enemy_units.amount == 0 else
-            mineral_fields.filter(lambda unit: self.bot.enemy_units.closest_distance_to(unit) > 15)
-        )
+        safe_mineral_fields: Units = self.bot.expansions.ready.safe.mineral_fields
         if (safe_mineral_fields.amount == 0):
             return
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)

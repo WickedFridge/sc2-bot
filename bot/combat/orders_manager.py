@@ -242,7 +242,8 @@ class OrdersManager:
             return self.get_drop_orders(
                 army=army,
                 local_enemy_supply=local_enemy_supply,
-                local_enemy_workers=local_enemy_workers
+                local_enemy_workers=local_enemy_workers,
+                local_enemy_buildings=local_enemy_buildings,
             )
         
         # -- Remaining general army logic
@@ -280,7 +281,8 @@ class OrdersManager:
         self,
         army: Army,
         local_enemy_supply: float,
-        local_enemy_workers: Units
+        local_enemy_workers: Units,
+        local_enemy_buildings: Units,
     ) -> Optional[Orders]:
         
         # If enemy near → follow the normal fighting logic
@@ -299,8 +301,8 @@ class OrdersManager:
             # If losing fight
             return Orders.PICKUP_LEAVE
 
-        # Workers in range → harass (common behaviour)
-        if (local_enemy_workers.amount >= 1):
+        # Harass Workers or buildings we fly above
+        if (local_enemy_workers.amount >= 1 or local_enemy_buildings.amount >= 1):
             if (army.potential_supply >= army.supply * 2):
                 return Orders.FIGHT_DROP
             return Orders.HARASS
@@ -333,7 +335,6 @@ class OrdersManager:
         if (distance_building_to_enemies <= BASE_SIZE):
             return Orders.FIGHT_DEFENSE
         
-        
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (
             self.stim_completed and (
@@ -341,27 +342,11 @@ class OrdersManager:
                 or army.potential_supply >= local_enemy_supply * 1.5
             )
         ):
-            # This should be handled in drop logic
-            # if (army.potential_supply >= army.supply * 2):
-            #     # only fight if our medivacs are healthy
-            #     if (army.usable_medivacs.amount >= 2):
-            #         return Orders.FIGHT_DROP
-            #     else:
-            #         return Orders.RETREAT
-            # elif (weighted_army_supply >= local_enemy_supply * 2):
-            
-            # Here specify fight defense if we're close to a base that's under attack
-            # Defending this base is more important than chasing units around
             if (weighted_army_supply >= local_enemy_supply * 2):
                 return Orders.FIGHT_CHASE
             else:
                 return Orders.FIGHT_OFFENSE
         
-        # closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
-        # distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
-        
-        # if (distance_building_to_enemies <= BASE_SIZE):
-        #     return Orders.FIGHT_DEFENSE
         if (
             army.ground_units.amount >= 6 and (
                 weighted_army_supply >= local_enemy_supply * 0.7
