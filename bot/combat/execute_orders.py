@@ -5,6 +5,7 @@ from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
+from bot.utils.unit_cargo import get_transport_cargo
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -73,45 +74,50 @@ class Execute:
         closest_two_centers.sort(key=lambda center: center._distance_squared(self.bot.scouting.known_enemy_army.center), reverse= True)
         return closest_two_centers[0]
 
-    async def drop(self, army: Army):
-        # get the 2 closest edge of the map to the drop target
-        # take the furthest one from the enemy army
-        medivacs: Units = army.units(UnitTypeId.MEDIVAC)
-        
-        # select dropping medivacs
-        usable_medivacs: Units = medivacs.filter(lambda unit: unit.health_percentage >= 0.4)
-
-        if (usable_medivacs.amount == 0):
+    async def drop_load(self, army: Army):
+        if (army.usable_medivacs.amount == 0):
             print("Error: no usable medivacs for drop")
             return
         
         # Step 1: Select the 2 fullest Medivacs among the healthy ones
-        medivacs_to_use: Units = usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
+        medivacs_to_use: Units = army.usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
 
         # Step 2: Split the medivacs
-        medivacs_to_retreat = medivacs.filter(lambda unit: unit.tag not in medivacs_to_use.tags)
+        medivacs_to_retreat = army.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.tag not in medivacs_to_use.tags)
         flyers_to_retreat = army.units.filter(lambda unit: unit.is_flying and unit.type_id != UnitTypeId.MEDIVAC)
         
         # Step 3: Unload and retreat extras
         for medivac in medivacs_to_retreat + flyers_to_retreat:
-            if medivac.passengers:
+            if (medivac.passengers):
                 await self.micro.medivac_unload(medivac)
             await self.micro.retreat(medivac)
         
         # Step 4: Check if the best two are full or need more units (don't drop ghosts)
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
-        cargo_left: int = sum(medivac.cargo_left for medivac in medivacs_to_use)
-        pickable_ground_units: Units = ground_units.filter(lambda unit: unit.type_id != UnitTypeId.GHOST and get_unit_supply(unit.type_id) <= cargo_left)
+        maximum_cargo_left: int = max(medivac.cargo_left for medivac in medivacs_to_use)
+        pickable_ground_units: Units = ground_units.filter(
+            lambda unit: (
+                unit.type_id != UnitTypeId.GHOST
+                and get_transport_cargo(unit.type_id) <= maximum_cargo_left
+            )
+        )
         
         # Step 5: Select the ground units to pickup and retreat with the rest
-        if (pickable_ground_units.amount >= 1):
+        if (pickable_ground_units.amount >= 1 and maximum_cargo_left >= 1):
             await self.pickup(medivacs_to_use, pickable_ground_units)
             return
-        else:
-            for unit in ground_units:
-                await self.micro.retreat(unit)
+
+        for unit in ground_units:
+            await self.micro.retreat(unit)
+    
+    async def drop_move(self, army: Army):
+        # get the 2 closest edge of the map to the drop target
+        # take the furthest one from the enemy army
         
-        # Step 6 : Drop with the medivacs
+        # -- Select the 2 fullest Medivacs among the healthy ones
+        medivacs_to_use: Units = army.usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
+        
+        # -- Drop with the medivacs
         for medivac in medivacs_to_use:
             distance_medivac_to_target = medivac.position.distance_to(self.drop_target)
             distance_edge_to_target = self.best_edge.distance_to(self.drop_target)
@@ -127,6 +133,10 @@ class Execute:
             else:
                 # Direct path is better
                 medivac.move(self.drop_target)
+        
+        ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
+        for unit in ground_units:
+            await self.micro.retreat(unit)
 
     async def pickup(self, medivacs: Units, ground_units: Units):
         # units get closer to medivacs
@@ -177,7 +187,11 @@ class Execute:
     
     async def retreat_army(self, army: Army):
         for unit in army.units:
-            await self.micro.retreat(unit)
+            if (unit.type_id == UnitTypeId.MEDIVAC):
+                await self.micro.medivac_unload(unit)
+                await self.micro.medivac_heal(unit, army.units)
+            else:
+                await self.micro.retreat(unit)
 
     async def fight(self, army: Army):
         for unit in army.units:

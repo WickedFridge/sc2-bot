@@ -1,5 +1,5 @@
 import math
-from typing import List, Set
+from typing import List, Optional, Set
 from bot.macro.map.danger_map import DangerMap
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
@@ -20,18 +20,16 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing
 
-class Combat:
+class OrdersManager:
     bot: Superbot
     execute: Execute
     armies: List[Army] = []
     bases: List[Base] = []
-    # danger_map: DangerMap
     DEFENSE_RANGE_LIMIT: int = 40
     
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.execute = Execute(bot)
-        # self.danger_map = DangerMap(bot)
     
     @property
     def army_supply(self) -> float:
@@ -87,37 +85,6 @@ class Combat:
         units_copy: Units = army.copy()
         visited_ids: Set[int] = set()
         clusters: List[Army] = []
-
-        # create a first cluster with all Reapers
-        # reapers: Units = self.bot.units(UnitTypeId.REAPER)
-        # if (reapers.amount >= 1):
-        #     clusters.append(Army(Units(reapers, self.bot), self.bot))
-        
-        # for unit in self.bot.units(UnitTypeId.REAPER):
-        #     if unit.tag in visited_ids:
-        #         continue  # Skip if already visited
-
-        #     # Start a new cluster
-        #     cluster: List[Unit] = []
-        #     stack: List[int] = [unit.tag]
-
-        #     while(stack):
-        #         current_id: int = stack.pop()
-        #         if current_id in visited_ids:
-        #             continue
-                
-        #         visited_ids.add(current_id)
-        #         cluster.append(units_copy.find_by_tag(current_id))
-
-        #         # Find neighbors within the radius
-        #         for other_unit in units_copy:
-        #             if (
-        #                 other_unit.tag not in visited_ids
-        #                 and unit.position.distance_to(other_unit.position) <= radius
-        #             ):
-        #                 stack.append(other_unit.tag)
-
-        #     clusters.append(Army(Units(cluster, self.bot), self.bot))
         
         for unit in units_copy:
             if unit.tag in visited_ids:
@@ -156,6 +123,20 @@ class Combat:
             )
         )    
     
+    @property
+    def stim_completed(self) -> bool:
+        return self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+    
+    @property
+    def stim_almost_completed(self) -> bool:
+        return self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.85
+    
+    @property
+    def enemy_anti_air(self) -> Units:
+        return self.bot.scouting.known_enemy_army.units(
+            [UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR]
+        )
+    
     def debug_cluster(self) -> None:
         clusters: List[Units] = self.get_army_clusters()
         for i, cluster in enumerate(clusters):
@@ -166,7 +147,6 @@ class Combat:
     async def select_orders(self, iteration: int):
         # update local armies
         # Scale radius in function of army supply
-        # old_armies: List[Army] = self.armies.copy()
         self.armies = self.get_army_clusters(iteration, self.army_radius)
         
         # if (iteration % 4 != 0):
@@ -221,11 +201,11 @@ class Combat:
         return Orders.SCOUT
     
     def get_army_orders(self, army: Army) -> Orders:
-        # specific orders for reapers
+        # -- Specific orders for reapers
         if (army.units(UnitTypeId.REAPER).amount >= 1):
             return self.reapers_orders(army)
         
-        # define local enemies
+        # -- Define local enemies
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center, self.army_radius)
         local_enemy_buildings = self.get_local_enemy_buildings(army.units.center, self.army_radius)
         local_enemy_workers: Units = self.bot.enemy_units.filter(
@@ -236,150 +216,227 @@ class Combat:
             )
         )
         global_enemy_buildings: Units = self.bot.enemy_structures
-        # useful in case of canon/bunker rush
+        
+        # -- Useful in case of canon/bunker rush
         situation: Situation = self.bot.scouting.situation
-        global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing) + global_enemy_buildings.filter(
-            lambda unit: unit.type_id in tower_types
+        global_enemy_menacing: Units = (
+            self.global_enemy_units.filter(lambda u: u.can_attack or u.type_id in menacing)
+            + global_enemy_buildings.filter(lambda u: u.type_id in tower_types)
+        )
+                
+        local_enemy_army: Army = Army(local_enemy_units, self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply
+        
+        unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
+        unseen_enemy_supply: float = unseen_enemy_army.supply
+        potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
+                
+        # -- High-priority hardcoded situations
+        if (situation == Situation.BUNKER_RUSH):
+            return Orders.DEFEND_BUNKER_RUSH
+        if (situation == Situation.CANON_RUSH):
+            return Orders.DEFEND_CANON_RUSH
+        
+        # -- Drop logic
+        if (army.is_drop):
+            return self.get_drop_orders(
+                army=army,
+                local_enemy_supply=local_enemy_supply,
+                local_enemy_workers=local_enemy_workers
+            )
+        
+        # -- Remaining general army logic
+        if (local_enemy_supply > 0):
+            return self.get_fight_orders(
+                army=army,
+                local_enemy_supply=local_enemy_supply,
+                global_enemy_menacing=global_enemy_menacing
+            )
+        
+        # -- Defend buildings under threat
+        if (self.should_defend_buildings(army, global_enemy_menacing)):
+            return Orders.DEFEND
+
+        # -- Worker harassment
+        if (local_enemy_workers.amount >= 1):
+            return Orders.HARASS
+
+        # -- Merge with nearby army
+        if (self.should_regroup(army)):
+            return Orders.REGROUP
+
+        # -- Kill nearby buildings
+        if (local_enemy_buildings.amount >= 1):
+            return Orders.KILL_BUILDINGS
+
+        # -- Global push decision
+        if (self.should_attack(army, situation)):
+            return self.get_attack_orders(army, global_enemy_buildings, potential_enemy_supply)
+
+        # Nothing else → retreat by default
+        return Orders.RETREAT
+        
+    def get_drop_orders(
+        self,
+        army: Army,
+        local_enemy_supply: float,
+        local_enemy_workers: Units
+    ) -> Optional[Orders]:
+        
+        # If enemy near → follow the normal fighting logic
+        if (local_enemy_supply > 0):
+            # If winning with stim
+            if (self.stim_completed and army.potential_supply >= local_enemy_supply):
+                if (army.potential_supply >= army.supply * 2):
+                    if (army.usable_medivacs.amount >= 2):
+                        return Orders.FIGHT_DROP
+                    return Orders.PICKUP_LEAVE
+
+                if (army.potential_supply >= local_enemy_supply * 1.5):
+                    return Orders.FIGHT_CHASE
+                return Orders.FIGHT_OFFENSE
+
+            # If losing fight
+            return Orders.PICKUP_LEAVE
+
+        # Workers in range → harass (common behaviour)
+        if (local_enemy_workers.amount >= 1):
+            if (army.potential_supply >= army.supply * 2):
+                return Orders.FIGHT_DROP
+            return Orders.HARASS
+            
+        # Heal up first if low bio HP
+        if (army.bio_health_percentage < 0.7):
+            if (army.usable_medivacs.filter(lambda m: m.energy >= 20).amount >= 1):
+                return Orders.HEAL_UP
+            return Orders.RETREAT
+
+        # Otherwise continue drop if not too much AA
+        if (self.enemy_anti_air.amount < 2 and army.usable_medivacs.amount >= 2):
+            if (army.cargo_left >= 1 and army.ground_units.amount >= 1):
+                return Orders.DROP_RELOAD
+            return Orders.DROP_MOVE
+        return Orders.RETREAT
+                
+    def get_fight_orders(
+        self,
+        army: Army,
+        local_enemy_supply: float,
+        global_enemy_menacing: Units
+    ):
+        weighted_army_supply: float = army.weighted_supply
+        
+        # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
+        if (
+            self.stim_completed and (
+                weighted_army_supply >= local_enemy_supply
+                or army.potential_supply >= local_enemy_supply * 1.5
+            )
+        ):
+            if (army.potential_supply >= army.supply * 2):
+                # only fight if our medivacs are healthy
+                if (army.usable_medivacs.amount >= 2):
+                    return Orders.FIGHT_DROP
+                else:
+                    return Orders.RETREAT
+            elif (weighted_army_supply >= local_enemy_supply * 2):
+                return Orders.FIGHT_CHASE
+            else:
+                return Orders.FIGHT_OFFENSE
+        
+        closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
+        distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
+        
+        if (distance_building_to_enemies <= BASE_SIZE):
+            return Orders.FIGHT_DEFENSE
+        if (
+            army.ground_units.amount >= 6 and (
+                weighted_army_supply >= local_enemy_supply * 0.7
+                or army.potential_supply >= local_enemy_supply * 0.9    
+            )
+        ):
+            return Orders.FIGHT_DISENGAGE
+        return Orders.PICKUP_LEAVE
+    
+    def should_defend_buildings(self, army: Army, global_enemy_menacing: Units) -> bool:
+        closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
+        distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
+        
+        return (
+            distance_building_to_enemies <= 10
+            and Army(global_enemy_menacing, self.bot).supply >= 12
+            and global_enemy_menacing.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
+        )
+    
+    def should_regroup(self, army: Army) -> bool:
+        closest_army: Army = self.get_closest_army(army)
+        closest_army_distance: float = self.get_closest_army_distance(army)
+        
+        return (
+            self.armies.__len__() >= 2
+            and closest_army_distance <= self.army_radius * 1.2
+            and 2/3 < closest_army.supply / army.supply < 3/2
+            and army.bio_supply + closest_army.bio_supply >= 12
         )
 
-        usable_medivacs: Units = army.units(UnitTypeId.MEDIVAC).filter(
-            lambda unit: unit.health_percentage >= 0.5
+    def should_attack(
+        self,
+        army: Army,
+        situation: Situation
+    ) -> bool:
+        return (
+            army.potential_supply >= 8
+            # and army.potential_supply >= army.supply * 0.7
+            and army.bio_health_percentage >= 0.7
+            and (army.usable_medivacs.amount >= 2 or army.potential_supply >= 40)
+            and army.potential_bio_supply >= 12
+            and self.stim_almost_completed
+            and situation != Situation.UNDER_ATTACK
         )
+
+    def get_attack_orders(
+        self,
+        army: Army,
+        global_enemy_buildings: Units,
+        potential_enemy_supply: float,
+    ) -> Orders:
         global_full_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.tag not in army.tags and unit.cargo_left == 0
         )
         # the amount of medivacs allowed to drop is 2 by default, going up to 4 once we hit 8 medivacs
         # maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
         maximal_medivacs_dropping: int = 10
-
-        weighted_army_supply: float = army.weighted_supply
-        potential_army_supply: float = army.potential_supply
-        potential_bio_supply: float = army.potential_bio_supply
-        local_enemy_army: Army = Army(local_enemy_units, self.bot)
-        local_enemy_supply: float = local_enemy_army.weighted_supply
-        unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
-        unseen_enemy_supply: float = unseen_enemy_army.supply
-        potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
-        closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
-        distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         
-        stim_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
-        stim_almost_completed: bool = self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.85
-
-        closest_army: Army = self.get_closest_army(army)
-        closest_army_distance: float = self.get_closest_army_distance(army)
-        
-        # debug info
-        # self.draw_text_on_world(army.center, f'{local_enemy_army.recap}')
-
-        # first handle specific situations
-        if (situation == Situation.BUNKER_RUSH):
-            return Orders.DEFEND_BUNKER_RUSH
-        if (situation == Situation.CANON_RUSH):
-            return Orders.DEFEND_CANON_RUSH
-        
-        # Deal with local enemy supply
-        if (local_enemy_supply):
-            # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
-            if (
-                stim_completed and (
-                    weighted_army_supply >= local_enemy_supply
-                    or potential_army_supply >= local_enemy_supply * 1.5
+        # if we would lose a fight
+        if (
+            army.potential_supply < potential_enemy_supply
+        ):
+            # if our bio is too low, heal up if we have enough energy
+            if (army.bio_health_percentage < 0.7):
+                medivacs_with_energy: Units = army.usable_medivacs.filter(
+                    lambda unit: unit.energy >= 20
                 )
-            ):
-                if (potential_army_supply >= army.supply * 2):
-                    # only fight if our medivacs are healthy
-                    if (usable_medivacs.amount >= 2):
-                        return Orders.FIGHT_DROP
-                    else:
-                        return Orders.RETREAT
-                elif (weighted_army_supply >= local_enemy_supply * 2):
-                    return Orders.FIGHT_CHASE
-                else:
-                    return Orders.FIGHT_OFFENSE
-            if (distance_building_to_enemies <= BASE_SIZE):
-                return Orders.FIGHT_DEFENSE
-            if (
-                army.ground_units.amount >= 6 and (
-                    weighted_army_supply >= local_enemy_supply * 0.7
-                    or potential_army_supply >= local_enemy_supply * 0.9    
-                )
-            ):
-                print(f'disengaging')
-                return Orders.FIGHT_DISENGAGE
-            
-            print(f'army too strong [{round(weighted_army_supply, 1)}/{round(potential_army_supply, 1)} vs {round(local_enemy_supply, 1)}/{round(local_enemy_supply * 1.25, 1)}], not taking the fight')
-            return Orders.PICKUP_LEAVE
-                
-        # if we should defend
-        if (
-            distance_building_to_enemies <= 10
-            and Army(global_enemy_menacing_units_buildings, self.bot).supply >= 12
-            and global_enemy_menacing_units_buildings.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
-        ):
-            return Orders.DEFEND
-
-        # if enemy is a workers, focus them
-        if (local_enemy_workers.amount >= 1):
-            if (potential_army_supply >= army.supply * 2):
-                return Orders.FIGHT_DROP
-            else:
-                return Orders.HARASS
-        
-        # if another army is close, we should regroup
-        # only merge ground armies
-        if (
-            self.armies.__len__() >= 2
-            and closest_army_distance <= self.army_radius * 1.2
-            and 2/3 < closest_army.supply / army.supply < 3/2
-            and army.bio_supply + closest_army.bio_supply >= 12
-        ):
-            return Orders.REGROUP
-        
-        # if enemy is buildings, focus the lowest on life among those in range
-        if (local_enemy_buildings.amount >= 1):
-            return Orders.KILL_BUILDINGS
-        
-        # if we have enough army and we're not under attack we attack
-        if (
-            potential_army_supply >= 8
-            and potential_army_supply >= army.supply * 0.7
-            and (usable_medivacs.amount >= 2 or potential_army_supply >= 40)
-            and potential_bio_supply >= 12
-            and stim_almost_completed
-            and situation != Situation.UNDER_ATTACK
-        ):
-            # if we would lose a fight
-            if (
-                potential_army_supply < potential_enemy_supply
-            ):
-                # if our bio is too low, heal up if we have enough energy
-                if (army.bio_health_percentage < 0.7):
-                    medivacs_with_energy: Units = usable_medivacs.filter(
-                        lambda unit: unit.energy >= 20
-                    )
-                    if (medivacs_with_energy.amount >= 1):
-                        return Orders.HEAL_UP
-                    else:
-                        return Orders.RETREAT
-                # only drop if opponent doesn't have enough anti air
-                elif (
-                    self.bot.scouting.known_enemy_army.units([UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR]).amount < 2
-                    and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
-                ):
-                    return Orders.DROP
+                if (medivacs_with_energy.amount >= 1):
+                    return Orders.HEAL_UP
                 else:
                     return Orders.RETREAT
-            
-            # if we would win a fight, we attack front
+            # only drop if opponent doesn't have enough anti air
+            elif (
+                self.enemy_anti_air.amount < 2
+                and army.usable_medivacs.amount >= 2
+                and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
+            ):
+                return Orders.DROP_LOAD
             else:
-                # the next building if we know where it is, the nearest base if we don't
-                if (global_enemy_buildings.amount >= 1):
-                    return Orders.CHASE_BUILDINGS
-                else:
-                    return Orders.ATTACK_NEAREST_BASE
-
-        return Orders.RETREAT
+                return Orders.RETREAT
+        
+        # if we would win a fight, we attack front
+        else:
+            # the next building if we know where it is, the nearest base if we don't
+            if (global_enemy_buildings.amount >= 1):
+                return Orders.CHASE_BUILDINGS
+            else:
+                return Orders.ATTACK_NEAREST_BASE
 
     async def execute_orders(self):
         for army in self.armies:            
@@ -417,8 +474,11 @@ class Combat:
                 case Orders.DEFEND_CANON_RUSH:
                     self.execute.defend_canon_rush(army)
 
-                case Orders.DROP:
-                    await self.execute.drop(army)
+                case Orders.DROP_LOAD | Orders.DROP_RELOAD:
+                    await self.execute.drop_load(army)
+                
+                case Orders.DROP_MOVE:
+                    await self.execute.drop_move(army)
                 
                 case Orders.HARASS:
                     await self.execute.harass(army)            
@@ -565,7 +625,8 @@ class Combat:
             Orders.FIGHT_DISENGAGE: ORANGE,
             Orders.DEFEND: YELLOW,
             Orders.HARASS: LIGHTBLUE,
-            Orders.DROP: LIGHTBLUE,
+            Orders.DROP_LOAD: LIGHTBLUE,
+            Orders.DROP_MOVE: LIGHTBLUE,
             Orders.CHASE_BUILDINGS: LIGHTBLUE,
             Orders.ATTACK_NEAREST_BASE: PURPLE,
             Orders.KILL_BUILDINGS: PURPLE,

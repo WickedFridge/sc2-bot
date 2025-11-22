@@ -25,7 +25,7 @@ class OrbitalCommand(UpgradeBuilding):
     @override
     @property
     def custom_conditions(self) -> bool:
-        orbital_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9
+        orbital_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.95
         ccs_amount: int = self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle.amount
         if (not orbital_tech_available or ccs_amount == 0):
             return False
@@ -42,3 +42,9 @@ class OrbitalCommand(UpgradeBuilding):
         )
         is_mining_optimal: bool = self.bot.supply_workers < optimal_worker_count - 5
         return is_mining_optimal
+    
+    @override
+    def on_complete(self):
+        if (self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) < 1):
+            return
+        print(f'Upgrade {self.name}')

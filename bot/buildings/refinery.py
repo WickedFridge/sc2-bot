@@ -30,25 +30,8 @@ class Refinery(Building):
         
         match(refinery_amount):
             # Build order handles first 2 gas
-            case 0:
+            case 0 | 1:
                 return True
-            case 1:
-                return True
-            
-            # case 0:
-            #     # build first refinery as soon as we have a barracks and at least 15 SCVs
-            #     return (
-            #     self.bot.structures(UnitTypeId.BARRACKS).amount > 0
-            #     and workers_amount >= 15
-            # )
-
-            # case 1:
-            #     # build second refinery as soon as we have a factory and at least 21 SCVs
-            #     return (
-            #         self.bot.structures(UnitTypeId.FACTORY).amount > 0
-            #         and self.bot.townhalls.amount >= 2
-            #         and workers_amount >= 21
-            #     )
             
             case 2:
                 # build third rafinery as long as we have 3CCs, 4 rax and at least 40 SCVs  
@@ -66,22 +49,20 @@ class Refinery(Building):
                     and workers_amount >= 50
                 )
 
-            # TODO clean this
-            case 6:
-                return (
-                    refinery_amount < max_refineries
-                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
-                    and workers_amount >= 75
-                )
-
-            case _:        
-                # TODO: fix refinery count for gas #7 and #8
+            case 4 | 5:        
                 return (
                     refinery_amount < max_refineries
                     and refinery_amount <= 2 * self.bot.expansions.amount_taken
                     and workers_amount >= (refinery_amount + 1) * 12.5 + 1
                 )
-    
+
+            # TODO clean this
+            case _:
+                return (
+                    refinery_amount < max_refineries
+                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
+                    and workers_amount >= 75
+                )    
     
     
     @property

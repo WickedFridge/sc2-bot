@@ -1,6 +1,7 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
+from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.utils.matchup import Matchup
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -21,23 +22,16 @@ class CommandCenter(Building):
     def custom_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
-        medivac_count: int = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
         pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
         max_pending_cc_count: int = 2
-        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount + self.bot.already_pending(UnitTypeId.ORBITALCOMMAND)
 
         match(townhalls_count):
-            # case 0 | 1:
-            #     return orbital_count >= 1
-            # case 2:
-            #     return medivac_count >= 2 or self.bot.minerals >= 600
-            
             # build order handles that
             case 0 | 1 | 2:
                 return True
             case _:
                 return (
-                    townhalls_count <= base_count + 2 and
+                    townhalls_count <= base_count + 3 and
                     pending_cc_count < max_pending_cc_count
                 )
 
@@ -61,7 +55,7 @@ class CommandCenter(Building):
     
     async def move_worker_expand(self):
         # move SCV for first expand
-        if (self.bot.time >= 100):
+        if (self.bot.time >= 100 or self.bot.build_order.build.name != BuildOrderName.KOKA_BUILD.value):
             return
         rax_builder: Units = self.bot.workers.filter(
             lambda unit: (

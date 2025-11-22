@@ -121,7 +121,7 @@ class Micro:
                 and enemy_units_in_sight.amount == 0
             ):
                 await self.medivac_unload(unit)
-            if (not await self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):
+            if (not await self.medivac_safety_disengage(unit) and unit.distance_to(retreat_position) > 3):                
                 unit.move(retreat_position)
                 if (unit.distance_to(retreat_position) > 15):
                     await self.medivac_boost(unit)

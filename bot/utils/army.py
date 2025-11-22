@@ -83,6 +83,12 @@ class Army:
         return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
 
     @property
+    def usable_medivacs(self) -> Units:
+        return self.units(UnitTypeId.MEDIVAC).filter(
+            lambda unit: unit.health_percentage >= 0.4
+        )
+    
+    @property
     def units_not_in_sight(self) -> Units:
         unseen_units: List[Unit] = []
         for unit in self.units:
@@ -116,6 +122,13 @@ class Army:
             total_health += unit.health_max + unit.shield_max
 
         return bio_health / total_health
+    
+    @property
+    def cargo_left(self) -> int:
+        two_fullest_medivacs: Units = self.units(UnitTypeId.MEDIVAC).sorted(
+            key = lambda medivac: medivac.cargo_used, reverse=True
+        ).take(2)
+        return sum([medivac.cargo_left for medivac in two_fullest_medivacs])
     
     @property
     def passengers(self) -> Units:
@@ -165,6 +178,14 @@ class Army:
             return self.units
         return self.units.filter(lambda unit: unit.tag != self.leader.tag)
 
+    @property
+    def is_drop(self) -> bool:
+        # we are a drop if we have more passengers than bio units or we have 2 fully loaded medivacs
+        return (
+            self.passengers.amount > self.bio_units.amount
+            or (self.cargo_left == 0 and self.units(UnitTypeId.MEDIVAC).amount >= 2)
+        )
+    
     def detect_units(self, enemy_units: Units) -> None:
         for enemy in enemy_units:
             if (enemy.tag in self.units.tags):

@@ -3,7 +3,7 @@ from typing import Awaitable, Callable, override
 from bot.army_composition.army_composition_manager import get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
-from bot.combat.combat import Combat
+from bot.combat.orders_manager import OrdersManager
 from bot.debug import Debug
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.2.0"
+VERSION: str = "8.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -32,7 +32,7 @@ class WickedBot(Superbot):
     builder: Builder
     buildings: BuildingsHandler
     search: Search
-    combat: Combat
+    combat: OrdersManager
     trainer: Trainer
     macro: Macro
     strategy: StrategyHandler
@@ -48,7 +48,7 @@ class WickedBot(Superbot):
         self.builder = Builder(self)
         self.buildings = BuildingsHandler(self)
         self.search = Search(self)
-        self.combat = Combat(self)
+        self.combat = OrdersManager(self)
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)

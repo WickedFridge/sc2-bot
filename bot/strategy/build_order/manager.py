@@ -16,21 +16,40 @@ build_order_manager: BuildOrderManager | None = None
 class BuildOrderManager:
     bot: BotAI
     build: BuildOrder
+    default_build: BuildOrder = KokaBuild
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.build = KokaBuild(bot)
+        self.build = self.default_build
 
     def select_build(self, matchup: Matchup):
-        self.build = CCFirstTwoRax(self.bot)
-        random_value: float = random() * 3
-        if (random_value < 1):
-            self.build = TwoRaxReapers(self.bot)
-        elif (random_value < 2):
-            self.build = KokaBuild(self.bot)
-        else:
-            self.build = CCFirstTwoRax(self.bot)
+        match(matchup):
+            case Matchup.TvT:
+                self.build = self.randomly_select_build([
+                    TwoRaxReapers(self.bot),
+                    KokaBuild(self.bot),
+                ])
+            case Matchup.TvZ:
+                self.build = self.randomly_select_build([
+                    TwoRaxReapers(self.bot),
+                    KokaBuild(self.bot),
+                    CCFirstTwoRax(self.bot)
+                ])
+            case Matchup.TvP:
+                self.build = self.randomly_select_build([
+                    KokaBuild(self.bot),
+                    CCFirstTwoRax(self.bot)
+                ])
+            case _:
+                self.build = self.randomly_select_build([
+                    KokaBuild(self.bot),
+                    TwoRaxReapers(self.bot),
+                ])
 
+    def randomly_select_build(self, builds: List[BuildOrder]) -> BuildOrder:
+        index: int = int(random() * len(builds))
+        return builds[index]
+    
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}
         for step in self.build.steps:

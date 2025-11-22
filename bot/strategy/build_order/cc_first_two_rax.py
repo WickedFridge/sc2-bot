@@ -19,10 +19,8 @@ class CCFirstTwoRax(BuildOrder):
             BuildOrderStep(bot, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
+            BuildOrderStep(bot, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
             BuildOrderStep(bot, 'starport', UnitTypeId.STARPORT),
             BuildOrderStep(bot, 'facto reactor', UnitTypeId.FACTORYREACTOR, requirements=[(UnitTypeId.STARPORT, 1, False)]),
-            BuildOrderStep(bot, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
             BuildOrderStep(bot, '3rd CC', UnitTypeId.COMMANDCENTER, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
-            # BuildOrderStep(bot, 'medivac #1', UnitTypeId.MEDIVAC, requirements=[(UnitTypeId.STARPORTREACTOR, 1, True)]),
-            # BuildOrderStep(bot, 'medivac #2', UnitTypeId.MEDIVAC, requirements=[(UnitTypeId.STARPORTREACTOR, 1, True)]),
         ]
