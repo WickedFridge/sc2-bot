@@ -1,6 +1,12 @@
 # Publish folder
 publish/
 
+# cython
+cython_extensions
+
+# time analysis output
+output.out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

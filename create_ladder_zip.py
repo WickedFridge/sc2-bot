@@ -28,6 +28,7 @@ files_and_directories_to_zip = [
     "bot",
     "requirements.txt",
     "run.py",
+    # "cython_extensions",
 ]
 
 # the template for the ladderbots.json file that will be generated

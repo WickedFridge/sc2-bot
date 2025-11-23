@@ -176,7 +176,7 @@ class Debug:
             unit: Unit
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
             target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
-            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (build : {scv_build_progress(self.bot, unit)})')
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
@@ -194,7 +194,7 @@ class Debug:
                     self.draw_box_on_world(target_unit.position)
             
             # draw "virtual range"
-            range: float = unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
+            range: float = unit.ground_range + unit.distance_to_weapon_ready
             self.draw_sphere_on_world(unit.position, radius=range, draw_color=ORANGE)
 
     def danger_map(self):

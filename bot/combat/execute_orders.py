@@ -176,7 +176,10 @@ class Execute(CachedClass):
             if (not should_disengage):
                 await self.micro.retreat(medivac)
 
-        other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id != UnitTypeId.MEDIVAC)
+        for viking in army.units(UnitTypeId.VIKINGFIGHTER):
+            await self.micro.viking_retreat(viking)
+        
+        other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id not in [UnitTypeId.MEDIVAC, UnitTypeId.VIKINGFIGHTER])
         await self.retreat_army(Army(other_flying_units, self.bot))
 
     async def heal_up(self, army: Army):
@@ -197,6 +200,8 @@ class Execute(CachedClass):
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_unload(unit)
                 await self.micro.medivac_heal(unit, army.units)
+            elif(unit.type_id == UnitTypeId.VIKINGFIGHTER):
+                await self.micro.viking_retreat(unit)
             else:
                 await self.micro.retreat(unit)
 

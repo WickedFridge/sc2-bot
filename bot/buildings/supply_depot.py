@@ -93,4 +93,4 @@ class SupplyDepot(Building):
             depot_position: Point2 = self.bot.main_base_ramp.depot_in_middle.position
             builder: Unit = workers_mining.filter(lambda unit: not unit.is_carrying_resource).closest_to(depot_position)
             builder.move(depot_position)
-            builder.hold_position(True)
+            builder.patrol(self.bot.map.wall_placement[0], True)

@@ -115,7 +115,7 @@ class Micro(CachedClass):
         local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
         retreat_position = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
         
-        # handle smooth medivac retreat
+        # handle smooth flying units retreat
         if (unit.type_id == UnitTypeId.MEDIVAC):
             # unload at 2/3 of the way
             if (
@@ -127,6 +127,8 @@ class Micro(CachedClass):
                 unit.move(retreat_position)
                 if (unit.distance_to(retreat_position) > 15):
                     await self.medivac_boost(unit)
+            return
+        if (unit.is_flying and self.safety_disengage(unit)):
             return
         if (unit.distance_to(retreat_position) < 5):
             return
@@ -333,7 +335,7 @@ class Micro(CachedClass):
         potential_targets: Units = self.enemy_units.filter(
             lambda enemy_unit: (
                 not enemy_unit.is_flying
-                and enemy_unit.distance_to(reaper) <= 5
+                and enemy_unit.distance_to(reaper) <= 5 + enemy_unit.radius + reaper.radius
             )
         ).sorted(
             lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
@@ -368,7 +370,7 @@ class Micro(CachedClass):
                 # safest_spot is preferably away from menacing enemy_units
                 safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
                 reaper.move(safest_spot)
-        elif (reaper.weapon_cooldown <= 1):
+        elif (reaper.weapon_cooldown <= 5):
             best_target: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
             best_attack_spot: Point2 = self.bot.map.danger.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
@@ -474,7 +476,7 @@ class Micro(CachedClass):
         
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
-        if (viking.weapon_cooldown <= 0.25):
+        if (viking.weapon_cooldown <= 5):
             potential_targets: Units = self.bot.enemy_units.filter(
                 lambda unit: unit.is_flying or unit.type_id == UnitTypeId.COLOSSUS
             ).sorted(
@@ -497,7 +499,23 @@ class Micro(CachedClass):
         elif (not self.safety_disengage(viking)):
             viking.move(local_units.center)
 
-    
+    async def viking_retreat(self, viking: Unit):
+        if (viking.weapon_cooldown > 5):
+            await self.retreat(viking)
+            return
+
+        # find a target if our weapon isn't on cooldown
+        enemy_in_range: Units = self.bot.enemy_units.flying.filter(
+            lambda enemy: viking.target_in_range(enemy)
+        ).sorted(
+            lambda unit: unit.health + unit.shield
+        )
+        
+        if (enemy_in_range.amount >= 1):
+            viking.attack(enemy_in_range.first)
+        else:
+            await self.retreat(viking)
+
     async def ghost(self, ghost: Unit, local_army: Units):
         if (self.ghost_emp(ghost)):
             return
@@ -677,7 +695,7 @@ class Micro(CachedClass):
             self.stim_bio(unit)
         
         # calculate the range of the unit based on its movement speed + range + cooldown
-        range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
+        range: float = unit.radius + unit.ground_range + unit.distance_to_weapon_ready
         closest_worker: Unit = workers.closest_to(unit)
         worker_potential_targets: Units = workers.filter(
             lambda worker: unit.distance_to(worker) <= range + worker.radius
@@ -893,10 +911,13 @@ class Micro(CachedClass):
     def get_potential_targets(self, unit: Unit) -> Units:
         if (unit is None):
             return Units([], self.bot)
-        range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
-        
+        # range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
+        base_range: float = unit.distance_to_weapon_ready + unit.radius
+
         enemy_units_in_range: Units = self.enemy_units.filter(
-            lambda enemy: enemy.distance_to(unit) <= range
+            lambda enemy: (
+                enemy.distance_to(unit) <= base_range + enemy.radius + (unit.ground_range if enemy.is_flying == False else unit.air_range)
+            )
         )
         return enemy_units_in_range
     

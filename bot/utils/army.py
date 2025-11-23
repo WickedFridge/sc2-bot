@@ -27,7 +27,7 @@ class Army(CachedClass):
     def radius(self) -> float:
         return math.sqrt(self.supply) + 10
     
-    @property
+    @custom_cache_once_per_frame
     def center(self) -> Point2:
         return self.units.center
     
