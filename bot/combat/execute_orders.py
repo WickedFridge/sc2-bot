@@ -77,12 +77,12 @@ class Execute(CachedClass):
         return closest_two_centers[0]
 
     async def drop_load(self, army: Army):
-        if (army.usable_medivacs.amount == 0):
+        if (army.can_drop_medivacs.amount == 0):
             print("Error: no usable medivacs for drop")
             return
         
         # Step 1: Select the 2 fullest Medivacs among the healthy ones
-        medivacs_to_use: Units = army.usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
+        medivacs_to_use: Units = army.can_drop_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.energy, unit.health), True).take(2)
 
         # Step 2: Split the medivacs
         medivacs_to_retreat = army.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.tag not in medivacs_to_use.tags)
@@ -117,10 +117,10 @@ class Execute(CachedClass):
         # take the furthest one from the enemy army
         
         # -- Select the 2 fullest Medivacs among the healthy ones
-        medivacs_to_use: Units = army.usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
+        medivacs_to_use: Units = army.can_drop_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
         
         # -- Special case, if our army is only filled medivacs, select all of them and move along
-        filled_medivacs: Units = army.usable_medivacs.filter(lambda unit: unit.cargo_used >= 1)
+        filled_medivacs: Units = army.can_drop_medivacs.filter(lambda unit: unit.cargo_used >= 1)
         if (army.units.amount == filled_medivacs.amount):
             medivacs_to_use = filled_medivacs
         
@@ -393,15 +393,8 @@ class Execute(CachedClass):
             
 
 
-    async def harass(self, army: Army):
-        enemy_workers_close: Units = self.bot.enemy_units.filter(
-            lambda unit: (
-                unit.distance_to(army.units.center) <= 20
-                and unit.can_be_attacked
-                and unit.type_id in worker_types
-            )
-        )
-        if (enemy_workers_close.amount == 0):
+    async def harass(self, army: Army, enemy_workers: Units):
+        if (enemy_workers.amount == 0):
             print("Error: no worker close")
             return
         
@@ -415,9 +408,9 @@ class Execute(CachedClass):
                     unit.move(army.center)
                 case UnitTypeId.REAPER:
                     if (not await self.micro.reaper_grenade(unit)):
-                        await self.micro.harass(unit, enemy_workers_close)
+                        await self.micro.harass(unit, enemy_workers)
                 case _:
-                    await self.micro.harass(unit, enemy_workers_close)
+                    await self.micro.harass(unit, enemy_workers)
     
     async def kill_buildings(self, army: Army, radius: float):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(

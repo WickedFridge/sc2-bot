@@ -441,14 +441,15 @@ class Micro(CachedClass):
         enemy_units_in_range: Units,
         other_enemies: Units,
     ) -> bool:
-        if (enemy_units_in_range.amount == 0 and other_enemies.amount == 0):        
-            print("ERROR: no enemy fighting units")
-            return True
         
         # If someone is in range → hit'n'run
         if (enemy_units_in_range.amount >= 1):
             self.stim_bio(unit)
             self.hit_n_run(unit, enemy_units_in_range)
+            return True
+        
+        if (other_enemies.amount >= 1):        
+            unit.attack(other_enemies.closest_to(unit))
             return True
         return False
 
@@ -459,14 +460,14 @@ class Micro(CachedClass):
         potential_targets: Units,
         other_enemies: Units,
     ) -> bool:
-        if (potential_targets.amount == 0 and other_enemies.amount == 0):        
-            print("ERROR: no enemy fighting units")
-            return True
-        
         # PRIMARY CASE: There are valid targets
         if (potential_targets.amount >= 1):
             self.stim_bio(unit)
             self.kite_forward(unit, potential_targets)
+            return True
+        
+        if (other_enemies.amount >= 1):        
+            unit.attack(other_enemies.closest_to(unit))
             return True
         return False
     

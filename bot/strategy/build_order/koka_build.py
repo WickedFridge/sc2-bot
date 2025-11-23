@@ -25,7 +25,7 @@ class KokaBuild(BuildOrder):
             BuildOrderStep(bot, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)], workers=15),
             BuildOrderStep(bot, 'reaper', UnitTypeId.REAPER, requirements=[(UnitTypeId.BARRACKS, 1, True)]),
             BuildOrderStep(bot, 'expand', UnitTypeId.COMMANDCENTER, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
-            BuildOrderStep(bot, 'rax #2', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.BUNKER, 1, False)]),
+            BuildOrderStep(bot, 'rax #2', UnitTypeId.BARRACKS, townhalls=2),
             BuildOrderStep(bot, 'reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.REAPER, 1, True)]),
             BuildOrderStep(bot, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.FACTORY, 1, False)], workers=21, townhalls=2),

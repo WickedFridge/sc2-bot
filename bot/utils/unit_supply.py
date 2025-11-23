@@ -147,5 +147,10 @@ def weighted_units_supply(units: Units) -> float:
     for unit in units:
         health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health_max + unit.shield_max)
         health_ratio: float = (1 - math.cos(math.pi * health_percentage)) / 2
-        army_supply += supply[unit.type_id] * health_ratio
+        energy_percentage: float = 1 if not unit.energy_percentage else unit.energy_percentage
+        energy_ratio: float = 1 if energy_percentage > 0.5 else (1 - math.cos(2 * math.pi * energy_percentage)) / 2
+        if (unit.can_attack or unit.energy_max == 0):
+            army_supply += supply[unit.type_id] * health_ratio
+        else:
+            army_supply += supply[unit.type_id] * energy_ratio
     return army_supply

@@ -81,6 +81,7 @@ class Builder:
                     worker.is_carrying_resource == False
                     or self.bot.time <= 200
                 )
+                and worker.is_attacking == False
                 and (
                     len(worker.orders) == 0
                     or not worker.is_constructing_scv
