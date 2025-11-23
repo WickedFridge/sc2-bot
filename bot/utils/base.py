@@ -308,7 +308,10 @@ class Base:
         
         # move all workers to the closest expansion
         for worker in self.workers:
-            worker.gather(retreat_base.mineral_fields.random)
+            if (retreat_base.mineral_fields.amount):
+                worker.gather(retreat_base.mineral_fields.random)
+            else:
+                worker.move(retreat_base.mineral_line)
         
         # if cc isn't a PF or the main, lift it
         if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
