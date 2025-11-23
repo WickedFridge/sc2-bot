@@ -16,13 +16,13 @@ build_order_manager: BuildOrderManager | None = None
 class BuildOrderManager:
     bot: BotAI
     build: BuildOrder
-    default_build: BuildOrder = KokaBuild
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.build = self.default_build
+        self.build = KokaBuild(self.bot)
 
     def select_build(self, matchup: Matchup):
+        # self.build = Dummybuild(self.bot)
         match(matchup):
             case Matchup.TvT:
                 self.build = random.choice([
@@ -41,10 +41,7 @@ class BuildOrderManager:
                     CCFirstTwoRax(self.bot)
                 ])
             case _:
-                self.build = random.choice([
-                    KokaBuild(self.bot),
-                    TwoRaxReapers(self.bot),
-                ])
+                self.build = KokaBuild(self.bot)
     
     def sanity_check(self):
         completed: dict[UnitTypeId, int] = {}

@@ -14,7 +14,6 @@ from bot.utils.unit_cargo import get_building_cargo
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.pixel_map import PixelMap
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
@@ -329,11 +328,20 @@ class OrdersManager:
         weighted_army_supply: float = army.weighted_supply
         
         # First if we should defend the base, do it
-        closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
-        distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
+        if (self.bot.expansions.taken.under_attack.amount >= 1):
+            closest_under_attack: Base = self.bot.expansions.taken.under_attack.closest_to(army.center)
+            distance_to_attack: float = army.center.distance_to(closest_under_attack.position)
+            if (distance_to_attack <= self.DEFENSE_RANGE_LIMIT):
+                return Orders.FIGHT_DEFENSE
         
-        if (distance_building_to_enemies <= BASE_SIZE):
-            return Orders.FIGHT_DEFENSE
+        # closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
+        # distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
+        
+        # if (
+        #     distance_building_to_enemies <= BASE_SIZE
+        #     and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
+        # ):
+        #     return Orders.DEFEND
         
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (

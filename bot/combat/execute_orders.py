@@ -152,18 +152,17 @@ class Execute:
 
 
     async def pickup_leave(self, army: Army):
-        # First retreat if we're only flying units
+        # If there's ground units, pick them up
         ground_units: Units = army.units.not_flying
-        if (army.center.distance_to(self.micro.retreat_position) <= 20 or ground_units.amount == 0):
-            await self.retreat_army(army)
-            return
-        
-        # then pickup units
-        minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
-        usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
-        retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
-        await self.pickup(usable_medivacs, ground_units)
+        retreating_medivacs: Units = medivacs
+        if (ground_units.amount >= 1):
+            # pickup units
+            minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
+            usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
+            await self.pickup(usable_medivacs, ground_units)
+            retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
+        
         for medivac in retreating_medivacs:
             should_disengage: bool = await self.micro.medivac_safety_disengage(medivac)
             if (not should_disengage):
@@ -276,17 +275,24 @@ class Execute:
 
     
     def defend(self, army: Army):
-        main_position: Point2 = self.bot.start_location
-        enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        enemy_units_attacking: Units = self.bot.enemy_units.filter(
-            lambda unit: unit.distance_to(main_position) < unit.distance_to(enemy_main_position)
-        )
+        expansions_under_attack: Expansions = self.bot.expansions.under_attack
+        if (expansions_under_attack.amount == 0):
+            print("Error: no expansions under attack to defend")
+            return
+        closest_expansion: Expansion = expansions_under_attack.closest_to(army.center)
         for unit in army.units:
-            if (enemy_units_attacking.amount >= 1):
-                unit.attack(enemy_units_attacking.closest_to(unit))
-            else:
-                # TODO: Handle defense when we took a base on the opponent's half of the map
-                print("Error : no threats to defend from")
+            unit.attack(closest_expansion.position)
+        # main_position: Point2 = self.bot.start_location
+        # enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
+        # enemy_units_attacking: Units = self.bot.enemy_units.filter(
+        #     lambda unit: unit.distance_to(main_position) < unit.distance_to(enemy_main_position)
+        # )
+        # for unit in army.units:
+        #     if (enemy_units_attacking.amount >= 1):
+        #         unit.attack(enemy_units_attacking.closest_to(unit))
+        #     else:
+        #         # TODO: Handle defense when we took a base on the opponent's half of the map
+        #         print("Error : no threats to defend from")
     
     def defend_bunker_rush(self, army: Army):
         enemy_bunkers: Units = self.bot.enemy_structures(UnitTypeId.BUNKER).filter(
@@ -433,7 +439,7 @@ class Execute:
                 continue
             
             if (unit.health_percentage >= 0.85):
-                self.micro.stim_bio(unit)
+                self.micro.stim_bio(unit, force=True)
             target: Unit = local_enemy_buildings.first
             if (unit.weapon_cooldown == 0):
                 in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))

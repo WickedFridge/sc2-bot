@@ -2,8 +2,10 @@ from typing import Dict, List, override
 from bot.buildings.building import Building
 from bot.macro.resources import Resources
 from bot.strategy.strategy_types import Situation
+from bot.utils.fake_order import FakeOrder
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.game_data import Cost
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -14,12 +16,8 @@ class BarracksAddon(Building):
         self.name = "Barracks Addon"
 
     @property
-    def matchup(self) -> Matchup:
-        return get_matchup(self.bot)
-
-    @property
     def sequence(self) -> List[UnitTypeId]:
-        match (self.matchup):
+        match (self.bot.matchup):
             case Matchup.TvP:        
                 return [
                     UnitTypeId.BARRACKSREACTOR,
@@ -32,8 +30,8 @@ class BarracksAddon(Building):
                 return [
                     UnitTypeId.BARRACKSREACTOR,
                     UnitTypeId.BARRACKSTECHLAB,
-                    UnitTypeId.BARRACKSREACTOR,
                     UnitTypeId.BARRACKSTECHLAB,
+                    UnitTypeId.BARRACKSREACTOR,
                     UnitTypeId.BARRACKSTECHLAB,
                 ]
             case Matchup.TvT:        
@@ -100,7 +98,11 @@ class BarracksAddon(Building):
             self.barracks_without_addon.amount >= 1
             and self.next_addon == self.unitId
             and not self.bot.composition_manager.should_train(UnitTypeId.REAPER)
-            and self.bot.scouting.situation != Situation.UNDER_ATTACK
+            and (
+                # don't prioritize addons over defense once the build order is done
+                self.bot.build_order.build.is_completed == False
+                or self.bot.scouting.situation != Situation.UNDER_ATTACK
+            )
         )
 
     @override
@@ -118,6 +120,7 @@ class BarracksAddon(Building):
             
             print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')
             barracks.build(self.unitId)
+            barracks.orders.append(FakeOrder(self.abilityId))
             self.on_complete()
         return resources_updated
 
@@ -126,9 +129,11 @@ class BarracksReactor(BarracksAddon):
         super().__init__(build)
         self.unitId = UnitTypeId.BARRACKSREACTOR
         self.name = "Barracks Reactor"
+        self.abilityId = AbilityId.BARRACKSREACTORMORPH_REACTOR
 
 class BarracksTechlab(BarracksAddon):
     def __init__(self, build):
         super().__init__(build)
         self.unitId = UnitTypeId.BARRACKSTECHLAB
         self.name = "Barracks Techlab"
+        self.abilityId = AbilityId.BARRACKSTECHLABMORPH_TECHLABBARRACKS

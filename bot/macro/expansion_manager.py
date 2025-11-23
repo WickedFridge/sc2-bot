@@ -101,6 +101,10 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_ready == True)
 
     @custom_cache_once_per_frame
+    def under_attack(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_safe == False)
+    
+    @custom_cache_once_per_frame
     def safe(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_safe == True)
 

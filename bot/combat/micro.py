@@ -295,18 +295,24 @@ class Micro(CachedClass):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
     async def bio_defense(self, bio: Unit, local_army: Units):
+        # defend the closest base under attack if it's not too close to us
+        closest_base_under_attack: Expansion = self.bot.expansions.taken.under_attack.closest_to(bio)
+        if (closest_base_under_attack and closest_base_under_attack.position.distance_to(bio) > 10):
+            bio.move(closest_base_under_attack.retreat_position)
+            return
+        
         enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
             await self.bio_fight(bio)
             return
         
-        close_bunkers: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda bunker: bunker.distance_to(bio) <= 10 and bunker.build_progress >= 0.9)
-        closest_bunker: Unit = close_bunkers.closest_to(bio) if close_bunkers else None
-        if (closest_bunker):
+        close_defensive_structure: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda defense: defense.distance_to(bio) <= 10 and defense.build_progress >= 0.9)
+        closest_defensive_structure: Unit = close_defensive_structure.closest_to(bio) if close_defensive_structure else None
+        if (closest_defensive_structure):
             # handle stim
             self.stim_bio(bio)
-            self.defend_around_bunker(bio, enemy_units, closest_bunker)
+            self.defend_around_bunker(bio, enemy_units, closest_defensive_structure)
         else:
             await self.bio_fight(bio, local_army)
             
@@ -567,8 +573,8 @@ class Micro(CachedClass):
             self.snipe_targets[target.tag] = 1
         return True
             
-    def stim_bio(self, bio_unit: Unit):
-        DANGER_THRESHOLD: float = 5
+    def stim_bio(self, bio_unit: Unit, force: bool = False):
+        DANGER_THRESHOLD: float = 5 if not force else 0
         if (
             self.bot.already_pending_upgrade(UpgradeId.STIMPACK) < 1
             or bio_unit.has_buff(BuffId.STIMPACK)

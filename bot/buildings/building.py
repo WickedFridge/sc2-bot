@@ -32,7 +32,8 @@ class Building:
     @property
     def conditions(self) -> bool:
         return (
-            self.custom_conditions
+            self.bot.tech_requirement_progress(self.unitId) == 1
+            and self.custom_conditions
             and (
                 self.ignore_build_order
                 or self.unitId in self.bot.build_order.build.pending_ids
