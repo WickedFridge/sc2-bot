@@ -7,7 +7,7 @@ from bot.macro.speed_mining import SpeedMining
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.base import Base
-from bot.utils.colors import BLUE, GREEN, PURPLE, RED, WHITE, YELLOW
+from bot.utils.colors import BLUE, GREEN, ORANGE, PURPLE, RED, WHITE, YELLOW
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -59,13 +59,10 @@ class Macro:
         # First create a Base object for each expansion we own
         for expansion in self.bot.expansions.taken:
             bases.append(Base(self.bot, expansion.cc, Threat.NO_THREAT))
-            ccs.append(expansion.cc.tag)        
+            ccs.append(expansion.cc.tag)
         
         # Then distribute our other structures among these bases based on proximity
         other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in ccs)
-        # .sorted(
-        #     key=lambda structure: min(structure.distance_to(base.position) for base in bases)
-        # )
         for building in other_structures:
             bases_with_same_height: List[Base] = [base for base in bases if self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)]
             if (len(bases_with_same_height) == 0):
@@ -341,6 +338,8 @@ class Macro:
                 case Threat.NO_THREAT:
                     color = GREEN
                 case Threat.ATTACK:
+                    color = ORANGE
+                case Threat.OVERWHELMED:
                     color = RED
                 case Threat.WORKER_SCOUT:
                     color = YELLOW

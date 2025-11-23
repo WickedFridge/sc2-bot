@@ -46,7 +46,9 @@ class CommandCenter(Building):
             case 0:
                 return self.bot.expansions.main.position
             case 1:
-                return next_expansion.position if next_expansion.is_safe else near_cc_position
+                if (next_expansion.is_safe and self.bot.build_order.build.name != BuildOrderName.DEFENSIVE_TWO_RAX.value):
+                    return next_expansion.position
+                return near_cc_position
             case 2:
                 return near_cc_position
             case _:

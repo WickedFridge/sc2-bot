@@ -7,8 +7,8 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
-class TwoRaxReapers(BuildOrder):
-    name: BuildOrderName = BuildOrderName.TWO_RAX_REAPERS.value
+class DefensiveTwoRax(BuildOrder):
+    name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX.value
 
     @override
     def modify_composition(self, composition: Composition) -> None:
@@ -30,9 +30,11 @@ class TwoRaxReapers(BuildOrder):
             BuildOrderStep(bot, 'expand', UnitTypeId.COMMANDCENTER, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
             BuildOrderStep(bot, 'reactor', UnitTypeId.BARRACKSREACTOR, townhalls=2),
             BuildOrderStep(bot, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2),
-            BuildOrderStep(bot, '3rd CC', UnitTypeId.COMMANDCENTER, townhalls=2),
-            BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
+            BuildOrderStep(bot, 'rax #3', UnitTypeId.BARRACKS, townhalls=2),
+            BuildOrderStep(bot, '3rd CC', UnitTypeId.COMMANDCENTER, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, 'reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
+            BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, 'starport', UnitTypeId.STARPORT),
             BuildOrderStep(bot, 'facto reactor', UnitTypeId.FACTORYREACTOR, requirements=[(UnitTypeId.STARPORT, 1, False)]),
             BuildOrderStep(bot, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),

@@ -26,8 +26,12 @@ class Scv(Train):
     def max_amount(self) -> int:
         minimal_amount: int = 24
         maximal_amount: int = 84
+        townhalls: Units = self.bot.townhalls
         orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        return max(minimal_amount, min([maximal_amount, 100 - 4 * orbital_count, self.bot.townhalls.amount * 22]))
+        return max(minimal_amount, min([
+            maximal_amount, 100 - 4 * orbital_count,
+            townhalls.ready.amount * 22 + townhalls.not_ready.amount * 11,
+        ]))
     
     @override
     @property

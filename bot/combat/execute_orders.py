@@ -488,10 +488,29 @@ class Execute(CachedClass):
             unit.move(closest_army_position)
 
     def scout(self, army: Army):
+        bases_to_scout: List[Expansion] = [
+            self.bot.expansions.b2,
+            self.bot.expansions.b3,
+            self.bot.expansions.b4,
+            self.bot.expansions.enemy_b2,
+            self.bot.expansions.enemy_main,
+            self.bot.expansions.enemy_b3,
+            self.bot.expansions.enemy_b4,
+        ]
+        scout_target: Point2 = None
+        for base in bases_to_scout:
+            if (base.is_unknown):
+                scout_target = base.mineral_line
+                break
+        
+        if (scout_target is None):
+            scout_target = self.bot.expansions.enemy_main.mineral_line
+        
         for reaper in army.units:
-            if (self.bot.expansions.enemy_b2.is_unknown):
-                reaper.move(self.bot.expansions.enemy_b2.mineral_line)
-            elif (self.bot.expansions.enemy_main.is_unknown or self.bot.expansions.enemy_main.is_enemy):
-                reaper.move(self.bot.expansions.enemy_main.mineral_line)
-            else:
-                reaper.move(self.bot.expansions.oldest_scout.mineral_line)
+            reaper.move(scout_target)
+            # if (self.bot.expansions.enemy_b2.is_unknown):
+            #     reaper.move(self.bot.expansions.enemy_b2.mineral_line)
+            # elif (self.bot.expansions.enemy_main.is_unknown or self.bot.expansions.enemy_main.is_enemy):
+            #     reaper.move(self.bot.expansions.enemy_main.mineral_line)
+            # else:
+            #     reaper.move(self.bot.expansions.oldest_scout.mineral_line)

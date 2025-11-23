@@ -1,10 +1,12 @@
 import math
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
+from bot.macro.expansion import Expansion
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.unit_supply import get_unit_supply
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -91,6 +93,8 @@ class Base:
 
         if (local_enemy_army.supply == 0):
             return Threat.NO_THREAT
+        if (local_army.supply == 0 and local_enemy_army.supply >= 10 * self.cc.health_percentage):
+            return Threat.OVERWHELMED
         if (local_army.supply < local_enemy_army.supply):
             return Threat.ATTACK
         if (local_army.center.distance_to(self.position) > local_enemy_army.center.distance_to(self.position)):
@@ -106,6 +110,9 @@ class Base:
             case Threat.NO_THREAT:
                 self.no_threat()
                 
+            case Threat.OVERWHELMED:
+                self.evacuate()
+            
             case Threat.ATTACK:
                 self.attack_threat()
 
@@ -290,6 +297,30 @@ class Base:
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     worker.attack(target)
                 
+    def evacuate(self) -> None:
+        # find closest safe expansion
+        retreat_base: Expansion = None
+        safe_expansions: Units = self.bot.expansions.safe
+        if (safe_expansions.amount == 0):
+            retreat_base = self.bot.expansions.main
+        else:
+            retreat_base = safe_expansions.closest_to(self.position)
+        
+        # move all workers to the closest expansion
+        for worker in self.workers:
+            worker.gather(retreat_base.mineral_fields.random)
+        
+        # if cc isn't a PF or the main, lift it
+        if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
+            return
+        print("Lifting CC to evacuate")
+        if (self.cc.type_id == UnitTypeId.ORBITALCOMMAND):
+            self.cc.stop()
+            self.cc(AbilityId.LIFT_ORBITALCOMMAND)
+        else:
+            self.cc.stop()
+            self.cc(AbilityId.LIFT_COMMANDCENTER)
+    
     def no_threat(self) -> None:
         # ask all chasing SCVs to stop
         attacking_workers = self.workers.filter(lambda unit: unit.is_attacking)

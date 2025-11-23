@@ -5,6 +5,7 @@ from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.dummy_build import Dummybuild
 from bot.strategy.build_order.koka_build import KokaBuild
+from bot.strategy.build_order.two_rax_reaper_defensive import DefensiveTwoRax
 from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
@@ -26,8 +27,8 @@ class BuildOrderManager:
         match(matchup):
             case Matchup.TvT:
                 self.build = random.choice([
-                    TwoRaxReapers(self.bot),
-                    KokaBuild(self.bot),
+                    # TwoRaxReapers(self.bot),
+                    DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
