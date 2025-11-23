@@ -7,6 +7,7 @@ from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
 from bot.utils.unit_cargo import get_transport_cargo
 from bot.utils.unit_supply import get_unit_supply
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -16,18 +17,18 @@ from ..utils.unit_tags import worker_types, building_priorities
 
 PICKUP_RANGE: int = 3
 
-class Execute:
+class Execute(CachedClass):
     bot: Superbot
     micro: Micro
     _drop_target: Point2
     _last_calculated_drop_target_time: float = 0
 
     def __init__(self, bot: Superbot) -> None:
-        self.bot = bot
+        super().__init__(bot)
         self.micro = Micro(bot)
         self._drop_target = Point2((5,5))
 
-    @property
+    @custom_cache_once_per_frame
     def default_drop_target(self) -> Point2:
         # switch default drop target every 60 seconds
         index_base_to_hit = round(self.bot.time / 60) % 2
@@ -39,13 +40,14 @@ class Execute:
                 # print("dropping natural")
                 return self.bot.expansions.enemy_b2.mineral_line
 
-    @property
+    @custom_cache_once_per_frame
     def drop_target(self) -> Point2:
+        return self.calculate_drop_target()
         # Recalculate drop target only every 2 seconds
-        if (self.bot.time - self._last_calculated_drop_target_time >= 2):
-            self._drop_target = self.calculate_drop_target()
-            self._last_calculated_drop_target_time = self.bot.time
-        return self._drop_target
+        # if (self.bot.time - self._last_calculated_drop_target_time >= 2):
+        #     self._drop_target = self.calculate_drop_target()
+        #     self._last_calculated_drop_target_time = self.bot.time
+        # return self._drop_target
     
     def calculate_drop_target(self) -> Point2:
         # if we don't know about enemy army or enemy bases, drop on the default target
@@ -66,7 +68,7 @@ class Execute:
         )
         return sorted_enemy_bases.first.mineral_line
     
-    @property
+    @custom_cache_once_per_frame
     def best_edge(self) -> Point2:
         if (self.bot.scouting.known_enemy_army.units.amount == 0):
             return self.bot.map.closest_center(self.drop_target)
@@ -116,6 +118,12 @@ class Execute:
         
         # -- Select the 2 fullest Medivacs among the healthy ones
         medivacs_to_use: Units = army.usable_medivacs.sorted(lambda unit: (unit.health_percentage >= 0.75, unit.cargo_used, unit.health, unit.tag), True).take(2)
+        
+        # -- Special case, if our army is only filled medivacs, select all of them and move along
+        filled_medivacs: Units = army.usable_medivacs.filter(lambda unit: unit.cargo_used >= 1)
+        if (army.units.amount == filled_medivacs.amount):
+            medivacs_to_use = filled_medivacs
+        
         
         # -- Drop with the medivacs
         for medivac in medivacs_to_use:
@@ -282,17 +290,6 @@ class Execute:
         closest_expansion: Expansion = expansions_under_attack.closest_to(army.center)
         for unit in army.units:
             unit.attack(closest_expansion.position)
-        # main_position: Point2 = self.bot.start_location
-        # enemy_main_position: Point2 = self.bot.enemy_start_locations[0]
-        # enemy_units_attacking: Units = self.bot.enemy_units.filter(
-        #     lambda unit: unit.distance_to(main_position) < unit.distance_to(enemy_main_position)
-        # )
-        # for unit in army.units:
-        #     if (enemy_units_attacking.amount >= 1):
-        #         unit.attack(enemy_units_attacking.closest_to(unit))
-        #     else:
-        #         # TODO: Handle defense when we took a base on the opponent's half of the map
-        #         print("Error : no threats to defend from")
     
     def defend_bunker_rush(self, army: Army):
         enemy_bunkers: Units = self.bot.enemy_structures(UnitTypeId.BUNKER).filter(
@@ -347,9 +344,10 @@ class Execute:
             if (self.handle_enemy_bunkers(unit, ally_bunkers, terrifying_bunkers)):
                 break
             
-            #print not sure here
-            print("Warning, not sure how to defend !")
-    
+            # Here there's a bunker menacing nothing
+            # go back to main then
+            unit.attack(self.bot.main_base_ramp.center)
+            
     def handle_enemy_bunkers(self, unit: Unit, bunkers: Units, menacing_bunkers: Units) -> bool:
         if (menacing_bunkers.amount >= 1):
             if (bunkers.amount >= 1):

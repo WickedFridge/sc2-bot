@@ -295,11 +295,13 @@ class Micro(CachedClass):
             medivac(AbilityId.EFFECT_MEDIVACIGNITEAFTERBURNERS)
 
     async def bio_defense(self, bio: Unit, local_army: Units):
-        # defend the closest base under attack if it's not too close to us
-        closest_base_under_attack: Expansion = self.bot.expansions.taken.under_attack.closest_to(bio)
-        if (closest_base_under_attack and closest_base_under_attack.position.distance_to(bio) > 10):
-            bio.move(closest_base_under_attack.retreat_position)
-            return
+        # # defend the closest base under attack if it's not too close to us
+        # bases_under_attack: Expansions = self.bot.expansions.taken.under_attack
+        # if (bases_under_attack.amount >= 1):
+        #     closest_base_under_attack: Expansion = bases_under_attack.closest_to(bio)
+        #     if (closest_base_under_attack.position.distance_to(bio) > 10):
+        #         bio.attack(closest_base_under_attack.retreat_position)
+        #         return
         
         enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):

@@ -327,22 +327,6 @@ class OrdersManager:
     ):
         weighted_army_supply: float = army.weighted_supply
         
-        # First if we should defend the base, do it
-        if (self.bot.expansions.taken.under_attack.amount >= 1):
-            closest_under_attack: Base = self.bot.expansions.taken.under_attack.closest_to(army.center)
-            distance_to_attack: float = army.center.distance_to(closest_under_attack.position)
-            if (distance_to_attack <= self.DEFENSE_RANGE_LIMIT):
-                return Orders.FIGHT_DEFENSE
-        
-        # closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
-        # distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
-        
-        # if (
-        #     distance_building_to_enemies <= BASE_SIZE
-        #     and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
-        # ):
-        #     return Orders.DEFEND
-        
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (
             self.stim_completed and (
@@ -354,6 +338,15 @@ class OrdersManager:
                 return Orders.FIGHT_CHASE
             else:
                 return Orders.FIGHT_OFFENSE
+        
+        closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
+        distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
+        
+        if (
+            distance_building_to_enemies <= BASE_SIZE
+            and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
+        ):
+            return Orders.FIGHT_DEFENSE
         
         if (
             army.ground_units.amount >= 6 and (

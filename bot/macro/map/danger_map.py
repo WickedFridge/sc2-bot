@@ -341,25 +341,38 @@ class DangerMap:
         y = int(rounded.y)
 
         # Map bounds
+        h: int
+        w: int
         h, w = self.ground.shape
 
-        x1 = max(0, x - radius)
-        x2 = min(w, x + radius + 1)
-        y1 = max(0, y - radius)
-        y2 = min(h, y + radius + 1)
+        # --- Clamp position into the map ---
+        cx: int = min(max(x, 0), w - 1)
+        cy: int = min(max(y, 0), h - 1)
+
+        # Compute clamped window
+        x1: int = max(0, cx - radius)
+        x2: int = min(w, cx + radius + 1)
+        y1: int = max(0, cy - radius)
+        y2: int = min(h, cy + radius + 1)
 
         # Extract sub-map
-        submap = self.air.map[y1:y2, x1:x2] if air else self.ground.map[y1:y2, x1:x2]
+        data: np.ndarray = self.air.map if air else self.ground.map
+        submap: np.ndarray = data[y1:y2, x1:x2]
 
-        # Mask only tiles within circular radius
-        yy, xx = np.ogrid[y1:y2, x1:x2]
-        dist_sq = (xx - x) ** 2 + (yy - y) ** 2
+        # Local shapes
+        local_h: int = y2 - y1
+        local_w: int = x2 - x1
+        
+        # Local coordinate grid
+        yy, xx = np.ogrid[0:local_h, 0:local_w]
+
+        # Compute distance from clamped center (cx, cy)
+        dist_sq = (xx + x1 - cx) ** 2 + (yy + y1 - cy) ** 2
         circle_mask = dist_sq <= radius * radius
 
         # Valid tiles = inside circle AND not environment (999)
         valid_mask = circle_mask & (submap != 999)
-        
-        # Create masked array: mask=True means INVALID tile
+
         masked_values = np.ma.masked_array(submap, mask=~valid_mask)
 
         return x1, y1, masked_values
