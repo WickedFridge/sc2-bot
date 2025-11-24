@@ -73,6 +73,9 @@ class SupplyDepot(Building):
         return selected_position.towards(target, 2)
     
     async def move_worker_first(self):
+        if (self.bot.time >= 60):
+            return
+        
         # move SCV for first depot
         workers_mining: Units = self.bot.workers.filter(
             lambda worker: (

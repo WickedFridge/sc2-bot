@@ -27,11 +27,11 @@ class Army(CachedClass):
     def radius(self) -> float:
         return math.sqrt(self.supply) + 10
     
-    @custom_cache_once_per_frame
+    @property
     def center(self) -> Point2:
         return self.units.center
     
-    @custom_cache_once_per_frame
+    @property
     def ground_center(self) -> Point2:
         return self.units.filter(lambda unit: unit.is_flying != False).center
 
@@ -39,14 +39,14 @@ class Army(CachedClass):
     def ground_units(self) -> Units:
         return self.units.not_flying
     
-    @custom_cache_once_per_frame
+    @property
     def speed(self) -> float:
         if (self.units.amount == 0):
             return 0
         self.units.sort(key = lambda unit: unit.real_speed)
         return self.units.first.real_speed
     
-    @custom_cache_once_per_frame
+    @property
     def armored_ground_supply(self) -> float:
         armored_ground_units: Units = self.ground_units.filter(
             lambda unit: unit.is_armored
@@ -59,37 +59,37 @@ class Army(CachedClass):
             return 0
         return self.armored_ground_supply / self.supply
     
-    @custom_cache_once_per_frame
+    @property
     def flying_fighting_supply(self) -> float:
         return get_units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
 
-    @custom_cache_once_per_frame
+    @property
     def supply(self) -> float:
         return get_units_supply(self.units)
 
-    @custom_cache_once_per_frame
+    @property
     def potential_supply(self) -> float:
         return get_units_supply(self.potential_fighting_units)
     
-    @custom_cache_once_per_frame
+    @property
     def weighted_supply(self) -> float:
         return weighted_units_supply(self.fighting_units)
     
-    @custom_cache_once_per_frame
+    @property
     def bio_supply(self) -> float:
         return get_units_supply(self.bio_units)
     
-    @custom_cache_once_per_frame
+    @property
     def potential_bio_supply(self) -> float:
         return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
 
-    @custom_cache_once_per_frame
+    @property
     def can_drop_medivacs(self) -> Units:
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.health_percentage >= 0.4
         )
     
-    @custom_cache_once_per_frame
+    @property
     def can_heal_medivacs(self) -> Units:
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.energy >= 25
@@ -110,11 +110,11 @@ class Army(CachedClass):
             'supply' : self.supply,
         }
     
-    @custom_cache_once_per_frame
+    @property
     def composition(self) -> dict[UnitTypeId, int]:
         return Army.get_composition(self.units)
 
-    @custom_cache_once_per_frame
+    @property
     def bio_health_percentage(self) -> float:
         bio_units: Units = (self.units + self.passengers).filter(
             lambda unit: unit.type_id in bio
@@ -130,14 +130,14 @@ class Army(CachedClass):
 
         return bio_health / total_health
     
-    @custom_cache_once_per_frame
+    @property
     def cargo_left(self) -> int:
         two_fullest_medivacs: Units = self.units(UnitTypeId.MEDIVAC).sorted(
             key = lambda medivac: medivac.cargo_used, reverse=True
         ).take(2)
         return sum([medivac.cargo_left for medivac in two_fullest_medivacs])
     
-    @custom_cache_once_per_frame
+    @property
     def passengers(self) -> Units:
         medivacs: Units = self.units(UnitTypeId.MEDIVAC)
         if (medivacs.amount == 0):
@@ -147,18 +147,18 @@ class Army(CachedClass):
             passengers += Units(medivac.passengers, self.bot)
         return passengers
 
-    @custom_cache_once_per_frame
+    @property
     def potential_fighting_units(self) -> Units:
         medivacs_filled: Units = self.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.cargo_used >= 1)
         if (self.fighting_units.amount >= 1):
             return self.fighting_units + self.passengers
         return medivacs_filled + self.passengers
     
-    @custom_cache_once_per_frame
+    @property
     def bio_units(self) -> Units:
         return self.units.filter(lambda unit: unit.type_id in bio)
     
-    @custom_cache_once_per_frame
+    @property
     def fighting_units(self) -> Units:
         attacking_units: Units = self.units.filter(
             lambda unit: (
@@ -173,13 +173,13 @@ class Army(CachedClass):
         usable_medivacs: Units = healing_medivacs.take(attacking_units.amount)
         return attacking_units + usable_medivacs
 
-    @custom_cache_once_per_frame
+    @property
     def leader(self) -> Optional[Unit]:
         if (self.ground_units.amount == 0):
             return None
         return self.ground_units.sorted(lambda unit: unit.tag).first
     
-    @custom_cache_once_per_frame
+    @property
     def followers(self) -> Units:
         if (not self.leader):
             return self.units
@@ -193,7 +193,7 @@ class Army(CachedClass):
             or (self.cargo_left == 0 and self.units(UnitTypeId.MEDIVAC).amount >= 2)
         )
     
-    @custom_cache_once_per_frame
+    @property
     def average_ground_range(self) -> float:
         attacking_units: Units = self.ground_units.filter(lambda unit: unit.can_attack)
         if (attacking_units.amount == 0):

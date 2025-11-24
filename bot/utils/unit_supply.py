@@ -140,9 +140,14 @@ def get_units_supply(army: Units) -> float:
     army_supply: float = 0
     for unit in army:
         if (unit.type_id == UnitTypeId.BUNKER):
+            # assume every enemy bunker is full
+            if (unit.is_enemy):
+                army_supply += 8
+                continue
+            # double the value of passengers in bunkers
             supply: int = 0
             for passenger in unit.passengers:
-                supply += get_unit_supply(passenger.type_id)
+                supply += 2 * get_unit_supply(passenger.type_id)
             army_supply += supply
         else:
             army_supply += get_unit_supply(unit.type_id)
