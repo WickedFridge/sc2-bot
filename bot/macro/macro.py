@@ -355,7 +355,7 @@ class Macro:
                 self.draw_box_on_world(enemy_unit.position, enemy_unit.radius, RED)
                 self.draw_text_on_world(enemy_unit.position, unit_descriptor, RED)
             for building in base.buildings:
-                radius: float = building.footprint_radius if building.type_id not in add_ons else 0.5
+                radius: float = building.footprint_radius if building.footprint_radius else 0.5
                 self.draw_box_on_world(building.position, radius, color)
                 self.draw_text_on_world(building.position, base_descriptor, color)
             for unit in base.units:
