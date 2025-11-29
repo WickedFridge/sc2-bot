@@ -1,6 +1,8 @@
 import json
 import math
 from typing import List, Optional, Set
+
+import numpy as np
 from bot.army_composition.composition import Composition
 from bot.macro.expansion import Expansion
 from bot.strategy.build_order.build_order import BuildOrder
@@ -11,6 +13,7 @@ from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_functions import find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
@@ -201,32 +204,44 @@ class Debug:
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
             return
-        center_position: Point2 = selected_units.center.rounded
-        flying_units_only: bool = all([selected_unit.is_flying for selected_unit in selected_units])
-        for i in range(-8, 8):
-            for j in range(-8, 8):
-                new_position: Point2 = center_position + Point2((i, j))
-                danger: float = (
-                    self.bot.map.danger.air[new_position]
-                    if flying_units_only
-                    else self.bot.map.danger.ground[new_position]
-                )
-                if (danger == 0 or danger >= 999):
-                    continue
-                red_amount: int = min(255, int(danger * 255 / 40))
-                color: tuple[int, int, int] = (red_amount, 255 - red_amount, 128)
-                self.draw_text_on_world(new_position, str(round(danger, 1)), color)
+        center: Point2 = selected_units.center
+        flying_only: bool = all(u.is_flying for u in selected_units)
+        # Read a region of size radius=8 around the center
+        x1, y1, masked = self.bot.map.influence_maps.read_values(center, radius=8, air=flying_only)
+        
+        # Iterate only over valid unmasked cells
+        ys, xs = np.where(~masked.mask)
+
+        for iy, ix in zip(ys, xs):
+            danger = float(masked[iy, ix])
+            if (danger <= 0 or danger >= 999):
+                continue
+
+            # Convert tile coords back to world coords
+            world_x = x1 + ix
+            world_y = y1 + iy
+            world_pos = Point2((world_x, world_y))
+
+            # Build a readable color scale
+            red = min(255, int(danger * 255 / 40))
+            color = (red, 255 - red, 128)
+
+            # Draw on SC2 world
+            self.draw_text_on_world(world_pos, f"{danger:.1f}", color)
     
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
             lambda unit: (
-                unit.is_visible
-                and (unit.is_burrowed or unit.is_cloaked)
+                unit.is_burrowed or unit.is_cloaked
             )
         )
+        scans: Set[EffectData] = set(filter(lambda effect: effect.id == EffectId.SCANNERSWEEP, self.bot.state.effects))
+        for scan in scans:
+            print(f'position: {scan.positions}')
+        
         for unit in invisible_units:
             self.draw_sphere_on_world(unit.position, radius=1, draw_color=YELLOW)
-            self.draw_text_on_world(unit.position, f'{unit.type_id.name} [{unit.health}/{unit.health_max}]', YELLOW)
+            self.draw_text_on_world(unit.position, f'visible {unit.is_visible}', YELLOW)
 
     
     def full_effects(self, iteration: int):

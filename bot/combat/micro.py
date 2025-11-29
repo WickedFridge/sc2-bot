@@ -133,7 +133,7 @@ class Micro(CachedClass):
         if (unit.distance_to(retreat_position) < 5):
             return
         if (enemy_units_in_range.amount >= 1):
-            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             unit.move(safest_spot)
         else:
             unit.move(retreat_position)
@@ -179,7 +179,7 @@ class Micro(CachedClass):
         retreat_direction = retreat_direction.towards(self.retreat_position, 3.5 - safety_distance)
         
         # this should help us avoid splash damage like Storms and Biles
-        safest_spot: Point2 = self.bot.map.danger.safest_spot_around_point(retreat_direction, air=True)
+        safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_point(retreat_direction, air=True)
         flying_unit.move(safest_spot)
         return True
 
@@ -368,15 +368,15 @@ class Micro(CachedClass):
             # if we can't safely shoot, move away
             else:
                 # safest_spot is preferably away from menacing enemy_units
-                safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
                 reaper.move(safest_spot)
         elif (reaper.weapon_cooldown <= 5):
             best_target: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
-            best_attack_spot: Point2 = self.bot.map.danger.best_attacking_spot(reaper, best_target)
+            best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
         else:
             closest_enemy: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
-            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(reaper, closest_enemy)
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, closest_enemy)
             reaper.move(safest_spot)
 
 
@@ -433,7 +433,7 @@ class Micro(CachedClass):
         
         self.stim_bio(unit)
         target: Unit = other_enemies.closest_to(unit)
-        best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target)
+        best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
         unit.move(best_position)
 
         
@@ -478,7 +478,12 @@ class Micro(CachedClass):
         # find a target if our weapon isn't on cooldown
         if (viking.weapon_cooldown <= 5):
             potential_targets: Units = self.bot.enemy_units.filter(
-                lambda unit: unit.is_flying or unit.type_id == UnitTypeId.COLOSSUS
+                lambda unit: (
+                    unit.can_be_attacked and (
+                        unit.is_flying
+                        or unit.type_id == UnitTypeId.COLOSSUS
+                    )
+                )
             ).sorted(
                 lambda unit: unit.health + unit.shield
             )
@@ -601,7 +606,7 @@ class Micro(CachedClass):
             or bio_unit.has_buff(BuffId.STIMPACK)
             or bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
             or bio_unit.type_id == UnitTypeId.GHOST
-            or self.bot.map.danger.ground[bio_unit.position] <= DANGER_THRESHOLD
+            or self.bot.map.influence_maps.danger.ground[bio_unit.position] <= DANGER_THRESHOLD
         ):
             return
         
@@ -711,7 +716,7 @@ class Micro(CachedClass):
         
         # first case : we're dangerously close to a worker + low on life => retreat to a safer spot
         if (unit.health <= 10 and workers.closest_distance_to(unit) <= 1.5):
-            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
             unit.move(safest_spot)
             return
         
@@ -722,11 +727,11 @@ class Micro(CachedClass):
             # if we're not on cooldown and workers are really close, run away
             if (unit.weapon_cooldown > 0):
                 if (workers.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
-                    safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
+                    safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
                     unit.move(safest_spot)
                 else:
                     # move towards the unit but not too close
-                    best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target, risk=1)
+                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target, risk=1)
                     unit.move(best_position)
             # if we're on cooldown, shoot at it
             else:
@@ -782,14 +787,14 @@ class Micro(CachedClass):
                 elif (unit.distance_to(retreat_position) > 2):
                     unit.move(retreat_position)
                 else:
-                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around_unit(bunker)
+                    safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(bunker)
                     unit.move(safest_spot)
                     # Micro.move_away(unit, enemy_units.closest_to(unit))
             else:
                 if (unit.weapon_ready):
                     unit.attack(enemy_units.closest_to(unit))
                 else:
-                    safest_spot: Point2 = self.bot.map.danger.safest_spot_around_unit(bunker)
+                    safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(bunker)
                     unit.move(safest_spot)
                     # Micro.move_away(unit, enemy_units.closest_to(unit))
     
@@ -823,7 +828,7 @@ class Micro(CachedClass):
         if (unit.weapon_ready):
             unit.attack(target)
         else:
-            best_position: Point2 = self.bot.map.danger.best_attacking_spot(unit, target)
+            best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
             unit.move(best_position)
     
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
@@ -853,7 +858,7 @@ class Micro(CachedClass):
             )
             unit.attack(enemy_to_fight.first)
         else:
-            safest_spot: Point2 = self.bot.map.danger.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             unit.move(safest_spot)
 
     def attack_nearest_base(self, unit: Unit):

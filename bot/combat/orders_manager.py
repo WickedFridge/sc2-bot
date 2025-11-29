@@ -1,6 +1,6 @@
 import math
 from typing import List, Optional, Set
-from bot.macro.map.danger_map import DangerMap
+from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
 from bot.macro.macro import BASE_SIZE
@@ -201,7 +201,7 @@ class OrdersManager:
     
     def get_army_orders(self, army: Army) -> Orders:
         # -- Specific orders for reapers
-        if (army.units(UnitTypeId.REAPER).amount >= 1):
+        if (army.units(UnitTypeId.REAPER).amount == army.units.amount):
             return self.reapers_orders(army)
         
         # -- Define local enemies

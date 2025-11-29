@@ -53,7 +53,6 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.CREEPTUMORQUEEN,
     UnitTypeId.CREEPTUMORBURROWED,
     UnitTypeId.CARRIER,
-    UnitTypeId.SENTRY,
     UnitTypeId.DISRUPTORPHASED,
     UnitTypeId.WARPPRISM,
 ]

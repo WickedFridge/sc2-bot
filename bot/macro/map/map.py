@@ -1,7 +1,7 @@
 from __future__ import annotations
 import math
 from typing import List, Union
-from bot.macro.map.danger_map import DangerMap
+from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -21,11 +21,11 @@ class MapData:
     right_center: Point2
     building_grid: PixelMap
     wall_placement: List[Point2] = []
-    danger: DangerMap
+    influence_maps: InfluenceMapManager
         
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
-        self.danger = DangerMap(bot)
+        self.influence_maps = InfluenceMapManager(bot)
         
     def initialize(self) -> None:
         playable_area: Rect = self.bot.game_info.playable_area

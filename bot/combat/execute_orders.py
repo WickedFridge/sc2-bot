@@ -351,7 +351,7 @@ class Execute(CachedClass):
             
             # Here there's a bunker menacing nothing
             # go back to main then
-            unit.attack(self.bot.main_base_ramp.center)
+            unit.attack(self.bot.main_base_ramp.top_center)
             
     def handle_enemy_bunkers(self, unit: Unit, bunkers: Units, menacing_bunkers: Units) -> bool:
         if (menacing_bunkers.amount >= 1):

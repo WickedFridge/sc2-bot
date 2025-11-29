@@ -161,6 +161,9 @@ class BuildingsHandler:
                 scan_banked += 1
 
     async def scan(self):
+        SCAN_RADIUS: int = 15
+        DETECTION_RANGE: int = 11
+        
         orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
         if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
             return
@@ -178,25 +181,32 @@ class BuildingsHandler:
             lambda unit: (
                 self.bot.has_creep(unit.position)
                 and not unit.is_flying
-                and self.bot.enemy_structures.closer_than(15, unit.position).amount == 0
-                and self.bot.enemy_units.closer_than(15, unit.position).amount == 0
-                and self.bot.units(UnitTypeId.RAVEN).closer_than(15, unit.position).amount == 0
-                and not self.bot.expansions.closest_to(unit.position).position.distance_to(unit.position) < 15
+                and self.bot.enemy_structures.closer_than(SCAN_RADIUS, unit.position).amount == 0
+                and self.bot.enemy_units.closer_than(SCAN_RADIUS, unit.position).amount == 0
             )
         )
 
         # scan for creep tumors    
         for unit in on_creep_fighting_units:
             # get ongoing scans
-            scans: Set[EffectData] = set(filter(lambda effect: effect.id == EffectId.SCANNERSWEEP, self.bot.state.effects))
-            # if theres no scan on this unit, scan it
-            scanned: bool = False
-            for scan in scans:
-                scan_center: Point2 = center(list(scan.positions))
-                if (scan_center.distance_to(unit.position) < 13):
-                    scanned = True
+            scan_positions: List[Point2] = [
+                effect.positions[0]
+                for effect in self.bot.state.effects
+                if effect.id == EffectId.SCANNERSWEEP
+            ]
+            detectors: Units = self.bot.units([UnitTypeId.MISSILETURRET, UnitTypeId.RAVEN])
+
+            # if theres no scan or detector on this unit, scan it
+            detected: bool = False
+            for scan in scan_positions:
+                if (scan.distance_to(unit.position) <= SCAN_RADIUS):
+                    detected = True
                     break
-            if (not scanned):
+            for detector in detectors:
+                if (detector.distance_to(unit.position) <= DETECTION_RANGE):
+                    detected = True
+                    break
+            if (not detected):
                 print("scan unit on creep", unit.name)
                 orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, unit.position)
                 # scan only once per frame
@@ -208,7 +218,7 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                unit.is_visible
+                not unit.is_visible
                 and (unit.is_cloaked or unit.is_burrowed)
                 and fighting_units.closest_distance_to(unit) < 10
                 and self.bot.units(UnitTypeId.RAVEN).closer_than(15, unit).amount == 0
