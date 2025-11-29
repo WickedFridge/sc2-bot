@@ -32,6 +32,9 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.MISSILETURRET,
     UnitTypeId.NYDUSCANAL,
     UnitTypeId.AUTOTURRET,
+    UnitTypeId.CREEPTUMOR,
+    UnitTypeId.CREEPTUMORQUEEN,
+    UnitTypeId.CREEPTUMORBURROWED,
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -49,9 +52,6 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.SWARMHOSTBURROWEDMP,
     UnitTypeId.LURKER,
     UnitTypeId.VIPER,
-    UnitTypeId.CREEPTUMOR,
-    UnitTypeId.CREEPTUMORQUEEN,
-    UnitTypeId.CREEPTUMORBURROWED,
     UnitTypeId.CARRIER,
     UnitTypeId.DISRUPTORPHASED,
     UnitTypeId.WARPPRISM,

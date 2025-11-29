@@ -9,6 +9,7 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.base import Base
+from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_cargo import get_building_cargo
 from sc2.ids.ability_id import AbilityId
@@ -264,6 +265,10 @@ class OrdersManager:
         if (local_enemy_workers.amount >= 1):
             return Orders.HARASS
 
+        # -- Clean creep
+        # if self.should_clean_creep(army):
+        #     return Orders.CLEAN_CREEP
+        
         # -- Merge with nearby army
         if (self.should_regroup(army)):
             return Orders.REGROUP
@@ -379,6 +384,16 @@ class OrdersManager:
             and Army(global_enemy_menacing, self.bot).supply >= 12
             and global_enemy_menacing.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
         )
+    
+    def should_clean_creep(self, army: Army) -> bool:
+        if (self.bot.matchup != Matchup.TvZ):
+            return False
+        detectors: Units = army.units.filter(lambda unit: unit.is_detector)
+        if (detectors.amount == 0):
+            return False
+        closest_creep: Point2 = self.bot.map.influence_maps.creep.closest_creep(army.center)
+        if (closest_creep and closest_creep.distance_to(army.center) < 50):
+            return True
     
     def should_regroup(self, army: Army) -> bool:
         closest_army: Army = self.get_closest_army(army)
@@ -506,6 +521,9 @@ class OrdersManager:
                 case Orders.ATTACK_NEAREST_BASE:
                     await self.execute.attack_nearest_base(army)
 
+                case Orders.CLEAN_CREEP:
+                    self.execute.clean_creep(army)
+                
                 case Orders.REGROUP:
                     self.execute.regroup(army, self.armies)
 

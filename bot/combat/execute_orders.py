@@ -425,7 +425,7 @@ class Execute(CachedClass):
         )
         for unit in army.units:
             if (unit.type_id == UnitTypeId.RAVEN):
-                self.micro.raven(unit, army)
+                await self.micro.raven(unit, army.units)
                 continue
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 if (unit.cargo_used >= 4):
@@ -434,9 +434,14 @@ class Execute(CachedClass):
                     await self.micro.medivac_fight(unit, army.units)
                 continue
             
-            if (unit.health_percentage >= 0.85):
-                self.micro.stim_bio(unit, force=True)
             target: Unit = local_enemy_buildings.first
+            if (
+                unit.health_percentage >= 0.85 and (
+                    target.health > 100
+                    or local_enemy_buildings.amount >= 2
+                )
+            ):
+                self.micro.stim_bio(unit, force=True)
             if (unit.weapon_cooldown == 0):
                 in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
                 if (in_range_enemy_buildings.amount >= 1):
@@ -476,6 +481,18 @@ class Execute(CachedClass):
             else:
                 unit.move(center([unit.position, army.leader.position, attack_position]))
 
+    def clean_creep(self, army: Army):
+        target: Point2 | Unit = None
+        creep_tumors: Units = self.bot.enemy_structures([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
+        if (creep_tumors.amount >= 1):
+            closest_tumor: Unit = creep_tumors.closest_to(army.center)
+            target = closest_tumor
+        else:
+            closest_creep: Point2 = self.bot.map.influence_maps.creep.closest_creep(army.center)
+            target = closest_creep
+        for unit in army.units:
+            unit.attack(target)
+    
     def regroup(self, army: Army, armies: List[Army]):
         other_armies = list(filter(lambda other_army: other_army.center != army.center, armies))
         if (other_armies.__len__() == 0):

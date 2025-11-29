@@ -190,7 +190,7 @@ class BuildingsHandler:
         for unit in on_creep_fighting_units:
             # get ongoing scans
             scan_positions: List[Point2] = [
-                effect.positions[0]
+                effect.positions.pop()
                 for effect in self.bot.state.effects
                 if effect.id == EffectId.SCANNERSWEEP
             ]

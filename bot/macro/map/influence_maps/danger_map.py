@@ -3,6 +3,7 @@ from typing import List
 
 import numpy as np
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.utils.point2_functions.utils import center
 from sc2.bot_ai import BotAI
 from sc2.ids.effect_id import EffectId
@@ -20,6 +21,7 @@ class DangerMap:
     bot: BotAI
     ground: InfluenceMap
     air: InfluenceMap
+    creep: CreepLayer
     FALLOFF_LEVELS: List[tuple[float, float]] = [
         (1.00, 1.0),   # inside range
         (0.50, 2.0),   # medium threat
@@ -30,11 +32,13 @@ class DangerMap:
     def __init__(
         self,
         bot: BotAI,
+        creep: CreepLayer,
         map: np.ndarray = None
     ):
         self.bot = bot
         self.ground = InfluenceMap(bot, map)
         self.air = InfluenceMap(bot)
+        self.creep = creep
 
     def reset(self):
         self.ground.map[:] = 0
@@ -91,6 +95,7 @@ class DangerMap:
         
         for unit in units:
             self.update_unit(unit)
+        self.ground.map *= self.creep.bonus.map
     
     def update_unit(self, unit: Unit):
         (

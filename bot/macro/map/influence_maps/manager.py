@@ -1,6 +1,7 @@
 import numpy as np
 from bot.macro.map.influence_maps.danger_map import DangerMap
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.macro.map.influence_maps.layers.effect_layer import EffectLayer
 from bot.macro.map.influence_maps.layers.static_layer import StaticLayer
 from sc2.bot_ai import BotAI
@@ -12,6 +13,7 @@ class InfluenceMapManager:
     static: StaticLayer
     danger: DangerMap
     effects: EffectLayer
+    creep: CreepLayer
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -23,13 +25,15 @@ class InfluenceMapManager:
         # precompute wall_distance and dynamic block grid
         self.static.compute_wall_distance()
         self.static.update_dynamic_block_grid()
+        self.creep = CreepLayer(self.bot)
         
         ground_map: np.ndarray = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
-        self.danger = DangerMap(self.bot, map=ground_map)
+        self.danger = DangerMap(self.bot, self.creep, map=ground_map)
 
     def update(self):
         # 1) static data (walls & blocks)
         self.static.update_dynamic_block_grid()
+        self.creep.update()
 
         # 2) unit-based danger
         self.danger.update(include_structures=True)

@@ -1,5 +1,6 @@
 import json
 import math
+import random
 from typing import List, Optional, Set
 
 import numpy as np
@@ -204,6 +205,9 @@ class Debug:
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
             return
+        print("creep sum:", np.sum(self.bot.map.influence_maps.creep.creep.map))
+        print("bonus unique:", np.unique(self.bot.map.influence_maps.creep.bonus.map))
+        
         center: Point2 = selected_units.center
         flying_only: bool = all(u.is_flying for u in selected_units)
         # Read a region of size radius=8 around the center
@@ -342,6 +346,7 @@ class Debug:
         amount: int,
         unit_id: UnitTypeId,
         player_id: int = 1,
+        pos: Optional[Point2] = None
     ) -> None:  # pragma: no cover
         """Create units at player camera location.
 
@@ -359,34 +364,66 @@ class Debug:
 
         """
 
-        player_camera = self.bot.state.observation_raw.player.camera
-        pos = Point2((player_camera.x, player_camera.y))
+        if (pos is None):
+            player_camera = self.bot.state.observation_raw.player.camera
+            pos = Point2((player_camera.x, player_camera.y))
         await self.bot.client.debug_create_unit([[unit_id, amount, pos, player_id]])
 
-    async def spawn_test_units(self):
-        if (len(self.bot.state.chat) == 1 and self.bot.state.chat[0].player_id == self.bot.player_id):
-            message: str = self.bot.state.chat[0].message
-            if (message.startswith("order")):
-                self.order()
-                return
-            if (not message[0].isdigit()):
-                return
-            
-            parts = message.split(" ", 2)  # split into at most 3 parts
-            amount_str: str = parts[0]
-            unit_str: str = parts[1] if len(parts) > 1 else ""
-            player_str: str = parts[2] if len(parts) > 2 else ""
-            
-            amount: int = int(amount_str)
-            unit: str = unit_str
-            player: int = 1 if player_str else 2
-            
-            print(f'Spawning {amount} {unit}')
-            unit_type: UnitTypeId | None = self.parse_unit_type(unit)
-            if (unit_type is None):
-                print(f'Unknown unit type: {unit} !')
-                return
-            await self._create_units(amount, unit_type, player)
+    async def spawn_test_units(self, message: str):
+        parts = message.split(" ", 2)  # split into at most 3 parts
+        amount_str: str = parts[0]
+        unit_str: str = parts[1] if len(parts) > 1 else ""
+        player_str: str = parts[2] if len(parts) > 2 else ""
+        
+        amount: int = int(amount_str)
+        unit: str = unit_str
+        player: int = 1 if player_str else 2
+        
+        print(f'Spawning {amount} {unit}')
+        unit_type: UnitTypeId | None = self.parse_unit_type(unit)
+        if (unit_type is None):
+            print(f'Unknown unit type: {unit} !')
+            return
+        await self._create_units(amount, unit_type, player)
+
+    
+    async def spawn_creep(self):
+        tumor_count: int = 100
+        pathing: np.ndarray = self.bot.game_info.pathing_grid.data_numpy
+        # Step 1: find all coordinates where pathing is True
+        ys, xs = np.where(pathing == True)
+        
+        for i in range(tumor_count):
+            # Step 2: pick a random index
+            idx: int = np.random.randint(0, len(xs))
+
+            # Step 3: construct a Point2
+            pos: Point2 = Point2((xs[idx], ys[idx]))
+            tumor_type: UnitTypeId = UnitTypeId.CREEPTUMORBURROWED
+            # tumor_type: UnitTypeId = random.choice([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
+            await self._create_units(1, tumor_type, 2, pos)
+
+    async def chat_commands(self):
+        if (len(self.bot.state.chat) == 0 or self.bot.state.chat[0].player_id != self.bot.player_id):
+            return
+        message: str = self.bot.state.chat[0].message
+        print(f'message: {message}')
+
+        if (message.startswith("order")):
+            print(f'Order info')
+            self.order()
+            return
+        
+        if (message[0].isdigit()):
+            print(f'Spawning test units')
+            await self.spawn_test_units(message)
+            return
+        
+        if (message.startswith("tumors")):
+            print(f'Spawning creep')
+            await self.spawn_creep()
+            return
+        print(f'No command recognized')
 
     def order(self):
         selected_buildings: Units = self.bot.structures.selected

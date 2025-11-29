@@ -39,6 +39,10 @@ class InfluenceMap:
     def shape(self):
         return self.map.shape
     
+    @property
+    def inverted(self):
+        return ~self.map
+    
     def _region(
         self, pos: Point2, radius: float, exact_dist = True
     ) -> Optional[tuple[int, int, int, int, np.ndarray, np.ndarray, np.ndarray]]:

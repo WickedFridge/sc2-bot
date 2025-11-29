@@ -33,7 +33,11 @@ class SupplyDepot(Building):
         pending_depots: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).not_ready
         for pending_depot in pending_depots:
             current_supply += pending_depot.build_progress * 8
-        future_supply: float = current_supply + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8 + self.bot.already_pending(UnitTypeId.COMMANDCENTER) * 15
+        future_supply: float = (
+            current_supply
+            + self.bot.already_pending(UnitTypeId.SUPPLYDEPOT) * 8
+            + self.bot.already_pending(UnitTypeId.COMMANDCENTER) * 15
+        )
         concurrent_supply_depots: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         
         if (future_supply >= 200 or concurrent_supply_depots >= self.max_depots_pending):
@@ -43,6 +47,8 @@ class SupplyDepot(Building):
             return self.bot.supply_used >= 14
         if (current_supply <= 23):
             return self.bot.supply_used >= 21 or self.bot.scouting.situation == Situation.UNDER_ATTACK
+        if (current_supply == 30):
+            return self.bot.supply_used >= 26
         if (current_supply <= 46):
             return self.bot.supply_used >= 35 and self.bot.supply_workers >= 26
         if (current_supply <= 54):

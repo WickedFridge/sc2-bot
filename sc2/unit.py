@@ -917,7 +917,7 @@ class Unit:
     @property
     def can_be_attacked(self) -> bool:
         """ Checks if the unit is revealed or not cloaked and therefore can be attacked. """
-        return self._proto.cloak in CAN_BE_ATTACKED
+        return self.is_visible or self._proto.cloak in CAN_BE_ATTACKED
 
     @cached_property
     def buffs(self) -> FrozenSet[BuffId]:

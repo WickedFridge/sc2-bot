@@ -952,15 +952,15 @@ class Micro(CachedClass):
                 )
             )
         )
-        local_enemy_units: Units = global_enemy_units.closer_than(radius, position)
+        local_enemy_units: Units = global_enemy_units
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
                 unit.type_id in tower_types
                 and unit.can_be_attacked
             )
-        ).closer_than(radius, position)
+        )
 
-        return local_enemy_units + local_enemy_towers
+        return (local_enemy_units + local_enemy_towers).closer_than(radius, position)
 
     def get_local_enemy_buildings(self, position: Point2) -> Units:
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
