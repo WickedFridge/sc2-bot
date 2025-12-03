@@ -28,7 +28,8 @@ class InfluenceMapManager:
         self.creep = CreepLayer(self.bot)
         
         ground_map: np.ndarray = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
-        self.danger = DangerMap(self.bot, self.creep, map=ground_map)
+        # self.danger = DangerMap(self.bot, self.creep, map=ground_map)
+        self.danger = DangerMap(self.bot, map=ground_map)
 
     def update(self):
         # 1) static data (walls & blocks)
@@ -45,7 +46,7 @@ class InfluenceMapManager:
         self.effects.update()
     
     # ---- Query helpers ----
-    def read_values(self, pos: Point2, radius: float, air: bool = False, danger: bool = True, effects: bool = True):
+    def read(self, pos: Point2, radius: float, air: bool = False, danger: bool = True, effects: bool = True, creep: bool = True):
         """
         Return x1,y1, masked_values from the combined map for reading/picking.
         """
@@ -62,6 +63,9 @@ class InfluenceMapManager:
             if (effects):
                 temporary_map += self.effects.ground.map
         
+        if (creep):
+            temporary_map *= self.creep.bonus.map
+        
         tmp: InfluenceMap = InfluenceMap(self.bot, temporary_map)
         return tmp.read_values(pos, radius)
     
@@ -77,7 +81,7 @@ class InfluenceMapManager:
     ) -> Point2:
         
         # Get the masked window: returns x1, y1, masked_values
-        x1, y1, masked_values = self.read_values(pos, radius, air, danger, effects)
+        x1, y1, masked_values = self.read(pos, radius, air, danger, effects)
 
         # Build candidate tiles (masked values auto-skip)
         ys, xs = np.where(~masked_values.mask)
@@ -139,7 +143,7 @@ class InfluenceMapManager:
         return best_point
 
     def most_dangerous_point(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):
-        x1, y1, masked_values = self.read_values(pos, radius, air, danger=True, effects=True)
+        x1, y1, masked_values = self.read(pos, radius, air, danger=True, effects=True)
         
         # Find safest (minimum danger)
         iy, ix = np.unravel_index(masked_values.argmax(), masked_values.shape)

@@ -484,12 +484,17 @@ class Execute(CachedClass):
     def clean_creep(self, army: Army):
         target: Point2 | Unit = None
         creep_tumors: Units = self.bot.enemy_structures([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
-        if (creep_tumors.amount >= 1):
+        TUMOR_DISTANCE_THRESHOLD: float = 15
+        if (creep_tumors.closer_than(TUMOR_DISTANCE_THRESHOLD, army.center).amount >= 1):
             closest_tumor: Unit = creep_tumors.closest_to(army.center)
             target = closest_tumor
+        elif (self.bot.map.influence_maps.creep.density[army.center] >= 0.5):
+            pos = army.center.position
+            target = army.center.position.towards(self.bot.map.influence_maps.creep.direction_to_tumor(pos), 2)
         else:
-            closest_creep: Point2 = self.bot.map.influence_maps.creep.closest_creep(army.center)
-            target = closest_creep
+            closest_clamp: Point2 = self.bot.map.influence_maps.creep.closest_creep_clamp(army.center)
+            target = closest_clamp
+
         for unit in army.units:
             unit.attack(target)
     

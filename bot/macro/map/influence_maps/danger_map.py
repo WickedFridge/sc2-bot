@@ -21,7 +21,7 @@ class DangerMap:
     bot: BotAI
     ground: InfluenceMap
     air: InfluenceMap
-    creep: CreepLayer
+    # creep: CreepLayer
     FALLOFF_LEVELS: List[tuple[float, float]] = [
         (1.00, 1.0),   # inside range
         (0.50, 2.0),   # medium threat
@@ -32,13 +32,13 @@ class DangerMap:
     def __init__(
         self,
         bot: BotAI,
-        creep: CreepLayer,
+        # creep: CreepLayer,
         map: np.ndarray = None
     ):
         self.bot = bot
         self.ground = InfluenceMap(bot, map)
         self.air = InfluenceMap(bot)
-        self.creep = creep
+        # self.creep = creep
 
     def reset(self):
         self.ground.map[:] = 0
@@ -95,7 +95,7 @@ class DangerMap:
         
         for unit in units:
             self.update_unit(unit)
-        self.ground.map *= self.creep.bonus.map
+        # self.ground.map *= self.creep.bonus.map
     
     def update_unit(self, unit: Unit):
         (

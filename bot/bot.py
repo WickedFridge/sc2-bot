@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import *
 
-VERSION: str = "8.6.1"
+VERSION: str = "8.6.3"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -275,14 +275,15 @@ class WickedBot(Superbot):
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
         # await self.debug.bases_distance()
-        # await self.debug.selection()
+        await self.debug.selection()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
         # await self.debug.bunker_positions()
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
-        self.debug.danger_map()
+        # self.debug.danger_map()
+        self.debug.creep_map()
         # self.macro.supply_block_update()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()

@@ -180,7 +180,7 @@ class Debug:
             unit: Unit
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
             target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
-            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
+            # self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
             
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
@@ -205,13 +205,11 @@ class Debug:
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
             return
-        print("creep sum:", np.sum(self.bot.map.influence_maps.creep.creep.map))
-        print("bonus unique:", np.unique(self.bot.map.influence_maps.creep.bonus.map))
         
         center: Point2 = selected_units.center
         flying_only: bool = all(u.is_flying for u in selected_units)
         # Read a region of size radius=8 around the center
-        x1, y1, masked = self.bot.map.influence_maps.read_values(center, radius=8, air=flying_only)
+        x1, y1, masked = self.bot.map.influence_maps.read(center, radius=8, air=flying_only)
         
         # Iterate only over valid unmasked cells
         ys, xs = np.where(~masked.mask)
@@ -232,6 +230,34 @@ class Debug:
 
             # Draw on SC2 world
             self.draw_text_on_world(world_pos, f"{danger:.1f}", color)
+
+    def creep_map(self):
+        selected_units: Units = self.bot.units.selected
+        if (selected_units.amount == 0):
+            return
+        center: Point2 = selected_units.center
+        # Read a region of size radius=8 around the center
+        x1, y1, masked = self.bot.map.influence_maps.creep.density.read_values(center, radius=10)
+        
+        # Iterate only over valid unmasked cells
+        ys, xs = np.where(~masked.mask)
+
+        for iy, ix in zip(ys, xs):
+            creep = float(masked[iy, ix])
+            if (creep <= 0):
+                continue
+
+            # Convert tile coords back to world coords
+            world_x = x1 + ix
+            world_y = y1 + iy
+            world_pos = Point2((world_x, world_y))
+
+            # Build a readable color scale
+            red = min(255, int(creep * 255))
+            color = (red, 255 - red, 128)
+
+            # Draw on SC2 world
+            self.draw_text_on_world(world_pos, f"{creep:.1f}", color)
     
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
