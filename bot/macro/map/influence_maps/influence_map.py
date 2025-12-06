@@ -153,3 +153,6 @@ class InfluenceMap:
         delta: np.ndarray = value * density * center_bonus
 
         self.map[y1:y2, x1:x2] += delta
+
+    def reset(self):
+        self.map[:] = 0.0

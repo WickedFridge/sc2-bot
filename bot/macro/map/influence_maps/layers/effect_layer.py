@@ -10,7 +10,7 @@ class EffectStaticData:
     ground: bool
     air: bool
 
-    def __init__(self, radius: float, damage: float, ground: float = True, air = False):
+    def __init__(self, radius: float = 0, damage: float = 0, ground: float = True, air = False):
         self.radius = radius
         self.damage = damage
         self.ground = ground
@@ -25,6 +25,7 @@ class EffectLayer:
     ground: InfluenceMap
     air: InfluenceMap
     effect_data: dict[str|EffectId, EffectStaticData] = {
+        EffectId.SCANNERSWEEP: EffectStaticData(),
         "KD8CHARGE": EffectStaticData(
             radius=1,
             damage=20,

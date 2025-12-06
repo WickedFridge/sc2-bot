@@ -22,6 +22,7 @@ class Orders(enum.Enum):
     DROP_LOAD = 18
     DROP_RELOAD = 19
     CLEAN_CREEP = 20
+    CHASE_CREEP = 21
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

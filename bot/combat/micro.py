@@ -14,7 +14,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable, building_priorities
+from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable, building_priorities, creep
 
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb
@@ -161,12 +161,7 @@ class Micro(CachedClass):
     def safety_disengage(self, flying_unit: Unit) -> bool:
         safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
         # if medivac is in danger
-        menacing_enemy_units: Units = self.enemy_units.filter(
-            lambda enemy_unit: (
-                (enemy_unit.can_attack_air or enemy_unit.type_id in menacing)
-                and enemy_unit.distance_to(flying_unit) <= flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
-            )
-        )
+        menacing_enemy_units = self.enemies_threatening_air_in_range(flying_unit, safety_distance)
         if (menacing_enemy_units.amount == 0):
             return False
         
@@ -305,7 +300,7 @@ class Micro(CachedClass):
         #         bio.attack(closest_base_under_attack.retreat_position)
         #         return
         
-        enemy_units: Units = self.enemy_units.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
+        enemy_units: Units = self.enemy_all.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
             await self.bio_fight(bio)
@@ -332,50 +327,66 @@ class Micro(CachedClass):
         available_abilities = (await self.bot.get_available_abilities([reaper]))[0]
         if (AbilityId.KD8CHARGE_KD8CHARGE not in available_abilities):
             return False
-        potential_targets: Units = self.enemy_units.filter(
-            lambda enemy_unit: (
-                not enemy_unit.is_flying
-                and enemy_unit.distance_to(reaper) <= 5 + enemy_unit.radius + reaper.radius
-            )
-        ).sorted(
-            lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
-        )
-        if (potential_targets.amount == 0):
+        
+        best_target, score = self.bot.map.influence_maps.best_grenade_target(reaper)
+        if (score < 5):
             return False
-        best_target: Point2 = potential_targets.first.position
+        # KD8_RANGE: int = 5
+        # potential_targets: Units = self.enemy_all.filter(
+        #     lambda enemy_unit: (
+        #         not enemy_unit.is_flying
+        #         and enemy_unit.distance_to(reaper) <= KD8_RANGE + enemy_unit.radius + reaper.radius
+        #     )
+        # ).sorted(
+        #     lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
+        # )
+        # if (potential_targets.amount == 0):
+        #     return False
+        # best_target: Point2 = potential_targets.first.position
         # best_target: Point2 = self.bot.map.danger.most_dangerous_point(reaper, 5)
         reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     
     async def reaper(self, reaper: Unit):
-        # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
-        SAFETY: int = 2
-        enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
-        close_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.distance_to(reaper) <= 20)
-        menacing_enemy_units: Units = close_enemy_units.filter(lambda unit: unit.distance_to(reaper) <= reaper.radius + unit.radius + unit.ground_range + SAFETY)
-        
-        # if we're launching a grenade, just do it and skip the rest
+        # Try grenade first
         if (await self.reaper_grenade(reaper)):
             return
         
-        if (reaper.weapon_cooldown == 0):
+        # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
+        SAFETY: int = 2
+        LIFE_THRESHOLD: int = 15
+        enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
+        threats: Units = self.enemies_threatening_ground_in_range(reaper, safety_distance=SAFETY, range_override=20)
+        
+        # --- CASE 1: Weapon Ready ---
+        if (reaper.weapon_ready):
             # if we can safely shoot, just shoot
-            if (menacing_enemy_units.amount == 0 or (menacing_enemy_units.amount <= 3 and reaper.health >= 15)):
+            local_danger: float = self.bot.map.influence_maps.danger.ground[reaper.position]
+            if (threats.amount == 0 or (reaper.health >= LIFE_THRESHOLD and reaper.health > local_danger)):
                 if (enemy_units_in_range.amount >= 1):
-                    reaper.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield, unit.distance_to_squared(reaper))).first)
+                    # shoot weakest enemy in range
+                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(reaper))).first
+                    reaper.attack(target)
                 else:
-                    reaper.attack(self.enemy_units.sorted_by_distance_to(reaper).first)
+                    # move toward closest enemy to chase
+                    reaper.attack(self.enemy_all.closest_to(reaper))
+            
             # if we can't safely shoot, move away
             else:
-                # safest_spot is preferably away from menacing enemy_units
-                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, menacing_enemy_units.closest_to(reaper))
+                # safest_spot is preferably away from threats
+                kite_target = threats.closest_to(reaper)
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, kite_target)
                 reaper.move(safest_spot)
+        
+        # --- CASE 2: Short Cooldown (stutter step micro) ---
         elif (reaper.weapon_cooldown <= 5):
-            best_target: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
+            best_target: Unit = self.enemy_all.closest_to(reaper)
             best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
+       
+        # --- CASE 3: Long cooldown → retreat & wait ---
         else:
-            closest_enemy: Unit = self.enemy_units.sorted_by_distance_to(reaper).first
+            closest_enemy: Unit = self.enemy_all.closest_to(reaper)
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, closest_enemy)
             reaper.move(safest_spot)
 
@@ -400,7 +411,7 @@ class Micro(CachedClass):
         
         average_ground_range: float = Army(local_army, self.bot).average_ground_range
         shorter_range: bool = any([enemy_unit.ground_range < average_ground_range for enemy_unit in enemy_units_in_range])
-        other_enemies: Units = self.enemy_fighting_units.sorted(
+        other_enemies: Units = self.enemy_fighting.sorted(
             lambda enemy_unit: (enemy_unit.distance_to(unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
         )
         
@@ -899,72 +910,112 @@ class Micro(CachedClass):
         target: Point2 = selected_position.__add__(offset)
         selected.move(selected_position.towards(target, distance))
 
-    @custom_cache_once_per_frame
-    def enemy_towers(self) -> Units:
-        enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
-        return enemy_towers
+    def is_valid_enemy(self, unit: Unit) -> bool:
+        if (not unit.can_be_attacked):
+            return False
+        if (unit.type_id in dont_attack):
+            return False
+        return True
+
+    def is_fighting_unit(self, unit: Unit) -> bool:
+        return unit.can_attack or unit.type_id in menacing
+    
+    def can_threaten_air(self, unit: Unit) -> bool:
+        return unit.can_attack_air or unit.type_id in menacing
+
+    def is_tower(self, unit: Unit) -> bool:
+        return unit.type_id in tower_types
+    
+    def is_creep_tumor(self, unit: Unit) -> bool:
+        return unit.type_id in creep
     
     @custom_cache_once_per_frame
-    def enemy_units(self) -> Units:
-        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
-        return enemy_units + self.enemy_towers
-    
+    def enemy_all(self) -> Units:
+        """Everything worth considering: real units, towers, and creep tumors."""
+        units = self.bot.enemy_units.filter(self.is_valid_enemy)
+        towers = self.bot.enemy_structures.filter(self.is_tower)
+        tumors = self.bot.enemy_structures.filter(self.is_creep_tumor)
+        return units + towers + tumors
+
     @custom_cache_once_per_frame
-    def enemy_fighting_units(self) -> Units:
-        return self.enemy_units.filter(lambda unit: unit.can_attack or unit.type_id in menacing)
+    def enemy_fighting(self) -> Units:
+        return self.enemy_all.filter(self.is_fighting_unit)
         
+    # @custom_cache_once_per_frame
+    # def enemy_towers(self) -> Units:
+    #     enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
+    #     return enemy_towers
+    
+    # @custom_cache_once_per_frame
+    # def enemy_units(self) -> Units:
+    #     enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
+    #     enemy_tumors: Units = self.bot.enemy_structures(creep)
+    #     return enemy_units + self.enemy_towers + enemy_tumors
+    
+    def enemies_threatening_air_in_range(self, unit: Unit, safety_distance: float = 0) -> Units:
+        return self.enemy_all.filter(
+            lambda enemy: (
+                self.can_threaten_air(enemy) and
+                enemy.distance_to(unit) <= unit.radius + enemy.radius + enemy.air_range + safety_distance
+            )
+        )
+    
+    def enemies_threatening_ground_in_range(
+        self, unit: Unit, safety_distance: float = 0, range_override: float | None = None
+    ) -> Units:
+        """
+        Returns enemy units that can threaten the given unit (ground target logic).
+        If range_override is set, only considers enemies within that radius first.
+        """
+        # Step 1: get globally valid combat enemies
+        threats = self.enemy_all.filter(self.is_fighting_unit)
+
+        # Step 2: optional proximity filter
+        if (range_override):
+            threats = threats.closer_than(range_override, unit)
+
+        # Step 3: threat capability check
+        threats = threats.filter(
+            lambda enemy: (
+                (enemy.can_attack_ground or enemy.type_id in menacing)
+                and enemy.distance_to(unit) <= unit.radius + enemy.radius + enemy.ground_range + safety_distance
+            )
+        )
+
+        return threats
+    
     def get_potential_targets(self, unit: Unit) -> Units:
         if (unit is None):
             return Units([], self.bot)
-        # range: float = unit.radius + unit.ground_range + unit.real_speed * 1.4 * unit.weapon_cooldown
         base_range: float = unit.distance_to_weapon_ready + unit.radius
 
-        enemy_units_in_range: Units = self.enemy_units.filter(
-            lambda enemy: (
-                enemy.distance_to(unit) <= base_range + enemy.radius + (unit.ground_range if enemy.is_flying == False else unit.air_range)
+        return self.enemy_all.filter(
+            lambda enemy: enemy.distance_to(unit) <= (
+                base_range + enemy.radius + 
+                (unit.ground_range if not enemy.is_flying else unit.air_range)
             )
         )
-        return enemy_units_in_range
     
     def get_enemy_units_in_range(self, unit: Unit) -> Units:
         if (unit is None):
             return Units([], self.bot)
-        attackable_enemy_units: Units = self.enemy_units.filter(
+        
+        return self.enemy_all.filter(
             lambda enemy: (
-                (unit.can_attack_ground and enemy.is_flying == False)
-                or (unit.can_attack_air and enemy.is_flying == True)
+                (unit.can_attack_ground and not enemy.is_flying) or
+                (unit.can_attack_air and enemy.is_flying)
             )
+            and unit.target_in_range(enemy)
         )
-        enemy_units_in_range: Units = attackable_enemy_units.filter(
-            lambda enemy: unit.target_in_range(enemy)
-        )
-        return enemy_units_in_range
     
     def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False) -> Units:
-        global_enemy_units: Units = self.bot.enemy_units.filter(
-            lambda unit: (
-                unit.can_be_attacked
-                and unit.type_id not in dont_attack
-                and (
-                    not only_menacing
-                    or unit.can_attack
-                    or unit.type_id in menacing
-                )
-            )
-        )
-        local_enemy_units: Units = global_enemy_units
-        local_enemy_towers: Units = self.bot.enemy_structures.filter(
-            lambda unit: (
-                unit.type_id in tower_types
-                and unit.can_be_attacked
-            )
-        )
+        enemies = self.enemy_all
+        if (only_menacing):
+            enemies = enemies.filter(self.is_fighting_unit)
 
-        return (local_enemy_units + local_enemy_towers).closer_than(radius, position)
+        return enemies.closer_than(radius, position)
 
     def get_local_enemy_buildings(self, position: Point2) -> Units:
-        local_enemy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.distance_to(position) <= 10 and unit.can_be_attacked
-        )
-        local_enemy_buildings.sort(key=lambda building: building.health)
-        return local_enemy_buildings
+        buildings = self.bot.enemy_structures.filter(self.is_valid_enemy).closer_than(10, position)
+        buildings.sort(key=lambda b: b.health)
+        return buildings

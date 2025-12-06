@@ -8,6 +8,7 @@ from sc2.position import Point2
 
 
 class CreepLayer:
+    bot: BotAI
     creep_map: InfluenceMap              # boolean mask
     creep_assumed: InfluenceMap          # float32, creep assuming unknown tiles are creep too
     distance_to_creep: InfluenceMap      # float32, grid of distances to nearest creep

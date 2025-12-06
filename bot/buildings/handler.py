@@ -1,5 +1,6 @@
 import math
 from typing import List, Set
+from bot.macro.expansion_manager import Expansions
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
@@ -13,7 +14,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import must_repair, add_ons, worker_types
+from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep
 
 class BuildingsHandler:
     bot: Superbot
@@ -161,58 +162,81 @@ class BuildingsHandler:
                 scan_banked += 1
 
     async def scan(self):
+        CREEP_DENSITY_THRESHOLD: float = 0.5
+        BASE_RADIUS: int = 6
         SCAN_RADIUS: int = 15
-        DETECTION_RANGE: int = 11
         
         orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
         if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
             return
         
-        # if we have a unit close to it that can attack it
+        # if we have no fighting units we can't clean creep
+        ravens: Units = self.bot.units(UnitTypeId.RAVEN)
         fighting_units: Units = self.bot.units.filter(
-            lambda unit: (unit.type_id not in worker_types)
+            lambda unit: (
+                unit.type_id not in worker_types
+                and unit.can_attack_ground
+                and (
+                    ravens.amount == 0
+                    or ravens.closer_than(15, unit).amount == 0
+                )
+            )
         )
 
         if (fighting_units.amount == 0):
             return
         
+        # find bases that have creep around and units who should clean creep
+        # Check all owned bases
+        creep_layer = self.bot.map.influence_maps.creep
+        expansions_to_check: Expansions = self.bot.expansions.taken.copy()
+        expansions_to_check.add(self.bot.expansions.next)
+        
+        for expansion in expansions_to_check:
+            density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
+            if (position is None):
+                continue
+            tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
+            detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
+            if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
+                fighting_units_around: Units = fighting_units.closer_than(BASE_RADIUS, expansion.position)
+                if (fighting_units_around.amount >= 1):
+                    print("scanning creep around base")
+                    orbital: Unit = orbitals_with_energy.random
+                    orbital(AbilityId.SCANNERSWEEP_SCAN, position)
+                    # only 1 scan per frame
+                    return
+
         # find fighting units that are on creep without a building in 15 range and not close to an expansion slot (that could have died the last frame)
+        enemy_buildings: Units = self.bot.enemy_structures
         on_creep_fighting_units: Units = fighting_units.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
-                and not unit.is_flying
-                and self.bot.enemy_structures.closer_than(SCAN_RADIUS, unit.position).amount == 0
-                and self.bot.enemy_units.closer_than(SCAN_RADIUS, unit.position).amount == 0
+                and self.bot.map.influence_maps.detection.detected[unit.position] == 0
+                and (
+                    enemy_buildings.amount == 0
+                    or enemy_buildings.closest_distance_to(unit) > SCAN_RADIUS
+                )
             )
         )
 
         # scan for creep tumors    
-        for unit in on_creep_fighting_units:
-            # get ongoing scans
-            scan_positions: List[Point2] = [
-                effect.positions.pop()
-                for effect in self.bot.state.effects
-                if effect.id == EffectId.SCANNERSWEEP
-            ]
-            detectors: Units = self.bot.units([UnitTypeId.MISSILETURRET, UnitTypeId.RAVEN])
+        # look for optimal spot to scan
+        best_density: float = 0
+        best_position: Point2 = None
 
-            # if theres no scan or detector on this unit, scan it
-            detected: bool = False
-            for scan in scan_positions:
-                if (scan.distance_to(unit.position) <= SCAN_RADIUS):
-                    detected = True
-                    break
-            for detector in detectors:
-                if (detector.distance_to(unit.position) <= DETECTION_RANGE):
-                    detected = True
-                    break
-            if (not detected):
-                print("scan unit on creep", unit.name)
-                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, unit.position)
-                # scan only once per frame
-                return
-            else:        
-                print("Unit is already scanned", unit.name)
+        for unit in on_creep_fighting_units:
+            # get highest creep density around
+            range: float = unit.ground_range
+            density, position = creep_layer.max_density_in_radius(unit.position, range)
+            if (density > best_density):
+                best_density = density
+                best_position = position
+        
+        if (best_density >= CREEP_DENSITY_THRESHOLD):
+            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, best_position)
+            # scan only once per frame
+            return
 
         
         # find invisible enemy unit that we should kill
@@ -221,7 +245,6 @@ class BuildingsHandler:
                 not unit.is_visible
                 and (unit.is_cloaked or unit.is_burrowed)
                 and fighting_units.closest_distance_to(unit) < 10
-                and self.bot.units(UnitTypeId.RAVEN).closer_than(15, unit).amount == 0
             )
         )
         

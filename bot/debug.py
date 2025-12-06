@@ -209,7 +209,7 @@ class Debug:
         center: Point2 = selected_units.center
         flying_only: bool = all(u.is_flying for u in selected_units)
         # Read a region of size radius=8 around the center
-        x1, y1, masked = self.bot.map.influence_maps.read(center, radius=8, air=flying_only)
+        x1, y1, masked = self.bot.map.influence_maps.read(center, radius=8, air=flying_only, include_terrain_penalty=False)
         
         # Iterate only over valid unmasked cells
         ys, xs = np.where(~masked.mask)
@@ -258,6 +258,30 @@ class Debug:
 
             # Draw on SC2 world
             self.draw_text_on_world(world_pos, f"{creep:.1f}", color)
+
+    def detection_map(self):
+        selected_units: Units = self.bot.units.selected
+        if (selected_units.amount == 0):
+            return
+        center: Point2 = selected_units.center
+        # Read a region of size radius=8 around the center
+        x1, y1, masked = self.bot.map.influence_maps.detection.detected.read_values(center, radius=15)
+        
+        # Iterate only over valid unmasked cells
+        ys, xs = np.where(~masked.mask)
+
+        for iy, ix in zip(ys, xs):
+            detected = masked[iy, ix]
+            if (detected == 0):
+                continue
+
+            # Convert tile coords back to world coords
+            world_x = x1 + ix
+            world_y = y1 + iy
+            world_pos = Point2((world_x, world_y))
+
+            # Draw on SC2 world
+            self.draw_text_on_world(world_pos, 'X', GREEN)
     
     async def invisible_units(self):
         invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(

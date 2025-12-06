@@ -24,7 +24,6 @@ class OrdersManager:
     bot: Superbot
     execute: Execute
     armies: List[Army] = []
-    bases: List[Base] = []
     DEFENSE_RANGE_LIMIT: int = 40
     
     def __init__(self, bot: Superbot) -> None:
@@ -266,8 +265,12 @@ class OrdersManager:
             return Orders.HARASS
 
         # -- Clean creep
-        if self.should_clean_creep(army):
-            return Orders.CLEAN_CREEP
+        creep_order: Orders = self.should_clean_creep(army)
+        if (creep_order):
+            return creep_order
+        
+        # if (self.should_clean_creep(army)):
+        #     return Orders.CLEAN_CREEP
         
         # -- Merge with nearby army
         if (self.should_regroup(army)):
@@ -385,58 +388,52 @@ class OrdersManager:
             and global_enemy_menacing.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
         )
     
-    def should_clean_creep(self, army: Army) -> bool:
+    def should_clean_creep(self, army: Army) -> Optional[Orders]:
         if (self.bot.matchup != Matchup.TvZ):
-            return False
-        detectors: Units = army.units.filter(lambda unit: unit.is_detector)
-        if (detectors.amount == 0):
-            return False
+            return None
         
+        # --- Base blocked by creep
+        # Threshold: if a base has >= 0.5 in radius 6, it's "blocked"
         # Don't clean creep if we're too far from it
-        CLEEN_CREEP_CLOSE: int = 30
-        CLEEN_CREEP_BASE: int = 50
-        
-        creep_layer = self.bot.map.influence_maps.creep
-         # Look for tumor hotspots nearby
-        creep_density_close, _ = self.bot.map.influence_maps.creep.max_density_in_radius(
-            army.center, radius=CLEEN_CREEP_CLOSE
-        )
-
-        CREEP_DENSITY_THRESHOLD = 0.3
-        
-        if (creep_density_close > CREEP_DENSITY_THRESHOLD):
-            return True
-        
-        # closest_creep: Point2 = creep_layer.closest_creep_clamp(army.center)
-        # if (
-        #     closest_creep
-        #     and closest_creep.distance_to(army.center) < CLEEN_CREEP_CLOSE
-        #     and creep_layer.quantity(closest_creep) >= 10
-        # ):
-        #     return True
-        
-        # --- 2) Base blocked by creep
-        # Threshold: if a base has >= 15 creep tiles in radius 6, it's "blocked"
         BASE_RADIUS = 6
-
+        CLEEN_CREEP_BASE: int = 50
+        CREEP_DENSITY_THRESHOLD = 0.5
+        
         # Check all owned bases
+        creep_layer = self.bot.map.influence_maps.creep
         for base in self.bot.townhalls:
-            density, _ = self.bot.map.influence_maps.creep.max_density_in_radius(base.position, BASE_RADIUS)
+            density, _ = creep_layer.max_density_in_radius(base.position, BASE_RADIUS)
             
             # quantity = creep_layer.quantity(base.position, radius=BASE_RADIUS)
             # if (quantity >= CREEP_DENSITY_THRESHOLD):
             if (density > CREEP_DENSITY_THRESHOLD):
                 # Base is polluted — go clean it
                 if (army.center.distance_to(base.position)) < CLEEN_CREEP_BASE:
-                    return True
+                    return Orders.CLEAN_CREEP
 
         # Check next expansion location
         next_base: Point2 = self.bot.expansions.next.position
-        density_next, _ = self.bot.map.influence_maps.creep.max_density_in_radius(next_base, BASE_RADIUS)
+        density_next, _ = creep_layer.max_density_in_radius(next_base, BASE_RADIUS)
             
         if (density_next >= CREEP_DENSITY_THRESHOLD):
             if (army.center.distance_to(next_base) < CLEEN_CREEP_BASE):
-                return True
+                return Orders.CLEAN_CREEP
+            
+        # Only clean close creep if we have detectors
+        detectors: Units = army.units.filter(lambda unit: unit.is_detector)
+        if (detectors.amount == 0):
+            return None
+        
+        CLEEN_CREEP_CLOSE: int = 30
+        # Look for tumor hotspots nearby
+        creep_density_close, _ = creep_layer.max_density_in_radius(
+            army.center, radius=CLEEN_CREEP_CLOSE
+        )
+
+        if (creep_density_close > CREEP_DENSITY_THRESHOLD):
+            return Orders.CHASE_CREEP
+        
+        return None
     
     def should_regroup(self, army: Army) -> bool:
         closest_army: Army = self.get_closest_army(army)
@@ -566,6 +563,9 @@ class OrdersManager:
 
                 case Orders.CLEAN_CREEP:
                     self.execute.clean_creep(army)
+                
+                case Orders.CHASE_CREEP:
+                    self.execute.chase_creep(army)
                 
                 case Orders.REGROUP:
                     self.execute.regroup(army, self.armies)
@@ -707,6 +707,8 @@ class OrdersManager:
             Orders.KILL_BUILDINGS: PURPLE,
             Orders.CHASE_BUILDINGS: PURPLE,
             Orders.REGROUP: WHITE,
+            Orders.CHASE_CREEP: PURPLE,
+            Orders.CLEAN_CREEP: ORANGE,
         }
         for army in self.armies:
             if (army.orders in colors):

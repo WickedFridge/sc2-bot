@@ -32,9 +32,6 @@ tower_types: List[UnitTypeId] = [
     UnitTypeId.MISSILETURRET,
     UnitTypeId.NYDUSCANAL,
     UnitTypeId.AUTOTURRET,
-    UnitTypeId.CREEPTUMOR,
-    UnitTypeId.CREEPTUMORQUEEN,
-    UnitTypeId.CREEPTUMORBURROWED,
 ]
 menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -133,4 +130,9 @@ build_order_structures: List[UnitTypeId] = [
     UnitTypeId.BARRACKSTECHLAB,
     UnitTypeId.BARRACKSREACTOR,
     UnitTypeId.FACTORYREACTOR,
+]
+creep: List[UnitTypeId] = [
+    UnitTypeId.CREEPTUMOR,
+    UnitTypeId.CREEPTUMORQUEEN,
+    UnitTypeId.CREEPTUMORBURROWED,
 ]

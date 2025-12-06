@@ -6,14 +6,13 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
 from bot.utils.unit_cargo import get_transport_cargo
-from bot.utils.unit_supply import get_unit_supply
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.position import Point2, Point3
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, building_priorities
+from ..utils.unit_tags import building_priorities, creep
 
 PICKUP_RANGE: int = 3
 
@@ -42,14 +41,6 @@ class Execute(CachedClass):
 
     @custom_cache_once_per_frame
     def drop_target(self) -> Point2:
-        return self.calculate_drop_target()
-        # Recalculate drop target only every 2 seconds
-        # if (self.bot.time - self._last_calculated_drop_target_time >= 2):
-        #     self._drop_target = self.calculate_drop_target()
-        #     self._last_calculated_drop_target_time = self.bot.time
-        # return self._drop_target
-    
-    def calculate_drop_target(self) -> Point2:
         # if we don't know about enemy army or enemy bases, drop on the default target
         if (self.bot.expansions.potential_enemy_bases.amount == 0):
             return self.default_drop_target
@@ -485,16 +476,38 @@ class Execute(CachedClass):
         target: Point2 | Unit = None
         creep_tumors: Units = self.bot.enemy_structures([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
         TUMOR_DISTANCE_THRESHOLD: float = 15
+        
         if (creep_tumors.closer_than(TUMOR_DISTANCE_THRESHOLD, army.center).amount >= 1):
             closest_tumor: Unit = creep_tumors.closest_to(army.center)
             target = closest_tumor
-        elif (self.bot.map.influence_maps.creep.density[army.center] >= 0.5):
+        else:
+            CREEP_DENSITY_THRESHOLD: float = 0.5
+            BASE_RADIUS: int = 6 
+            creep_layer = self.bot.map.influence_maps.creep
+            expansions_to_check: Expansions = self.bot.expansions.taken.copy()
+            expansions_to_check.add(self.bot.expansions.next)
+            
+            for expansion in expansions_to_check:
+                density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
+                if (position is None):
+                    continue
+                tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
+                detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
+                if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
+                    target = position
+        
+        for unit in army.units:
+            unit.attack(target)
+
+    def chase_creep(self, army: Army):
+        target: Point2 | Unit = None
+        if (self.bot.map.influence_maps.creep.density[army.center] >= 0.5):
             pos = army.center.position
             target = army.center.position.towards(self.bot.map.influence_maps.creep.direction_to_tumor(pos), 2)
         else:
             closest_clamp: Point2 = self.bot.map.influence_maps.creep.closest_creep_clamp(army.center)
             target = closest_clamp
-
+        
         for unit in army.units:
             unit.attack(target)
     
@@ -530,9 +543,3 @@ class Execute(CachedClass):
         
         for reaper in army.units:
             reaper.move(scout_target)
-            # if (self.bot.expansions.enemy_b2.is_unknown):
-            #     reaper.move(self.bot.expansions.enemy_b2.mineral_line)
-            # elif (self.bot.expansions.enemy_main.is_unknown or self.bot.expansions.enemy_main.is_enemy):
-            #     reaper.move(self.bot.expansions.enemy_main.mineral_line)
-            # else:
-            #     reaper.move(self.bot.expansions.oldest_scout.mineral_line)

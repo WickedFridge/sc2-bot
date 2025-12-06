@@ -3,15 +3,13 @@ from typing import List
 
 import numpy as np
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
-from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.utils.point2_functions.utils import center
 from sc2.bot_ai import BotAI
-from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ....utils.unit_tags import menacing, tower_types
+from ....utils.unit_tags import tower_types
 
 class DangerMap:
     """
@@ -20,8 +18,8 @@ class DangerMap:
     """
     bot: BotAI
     ground: InfluenceMap
+    ground_terrain: InfluenceMap
     air: InfluenceMap
-    # creep: CreepLayer
     FALLOFF_LEVELS: List[tuple[float, float]] = [
         (1.00, 1.0),   # inside range
         (0.50, 2.0),   # medium threat
@@ -32,16 +30,16 @@ class DangerMap:
     def __init__(
         self,
         bot: BotAI,
-        # creep: CreepLayer,
         map: np.ndarray = None
     ):
         self.bot = bot
         self.ground = InfluenceMap(bot, map)
+        self.ground_terrain = InfluenceMap(bot, map)
         self.air = InfluenceMap(bot)
-        # self.creep = creep
 
     def reset(self):
         self.ground.map[:] = 0
+        self.ground_terrain.map[:] = 0
         self.air.map[:] = 0
 
     def get_unit_property(self, unit: Unit) -> tuple[Point2, float, float, float, float, float, float]:
@@ -95,7 +93,6 @@ class DangerMap:
         
         for unit in units:
             self.update_unit(unit)
-        # self.ground.map *= self.creep.bonus.map
     
     def update_unit(self, unit: Unit):
         (
@@ -126,10 +123,11 @@ class DangerMap:
         # Distance 2 → dangerous * 0.25
         # >2 → safe-ish
 
-        self.ground.map += np.where(
+        self.ground_terrain.map[:] = self.ground.map.copy()
+        self.ground_terrain.map += np.where(
             wall_distance == 0,
             999,
             np.exp(-wall_distance * 0.75) * 5.0
         )
         # absolute blockers
-        self.ground.map[block_mask] = 999
+        self.ground_terrain.map[block_mask] = 999
