@@ -21,7 +21,8 @@ zerg_townhalls: List[UnitTypeId] = [
 must_repair: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.MISSILETURRET,
-    UnitTypeId.BUNKER
+    UnitTypeId.BUNKER,
+    UnitTypeId.SUPPLYDEPOT
 ]
 worker_types: List[UnitTypeId] = [
     UnitTypeId.SCV,
