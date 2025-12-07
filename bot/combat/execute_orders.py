@@ -475,17 +475,17 @@ class Execute(CachedClass):
     def clean_creep(self, army: Army):
         target: Point2 | Unit = None
         creep_tumors: Units = self.bot.enemy_structures([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
-        TUMOR_DISTANCE_THRESHOLD: float = 15
+        TUMOR_DISTANCE_THRESHOLD: float = 10
         
         if (creep_tumors.closer_than(TUMOR_DISTANCE_THRESHOLD, army.center).amount >= 1):
             closest_tumor: Unit = creep_tumors.closest_to(army.center)
             target = closest_tumor
         else:
-            CREEP_DENSITY_THRESHOLD: float = 0.5
-            BASE_RADIUS: int = 6 
+            CREEP_DENSITY_THRESHOLD: float = 0.4
+            BASE_RADIUS: int = 6
             creep_layer = self.bot.map.influence_maps.creep
             expansions_to_check: Expansions = self.bot.expansions.taken.copy()
-            expansions_to_check.add(self.bot.expansions.next)
+            expansions_to_check.add(self.bot.expansions.potential_next)
             
             for expansion in expansions_to_check:
                 density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
@@ -496,6 +496,11 @@ class Execute(CachedClass):
                 if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
                     target = position
         
+        if (target is None):
+            if (creep_tumors.amount >= 1):
+                target = creep_tumors.closest_to(army.center)
+            else:
+                print("Error : no creep target")
         for unit in army.units:
             unit.attack(target)
 

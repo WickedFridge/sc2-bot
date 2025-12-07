@@ -5,14 +5,16 @@ from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import burrowed_units, cloaked_units
+from bot.utils.unit_tags import burrowed_units, cloaked_units, creep
 
 scouting: Scouting | None = None
 
 class Scouting:
     bot: BotAI
     known_enemy_army: Army
+    known_enemy_buildings: Units
     known_enemy_composition: List[UnitTypeId] = []
     known_enemy_upgrades: List[UpgradeId] = []
     situation: Situation = Situation.STABLE
@@ -20,6 +22,7 @@ class Scouting:
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
         self.known_enemy_army = Army(Units([], bot), bot)
+        self.known_enemy_buildings = Units([], bot)
 
     @property
     def enemy_composition(self) -> dict[UnitTypeId, float]:
@@ -37,6 +40,12 @@ class Scouting:
             if (enemy.type_id not in self.known_enemy_composition):
                 self.known_enemy_composition.append(enemy.type_id)
             
+    def detect_enemy_buildings(self):
+        enemy_buildings: Units = self.bot.enemy_structures
+        for building in enemy_buildings:
+            if (building.tag not in self.known_enemy_buildings.tags):
+                self.known_enemy_buildings.append(building)
+    
     async def detect_enemy_upgrades(self):
         await self.detect_burrow()
 
@@ -55,11 +64,13 @@ class Scouting:
 
     
     def unit_died(self, unit_tag: int):
-        if (unit_tag not in self.known_enemy_army.units.tags):
-            return
-        self.known_enemy_army.remove_by_tag(unit_tag)
-        enemy_army: dict = self.known_enemy_army.recap
-        print("remaining enemy units :", enemy_army)
+        if (unit_tag in self.known_enemy_army.units.tags):
+            self.known_enemy_army.remove_by_tag(unit_tag)
+            enemy_army: dict = self.known_enemy_army.recap
+            print("remaining enemy units :", enemy_army)
+        elif (unit_tag in self.known_enemy_buildings.tags):
+            destroyed_building: Unit = self.known_enemy_buildings.by_tag(unit_tag)
+            self.known_enemy_buildings.remove(destroyed_building)
     
 def get_scouting(bot: BotAI) -> Scouting:
     global scouting

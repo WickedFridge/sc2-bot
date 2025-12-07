@@ -3,9 +3,11 @@ from scipy.ndimage import distance_transform_edt, convolve
 from scipy.signal import convolve2d
 
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.scouting.scouting import Scouting, get_scouting
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
-
+from sc2.unit import Unit
+from .....utils.unit_tags import creep
 
 class CreepLayer:
     bot: BotAI
@@ -16,53 +18,82 @@ class CreepLayer:
     density: InfluenceMap                # float32, smoothed creep
     tumor_candidates: InfluenceMap       # erosion 10 radius
     bonus: InfluenceMap                  # float32, bonus danger by creep
+    
+    # memory maps
+    creep_decay: InfluenceMap            # stores tiles where tumors were killed → reduce priority
+    last_seen_frame: np.ndarray          # timestamp last visible
+    
     grad_x: np.ndarray
     grad_y: np.ndarray
     
     CREEP_BONUS: float = 1.2
     TUMOR_RADIUS: float = 10
-    SLOW_UPDATE_INTERVAL: int = 8  # compute heavy maps every N frames
+    SLOW_UPDATE_INTERVAL: int = 8        # compute heavy maps every N frames
     MIN_CREEP_TILES_FOR_SLOW: int = 150  # skip heavy work if creep very small
+    FOG_GRACE_FRAMES: int = 120          # after this, tiles become speculative again
+    DECAY_STRENGTH: float = 0.4          # reduce influence after tumor kill
+    ASSUMPTION_RADIUS: int = 5           # fog creep expansion like before
+    CLEAR_RADIUS: int = 6  # tiles around killed tumor to invalidate creep
 
     def __init__(self, bot: BotAI):
         self.bot = bot
-        self.creep_map: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.creep_assumed: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.distance_to_creep: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.edge: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.density: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.tumor_candidates: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
-        self.bonus: InfluenceMap = InfluenceMap(bot, dtype=np.float32)
+        self.creep_map = InfluenceMap(bot, dtype=np.float32)
+        self.creep_assumed = InfluenceMap(bot, dtype=np.float32)
+        self.distance_to_creep = InfluenceMap(bot, dtype=np.float32)
+        self.edge = InfluenceMap(bot, dtype=np.float32)
+        self.density = InfluenceMap(bot, dtype=np.float32)
+        self.tumor_candidates = InfluenceMap(bot, dtype=np.float32)
+        self.bonus = InfluenceMap(bot, dtype=np.float32)
         
+        # === Memory tracking ===
+        self.creep_decay = InfluenceMap(bot, dtype=np.float32)
+        self.last_seen_frame = np.full_like(self.creep_map.map, fill_value=-99999, dtype=np.int32)
+
+
         # Gradient of density map (grad_x, grad_y)
-        self.grad_x: np.ndarray = None
-        self.grad_y: np.ndarray = None
+        self.grad_x = None
+        self.grad_y = None
         
     
     def compute_raw_creep(self):
         raw_creep: np.ndarray = self.bot.state.creep.data_numpy.astype(np.float32)
         self.creep_map.map[:] = raw_creep
+        
+        visible: np.ndarray = self.bot.state.visibility.data_numpy == 2
+        
+        # update memory
+        self.last_seen_frame[visible] = self.bot.state.game_loop
     
     def compute_empty_maps(self):
-        self.distance_to_creep.map[:] = np.full_like(self.distance_to_creep.map, fill_value=np.inf, dtype=np.float32)
+        self.distance_to_creep.map[:] = np.inf
         self.edge.map[:] = 0.0
         self.density.map[:] = 0.0
         self.tumor_candidates.map[:] = 0.0
         self.bonus.map[:] = 0.0
-        # self.tumor_density.map[:] = 0.0
         self.grad_x = np.zeros_like(self.density.map)
         self.grad_y = np.zeros_like(self.density.map)
     
     def compute_assumed_creep(self):
         """
-        Expand creep into unseen tiles within radius ~5.
-        Does NOT touch real creep — stored in self.creep_assumed.
+        Expand creep in fog ONLY if tile hasn't been seen recently.
         """
         creep: np.ndarray = self.creep_map.map
-        visibility: np.ndarray = self.bot.state.visibility.data_numpy  # 0 = not visible, 1 = fogged, 2 = visible
+        visibility: np.ndarray = self.bot.state.visibility.data_numpy
+        # 0 = not visible, 1 = fogged, 2 = visible
+        unknown: np.ndarray = (visibility == 0)
+        fog: np.ndarray = (visibility == 1)
+        
+        # How long tiles were fogged
+        fog_age: np.ndarray = self.bot.state.game_loop - self.last_seen_frame
 
+        # Tiles eligible for speculative creep
+        speculative: np.ndarray = unknown | (fog & (fog_age > self.FOG_GRACE_FRAMES))
+        
+        # decay cleared tile memory
+        cleared_active: np.ndarray = self.creep_decay.map > self.bot.state.game_loop
+        
         # --- 1. build radius-5 disk kernel ---
-        R: float = 5
+        R: float = self.ASSUMPTION_RADIUS
         y, x = np.ogrid[-R:R+1, -R:R+1]
         kernel = (x*x + y*y <= R*R).astype(np.float32)
 
@@ -70,8 +101,11 @@ class CreepLayer:
         creep_near: np.ndarray = convolve2d(creep, kernel, mode="same", boundary="fill", fillvalue=0)
 
         # --- 3. mark unseen tiles near creep as creep ---
-        assumed: np.ndarray = (creep == 1) | ((visibility < 2) & (creep_near > 0))
+        assumed: np.ndarray = (creep == 1) | ((creep_near > 0) & speculative)
 
+        # --- clear overrides everything ---
+        assumed[cleared_active] = 0
+        
         self.creep_assumed.map[:] = assumed.astype(np.float32)
     
     def compute_creep_density(self):
@@ -86,6 +120,9 @@ class CreepLayer:
         density: np.ndarray = dist_to_noncreep / R   # 0 = border, >=1 inside thick creep
         density = np.clip(density, 0, None).astype(np.float32)
         
+        # Reduce priority where tumor was recently killed
+        density *= (1.0 - self.DECAY_STRENGTH * self.creep_decay.map)
+
         self.density.map[:] = density
     
     def compute_gradients(self):
@@ -156,12 +193,18 @@ class CreepLayer:
     def compute_bonus(self):
         self.bonus.map[:] = np.where(self.creep_map.map, self.CREEP_BONUS, 1.0).astype(np.float32)
 
+    def compute_decay(self):
+        # record visibility timestamps
+        visibility = self.bot.state.visibility.data_numpy
+        now = self.bot.state.game_loop
+        self.last_seen_frame[visibility == 2] = now
     
     def update(self) -> None:
         self.compute_raw_creep()
         if (not self.creep_map.map.any()):
             self.compute_empty_maps()
             return
+        self.compute_decay()
         self.compute_assumed_creep()
         self.compute_distance_to_creep()
         self.compute_creep_edge()        
@@ -169,7 +212,6 @@ class CreepLayer:
         self.compute_gradients()
         self.compute_tumor_candidates()
         self.compute_bonus()
-    
     
     # -----------------------------
     # Queries
@@ -244,3 +286,8 @@ class CreepLayer:
         ix = xs[0]
 
         return max_val, Point2((x1 + ix, y1 + iy))
+    
+    def detect_destroyed_tumor(self, unit: Unit):
+        print("editing creep decay with dead tumor")
+        value: int = self.bot.state.game_loop + self.FOG_GRACE_FRAMES
+        self.creep_decay.update(unit.position, self.CLEAR_RADIUS, value, density_alpha=0)

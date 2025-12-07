@@ -109,8 +109,12 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_safe == True)
 
     @custom_cache_once_per_frame
-    def free(self) -> Expansions:
+    def not_taken(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == False)
+    
+    @custom_cache_once_per_frame
+    def free(self) -> Expansions:
+        return self.not_taken.filter(lambda expansion: self.bot.has_creep(expansion.position) == False)
 
     @custom_cache_once_per_frame
     def defended(self) -> Expansions:
@@ -192,6 +196,13 @@ class Expansions(CachedClass):
         if (taken_expansions.amount == 0):
             return None
         return taken_expansions.expansions[taken_expansions.amount - 1]
+    
+    @property
+    def potential_next(self) -> Expansion:
+        taken_expansions: Expansions = self.taken
+        if (taken_expansions.amount == self.amount):
+            return self.last_taken
+        return self.not_taken[0]
     
     @property
     def next(self) -> Expansion:

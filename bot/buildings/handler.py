@@ -172,7 +172,8 @@ class BuildingsHandler:
         
         # if we have no fighting units we can't clean creep
         ravens: Units = self.bot.units(UnitTypeId.RAVEN)
-        fighting_units: Units = self.bot.units.filter(
+        enemy_units: Units = self.bot.enemy_units
+        creep_cleaners: Units = self.bot.units.filter(
             lambda unit: (
                 unit.type_id not in worker_types
                 and unit.can_attack_ground
@@ -180,10 +181,14 @@ class BuildingsHandler:
                     ravens.amount == 0
                     or ravens.closer_than(15, unit).amount == 0
                 )
+                and (
+                    enemy_units.amount == 0
+                    or enemy_units.closer_than(10, unit).amount == 0
+                )
             )
         )
 
-        if (fighting_units.amount == 0):
+        if (creep_cleaners.amount == 0):
             return
         
         # find bases that have creep around and units who should clean creep
@@ -199,7 +204,7 @@ class BuildingsHandler:
             tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
             detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
             if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
-                fighting_units_around: Units = fighting_units.closer_than(BASE_RADIUS, expansion.position)
+                fighting_units_around: Units = creep_cleaners.closer_than(BASE_RADIUS, expansion.position)
                 if (fighting_units_around.amount >= 1):
                     print("scanning creep around base")
                     orbital: Unit = orbitals_with_energy.random
@@ -209,7 +214,7 @@ class BuildingsHandler:
 
         # find fighting units that are on creep without a building in 15 range and not close to an expansion slot (that could have died the last frame)
         enemy_buildings: Units = self.bot.enemy_structures
-        on_creep_fighting_units: Units = fighting_units.filter(
+        on_creep_fighting_units: Units = creep_cleaners.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
                 and self.bot.map.influence_maps.detection.detected[unit.position] == 0
@@ -244,7 +249,7 @@ class BuildingsHandler:
             lambda unit: (
                 not unit.is_visible
                 and (unit.is_cloaked or unit.is_burrowed)
-                and fighting_units.closest_distance_to(unit) < 10
+                and creep_cleaners.closest_distance_to(unit) < 10
             )
         )
         

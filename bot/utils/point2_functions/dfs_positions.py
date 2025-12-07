@@ -14,16 +14,18 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, ra
     start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)
     if (has_addon):
         start_placement_grid += points_to_build_addon(position)
-    if all(
-        (
+    
+    def valid_position(pos) -> bool:
+        return (
             pos.x >= 0 and pos.y >= 0
             and pos.x <= map.building_grid.width - 1
             and pos.y <= map.building_grid.height - 1
             and bot.in_placement_grid(pos)
             and map.in_building_grid(pos)
+            and map.influence_maps.creep.creep_map[pos] == 0
         )
-        for pos in start_placement_grid
-    ):
+
+    if all(valid_position(pos) for pos in start_placement_grid):
         return position
     
     # Normalize to get step direction (either -1, 0, or 1)
@@ -53,7 +55,7 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, ra
             neighbor_grid: List[Point2] = grid_offsets(radius, initial_position = neighbor)
             if (has_addon):
                 neighbor_grid += points_to_build_addon(neighbor)
-            if all((bot.in_placement_grid(neighbor_point) and map.in_building_grid(neighbor_point)) for neighbor_point in neighbor_grid):
+            if all(valid_position(neighbor_point) for neighbor_point in neighbor_grid):
                 return neighbor
 
             # Otherwise, continue expanding

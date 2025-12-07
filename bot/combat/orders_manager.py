@@ -1,5 +1,6 @@
 import math
 from typing import List, Optional, Set
+from bot.macro.expansion_manager import Expansions
 from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
@@ -18,7 +19,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep
 
 class OrdersManager:
     bot: Superbot
@@ -392,31 +393,33 @@ class OrdersManager:
         if (self.bot.matchup != Matchup.TvZ):
             return None
         
-        # --- Base blocked by creep
-        # Threshold: if a base has >= 0.5 in radius 6, it's "blocked"
+        # --- Case 1) very close tumor
+        CLOSE_THRESHOLD: int = 10
+        tumors: Units = self.bot.enemy_structures(creep).closer_than(CLOSE_THRESHOLD, army.center)
+        if (tumors.amount >= 1):
+            return Orders.CLEAN_CREEP
+
+        # --- Case 2) Base blocked by creep
+        # Threshold: if a base has >= 0.4 in radius 6, it's "blocked"
         # Don't clean creep if we're too far from it
         BASE_RADIUS = 6
-        CLEEN_CREEP_BASE: int = 50
-        CREEP_DENSITY_THRESHOLD = 0.5
+        CREEP_DENSITY_THRESHOLD = 0.4
+        CLEEN_CREEP_BASE: int = 30
         
         # Check all owned bases
         creep_layer = self.bot.map.influence_maps.creep
-        for base in self.bot.townhalls:
-            density, _ = creep_layer.max_density_in_radius(base.position, BASE_RADIUS)
-            
-            # quantity = creep_layer.quantity(base.position, radius=BASE_RADIUS)
-            # if (quantity >= CREEP_DENSITY_THRESHOLD):
-            if (density > CREEP_DENSITY_THRESHOLD):
-                # Base is polluted — go clean it
-                if (army.center.distance_to(base.position)) < CLEEN_CREEP_BASE:
-                    return Orders.CLEAN_CREEP
-
-        # Check next expansion location
-        next_base: Point2 = self.bot.expansions.next.position
-        density_next, _ = creep_layer.max_density_in_radius(next_base, BASE_RADIUS)
-            
-        if (density_next >= CREEP_DENSITY_THRESHOLD):
-            if (army.center.distance_to(next_base) < CLEEN_CREEP_BASE):
+        expansions_to_check: Expansions = self.bot.expansions.taken.copy()
+        expansions_to_check.add(self.bot.expansions.potential_next)
+        
+        for expansion in expansions_to_check:
+            density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
+            if (position is None):
+                continue
+            tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
+            if (
+                density > CREEP_DENSITY_THRESHOLD
+                and army.center.distance_to(expansion.position) < CLEEN_CREEP_BASE
+            ):
                 return Orders.CLEAN_CREEP
             
         # Only clean close creep if we have detectors
@@ -424,7 +427,7 @@ class OrdersManager:
         if (detectors.amount == 0):
             return None
         
-        CLEEN_CREEP_CLOSE: int = 30
+        CLEEN_CREEP_CLOSE: int = 15
         # Look for tumor hotspots nearby
         creep_density_close, _ = creep_layer.max_density_in_radius(
             army.center, radius=CLEEN_CREEP_CLOSE

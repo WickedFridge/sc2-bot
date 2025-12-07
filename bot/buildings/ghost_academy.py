@@ -26,12 +26,14 @@ class GhostAcademy(Building):
         # We want a ghost academy once we have at least 4 bases and 2/2 started
         # but no ghost in TvT
         return (
-            upgrades_tech_requirement > 0
-            and ghost_academy_count == 0
+            ghost_academy_count == 0
             and self.bot.matchup != Matchup.TvT
             and self.bot.supply_used >= supply_min
             and (
-                self.bot.expansions.taken.amount >= 4
+                (
+                    self.bot.expansions.taken.amount >= 4
+                    and upgrades_tech_requirement > 0
+                )
                 or self.bot.vespene >= gas_threshold
                 or self.bot.supply_used >= supply_max
             )

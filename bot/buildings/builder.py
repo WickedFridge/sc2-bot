@@ -152,15 +152,18 @@ class Builder:
                     print("no free reactor")
 
     
-    async def build(self, unitType: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
+    async def build(self, unit_type: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
-        location: Point2 = await self.bot.find_placement(unitType, near=theorical_location)
+        location: Point2 = await self.bot.find_placement(unit_type, near=theorical_location)
+        if (not self.bot.map.in_building_grid(location)):
+            print(f'Error: we should not try to build {unit_type} here')
+            return
         workers: Units = self.worker_builders
         if (workers.amount == 0 or location is None):
-            print(f'Error: no available worker or no location found to build {unitType}')
+            print(f'Error: no available worker or no location found to build {unit_type}')
             return
         worker: Unit = workers.closest_to(location)
-        worker.build(unitType, location)
+        worker.build(unit_type, location)
         # TODO : replace with the correct building id
         worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
 

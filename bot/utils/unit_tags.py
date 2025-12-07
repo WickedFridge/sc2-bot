@@ -12,6 +12,12 @@ hq_types: List[UnitTypeId] = [
     UnitTypeId.NEXUS
 ]
 
+zerg_townhalls: List[UnitTypeId] = [
+    UnitTypeId.HATCHERY,
+    UnitTypeId.LAIR,
+    UnitTypeId.HIVE,
+]
+
 must_repair: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.MISSILETURRET,

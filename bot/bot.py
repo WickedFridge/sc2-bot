@@ -1,5 +1,5 @@
 from time import perf_counter
-from typing import Awaitable, Callable, override
+from typing import Awaitable, Callable, List, override
 from bot.army_composition.army_composition_manager import get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
@@ -21,9 +21,9 @@ from sc2.bot_ai import Race
 from sc2.data import Result
 from sc2.unit import Unit
 from sc2.units import Units
-from .utils.unit_tags import *
+from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "8.6.4"
+VERSION: str = "8.6.5"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -152,6 +152,7 @@ class WickedBot(Superbot):
         
         # Assement of the situation
         self.scouting.detect_enemy_army()
+        self.scouting.detect_enemy_buildings()
         await self.scouting.detect_enemy_upgrades()
         await self.macro.update_threat_level()
         await self.strategy.update_situation()
@@ -166,8 +167,8 @@ class WickedBot(Superbot):
         await self.builder.command_center.move_worker_expand()
 
         # Control buildings
-        await self.buildings.drop_mules()
         await self.buildings.scan()
+        await self.buildings.drop_mules()
         await self.buildings.handle_supplies()
         await self.buildings.lift_townhalls()
         await self.buildings.land_townhalls()
@@ -283,8 +284,8 @@ class WickedBot(Superbot):
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
         # self.debug.danger_map()
-        # self.debug.creep_map()
-        self.debug.detection_map()
+        self.debug.creep_map()
+        # self.debug.detection_map()
         # self.macro.supply_block_update()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()
@@ -319,12 +320,16 @@ class WickedBot(Superbot):
         pass
     
     async def on_unit_destroyed(self, unit_tag: int):
+        if (unit_tag in self.scouting.known_enemy_buildings.tags):
+            destroyed_building: Unit = self.scouting.known_enemy_buildings.by_tag(unit_tag)
+            if (destroyed_building.type_id in zerg_townhalls or destroyed_building.type_id in creep):
+                self.map.influence_maps.creep.detect_destroyed_tumor(destroyed_building)
+                print("killed creep tumor")
         self.scouting.unit_died(unit_tag)
         if (unit_tag in self.structures_memory.tags):
             print('structure destroyed - Removing it from grid')
             dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)
             self.map.update_building_grid(dead_structure, enable=True)
-
 
     async def on_building_construction_started(self, unit):
         self.map.update_building_grid(unit)
