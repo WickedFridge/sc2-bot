@@ -206,10 +206,11 @@ class Expansions(CachedClass):
     
     @property
     def next(self) -> Expansion:
-        taken_expansions: Expansions = self.taken
-        if (taken_expansions.amount == self.amount or len(self.free) == 0):
-            return self.last_taken
-        return self.free[0]
+        if (len(self.free) >= 1):
+            return self.free[0]
+        if (len(self.not_taken) >= 1):
+            return self.not_taken[0]
+        return self.last_taken
 
     @property
     def townhalls(self) -> Units:

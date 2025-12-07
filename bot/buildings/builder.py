@@ -155,7 +155,7 @@ class Builder:
     async def build(self, unit_type: UnitTypeId, position: Point2, radius: float, has_addon: bool = False):
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
         location: Point2 = await self.bot.find_placement(unit_type, near=theorical_location)
-        if (not self.bot.map.in_building_grid(location)):
+        if (location is None or not self.bot.map.in_building_grid(location)):
             print(f'Error: we should not try to build {unit_type} here')
             return
         workers: Units = self.worker_builders

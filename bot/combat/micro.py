@@ -328,22 +328,22 @@ class Micro(CachedClass):
         if (AbilityId.KD8CHARGE_KD8CHARGE not in available_abilities):
             return False
         
-        best_target, score = self.bot.map.influence_maps.best_grenade_target(reaper)
-        if (score < 5):
-            return False
-        # KD8_RANGE: int = 5
-        # potential_targets: Units = self.enemy_all.filter(
-        #     lambda enemy_unit: (
-        #         not enemy_unit.is_flying
-        #         and enemy_unit.distance_to(reaper) <= KD8_RANGE + enemy_unit.radius + reaper.radius
-        #     )
-        # ).sorted(
-        #     lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
-        # )
-        # if (potential_targets.amount == 0):
+        # best_target, score = self.bot.map.influence_maps.best_grenade_target(reaper)
+        # if (score < 5):
         #     return False
-        # best_target: Point2 = potential_targets.first.position
-        # best_target: Point2 = self.bot.map.danger.most_dangerous_point(reaper, 5)
+        KD8_RANGE: int = 5
+        potential_targets: Units = self.enemy_all.filter(
+            lambda enemy_unit: (
+                not enemy_unit.is_flying
+                and enemy_unit.distance_to(reaper) <= KD8_RANGE + enemy_unit.radius + reaper.radius
+            )
+        ).sorted(
+            lambda enemy_unit: (enemy_unit.health + enemy_unit.shield)
+        )
+        if (potential_targets.amount == 0):
+            return False
+        best_target: Point2 = potential_targets.first.position
+        best_target: Point2 = self.bot.map.danger.most_dangerous_point(reaper, 5)
         reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     

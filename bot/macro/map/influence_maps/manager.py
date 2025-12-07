@@ -162,7 +162,8 @@ class InfluenceMapManager:
         return best_point, best_score
 
     def best_grenade_target(self, reaper: Unit) -> tuple[Point2, float]:
-        RANGE: int = 5
+        # assume most units have the same range as the reaper
+        RANGE: int = 5 + reaper.radius * 2
 
         return self.pick_tile(
             reaper.position,
