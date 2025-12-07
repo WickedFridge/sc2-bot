@@ -343,7 +343,6 @@ class Micro(CachedClass):
         if (potential_targets.amount == 0):
             return False
         best_target: Point2 = potential_targets.first.position
-        best_target: Point2 = self.bot.map.danger.most_dangerous_point(reaper, 5)
         reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     
