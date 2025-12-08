@@ -1,7 +1,9 @@
 import math
+from typing import List
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
@@ -80,6 +82,10 @@ class Base:
         if (local_enemy_units.amount == 0):
             return Threat.NO_THREAT
 
+        # Every base is under attack when there's a cheese ling drone going on
+        if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
+            return Threat.ATTACK
+        
         enemy_workers_harassing: Units = self.enemy_units.filter(lambda unit: unit.type_id in worker_types)
         if (enemy_workers_harassing.amount >= 1):
             return Threat.WORKER_SCOUT
@@ -219,6 +225,10 @@ class Base:
             print("no workers to pull, o7")
             return
         
+        if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
+            self.handle_cheese_ling_drone()
+            return
+        
         SCV_HEALTH_THRESHOLD: int = 15
         local_enemy_units: Units = self.enemy_units.closer_than(self.BASE_SIZE, self.position).filter(lambda unit: unit.can_attack or unit.type_id in menacing)
         attackable_enemy_units: Units = local_enemy_units.filter(
@@ -297,6 +307,80 @@ class Base:
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     worker.attack(target)
                 
+    def workers_attack(self, workers: Units) -> List[int]:
+        """
+        Attack with workers
+
+        Returns the list of tags of workers that attacked
+        """
+        worker_orders: List[int] = []
+        for worker in workers.filter(lambda worker: worker.weapon_ready):
+            attackable_units: Units = self.bot.enemy_units.filter(
+                lambda unit: worker.target_in_range(unit)
+            ).sorted(lambda unit: unit.health, True)
+            if (attackable_units.amount >= 1):
+                worker.attack(attackable_units.first)
+                worker_orders.append(worker.tag)
+        return worker_orders
+    
+    def workers_repair(self, workers: Units) -> List[int]:
+        """
+        repair with workers
+
+        Returns the list of tags of workers that repaired
+        """
+        if (self.bot.minerals <= 0):
+            return []
+        
+        all_workers: Units = self.bot.workers
+        damaged_workers: Units = all_workers.filter(lambda worker: worker.health_percentage < 1).sorted(lambda worker: worker.health_percentage)
+        if (damaged_workers.amount == 0):
+            return []
+        
+        worker_orders: List[int] = []
+        for damaged_worker in damaged_workers:
+            range: float = damaged_worker.radius * 2
+            close_workers: Units = workers.filter(lambda worker: worker.tag not in worker_orders).closer_than(range, damaged_worker)
+            for close_worker in close_workers:
+                close_worker.repair(damaged_worker)
+                worker_orders.append(close_worker.tag)
+            
+        return worker_orders
+    
+    def handle_cheese_ling_drone(self):
+        main: Expansion = self.bot.expansions.main
+        central_mineral_patch: Unit = self.bot.mineral_field.closest_to(main.mineral_line)
+        # b2: Expansion = self.bot.expansions.b2
+        # b2_mineral_patch: Unit = self.bot.mineral_field.closest_to(b2.mineral_line)
+        
+        all_workers: Units = self.bot.workers
+        worker_orders: List[int] = []
+
+        # 1 - each worker that's on cooldown and can attack something, attack
+        worker_orders.extend(self.workers_attack(all_workers))
+        
+        # 2 - if a worker can repair another worker, do it
+        other_workers: Units = all_workers.filter(lambda worker: worker.tag not in worker_orders)
+        worker_orders.extend(self.workers_repair(other_workers))
+        
+        
+        # 3 - if my workers are near the mineral lines and unstacked, stack them
+        other_workers: Units = other_workers.filter(lambda worker: worker.tag not in worker_orders)
+        if (other_workers.center.distance_to(main.mineral_line) < 10):
+            if (other_workers.furthest_distance_to(other_workers.center) > 1):
+                for worker in other_workers:
+                    worker.gather(central_mineral_patch)
+                return
+        
+        # 2 - if they are stacked and near the mineral line and far from an enemy unit, mineral trick towards the b2
+        #     for worker in other_workers:
+        #         worker.gather(b2_mineral_patch)
+        #     return
+
+        # 3 - if they are away from the main mineral line, ask them to attack
+        # for worker in other_workers:
+        #     worker.attack(b2.position)
+    
     def evacuate(self) -> None:
         # find closest safe expansion
         retreat_base: Expansion = None
