@@ -32,9 +32,9 @@ class BuildOrderManager:
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    TwoRaxReapers(self.bot),
+                    # TwoRaxReapers(self.bot),
                     KokaBuild(self.bot),
-                    CCFirstTwoRax(self.bot)
+                    # CCFirstTwoRax(self.bot)
                 ])
             case Matchup.TvP:
                 self.build = random.choice([

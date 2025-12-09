@@ -98,6 +98,7 @@ class BarracksAddon(Building):
             self.barracks_without_addon.amount >= 1
             and self.next_addon == self.unitId
             and not self.bot.composition_manager.should_train(UnitTypeId.REAPER)
+            and self.bot.scouting.situation != Situation.CHEESE_LING_DRONE
             and (
                 # don't prioritize addons over defense once the build order is done
                 self.bot.build_order.build.is_completed == False

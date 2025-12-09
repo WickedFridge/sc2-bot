@@ -197,12 +197,13 @@ class Base:
         max_workers_repairing: int = max(5, self.workers.amount / 3)
         self.repair_units(self.available_workers, damaged_workers, max_workers_repairing)
 
-    def get_worker_amount_to_pull(self, enemy_units: Units) -> int:
+    def get_worker_amount_to_pull(self, enemy_units: Units, attackable_enemy_units: Units, bunkers: Units) -> int:
         specific_amount_to_pull: dict[UnitTypeId, int] = {
             UnitTypeId.REAPER: 2.5,
             UnitTypeId.MARINE: 1.5,
             UnitTypeId.MARAUDER: 3.5,
             UnitTypeId.ZERGLING: 1.5,
+            UnitTypeId.DRONE: 1,
             UnitTypeId.BANELING: 0,
             UnitTypeId.ROACH: 3,
             UnitTypeId.HELLION: 2.5,
@@ -212,21 +213,33 @@ class Base:
         }
         
         amount_to_pull: float = 0
-        for enemy_unit in enemy_units:
+        for enemy_unit in attackable_enemy_units:
             if (enemy_unit.type_id in specific_amount_to_pull):
                 amount_to_pull += specific_amount_to_pull[enemy_unit.type_id]
             else:
                 amount_to_pull += get_unit_supply(enemy_unit) * 2
 
-        return round(amount_to_pull)
+        amount_to_pull = round(amount_to_pull)
+
+        # if we don't have a bunker, just pull everything
+        if (bunkers.amount == 0):
+            return amount_to_pull
+
+        # otherwise it depends on the life of the bunker and the amount of enemy in range
+        # 2 if no units
+        amount_to_pull: int = 2
+        for bunker in bunkers:
+            enemies_in_range: Units = enemy_units.filter(lambda unit: unit.target_in_range(bunker))
+            if (enemies_in_range.amount >= 1 or bunker.health_percentage < 1):
+                # add between 2 and 6 if there's units around and life is down
+                amount_to_pull += 4 + 2 * (math.cos(math.pi * bunker.health_percentage))
+                
+        return amount_to_pull
+
     
     def attack_threat(self) -> None:
         if (self.available_workers.amount == 0):
             print("no workers to pull, o7")
-            return
-        
-        if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
-            self.handle_cheese_ling_drone()
             return
         
         SCV_HEALTH_THRESHOLD: int = 15
@@ -235,7 +248,8 @@ class Base:
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)
 
-        max_worker_to_pull: int = self.get_worker_amount_to_pull(attackable_enemy_units)
+        bunkers: Units = self.buildings(UnitTypeId.BUNKER)
+        max_worker_to_pull: int = self.get_worker_amount_to_pull(local_enemy_units, attackable_enemy_units, bunkers)
         workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)
         workers_to_pullback: Units = workers_pulled.filter(lambda unit: (unit.health < SCV_HEALTH_THRESHOLD))
 
@@ -329,7 +343,7 @@ class Base:
 
         Returns the list of tags of workers that repaired
         """
-        if (self.bot.minerals <= 0):
+        if (self.bot.minerals <= 0 or workers.amount == 0):
             return []
         
         all_workers: Units = self.bot.workers
@@ -347,39 +361,30 @@ class Base:
             
         return worker_orders
     
-    def handle_cheese_ling_drone(self):
-        main: Expansion = self.bot.expansions.main
-        central_mineral_patch: Unit = self.bot.mineral_field.closest_to(main.mineral_line)
-        # b2: Expansion = self.bot.expansions.b2
-        # b2_mineral_patch: Unit = self.bot.mineral_field.closest_to(b2.mineral_line)
+    # def handle_cheese_ling_drone(self):
+    #     all_workers: Units = self.bot.workers
+    #     if (all_workers.amount == 0):
+    #         return
+    #     main: Expansion = self.bot.expansions.main
+    #     central_mineral_patch: Unit = self.bot.mineral_field.closest_to(main.mineral_line)
         
-        all_workers: Units = self.bot.workers
-        worker_orders: List[int] = []
+    #     worker_orders: List[int] = []
 
-        # 1 - each worker that's on cooldown and can attack something, attack
-        worker_orders.extend(self.workers_attack(all_workers))
+    #     # 1 - each worker that's on cooldown and can attack something, attack
+    #     worker_orders.extend(self.workers_attack(all_workers))
         
-        # 2 - if a worker can repair another worker, do it
-        other_workers: Units = all_workers.filter(lambda worker: worker.tag not in worker_orders)
-        worker_orders.extend(self.workers_repair(other_workers))
+    #     # 2 - if a worker can repair another worker, do it
+    #     other_workers: Units = all_workers.filter(lambda worker: worker.tag not in worker_orders)
+    #     worker_orders.extend(self.workers_repair(other_workers))
         
         
-        # 3 - if my workers are near the mineral lines and unstacked, stack them
-        other_workers: Units = other_workers.filter(lambda worker: worker.tag not in worker_orders)
-        if (other_workers.center.distance_to(main.mineral_line) < 10):
-            if (other_workers.furthest_distance_to(other_workers.center) > 1):
-                for worker in other_workers:
-                    worker.gather(central_mineral_patch)
-                return
-        
-        # 2 - if they are stacked and near the mineral line and far from an enemy unit, mineral trick towards the b2
-        #     for worker in other_workers:
-        #         worker.gather(b2_mineral_patch)
-        #     return
-
-        # 3 - if they are away from the main mineral line, ask them to attack
-        # for worker in other_workers:
-        #     worker.attack(b2.position)
+    #     # 3 - if my workers are near the mineral lines and unstacked, stack them
+    #     other_workers: Units = other_workers.filter(lambda worker: worker.tag not in worker_orders)
+    #     if (other_workers.center.distance_to(main.mineral_line) < 10):
+    #         if (other_workers.furthest_distance_to(other_workers.center) > 1):
+    #             for worker in other_workers:
+    #                 worker.gather(central_mineral_patch)
+    #             return
     
     def evacuate(self) -> None:
         # find closest safe expansion

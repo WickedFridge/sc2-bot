@@ -1,10 +1,12 @@
 from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
+from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
@@ -77,6 +79,15 @@ class StrategyHandler:
             and drones.amount >= 2
         ):
             return Situation.CHEESE_LING_DRONE
+    
+    async def cheese_response(self):
+        if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
+            # cancel B2 and switch towards 2 rax reapers
+            expand_in_construction: Units = self.bot.townhalls.not_ready
+            if (expand_in_construction):
+                expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
+            
+            self.bot.build_order.build = TwoRaxReapers(self.bot)
     
     def detect_tower_rush(self) -> Optional[Situation]:
         if (self.bot.townhalls.amount >= 3):
