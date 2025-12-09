@@ -234,7 +234,7 @@ class Base:
                 # add between 2 and 6 if there's units around and life is down
                 amount_to_pull += 4 + 2 * (math.cos(math.pi * bunker.health_percentage))
                 
-        return amount_to_pull
+        return round(amount_to_pull)
 
     
     def attack_threat(self) -> None:
