@@ -270,7 +270,7 @@ class Base:
         workers_to_pull: Units = self.available_workers.filter(
             lambda unit: (unit.health >= SCV_HEALTH_THRESHOLD)
         ).sorted(
-            lambda unit: (-unit.health_percentage, unit.distance_to(attackable_enemy_units.center))
+            lambda unit: (-unit.health_percentage, unit.distance_to(local_enemy_units.center))
         ).take(additional_workers_needed)
         
 
