@@ -41,18 +41,18 @@ class Scout:
             if (self.scout is None):
                 print("ERROR CAN'T FIND SCOUT !")
                 return
-            # if our scout is closest to the main than the b2, just tell them to go to the b2
-            distance_to_main: float = self.scout.distance_to(self.bot.expansions.main.position)
-            distance_to_b2: float = self.scout.distance_to(self.bot.expansions.b2.position)
-            if (distance_to_b2 > distance_to_main):
-                self.scout.move(self.bot.expansions.b2.position)
-                return
             
-            # tell our scout to walk to the closest unscouted tile
-            unscouted_points: List[Point2] = self.bot.expansions.b2.unscouted_points
-            target: Point2 = closest_point(self.scout, unscouted_points)
+            # scout b2 first, ten the interior of the main
+            unscouted_b2: List[Point2] = self.bot.expansions.b2.unscouted_points
+            unscouted_main: List[Point2] = self.bot.expansions.b2.unscouted_points
+            target: Point2
+            if (len(unscouted_b2) > 0):
+                # tell our scout to walk to the closest unscouted tile
+                target: Point2 = closest_point(self.scout, unscouted_b2)
+            else:
+                target: Point2 = closest_point(self.scout, unscouted_main)
             self.scout.move(target)
-            print(f'[{self.bot.time.__round__(1)}] Scouting, {unscouted_points.__len__()} unscouted points left')
+            print(f'[{self.bot.time.__round__(1)}] Scouting, {len(unscouted_b2) + len(unscouted_main)} unscouted points left')
         else:
             if (self.scout_tag):
                 self.scout_tag = None
