@@ -156,8 +156,7 @@ class Builder:
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
         location: Point2 = await self.bot.find_placement(unit_type, near=theorical_location)
         if (location is None or not self.bot.map.in_building_grid(location)):
-            print(f'Error: we should not try to build {unit_type} here')
-            return
+            await self.bot.client.chat_send(f'Tag:Build_{unit_type}_incorrect')
         workers: Units = self.worker_builders
         if (workers.amount == 0 or location is None):
             print(f'Error: no available worker or no location found to build {unit_type}')

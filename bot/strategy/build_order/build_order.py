@@ -11,6 +11,7 @@ class BuildOrderStep:
     step_id: UnitTypeId | UpgradeId
     workers: int
     supply: int
+    army_supply: int
     townhalls: int
     requirements: tuple[UnitTypeId, int, bool]
     upgrades_required: List[UpgradeId]
@@ -23,6 +24,7 @@ class BuildOrderStep:
         step_id: UnitTypeId | UpgradeId,
         workers: int = 0,
         supply: int = 0,
+        army_supply: int = 0,
         townhalls: int = 1,
         requirements: List[tuple[UnitTypeId, int, bool]] = None,
         upgrades_required: List[UpgradeId] = None,
@@ -32,6 +34,7 @@ class BuildOrderStep:
         self.step_id = step_id
         self.workers = workers
         self.supply = supply
+        self.army_supply = army_supply
         self.townhalls = townhalls
         self.requirements = requirements or []
         self.upgrades_required = upgrades_required or []
@@ -43,6 +46,8 @@ class BuildOrderStep:
             return False, f'(not enough townhalls)'
         if (self.bot.supply_used < self.supply):
             return False, f'(not enough supply)'
+        if (self.bot.supply_army < self.army_supply):
+            return False, f'(not enough army)'
         if (self.bot.supply_workers < self.workers):
             return False, f'(not enough workers)'
         for unit_type, amount_required, completed in self.requirements:

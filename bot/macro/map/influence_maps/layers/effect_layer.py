@@ -48,7 +48,15 @@ class EffectLayer:
         EffectId.LURKERMP: EffectStaticData(
             radius=1,
             damage=20,
-        )
+        ),
+        EffectId.LIBERATORTARGETMORPHPERSISTENT: EffectStaticData(
+            radius=5,
+            damage=65,
+        ),
+        EffectId.LIBERATORTARGETMORPHDELAYPERSISTENT: EffectStaticData(
+            radius=5,
+            damage=20,
+        ),
     }
     
     def __init__(self, bot: BotAI):

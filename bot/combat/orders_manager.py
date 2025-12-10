@@ -337,7 +337,7 @@ class OrdersManager:
         if (
             self.enemy_anti_air.amount < 2
             and army.can_drop_medivacs.amount >= 2
-            and army.bio_supply >= 6
+            and army.potential_bio_supply >= 6
         ):
             if (army.cargo_left >= 1 and army.ground_units.amount >= 1):
                 return Orders.DROP_RELOAD

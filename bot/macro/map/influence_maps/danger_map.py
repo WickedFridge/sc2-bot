@@ -67,6 +67,8 @@ class DangerMap:
             case UnitTypeId.ADEPTPHASESHIFT:
                 ground_dps = 10
                 ground_range = 4
+            case UnitTypeId.LIBERATORAG:
+                ground_dps = 0
             case UnitTypeId.CARRIER:
                 # zone around carrier is dangerous
                 ground_dps = 25

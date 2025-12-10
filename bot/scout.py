@@ -1,22 +1,18 @@
 from typing import List, Optional
+from bot.superbot import Superbot
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.utils import closest_point
-from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 
 class Scout:
-    bot: BotAI
+    bot: Superbot
     scout_tag: int | None
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.scout_tag = None
-
-    @property
-    def matchup(self) -> Matchup:
-        return get_matchup(self.bot)
 
     @property
     def scout(self) -> Optional[Unit]:
@@ -25,7 +21,7 @@ class Scout:
         return self.bot.units.find_by_tag(self.scout_tag)
 
     async def b2_against_proxy(self):
-        if (self.matchup != Matchup.TvP):
+        if (self.bot.matchup != Matchup.TvP):
             return
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")
@@ -34,7 +30,10 @@ class Scout:
         if (
             barracks_amount == 1
             and self.bot.expansions.b2.is_taken == False
-            and self.bot.expansions.b2.is_scouted == False
+            and (
+                self.bot.expansions.b2.is_scouted == False
+                or self.bot.expansions.main.is_scouted == False
+            )
         ):
             # if we don't already have a scout assigned, we assign one
             if (self.scout_tag is None):

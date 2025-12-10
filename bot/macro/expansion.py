@@ -310,7 +310,11 @@ class Expansion(CachedClass):
                 if math.sqrt((x - self.position.x)**2 + (y - self.position.y)**2) <= radius:
                     point = Point2((x, y))
                     # Unscouted
-                    if self.bot.state.visibility[point] == 0 and self.bot.in_pathing_grid(point):
+                    if (
+                        self.bot.state.visibility[point] == 0
+                        and self.bot.in_pathing_grid(point)
+                        and self.bot.get_terrain_z_height(point) == self.bot.get_terrain_z_height(self.position)
+                    ):
                         unscouted.append(point)
 
         return unscouted

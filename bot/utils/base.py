@@ -28,6 +28,7 @@ class Base:
     REPAIR_THRESHOLD: float = 0.6
     MAX_INDIVIDUAL_REPAIRERS: int = 3
     RANGE_THRESHOLD: float = 1.5
+    position: Point2
 
     def __init__(self, bot: Superbot, cc: Unit, threat: Threat) -> None:
         self.bot = bot
@@ -38,11 +39,8 @@ class Base:
         self.units = Units([], bot)
         self.enemy_units = Units([], bot)
         self.enemy_structures = Units([], bot)
+        self.position = cc.order_target if cc.is_flying else cc.position
         
-    @property
-    def position(self) -> Point2:
-        return self.cc.position
-    
     @property
     def available_workers(self) -> Units:
         return self.workers.filter(lambda unit: unit.is_collecting or unit.is_moving or unit.is_idle)
