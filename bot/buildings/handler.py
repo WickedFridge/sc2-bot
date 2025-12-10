@@ -104,7 +104,8 @@ class BuildingsHandler:
             ):
                 return
             print(f'pulling worker to repair {burning_building.name} [{workers_repairing_building.amount}/{max_workers_repairing}]')
-            repairer: Unit = available_workers.closest_to(burning_building)
+            # use SCV in priority then Mules
+            repairer: Unit = available_workers.sorted(lambda worker: (worker.type_id != UnitTypeId.SCV, worker.distance_to(burning_building))).first
             repairer.repair(burning_building)
             available_workers.remove(repairer)
             workers_repairing.append(repairer)

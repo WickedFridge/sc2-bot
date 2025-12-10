@@ -267,8 +267,9 @@ class Base:
         
         print(f'pulling {additional_workers_needed} workers')
         
+        # Don't pull MULEs
         workers_to_pull: Units = self.available_workers.filter(
-            lambda unit: (unit.health >= SCV_HEALTH_THRESHOLD)
+            lambda unit: (unit.health >= SCV_HEALTH_THRESHOLD and unit.type_id != UnitTypeId.MULE)
         ).sorted(
             lambda unit: (-unit.health_percentage, unit.distance_to(local_enemy_units.center))
         ).take(additional_workers_needed)

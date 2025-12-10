@@ -542,7 +542,7 @@ class OrdersManager:
                     await self.execute.fight_defense(army)
                                  
                 case Orders.DEFEND:
-                    self.execute.defend(army)
+                    await self.execute.defend(army)
 
                 case Orders.DEFEND_BUNKER_RUSH:
                     self.execute.defend_bunker_rush(army)

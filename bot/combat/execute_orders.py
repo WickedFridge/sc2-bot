@@ -278,10 +278,11 @@ class Execute(CachedClass):
                     await self.micro.retreat(unit)
 
     
-    def defend(self, army: Army):
+    async def defend(self, army: Army):
         expansions_under_attack: Expansions = self.bot.expansions.under_attack
         if (expansions_under_attack.amount == 0):
             print("Error: no expansions under attack to defend")
+            await self.retreat_army(army)
             return
         closest_expansion: Expansion = expansions_under_attack.closest_to(army.center)
         for unit in army.units:
