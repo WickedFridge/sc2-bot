@@ -270,8 +270,8 @@ class OrdersManager:
         if (creep_order):
             return creep_order
         
-        # if (self.should_clean_creep(army)):
-        #     return Orders.CLEAN_CREEP
+        if (self.should_clean_creep(army)):
+            return Orders.CLEAN_CREEP
         
         # -- Merge with nearby army
         if (self.should_regroup(army)):
@@ -334,7 +334,11 @@ class OrdersManager:
             return Orders.RETREAT
 
         # Otherwise continue drop if not too much AA
-        if (self.enemy_anti_air.amount < 2 and army.can_drop_medivacs.amount >= 2):
+        if (
+            self.enemy_anti_air.amount < 2
+            and army.can_drop_medivacs.amount >= 2
+            and army.bio_supply >= 6
+        ):
             if (army.cargo_left >= 1 and army.ground_units.amount >= 1):
                 return Orders.DROP_RELOAD
             return Orders.DROP_MOVE
