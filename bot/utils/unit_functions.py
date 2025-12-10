@@ -1,4 +1,5 @@
 from sc2.bot_ai import BotAI
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 
 
@@ -25,3 +26,18 @@ def scv_build_progress(bot: BotAI, scv: Unit) -> float:
     if (building.distance_to(scv) > building.radius):
         return 0
     return 1 if building.is_ready else building.build_progress
+
+def calculate_bunker_range(bot: BotAI, bunker: Unit) -> tuple[float, float]:
+    bunker_default_range: int = 5
+    bunker_bonus_range: float = bunker.radius + 1
+    if (bot.already_pending_upgrade(UpgradeId.HISECAUTOTRACKING) == 1):
+        bunker_bonus_range += 1
+    
+    bunker_ground_range: float = bunker_default_range + bunker_bonus_range
+    bunker_air_range: float = bunker_default_range + bunker_bonus_range
+    
+    for passenger in bunker.passengers:
+        bunker_ground_range = max(bunker_ground_range, passenger.ground_range + bunker_bonus_range)
+        bunker_air_range = max(bunker_air_range, passenger.air_range + bunker_bonus_range)
+
+    return bunker_ground_range, bunker_air_range

@@ -13,6 +13,7 @@ from bot.utils.base import Base
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_cargo import get_building_cargo
+from bot.utils.unit_functions import calculate_bunker_range
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -583,13 +584,8 @@ class OrdersManager:
     async def handle_bunkers(self):
         for expansion in self.bot.expansions.defended:
             bunker: Unit = expansion.defending_structure
-            bunker_default_range: int = 6
-            bunker_bonus_range: int = 2 if self.bot.already_pending_upgrade(UpgradeId.HISECAUTOTRACKING) == 1 else 1
-            bunker_ground_range: float = bunker_default_range + bunker_bonus_range + bunker.radius
-            bunker_air_range: float = bunker_default_range + bunker_bonus_range + bunker.radius
-            for passenger in bunker.passengers:
-                bunker_ground_range = max(bunker_ground_range, passenger.ground_range + bunker_bonus_range)
-                bunker_air_range = max(bunker_air_range, passenger.air_range + bunker_bonus_range)
+            bunker_ground_range, bunker_air_range = calculate_bunker_range(self.bot, bunker)
+            SAFETY_RADIUS: float = 1.5
 
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: (
@@ -598,7 +594,7 @@ class OrdersManager:
                 )
             )
             enemy_units_potentially_in_range: Units  = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-                lambda unit: bunker.distance_to(unit) <= 7 + bunker.radius + unit.radius
+                lambda unit: bunker.distance_to(unit) <= bunker_ground_range + unit.radius + SAFETY_RADIUS
             )
 
             # unload bunker if no enemy can shoot the bunker and the bunker can't shoot any unit => bunker is safe and doesn't need to be loaded
@@ -629,7 +625,7 @@ class OrdersManager:
                 ):
                     print("stimming passengers")
                     bunker(AbilityId.EFFECT_STIM)
-                enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
+                enemy_units_in_range.sort(key = lambda unit: (unit.shield, unit.health + unit.shield))
                 bunker.attack(enemy_units_in_range.first)
             
             # load the bunker with bio if there is space
@@ -637,11 +633,11 @@ class OrdersManager:
                 continue
             
             bio_in_range: Units = self.bot.units.filter(
-                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= 3
+                # we had a small buffer for units that are a bit too far
+                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= bunker.radius + 0.5
             )
             if (bio_in_range.amount == 0):
                 continue
-            SAFETY_RADIUS: float = 1.5
             bio_in_danger: Units = bio_in_range.filter(
                 lambda unit: (
                     self.bot.enemy_units.filter(

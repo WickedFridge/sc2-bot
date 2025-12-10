@@ -11,7 +11,7 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.point2_functions.utils import grid_offsets
-from bot.utils.unit_functions import find_by_tag, scv_build_progress
+from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -205,6 +205,24 @@ class Debug:
             range: float = unit.ground_range + unit.distance_to_weapon_ready
             self.draw_sphere_on_world(unit.position, radius=range, draw_color=ORANGE)
 
+    def range(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        if (selected_units.amount == 0):
+            return
+        for unit in selected_units:
+            # self.draw_sphere_on_world(unit.position, radius=1, draw_color=GREEN)
+            # self.draw_sphere_on_world(unit.position, radius=2, draw_color=YELLOW)
+            # self.draw_sphere_on_world(unit.position, radius=3, draw_color=RED)
+            
+
+            ground_range: float = unit.ground_range
+            radius: float = unit.radius
+            footprint: float = unit.footprint_radius
+            if (unit.type_id == UnitTypeId.BUNKER):
+                ground_range, air_range = calculate_bunker_range(self.bot, unit)
+            self.draw_sphere_on_world(unit.position, radius=ground_range, draw_color=YELLOW)
+            self.draw_text_on_world(unit.position, f'range: {ground_range}, radius: {radius}, footprint: {footprint}')
+    
     def danger_map(self):
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
