@@ -2,11 +2,11 @@ from __future__ import annotations
 from typing import List
 import random
 from bot.strategy.build_order.build_order import BuildOrder
-from bot.strategy.build_order.cc_first_two_rax import CCFirstTwoRax
-from bot.strategy.build_order.dummy_build import Dummybuild
-from bot.strategy.build_order.koka_build import KokaBuild
-from bot.strategy.build_order.two_rax_reaper_defensive import DefensiveTwoRax
-from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.builds.cc_first_two_rax import CCFirstTwoRax
+from bot.strategy.build_order.builds.dummy_build import Dummybuild
+from bot.strategy.build_order.builds.koka_build import KokaBuild
+from bot.strategy.build_order.builds.two_rax_reaper_defensive import DefensiveTwoRax
+from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -70,6 +70,7 @@ class BuildOrderManager:
                 unit_ids.append(UnitTypeId.STARPORTREACTOR)
             
             building_amount: int = self.bot.structures(unit_ids).ready.amount + sum([self.bot.already_pending(id) for id in unit_ids])
+
             # specific case of CommandCenter since we start with one
             if (unit_id == UnitTypeId.COMMANDCENTER):
                 building_amount = self.bot.townhalls.ready.amount + self.bot.already_pending(unit_id) - 1

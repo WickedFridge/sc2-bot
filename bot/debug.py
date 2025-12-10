@@ -147,6 +147,11 @@ class Debug:
             text: str = f'[LAST : {is_last}] : {expansion.distance_from_main}'
             self.draw_text_on_world(expansion.position, text)
 
+    def unit_type(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'{unit.name} [{unit.type_id}]')
+    
     async def selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
@@ -177,7 +182,6 @@ class Debug:
                 x += 1.0
             
         for unit in selected_units:
-            unit: Unit
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
             target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
             # self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
@@ -209,15 +213,20 @@ class Debug:
         center: Point2 = selected_units.center
         flying_only: bool = all(u.is_flying for u in selected_units)
         # Read a region of size radius=8 around the center
-        x1, y1, masked = self.bot.map.influence_maps.read(center, radius=8, air=flying_only, include_terrain_penalty=False)
+        x1, y1, masked = self.bot.map.influence_maps.read(
+            center,
+            radius=8,
+            air=flying_only,
+            include_terrain_penalty=False,
+        )
         
         # Iterate only over valid unmasked cells
         ys, xs = np.where(~masked.mask)
 
         for iy, ix in zip(ys, xs):
             danger = float(masked[iy, ix])
-            if (danger <= 0 or danger >= 999):
-                continue
+            # if (danger <= 0 or danger >= 999):
+            #     continue
 
             # Convert tile coords back to world coords
             world_x = x1 + ix

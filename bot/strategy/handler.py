@@ -1,7 +1,7 @@
 from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
-from bot.strategy.build_order.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
 from bot.utils.matchup import Matchup

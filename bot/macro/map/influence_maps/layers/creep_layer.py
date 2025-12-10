@@ -69,7 +69,7 @@ class CreepLayer:
         self.edge.map[:] = 0.0
         self.density.map[:] = 0.0
         self.tumor_candidates.map[:] = 0.0
-        self.bonus.map[:] = 0.0
+        self.bonus.map[:] = 1
         self.grad_x = np.zeros_like(self.density.map)
         self.grad_y = np.zeros_like(self.density.map)
     
