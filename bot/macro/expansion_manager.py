@@ -3,6 +3,7 @@ import math
 import random
 from typing import Any, Callable, Generator, List, Optional
 from bot.macro.expansion import Expansion
+from bot.macro.map.map import MapData, get_map
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
@@ -177,18 +178,20 @@ class Expansions(CachedClass):
     @custom_cache_once_per_frame
     def potential_enemy_bases(self) -> Optional[Expansions]:
         # every 3 min of game, assume another base is taken if not scouted
-        potential_enemy_bases: List[Expansion] = []
+        
         if (self.bot.time / 60 >= 3):
             if (self.enemy_b2.is_unknown):
-                potential_enemy_bases.append(self.enemy_b2)
+                self.enemy_b2._potential_enemy = True
         
         # add b3 + b4 at the same time because we're not sure which base they'll take
         if (self.bot.time / 60 >= 6):
             if (self.enemy_b3.is_unknown):
-                potential_enemy_bases.append(self.enemy_b3)
+                self.enemy_b3._potential_enemy = True
             if (self.enemy_b4.is_unknown):
-                potential_enemy_bases.append(self.enemy_b4)
-        return self.enemy_bases.extended(potential_enemy_bases)
+                self.enemy_b4._potential_enemy = True
+        
+        potential_bases: Expansions = self.filter(lambda expansion: expansion.potential_enemy)
+        return self.enemy_bases.extended(potential_bases.expansions)
     
     @property
     def last_taken(self) -> Optional[Expansion]:

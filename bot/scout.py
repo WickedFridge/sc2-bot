@@ -1,6 +1,6 @@
 from typing import List, Optional
 from bot.superbot import Superbot
-from bot.utils.matchup import Matchup, get_matchup
+from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import closest_point
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
