@@ -42,9 +42,9 @@ class Scout:
                 print("ERROR CAN'T FIND SCOUT !")
                 return
             
-            # scout b2 first, ten the interior of the main
+            # scout b2 first, then the interior of the main
             unscouted_b2: List[Point2] = self.bot.expansions.b2.unscouted_points
-            unscouted_main: List[Point2] = self.bot.expansions.b2.unscouted_points
+            unscouted_main: List[Point2] = self.bot.expansions.main.unscouted_points
             target: Point2
             if (len(unscouted_b2) > 0):
                 # tell our scout to walk to the closest unscouted tile

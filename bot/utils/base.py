@@ -30,16 +30,16 @@ class Base:
     RANGE_THRESHOLD: float = 1.5
     position: Point2
 
-    def __init__(self, bot: Superbot, cc: Unit, threat: Threat) -> None:
+    def __init__(self, bot: Superbot, expansion: Expansion, threat: Threat) -> None:
         self.bot = bot
-        self.cc = cc
+        self.cc = expansion.cc
         self.threat = threat
-        self.buildings = Units([cc], bot)
+        self.buildings = Units([expansion.cc], bot)
         self.workers = Units([], bot)
         self.units = Units([], bot)
         self.enemy_units = Units([], bot)
         self.enemy_structures = Units([], bot)
-        self.position = cc.order_target if cc.is_flying else cc.position
+        self.position = expansion.position
         
     @property
     def available_workers(self) -> Units:

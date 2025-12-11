@@ -50,19 +50,19 @@ class Macro:
                 worker.stop()
     
     def threat_detection(self) -> List[Base]:
+        expansions_taken: Expansions = self.bot.expansions.taken
+        
         # If we don't have any base left we're pretty dead
-        if (self.bot.expansions.taken.amount == 0):
+        if (expansions_taken == 0):
             return []
         
         bases: List[Base] = []
-        ccs: List[int] = []
         # First create a Base object for each expansion we own
-        for expansion in self.bot.expansions.taken:
-            bases.append(Base(self.bot, expansion.cc, Threat.NO_THREAT))
-            ccs.append(expansion.cc.tag)
+        for expansion in expansions_taken:
+            bases.append(Base(self.bot, expansion, Threat.NO_THREAT))
         
         # Then distribute our other structures among these bases based on proximity
-        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in ccs)
+        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in expansions_taken.ccs.tags)
         for building in other_structures:
             bases_with_same_height: List[Base] = [base for base in bases if self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)]
             if (len(bases_with_same_height) == 0):
