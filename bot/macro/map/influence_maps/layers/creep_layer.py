@@ -37,13 +37,13 @@ class CreepLayer:
 
     def __init__(self, bot: BotAI):
         self.bot = bot
-        self.creep_map = InfluenceMap(bot, dtype=np.float32)
-        self.creep_assumed = InfluenceMap(bot, dtype=np.float32)
-        self.distance_to_creep = InfluenceMap(bot, dtype=np.float32)
-        self.edge = InfluenceMap(bot, dtype=np.float32)
-        self.density = InfluenceMap(bot, dtype=np.float32)
-        self.tumor_candidates = InfluenceMap(bot, dtype=np.float32)
-        self.bonus = InfluenceMap(bot, dtype=np.float32)
+        self.creep_map = InfluenceMap(bot)
+        self.creep_assumed = InfluenceMap(bot)
+        self.distance_to_creep = InfluenceMap(bot, np.full_like(self.creep_map.map, fill_value=99999, dtype=np.float32))
+        self.edge = InfluenceMap(bot)
+        self.density = InfluenceMap(bot)
+        self.tumor_candidates = InfluenceMap(bot)
+        self.bonus = InfluenceMap(bot)
         
         # === Memory tracking ===
         self.creep_decay = InfluenceMap(bot, dtype=np.float32)

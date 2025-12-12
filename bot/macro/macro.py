@@ -53,7 +53,7 @@ class Macro:
         expansions_taken: Expansions = self.bot.expansions.taken
         
         # If we don't have any base left we're pretty dead
-        if (expansions_taken == 0):
+        if (expansions_taken.amount == 0):
             return []
         
         bases: List[Base] = []

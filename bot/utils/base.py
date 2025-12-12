@@ -242,6 +242,9 @@ class Base:
         
         SCV_HEALTH_THRESHOLD: int = 15
         local_enemy_units: Units = self.enemy_units.closer_than(self.BASE_SIZE, self.position).filter(lambda unit: unit.can_attack or unit.type_id in menacing)
+        if (local_enemy_units.amount == 0):
+            print("Error no enemy units to pull workers against")
+            return
         attackable_enemy_units: Units = local_enemy_units.filter(
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)

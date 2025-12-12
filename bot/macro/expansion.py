@@ -22,7 +22,7 @@ class Expansion(CachedClass):
     distance_from_main: float
     radius: int = 12
     last_scouted: float = 0
-    _potential_enemy = False
+    _potentially_enemy: bool = False
 
     def __init__(self, bot: BotAI, position: Point2, distance: float) -> None:
         super().__init__(bot)
@@ -322,17 +322,17 @@ class Expansion(CachedClass):
         return unscouted
     
     @custom_cache_once_per_frame
-    def potential_enemy(self):
+    def is_potentially_enemy(self):
         """
         Updated each frame with suspicions of base taken
         """
         if (self.is_enemy):
-            self._potential_enemy = True
+            self._potentially_enemy = True
         elif (self.is_taken):
-            self._potential_enemy = False
+            self._potentially_enemy = False
         elif (self.is_visible):
-            self._potential_enemy = False
-        return self._potential_enemy
+            self._potentially_enemy = False
+        return self._potentially_enemy
     
     def in_pathing(self, target: Point2) -> Point2:
         # Convert target to the nearest grid-aligned integer point
@@ -387,6 +387,11 @@ class Expansion(CachedClass):
         # suspect that bases around creep are taken
         map: MapData = get_map(self.bot)
         EXPANSION_SUSPECTED_THRESHOLD: int = 10
+        ASSUME_DELAY: float = 20
         creep_distance: float = map.influence_maps.creep.distance_to_creep[self.position]
-        if (not self.is_visible and creep_distance < EXPANSION_SUSPECTED_THRESHOLD):
-            self._potential_enemy = True
+        if (
+            not self.is_visible
+            and self.last_scouted + ASSUME_DELAY < self.bot.time
+            and creep_distance < EXPANSION_SUSPECTED_THRESHOLD
+        ):
+            self._potentially_enemy = True

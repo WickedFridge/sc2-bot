@@ -181,16 +181,16 @@ class Expansions(CachedClass):
         
         if (self.bot.time / 60 >= 3):
             if (self.enemy_b2.is_unknown):
-                self.enemy_b2._potential_enemy = True
+                self.enemy_b2._potentially_enemy = True
         
         # add b3 + b4 at the same time because we're not sure which base they'll take
         if (self.bot.time / 60 >= 6):
             if (self.enemy_b3.is_unknown):
-                self.enemy_b3._potential_enemy = True
+                self.enemy_b3._potentially_enemy = True
             if (self.enemy_b4.is_unknown):
-                self.enemy_b4._potential_enemy = True
+                self.enemy_b4._potentially_enemy = True
         
-        potential_bases: Expansions = self.filter(lambda expansion: expansion.potential_enemy)
+        potential_bases: Expansions = self.filter(lambda expansion: expansion.is_potentially_enemy)
         return self.enemy_bases.extended(potential_bases.expansions)
     
     @property
