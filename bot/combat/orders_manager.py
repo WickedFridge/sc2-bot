@@ -170,7 +170,13 @@ class OrdersManager:
         )
         # useful in case of canon/bunker rush
         global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(
-            lambda unit: unit.can_attack or unit.type_id in menacing or unit.is_burrowed
+            lambda unit: (
+                unit.type_id not in worker_types and (
+                    unit.can_attack
+                    or unit.type_id in menacing
+                    or unit.is_burrowed
+                )
+            )
         ) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
@@ -270,9 +276,6 @@ class OrdersManager:
         creep_order: Orders = self.should_clean_creep(army)
         if (creep_order):
             return creep_order
-        
-        if (self.should_clean_creep(army)):
-            return Orders.CLEAN_CREEP
         
         # -- Merge with nearby army
         if (self.should_regroup(army)):
