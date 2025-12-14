@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "8.6.23"
+VERSION: str = "8.6.24"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -180,7 +180,7 @@ class WickedBot(Superbot):
         self.map.influence_maps.update()
         await self.combat.select_orders(iteration)
         await self.combat.execute_orders()
-        # await self.combat.handle_bunkers()
+        await self.combat.handle_bunkers()
         await self.combat.micro_planetary_fortresses()
 
         # Spend Money
