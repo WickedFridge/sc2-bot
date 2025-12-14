@@ -68,12 +68,7 @@ class Train:
         print(f'Train {self.name}')
 
     def on_complete(self):
-        if (self.bot.build_order.build.is_completed):
-            return
-        checked: bool = self.bot.build_order.build.check(self.unitId)
-        if (self.check_build_order and not checked):
-            print(f'Error check build order for step {self.unitId}')
-            print(f'pending ids: {self.bot.build_order.build.pending_ids}')
+        pass
 
     async def train(self, resources: Resources) -> Resources:
         if (not self.conditions):

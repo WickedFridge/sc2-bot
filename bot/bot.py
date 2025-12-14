@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "8.6.25"
+VERSION: str = "8.7.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -141,7 +141,6 @@ class WickedBot(Superbot):
         self.structures_memory = self.structures.copy()
         await self.map.update()
         self.expansions.update_scout_status()
-        self.build_order.sanity_check()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)

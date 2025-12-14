@@ -435,6 +435,14 @@ class BuildingsHandler:
                             print("no free reactor")
 
     async def salvage_bunkers(self) -> None:
+        if (self.bot.scouting.situation != Situation.STABLE):
+            return
+
+        # Salvage main bunker once we're stable
+        main_ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(5, self.bot.main_base_ramp.top_center)
+        if (main_ramp_bunkers.amount >= 1):
+            main_ramp_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
+
         planetaries: Units = self.bot.structures(UnitTypeId.PLANETARYFORTRESS)
         if (planetaries.amount == 0):
             return

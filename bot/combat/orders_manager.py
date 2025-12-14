@@ -1,5 +1,6 @@
 import math
 from typing import List, Optional, Set
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from bot.combat.execute_orders import Execute
@@ -585,8 +586,7 @@ class OrdersManager:
                     self.execute.scout(army)
     
     async def handle_bunkers(self):
-        for expansion in self.bot.expansions.defended:
-            bunker: Unit = expansion.defending_structure
+        for bunker in self.bot.structures(UnitTypeId.BUNKER):
             bunker_ground_range, bunker_air_range = calculate_bunker_range(self.bot, bunker)
             SAFETY_RADIUS: float = 1.5
 
@@ -608,8 +608,10 @@ class OrdersManager:
             # unload bunker if no unit around
             if (enemy_units_menacing.amount == 0 and enemy_units_in_range.amount == 0 and enemy_units_potentially_in_range.amount == 0):
                 if (len(bunker.rally_targets) == 0):
-                    rally_point: Point2 = expansion.retreat_position
-                    bunker(AbilityId.RALLY_UNITS, rally_point)
+                    expansion: Expansion = self.bot.expansions.closest_to(bunker)
+                    if (expansion.position.distance_to(bunker) < 5):
+                        rally_point: Point2 = expansion.retreat_position
+                        bunker(AbilityId.RALLY_UNITS, rally_point)
                 if (bunker.cargo_used >= 1):
                     print("unload bunker")
                     bunker(AbilityId.UNLOADALL_BUNKER)

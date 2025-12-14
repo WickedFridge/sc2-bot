@@ -43,16 +43,12 @@ class Upgrade:
             and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
             and (
                 self.upgrade in self.bot.build_order.build.pending_ids
-                or self.bot.build_order.build.completed_steps
+                or self.bot.build_order.build.is_completed
             )
         )
     
     def on_complete(self):
-        if (self.bot.build_order.build.is_completed):
-            return
-        checked: bool = self.bot.build_order.build.check(self.upgrade)
-        if (not checked):
-            print(f'Error check build order for step {self.upgrade}')
+        pass
     
     async def search(self, resources: Resources) -> Resources:
         if (not self.conditions):

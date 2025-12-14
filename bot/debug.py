@@ -533,10 +533,10 @@ class Debug:
         for i, step in enumerate(build_order.steps):
             position: Point2 = Point2((0, 0.3 + 0.015 * (i + 1)))
             color = RED
-            can_check, why = step.can_check_debug()
+            can_check, why = step.is_available_debug()
             if (can_check):
                 color = YELLOW
-            if (step.checked):
+            if (step.is_satisfied):
                 color = GREEN
             self.draw_text_on_screen(f'{step.name} {why}', position, color, font_size=14)
     

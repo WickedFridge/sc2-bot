@@ -1,19 +1,15 @@
 from collections import deque
-from typing import List
+from typing import List, Optional
 from bot.macro.map.map import MapData, get_map
 from bot.utils.point2_functions.utils import grid_offsets, points_to_build_addon
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 
 
-def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, radius: int = 1, has_addon: bool = False) -> Point2:
+def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Optional[Point2] = None, radius: int = 1, has_addon: bool = False) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
         The radius in tiles around the position to search for valid buildable positions."""
     map: MapData = get_map(bot)
-    # If already valid, return it
-    start_placement_grid: List[Point2] = grid_offsets(radius, initial_position = position)
-    if (has_addon):
-        start_placement_grid += points_to_build_addon(position)
     
     def valid_position(pos) -> bool:
         return (
@@ -25,37 +21,57 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Point2, ra
             and map.influence_maps.creep.creep_map[pos] == 0
         )
 
-    if all(valid_position(pos) for pos in start_placement_grid):
+    def footprint_ok(center: Point2) -> bool:
+        points: list[Point2] = grid_offsets(radius, initial_position=center)
+        if (has_addon):
+            points += points_to_build_addon(center)
+        return all(valid_position(p) for p in points)
+
+    # If already valid, return it
+    if (footprint_ok(position)):
         return position
     
-    # Normalize to get step direction (either -1, 0, or 1)
-    step_x = 1 if preferred_direction.x > 0 else -1 if preferred_direction.x < 0 else 0
-    step_y = 1 if preferred_direction.y > 0 else -1 if preferred_direction.y < 0 else 0
+    if (preferred_direction is None):
+        preferred_direction = position
+
+    def biased_directions(current: Point2) -> list[tuple[int, int]]:
+        dx = preferred_direction.x - current.x
+        dy = preferred_direction.y - current.y
+
+        step_x = 1 if dx > 0 else -1 if dx < 0 else 0
+        step_y = 1 if dy > 0 else -1 if dy < 0 else 0
+
+        directions: list[tuple[int, int]] = []
+
+        if step_x != 0 or step_y != 0:
+            directions.append((step_x, step_y))
+        if step_x != 0:
+            directions.append((step_x, 0))
+        if step_y != 0:
+            directions.append((0, step_y))
+
+        directions += [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+        seen = set()
+        return [d for d in directions if not (d in seen or seen.add(d))]
 
     # BFS search for the nearest valid point
-    search_queue = deque([position])
-    visited = set([position])
-
-    # Prioritized search directions (biased away from CC)
-    directions = [(step_x, step_y)]  # Move in the preferred direction first
-    directions += [(1, 0), (-1, 0), (0, 1), (0, -1)]  # Then check standard directions
+    search_queue: deque[Point2] = deque([position])
+    visited: set[Point2] = {position}
 
     while search_queue:
         current = search_queue.popleft()
 
-        for dx, dy in directions:
+        for dx, dy in biased_directions(current):
             neighbor = Point2((current.x + dx, current.y + dy))
             
-            if neighbor in visited:
+            if (neighbor in visited):
                 continue  # Skip already checked locations
             
             visited.add(neighbor)
 
             # If it's a valid buildable position, return it
-            neighbor_grid: List[Point2] = grid_offsets(radius, initial_position = neighbor)
-            if (has_addon):
-                neighbor_grid += points_to_build_addon(neighbor)
-            if all(valid_position(neighbor_point) for neighbor_point in neighbor_grid):
+            if (footprint_ok(neighbor)):
                 return neighbor
 
             # Otherwise, continue expanding

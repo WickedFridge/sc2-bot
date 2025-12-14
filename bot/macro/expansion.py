@@ -252,6 +252,8 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def retreat_position(self) -> Point2:
+        if (self.is_main):
+            return self.bot.main_base_ramp.barracks_correct_placement
         if (self.is_defended and self.mineral_fields.amount >= 1):
             reference_position: Point2 = self.mineral_fields.closest_to(self.defending_structure).position
             return center([reference_position, self.defending_structure.position])

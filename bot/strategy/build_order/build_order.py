@@ -9,19 +9,33 @@ from bot.utils.unit_tags import build_order_structures
 class BuildOrderStep:
     bot: BotAI
     step_id: UnitTypeId | UpgradeId
+    target_count: int
     workers: int
     supply: int
     army_supply: int
     townhalls: int
     requirements: tuple[UnitTypeId, int, bool]
     upgrades_required: List[UpgradeId]
-    checked: bool = False
+    equivalences: dict[UnitTypeId, List[UnitTypeId]] = {
+        UnitTypeId.SUPPLYDEPOT: [UnitTypeId.SUPPLYDEPOTLOWERED],
+        UnitTypeId.BARRACKS: [UnitTypeId.BARRACKSFLYING],
+        UnitTypeId.FACTORY: [UnitTypeId.FACTORYFLYING],
+        UnitTypeId.STARPORT: [UnitTypeId.STARPORTFLYING],
+        UnitTypeId.COMMANDCENTER: [
+            UnitTypeId.COMMANDCENTERFLYING,
+            UnitTypeId.ORBITALCOMMAND,
+            UnitTypeId.ORBITALCOMMANDFLYING,
+            UnitTypeId.PLANETARYFORTRESS,
+        ],
+        UnitTypeId.FACTORYREACTOR: [UnitTypeId.STARPORTREACTOR],
+    }
     
     def __init__(
         self,
         bot: BotAI,
         name: str,
         step_id: UnitTypeId | UpgradeId,
+        target_count: int = 1,
         workers: int = 0,
         supply: int = 0,
         army_supply: int = 0,
@@ -32,6 +46,7 @@ class BuildOrderStep:
         self.bot = bot
         self.name = name
         self.step_id = step_id
+        self.target_count = target_count
         self.workers = workers
         self.supply = supply
         self.army_supply = army_supply
@@ -39,7 +54,32 @@ class BuildOrderStep:
         self.requirements = requirements or []
         self.upgrades_required = upgrades_required or []
 
-    def can_check_debug(self) -> tuple[bool, str]:
+    @property
+    def current_amount(self) -> int:
+        if (isinstance(self.step_id, UpgradeId)):
+            return self.bot.already_pending_upgrade(self.step_id) > 0
+        
+        return self.building_amount(self.step_id)
+    
+    def building_amount(self, building_id: UnitTypeId, include_pending: bool = True):
+        unit_ids: list[UnitTypeId] = [building_id]
+
+        if (building_id in self.equivalences.keys()):
+            unit_ids.extend(self.equivalences[building_id])
+        
+        count: int = self.bot.structures(unit_ids).ready.amount
+        if (include_pending):
+            count += self.bot.already_pending(building_id)
+        
+        return count
+    
+    @property
+    def is_satisfied(self) -> bool:
+        return self.current_amount >= self.target_count
+    
+    def is_available_debug(self) -> tuple[bool, str]:
+        # if (self.is_satisfied):
+        #     return True, ''
         if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
             return False, f'(tech requirement not ready)'
         if (self.bot.townhalls.amount < self.townhalls):
@@ -51,12 +91,7 @@ class BuildOrderStep:
         if (self.bot.supply_workers < self.workers):
             return False, f'(not enough workers)'
         for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = (
-                self.bot.structures(unit_type).ready.amount
-                + self.bot.units(unit_type).ready.amount
-            )
-            if (not completed):
-                unit_count += self.bot.already_pending(unit_type)
+            unit_count: int = self.building_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
                 return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
         for upgrade in self.upgrades_required:
@@ -65,7 +100,7 @@ class BuildOrderStep:
         return True, ''
     
     @property
-    def can_check(self) -> bool:
+    def is_available(self) -> bool:
         if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
             return False
         if (self.bot.townhalls.amount < self.townhalls):
@@ -75,12 +110,7 @@ class BuildOrderStep:
         if (self.bot.supply_workers < self.workers):
             return False
         for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = (
-                self.bot.structures(unit_type).ready.amount
-                + self.bot.units(unit_type).ready.amount
-            )
-            if (not completed):
-                unit_count += self.bot.already_pending(unit_type)
+            unit_count: int = self.building_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
                 return False
         for upgrade in self.upgrades_required:
@@ -88,9 +118,9 @@ class BuildOrderStep:
                 return False
         return True
     
-    def print_check(self) -> None:
-        checked_character: str = 'X' if self.checked else ' '
-        print(f'[{checked_character}] BO -- {self.name}')
+    # def print_check(self) -> None:
+    #     checked_character: str = 'X' if self.checked else ' '
+    #     print(f'[{checked_character}] BO -- {self.name}')
 
 
 
@@ -103,47 +133,21 @@ class BuildOrder:
     
     # steps not yet completed
     @property
-    def unchecked(self) -> List[BuildOrderStep]:
-        return [step for step in self.steps if not step.checked]
-    
-    @property
-    def pending_ids(self) -> List[UnitTypeId | UpgradeId]:
-        return [step.step_id for step in self.steps if not step.checked and step.can_check]
-    
-    @property
-    def is_completed(self) -> bool:
-        return len(self.unchecked) == 0
-    
-    # steps already completed
-    @property
-    def completed_steps(self) -> List[BuildOrderStep]:
-        return [step for step in self.steps if step.checked]
-    
-    @property
-    def completed_buildings(self) -> dict[UnitTypeId, int]:
-        completed: dict[UnitTypeId, int] = {}
-        for step in self.completed_steps:
-            unit_id: UnitTypeId = step.step_id
-            if (unit_id in build_order_structures):
-                if (unit_id in completed.keys()):
-                    completed[unit_id] += 1
-                else:
-                    completed[unit_id] = 1
-        return completed
-
+    def steps_remaining(self) -> List[BuildOrderStep]:
+        return [step for step in self.steps if not step.is_satisfied]
     
     # next step to execute
     @property
     def next(self) -> BuildOrderStep | None:
-        return next((step for step in self.steps if not step.checked), None)
+        return next((step for step in self.steps if not step.is_satisfied), None)
     
-    def check(self, step_id: UnitTypeId) -> bool:
-        for step in self.unchecked:
-            if (step.step_id == step_id):
-                step.checked = True
-                step.print_check()
-                return True
-        return False
+    @property
+    def pending_ids(self) -> List[UnitTypeId | UpgradeId]:
+        return [step.step_id for step in self.steps if not step.is_satisfied and step.is_available]
+    
+    @property
+    def is_completed(self) -> bool:
+        return all(step.is_satisfied for step in self.steps)
     
     def modify_composition(self, composition: Composition) -> None:
         pass

@@ -1,16 +1,17 @@
 from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
+from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
 from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
+from bot.utils.army import Army
 from bot.utils.matchup import Matchup
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
-from ..utils.unit_tags import tower_types
+from ..utils.unit_tags import tower_types, worker_types
 
 class StrategyHandler:
     bot: Superbot
@@ -49,7 +50,9 @@ class StrategyHandler:
         if (early_cheese_situation):
             return early_cheese_situation
         
-        if (self.bot.scouting.known_enemy_army.units.amount >= 2 * self.bot.units.amount):
+        fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
+        army: Army = Army(fighting_units, self.bot)
+        if (self.bot.scouting.known_enemy_army.supply >= 2 * army.supply + 1):
             return Situation.UNDER_ATTACK
         return Situation.STABLE
     
@@ -68,6 +71,12 @@ class StrategyHandler:
             )
         )
 
+        proxy_buildings: Units = self.bot.enemy_structures.filter(
+            lambda building: building.distance_to(self.bot.expansions.main.position) < building.distance_to(self.bot.expansions.enemy_main.position)
+        )
+        if (proxy_buildings.amount >= 1):
+            return Situation.PROXY_BUILDINGS
+        
         if (menacing_enemy_units.amount == 0):
             return None
 
@@ -82,12 +91,15 @@ class StrategyHandler:
     
     async def cheese_response(self):
         if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
-            # cancel B2 and switch towards 2 rax reapers
+            # cancel B2 and switch towards Conservative Expand
             expand_in_construction: Units = self.bot.townhalls.not_ready
             if (expand_in_construction):
                 expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
             
-            self.bot.build_order.build = TwoRaxReapers(self.bot)
+            self.bot.build_order.build = ConservativeExpand(self.bot)
+            return
+        if (self.bot.scouting.situation == Situation.PROXY_BUILDINGS):
+            self.bot.build_order.build = ConservativeExpand(self.bot)
     
     def detect_tower_rush(self) -> Optional[Situation]:
         if (self.bot.townhalls.amount >= 3):

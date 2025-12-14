@@ -4,7 +4,7 @@ from sc2.position import Point2
 from sc2.unit import Unit
 
 def center(points: List[Point2]) -> Optional[Point2]:
-    length: int = points.__len__()
+    length: int = len(points)
     if (length == 0):
         return None
     x: float = 0
