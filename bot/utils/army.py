@@ -68,6 +68,10 @@ class Army(CachedClass):
         return get_units_supply(self.units)
 
     @property
+    def fighting_supply(self) -> int:
+        return get_units_supply(self.fighting_units)
+
+    @property
     def potential_supply(self) -> float:
         return get_units_supply(self.potential_fighting_units)
     

@@ -52,7 +52,8 @@ class StrategyHandler:
         
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         army: Army = Army(fighting_units, self.bot)
-        if (self.bot.scouting.known_enemy_army.supply >= 2 * army.supply + 1):
+        OVER_POWERED_RATIO: float = 2
+        if (self.bot.scouting.known_enemy_army.fighting_supply >= OVER_POWERED_RATIO * army.supply + 1):
             return Situation.UNDER_ATTACK
         return Situation.STABLE
     
