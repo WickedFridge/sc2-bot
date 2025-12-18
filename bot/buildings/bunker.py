@@ -22,7 +22,13 @@ class Bunker(Building):
         expansions: Expansions = self.bot.expansions.taken.without_main
         
         # build a bunker in the main if we're getting proxy'd
-        if (self.bot.scouting.situation == Situation.PROXY_BUILDINGS):
+        if (
+            self.bot.scouting.situation in [
+                Situation.PROXY_BUILDINGS,
+                Situation.UNDER_ATTACK
+            ]
+            and self.bot.expansions.taken.amount < 3
+        ):
             expansions.add(self.bot.expansions.main)
 
         return expansions.filter(
@@ -49,9 +55,10 @@ class Bunker(Building):
         expansions_count: int = self.bot.expansions.amount_taken
         bunker_amount_target: int = expansions_count - 1
         
-        # place a bunker in the main if we're getting proxied
+        # place a bunker in the main if we're under attack on b2
         situation = self.bot.scouting.situation
-        if (situation == Situation.PROXY_BUILDINGS):
+        precarious_situation: bool = situation in [Situation.PROXY_BUILDINGS, Situation.UNDER_ATTACK]
+        if (precarious_situation and self.bot.expansions.taken.amount < 3):
             bunker_amount_target += 1
 
         # We want a bunker at each base after the first
@@ -60,7 +67,7 @@ class Bunker(Building):
             and self.bot.supply_army >= 1
             and (
                 self.expansions_without_defense.amount >= 1
-                or situation == Situation.PROXY_BUILDINGS
+                or precarious_situation
             )
             and defense_count < bunker_amount_target
             and bunker_to_construct_amount == 0

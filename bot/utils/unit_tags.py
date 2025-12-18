@@ -143,3 +143,8 @@ creep: List[UnitTypeId] = [
     UnitTypeId.CREEPTUMORQUEEN,
     UnitTypeId.CREEPTUMORBURROWED,
 ]
+production: List[UnitTypeId] = [
+    UnitTypeId.BARRACKS,
+    UnitTypeId.FACTORY,
+    UnitTypeId.STARPORT,
+]

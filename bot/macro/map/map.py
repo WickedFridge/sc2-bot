@@ -9,7 +9,7 @@ from sc2.pixel_map import PixelMap
 from sc2.position import Point2, Rect
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import add_ons
+from bot.utils.unit_tags import add_ons, production
 
 map_data: MapData | None = None
 
@@ -95,15 +95,20 @@ class MapData:
 
     
     def update_building_grid(self, unit: Unit, enable: bool = False) -> None:
+        ADDON_RADIUS: float = 1
+        CC_RADIUS: float = 2.5
         # print(f'update building grid for {unit.type_id} [{unit.position}] ({unit.radius} / {unit.footprint_radius})')
         radius = unit.footprint_radius if unit.footprint_radius is not None and unit.footprint_radius > 0 else unit.radius
         # Flyingtownhalls have a footprint radius of 0, so we use 2.5 instead.
         if (unit.type_id in [UnitTypeId.COMMANDCENTERFLYING, UnitTypeId.ORBITALCOMMANDFLYING]):
-            radius = 2.5
+            radius = CC_RADIUS
         # Addons have a footprint radius of 3.5, so we use 1 instead.
         if (unit.type_id in add_ons):
-            radius = 1
+            radius = ADDON_RADIUS
         self._update_building_grid_for_unit(unit, radius * 2, enable)
+
+        if (unit.type_id in production):
+            self._update_building_grid_for_unit(unit.add_on_position, ADDON_RADIUS * 2, enable)
     
     def _update_building_grid_for_unit(self, pos: Union[Point2, Unit], footprint_size: float, enable: bool = False) -> None:
         """Clears building grid for all tiles covered by a destructible unit of a given footprint size (e.g., 2, 6)."""

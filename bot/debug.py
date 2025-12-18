@@ -399,17 +399,21 @@ class Debug:
                         self.draw_box_on_world(center, 0.5, PURPLE)
 
     async def building_grid(self):
+        selected_units: Units = self.bot.units.selected
+        if (selected_units.amount == 0):
+            return
+        position: Point2 = selected_units.center
         radius: float = 10
-        positions: List[Point2] = self.bot.expansions.positions + [structure.position for structure in self.bot.structures]
-        for position in positions:
-            for x in range(int(position.x) - radius, int(position.x) + radius + 1):
-                for y in range(int(position.y) - radius, int(position.y) + radius + 1):
-                    # Check if the point lies within the circle
-                    if math.sqrt((x - position.x)**2 + (y - position.y)**2) <= radius:
-                        point = Point2((x, y))
-                        if (not self.bot.map.in_building_grid(point)):
-                            center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
-                            self.draw_box_on_world(center, 0.5, RED)
+        # Read a region of size radius=8 around the center
+        for x in range(int(position.x) - radius, int(position.x) + radius + 1):
+            for y in range(int(position.y) - radius, int(position.y) + radius + 1):
+                # Check if the point lies within the circle
+                if math.sqrt((x - position.x)**2 + (y - position.y)**2) <= radius:
+                    point = Point2((x, y))
+                    if (not self.bot.map.in_building_grid(point)):
+                        center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
+                        self.draw_box_on_world(center, 0.5, RED)
+        
 
     def parse_unit_type(self, name: str) -> UnitTypeId | None:
         try:
