@@ -32,6 +32,7 @@ worker_types: List[UnitTypeId] = [
 ]
 tower_types: List[UnitTypeId] = [
     UnitTypeId.PHOTONCANNON,
+    UnitTypeId.SHIELDBATTERY,
     UnitTypeId.BUNKER,
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.SPINECRAWLER,
