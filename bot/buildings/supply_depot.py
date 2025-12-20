@@ -28,7 +28,8 @@ class SupplyDepot(Building):
         for threshold, value in thresholds:
             if (self.bot.supply_used >= threshold):
                 return value
-        return 1
+        excess_supply: int = self.bot.supply_used - self.bot.supply_cap
+        return 1 + round(excess_supply / 8)
     
     
     @override
@@ -54,6 +55,8 @@ class SupplyDepot(Building):
             return self.bot.supply_used >= 21 or self.bot.scouting.situation == Situation.UNDER_ATTACK
         if (current_supply == 30):
             return self.bot.supply_used >= 26
+        if (current_supply == 38):
+            return self.bot.supply_used >= 30
         if (current_supply <= 46):
             return self.bot.supply_used >= 35 and self.bot.supply_workers >= 26
         if (current_supply <= 54):

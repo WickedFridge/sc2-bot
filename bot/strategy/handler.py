@@ -63,6 +63,7 @@ class StrategyHandler:
         
         main: Point2 = self.bot.expansions.main.position
         b2: Point2 = self.bot.expansions.b2.position
+        enemy_main: Point2 = self.bot.expansions.enemy_main.position
         SAFETY_DISTANCE: int = 25
 
         menacing_enemy_units: Units = self.bot.enemy_units.filter(
@@ -73,10 +74,21 @@ class StrategyHandler:
         )
 
         proxy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda building: building.distance_to(self.bot.expansions.main.position) < building.distance_to(self.bot.expansions.enemy_main.position)
+            lambda building: building.distance_to(main) < building.distance_to(enemy_main)
         )
+        
+        close_workers: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.type_id in worker_types
+                and unit.distance_to(main) < unit.distance_to(enemy_main)
+            )
+        )
+        
         if (proxy_buildings.amount >= 1):
             return Situation.PROXY_BUILDINGS
+        
+        if (close_workers.amount >= 6):
+            return Situation.WORKER_RUSH
         
         if (menacing_enemy_units.amount == 0):
             return None
@@ -99,7 +111,7 @@ class StrategyHandler:
             
             self.bot.build_order.build = ConservativeExpand(self.bot)
             return
-        if (self.bot.scouting.situation == Situation.PROXY_BUILDINGS):
+        if (self.bot.scouting.situation in [Situation.PROXY_BUILDINGS, Situation.WORKER_RUSH]):
             self.bot.build_order.build = ConservativeExpand(self.bot)
     
     def detect_tower_rush(self) -> Optional[Situation]:

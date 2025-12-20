@@ -30,6 +30,7 @@ class Situation(enum.Enum):
     UNDER_ATTACK = 5
     CHEESE_LING_DRONE = 6
     PROXY_BUILDINGS = 7
+    WORKER_RUSH = 8
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"
