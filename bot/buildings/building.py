@@ -26,6 +26,10 @@ class Building:
         self.builder = build
     
     @property
+    def force_position(self) -> bool:
+        return False
+    
+    @property
     def custom_conditions(self) -> bool:
         return True
     
@@ -74,6 +78,6 @@ class Building:
             return resources_updated
         
         position: Point2 = dfs_in_pathing(self.bot, pos, self.bot.game_info.map_center, self.radius, self.has_addon)
-        await self.builder.build(self.unitId, position, self.radius, self.has_addon)
+        await self.builder.build(self.unitId, position, self.radius, self.has_addon, self.force_position)
         self.on_complete()
         return resources_updated

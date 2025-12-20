@@ -86,6 +86,9 @@ class BuildingsHandler:
                 )
             )
         )
+        # When in danger we don't repair stuff that's too far
+        REPAIR_RANGE_DANGER: float = 6
+        REPAIR_RANGE_SAFE: float = 20
         for burning_building in burning_buildings_in_pathing:
             workers_repairing_building: Units = workers_repairing.filter(
                 lambda unit: unit.order_target == burning_building.tag
@@ -93,9 +96,9 @@ class BuildingsHandler:
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
             max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
             local_avaiable_workers: Units = (
-                available_workers.closer_than(6, burning_building)
-                if (burning_building.type_id not in must_repair)
-                else available_workers.closer_than(12, burning_building)
+                available_workers.closer_than(REPAIR_RANGE_DANGER, burning_building)
+                if (burning_building.type_id not in must_repair and self.bot.scouting.situation == Situation.UNDER_ATTACK)
+                else available_workers.closer_than(REPAIR_RANGE_SAFE, burning_building)
             )
             if (
                 workers_repairing_building.amount >= max_workers_repairing_building
@@ -103,6 +106,7 @@ class BuildingsHandler:
                 or local_avaiable_workers.amount == 0
             ):
                 return
+            
             print(f'pulling worker to repair {burning_building.name} [{workers_repairing_building.amount}/{max_workers_repairing}]')
             # use SCV in priority then Mules
             repairer: Unit = available_workers.sorted(lambda worker: (worker.type_id != UnitTypeId.SCV, worker.distance_to(burning_building))).first
@@ -439,7 +443,7 @@ class BuildingsHandler:
             return
 
         # Salvage main bunker once we're stable
-        main_ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(5, self.bot.main_base_ramp.top_center)
+        main_ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.main_base_ramp.top_center)
         if (main_ramp_bunkers.amount >= 1):
             main_ramp_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
 

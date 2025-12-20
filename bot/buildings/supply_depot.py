@@ -16,6 +16,11 @@ class SupplyDepot(Building):
         self.radius = 0.5
         self.ignore_build_order = True
     
+    @override
+    @property
+    def force_position(self) -> bool:
+        return self.bot.structures(UnitTypeId.SUPPLYDEPOT).amount < 2
+    
     @property
     def max_depots_pending(self) -> int:
         """Allow more simultaneous depots as the game progresses."""
@@ -61,11 +66,25 @@ class SupplyDepot(Building):
     @property
     def position(self) -> Point2:
         depots: Units = self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED])
+        possible_supply_positions: list[Point2] = [
+            self.bot.map.wall_placement[0],
+            self.bot.map.wall_placement[2],
+        ]
 
-        # Filter locations close to finished supply depots
-        
+        # choose between the two wall supply positions depending on how far enemy units are from it
         if (depots.amount == 0):
-            return self.bot.map.wall_placement[0]
+            if (self.bot.enemy_units.amount == 0):
+                return self.bot.map.wall_placement[0]
+            
+            highest_distance: float = 0
+            best_position: Point2 = possible_supply_positions[0]
+            for pos in possible_supply_positions:
+                distance: float = self.bot.enemy_units.closest_distance_to(pos)
+                if (distance > highest_distance):
+                    highest_distance = distance
+                    best_position: Point2 = pos
+            return best_position
+
         if (depots.amount == 1):
             return self.bot.map.wall_placement[2] if depots.first.position == self.bot.map.wall_placement[0] else self.bot.map.wall_placement[0]
         

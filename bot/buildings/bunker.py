@@ -41,7 +41,8 @@ class Bunker(Building):
     @property
     def wall_position(self) -> Point2:
         prefered_position: Point2 = self.bot.main_base_ramp.top_center
-        return dfs_in_pathing(self.bot, prefered_position, radius=1)
+        main_slot: Point2 = self.bot.expansions.main.position
+        return dfs_in_pathing(self.bot, prefered_position, main_slot, radius=1)
     
     @override
     @property

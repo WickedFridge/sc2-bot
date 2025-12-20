@@ -1,12 +1,8 @@
 from typing import override
-from bot.macro.resources import Resources
 from bot.technology.upgrades.upgrade import Upgrade
-from bot.utils.fake_order import FakeOrder
-from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.unit import Unit
 
 class AirAttackUpgrade(Upgrade):
     building = UnitTypeId.ARMORY

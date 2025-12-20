@@ -5,30 +5,29 @@ from bot.utils.point2_functions.utils import grid_offsets, points_to_build_addon
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 
+def valid_building_position(bot: BotAI, center: Point2, radius: int, has_addon: bool) -> bool:
+    points: list[Point2] = grid_offsets(radius, initial_position=center)
+    if (has_addon):
+        points += points_to_build_addon(center)
+    return all(valid_position(bot, p) for p in points)
+
+def valid_position(bot: BotAI, pos: Point2) -> bool:
+    map: MapData = get_map(bot)
+    return (
+        pos.x >= 0 and pos.y >= 0
+        and pos.x <= map.building_grid.width - 1
+        and pos.y <= map.building_grid.height - 1
+        and bot.in_placement_grid(pos)
+        and map.in_building_grid(pos)
+        and map.influence_maps.creep.creep_map[pos] == 0
+    )
 
 def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Optional[Point2] = None, radius: int = 1, has_addon: bool = False) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
         The radius in tiles around the position to search for valid buildable positions."""
-    map: MapData = get_map(bot)
     
-    def valid_position(pos) -> bool:
-        return (
-            pos.x >= 0 and pos.y >= 0
-            and pos.x <= map.building_grid.width - 1
-            and pos.y <= map.building_grid.height - 1
-            and bot.in_placement_grid(pos)
-            and map.in_building_grid(pos)
-            and map.influence_maps.creep.creep_map[pos] == 0
-        )
-
-    def footprint_ok(center: Point2) -> bool:
-        points: list[Point2] = grid_offsets(radius, initial_position=center)
-        if (has_addon):
-            points += points_to_build_addon(center)
-        return all(valid_position(p) for p in points)
-
     # If already valid, return it
-    if (footprint_ok(position)):
+    if (valid_building_position(bot, position, radius, has_addon)):
         return position
     
     if (preferred_direction is None):
@@ -71,7 +70,7 @@ def dfs_in_pathing(bot: BotAI, position: Point2, preferred_direction: Optional[P
             visited.add(neighbor)
 
             # If it's a valid buildable position, return it
-            if (footprint_ok(neighbor)):
+            if (valid_building_position(bot, neighbor, radius, has_addon)):
                 return neighbor
 
             # Otherwise, continue expanding

@@ -10,6 +10,11 @@ class Barracks(Building):
         self.unitId = UnitTypeId.BARRACKS
         self.name = "Barracks"
 
+    @override
+    @property
+    def force_position(self) -> bool:
+        return self.bot.structures(UnitTypeId.BARRACKS).amount == 0
+    
     def _barracks_info(self) -> tuple[int, int, int]:
         barracks_pending_amount: float = max(
             self.bot.structures(UnitTypeId.BARRACKS).not_ready.amount,
