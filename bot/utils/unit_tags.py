@@ -119,8 +119,9 @@ cloaked_units: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.BANSHEE,
-    UnitTypeId.OBSERVER,
-    UnitTypeId.OBSERVERSIEGEMODE,
+    # These shouldn't trigger detection on their own
+    # UnitTypeId.OBSERVER,
+    # UnitTypeId.OBSERVERSIEGEMODE,
     UnitTypeId.DARKTEMPLAR,
 ]
 friendly_fire: List[UnitTypeId] = [

@@ -8,6 +8,7 @@ from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import center
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.units import Units
 
 
 class Bunker(Building):
@@ -59,7 +60,12 @@ class Bunker(Building):
         # place a bunker in the main if we're under attack on b2
         situation = self.bot.scouting.situation
         precarious_situation: bool = situation in [Situation.PROXY_BUILDINGS, Situation.UNDER_ATTACK]
-        if (precarious_situation and self.bot.expansions.taken.amount < 3):
+        ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(self.bot.main_base_ramp.top_center) < 8)
+        if (
+            ramp_bunkers.amount >= 1 or (
+                precarious_situation and self.bot.expansions.taken.amount < 3
+            )
+        ):
             bunker_amount_target += 1
 
         # We want a bunker at each base after the first

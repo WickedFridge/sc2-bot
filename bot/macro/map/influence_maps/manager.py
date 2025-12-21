@@ -175,6 +175,11 @@ class InfluenceMapManager:
             effects=False
         )
         
+    def average_danger_around(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):
+        _, _, masked_values = self.read(pos, radius, air, include_danger=True, include_effects=True)
+
+        return masked_values.mean()
+    
     def most_dangerous_point(self, pos: Point2 | Unit, radius: int = 5, air: bool = False):
         x1, y1, masked_values = self.read(pos, radius, air, include_danger=True, include_effects=True)
         

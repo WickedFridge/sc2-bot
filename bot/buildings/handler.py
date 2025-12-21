@@ -18,7 +18,8 @@ from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, cree
 
 class BuildingsHandler:
     bot: Superbot
-    
+    DANGER_THRESHOLD: float = 8
+
     def __init__(self, bot) -> None:
         super().__init__()
         self.bot = bot
@@ -277,6 +278,24 @@ class BuildingsHandler:
                 print("Raise Supply Depot")
                 supply(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
 
+    async def rally_points(self):
+        rally_production_building_ids: List[UnitTypeId] = [
+            UnitTypeId.BARRACKS,
+            UnitTypeId.FACTORY,
+            UnitTypeId.STARPORT,
+        ]
+        production_buildings: Units = self.bot.structures.ready.filter(
+            lambda structure: structure.type_id in rally_production_building_ids
+        )
+        for production_building in production_buildings:
+            bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready.closer_than(10, production_building)
+            rally_point: Point2
+            if (bunkers.amount >= 1):
+                rally_point: Point2 = bunkers.closest_to(production_building).position
+            else:
+                rally_point: Point2 = self.bot.expansions.closest_to(production_building.position).retreat_position
+            production_building(AbilityId.RALLY_BUILDING, rally_point)
+            
     async def lift_townhalls(self):
         townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot.ready.idle
         # calculate the optimal worker count based on mineral field left in bases
@@ -303,10 +322,11 @@ class BuildingsHandler:
                 # unless it's to plant the 4th PF
                 continue
             landing_spot: Point2 = self.bot.expansions.next.position
-            enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+            danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
+            # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)
             
-            if (enemy_units_around_spot.amount >= 1):
-                print("too many enemies")
+            if (danger_around >= self.DANGER_THRESHOLD):
+                print("too much danger")
                 return
 
             if (townhall.type_id == UnitTypeId.COMMANDCENTER):
@@ -318,19 +338,28 @@ class BuildingsHandler:
 
     
     async def land_townhalls(self):
-        flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready.idle
+        flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready
         for townhall in flying_townhall:
             landing_spot: Point2 = (
-                self.bot.expansions.next.position if flying_townhall.amount == 1
+                townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
+                else self.bot.expansions.next.position if flying_townhall.amount == 1
                 else self.bot.expansions.free.closest_to(townhall.position).position if self.bot.expansions.free.amount >= 1
                 else self.bot.expansions.last_taken.position
             )
-            enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
-            if (enemy_units_around_spot.amount == 0):
+            danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
+            # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
+            if (danger_around < self.DANGER_THRESHOLD):
+                if (not townhall.is_idle):
+                    continue
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
                     townhall(AbilityId.LAND_COMMANDCENTER, landing_spot)
                 else:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
+            else:
+                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
+                    townhall(AbilityId.LAND_COMMANDCENTER, townhall.position)
+                else:
+                    townhall(AbilityId.LAND_ORBITALCOMMAND, townhall.position)
 
     async def reposition_buildings(self):
         production_building_ids: List[UnitTypeId] = [
@@ -439,7 +468,7 @@ class BuildingsHandler:
                             print("no free reactor")
 
     async def salvage_bunkers(self) -> None:
-        if (self.bot.scouting.situation != Situation.STABLE):
+        if (self.bot.scouting.situation != Situation.STABLE or self.bot.expansions.taken.amount < 3):
             return
 
         # Salvage main bunker once we're stable

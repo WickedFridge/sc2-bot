@@ -103,6 +103,7 @@ class BarracksAddon(Building):
                 # don't prioritize addons over defense once the build order is done
                 self.bot.build_order.build.is_completed == False
                 or self.bot.scouting.situation != Situation.UNDER_ATTACK
+                or self.bot.units(UnitTypeId.MARINE).amount >= 2
             )
         )
 

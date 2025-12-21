@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "8.7.5"
+VERSION: str = "8.8.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -170,6 +170,7 @@ class WickedBot(Superbot):
         await self.buildings.scan()
         await self.buildings.drop_mules()
         await self.buildings.handle_supplies()
+        await self.buildings.rally_points()
         await self.buildings.lift_townhalls()
         await self.buildings.land_townhalls()
         await self.buildings.reposition_buildings()
@@ -283,7 +284,7 @@ class WickedBot(Superbot):
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
-        # self.debug.danger_map()
+        self.debug.danger_map()
         # self.debug.range()
         # self.debug.creep_map()
         # self.debug.unit_type()
