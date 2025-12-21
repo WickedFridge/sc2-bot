@@ -130,7 +130,7 @@ class ArmyCompositionManager(CachedClass):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
         # only start making marauders once we have at least 8 marines unless we're in danger
-        if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ground_supply >= 8)):
+        if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ratio >= 0.7)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
             composition.add(UnitTypeId.MARAUDER, marauder_count)

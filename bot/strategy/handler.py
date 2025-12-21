@@ -36,8 +36,9 @@ class StrategyHandler:
             return
         print(f'Situation update : {new_situation}')
         print(f'Situation history : {self.situation_history}')
+        if (new_situation not in self.situation_history):
+            await self.bot.client.chat_send(f'Situation update : {new_situation}', False)
         self.situation_history.append(new_situation)
-        await self.bot.client.chat_send(f'Situation update : {new_situation}', False)
         self.bot.scouting.situation = new_situation
 
     def assess_situation(self) -> Situation:
