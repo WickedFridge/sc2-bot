@@ -357,6 +357,8 @@ class BuildingsHandler:
                 else:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
             else:
+                if (self.bot.expansions.taken.safe.amount == 0):
+                    continue
                 safest_base: Expansion = self.bot.expansions.taken.safe.closest_to(townhall.position)
                 safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, landing_spot, 2)
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
