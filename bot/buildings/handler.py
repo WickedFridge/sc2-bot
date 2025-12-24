@@ -1,5 +1,6 @@
 import math
 from typing import List, Set
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
@@ -356,10 +357,12 @@ class BuildingsHandler:
                 else:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
             else:
+                safest_base: Expansion = self.bot.expansions.taken.safe.closest_to(townhall.position)
+                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, landing_spot, 2)
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
-                    townhall(AbilityId.LAND_COMMANDCENTER, townhall.position)
+                    townhall(AbilityId.LAND_COMMANDCENTER, safe_spot)
                 else:
-                    townhall(AbilityId.LAND_ORBITALCOMMAND, townhall.position)
+                    townhall(AbilityId.LAND_ORBITALCOMMAND, safe_spot)
 
     async def reposition_buildings(self):
         production_building_ids: List[UnitTypeId] = [

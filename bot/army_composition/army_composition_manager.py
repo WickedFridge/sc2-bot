@@ -104,7 +104,7 @@ class ArmyCompositionManager(CachedClass):
             case UnitTypeId.MEDIVAC:
                 return 6
             case UnitTypeId.MARINE:
-                return 30
+                return 20
             case _:
                 return False
 
@@ -119,6 +119,10 @@ class ArmyCompositionManager(CachedClass):
         for unit_type in available_units:
             if (self.default_amount(unit_type)):
                 composition.set(unit_type, self.default_amount(unit_type))
+        
+        # TvT marine heavy specific
+        if (self.wicked.matchup == Matchup.TvT):
+            composition.set(UnitTypeId.MARINE, 40)
         
         # build order specific modifications
         build_order_driven: bool = self.wicked.build_order.build.modify_composition(composition)
