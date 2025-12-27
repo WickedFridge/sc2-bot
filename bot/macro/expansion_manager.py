@@ -110,12 +110,21 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_safe == True)
 
     @custom_cache_once_per_frame
+    def not_enemy(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_enemy == False)
+    
+    @custom_cache_once_per_frame
     def not_taken(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_taken == False)
     
     @custom_cache_once_per_frame
     def free(self) -> Expansions:
-        return self.not_taken.filter(lambda expansion: self.bot.has_creep(expansion.position) == False)
+        return self.not_taken.filter(
+            lambda expansion: (
+                expansion.is_enemy == False
+                and self.bot.has_creep(expansion.position) == False
+            )
+        )
 
     @custom_cache_once_per_frame
     def defended(self) -> Expansions:

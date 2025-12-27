@@ -303,7 +303,7 @@ class Micro(CachedClass):
         enemy_units: Units = self.enemy_all.sorted(key = lambda enemy_unit: (enemy_unit.distance_to(bio), enemy_unit.health + enemy_unit.shield))
         if (enemy_units.amount == 0):
             print("[Error] no enemy units to attack")
-            await self.bio_fight(bio)
+            await self.bio_fight(bio, local_army)
             return
         
         close_defensive_structure: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).filter(lambda defense: defense.distance_to(bio) <= 10 and defense.build_progress >= 0.9)
@@ -401,7 +401,6 @@ class Micro(CachedClass):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         loaded_medivacs: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         
-        # TODO : Implement this
         # Determine if we should kite back or pressure forward
         # This depends on the enemy range + movement speed
         # If their average range is less than our range, kite back
@@ -413,7 +412,7 @@ class Micro(CachedClass):
         other_enemies: Units = self.enemy_fighting.sorted(
             lambda enemy_unit: (enemy_unit.distance_to(unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
         )
-        
+
         # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
         if (shorter_range and self.handle_melee_engagement(
             unit,
@@ -422,6 +421,7 @@ class Micro(CachedClass):
         )):
             return
 
+
         # ----- CASE 2: PURE RANGED ENGAGEMENT (pressure forward) -----
         if (self.handle_ranged_engagement(
             unit,
@@ -429,18 +429,18 @@ class Micro(CachedClass):
             other_enemies,
         )):
             return
-        
+
         # SECONDARY CASE: No targets, but enemy units exist
         if (buildings_in_range.amount >= 1 and unit.weapon_ready):
             self.stim_bio(unit)
             unit.attack(buildings_in_range.first)
             return
-        
+
         # if everything isn't unloaded, regroup before attacking
         if (loaded_medivacs):
             unit.move(local_army.center)
             return
-        
+
         self.stim_bio(unit)
         target: Unit = other_enemies.closest_to(unit)
         best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
@@ -461,7 +461,11 @@ class Micro(CachedClass):
             return True
         
         if (other_enemies.amount >= 1):        
-            unit.attack(other_enemies.closest_to(unit))
+            closest_target: Unit = other_enemies.closest_to(unit)
+            if (closest_target.can_be_attacked):
+                unit.attack(closest_target)
+            else:
+                unit.move(closest_target.position)
             return True
         return False
 
@@ -479,7 +483,11 @@ class Micro(CachedClass):
             return True
         
         if (other_enemies.amount >= 1):        
-            unit.attack(other_enemies.closest_to(unit))
+            closest_target: Unit = other_enemies.closest_to(unit)
+            if (closest_target.can_be_attacked):
+                unit.attack(closest_target)
+            else:
+                unit.move(closest_target.position)
             return True
         return False
     
@@ -678,7 +686,7 @@ class Micro(CachedClass):
                 enemy_unit.distance_to(raven)
             )
         ).first
-        location: Point2 = await self.bot.find_placement(UnitTypeId.AUTOTURRET, near=target_enemy.position)
+        location: Point2 = await self.bot.find_placement(UnitTypeId.AUTOTURRET, near=target_enemy.position.towards(raven.position))
         if (location):
             print("Casting auto turret")
             raven(AbilityId.BUILDAUTOTURRET_AUTOTURRET, location)
@@ -910,8 +918,8 @@ class Micro(CachedClass):
         selected.move(selected_position.towards(target, distance))
 
     def is_valid_enemy(self, unit: Unit) -> bool:
-        if (not unit.can_be_attacked):
-            return False
+        # if (not unit.can_be_attacked):
+        #     return False
         if (unit.type_id in dont_attack):
             return False
         return True

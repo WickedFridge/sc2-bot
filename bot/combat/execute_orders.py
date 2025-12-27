@@ -409,9 +409,9 @@ class Execute(CachedClass):
                 case _:
                     await self.micro.harass(unit, enemy_workers)
     
-    async def kill_buildings(self, army: Army, radius: float):
+    async def kill_buildings(self, army: Army):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.distance_to(army.units.center) <= radius and unit.can_be_attacked
+            lambda unit: unit.distance_to(army.units.center) <= army.radius and unit.can_be_attacked
         ).sorted(
             lambda building: (building.type_id not in building_priorities, building.health + building.shield)
         )

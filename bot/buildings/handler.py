@@ -12,10 +12,11 @@ from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep
+from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep, cloaked_units, burrowed_units
 
 class BuildingsHandler:
     bot: Superbot
@@ -146,6 +147,28 @@ class BuildingsHandler:
                     print("Morph Orbital Command")
                     cc(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)
 
+    def scan_amount_to_bank(self) -> int:
+        WORKER_THRESHOLD: int = 30
+        scan_to_bank: int = 0
+        orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        
+        # if we're playing vs Zerg bank 1 scan once we reach worker threshold and 3 orbitals
+        if (self.bot.matchup == Matchup.TvZ and self.bot.supply_workers >= WORKER_THRESHOLD and orbital_command_amount >= 3):
+            scan_to_bank += 1
+
+        # if we've know the enemy has cloaked units, bank more scans
+        if (UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades and self.bot.supply_workers >= WORKER_THRESHOLD):
+            scan_to_bank += 1
+
+        if (self.bot.enemy_units(cloaked_units).amount >= 1):
+            scan_to_bank += 1
+        
+        if (self.bot.enemy_units(burrowed_units).amount >= 1):
+            scan_to_bank += 1
+        
+        # never bank more than 1 scan per orbital
+        return min(scan_to_bank, orbital_command_amount)
+    
     async def drop_mules(self):
         # find biggest mineral fields near a full base
         safe_mineral_fields: Units = self.bot.expansions.ready.safe.mineral_fields
@@ -154,8 +177,7 @@ class BuildingsHandler:
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
         # bank scans if we have 3 or more orbitals and enough SCVs
-        orbital_command_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        scan_to_bank: int = int(orbital_command_amount / 3) if self.bot.matchup == Matchup.TvZ and self.bot.supply_workers >= 42 else 0
+        scan_to_bank: int = self.scan_amount_to_bank()
         scan_banked: int = 0
         
         # call down a mule on this guy
@@ -168,35 +190,8 @@ class BuildingsHandler:
             else:
                 scan_banked += 1
 
-    async def scan(self):
+    def scan_creep(self, orbitals_with_energy: Units, units: Units, BASE_RADIUS: int, SCAN_RADIUS: int):
         CREEP_DENSITY_THRESHOLD: float = 0.5
-        BASE_RADIUS: int = 6
-        SCAN_RADIUS: int = 15
-        
-        orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
-        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
-            return
-        
-        # if we have no fighting units we can't clean creep
-        ravens: Units = self.bot.units(UnitTypeId.RAVEN)
-        enemy_units: Units = self.bot.enemy_units
-        creep_cleaners: Units = self.bot.units.filter(
-            lambda unit: (
-                unit.type_id not in worker_types
-                and unit.can_attack_ground
-                and (
-                    ravens.amount == 0
-                    or ravens.closer_than(15, unit).amount == 0
-                )
-                and (
-                    enemy_units.amount == 0
-                    or enemy_units.closer_than(10, unit).amount == 0
-                )
-            )
-        )
-
-        if (creep_cleaners.amount == 0):
-            return
         
         # find bases that have creep around and units who should clean creep
         # Check all owned bases
@@ -211,7 +206,7 @@ class BuildingsHandler:
             tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
             detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
             if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
-                fighting_units_around: Units = creep_cleaners.closer_than(BASE_RADIUS, expansion.position)
+                fighting_units_around: Units = units.closer_than(BASE_RADIUS, expansion.position)
                 if (fighting_units_around.amount >= 1):
                     print("scanning creep around base")
                     orbital: Unit = orbitals_with_energy.random
@@ -221,7 +216,7 @@ class BuildingsHandler:
 
         # find fighting units that are on creep without a building in 15 range and not close to an expansion slot (that could have died the last frame)
         enemy_buildings: Units = self.bot.enemy_structures
-        on_creep_fighting_units: Units = creep_cleaners.filter(
+        on_creep_fighting_units: Units = units.filter(
             lambda unit: (
                 self.bot.has_creep(unit.position)
                 and self.bot.map.influence_maps.detection.detected[unit.position] == 0
@@ -249,21 +244,72 @@ class BuildingsHandler:
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, best_position)
             # scan only once per frame
             return
-
-        
+    
+    def scan_invisible_units(self, orbitals_with_energy: Units) -> bool:
+        detection_layer = self.bot.map.influence_maps.detection
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 not unit.is_visible
                 and (unit.is_cloaked or unit.is_burrowed)
-                and creep_cleaners.closest_distance_to(unit) < 10
+                and detection_layer.detected[unit.position] == 0
             )
         )
+        # TODO : lurker spines means burrowed lurker
         
         # invisible enemy units we should scan are in range of our fighting units
         for enemy_unit in enemy_units_to_scan:
-            print("scan enemy unit", enemy_unit.name)
+            local_fighting_units: Units = self.bot.units.closer_than(10, enemy_unit).filter(
+                lambda unit: (
+                    unit.type_id not in worker_types
+                    and (
+                        unit.can_attack_air if enemy_unit.is_flying else unit.can_attack_ground
+                    )
+                )
+            )
+            local_enemy_units: Units = self.bot.enemy_units.closer_than(10, enemy_unit)
+            if (local_fighting_units.amount == 0):
+                print(f'no fighting unit close to {enemy_unit.name}')
+                continue
+            if (local_enemy_units.amount >= 0):
+                print(f'too much enemy units close to {enemy_unit.name}')
+                continue
+            print(f'scan enemy unit {enemy_unit.name}')
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, enemy_unit.position)
+            return True
+
+    async def scan(self):
+        BASE_RADIUS: int = 6
+        SCAN_RADIUS: int = 15
+        
+        orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
+        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
+            return
+        
+        # if we have no fighting units we can't clean creep
+        ravens: Units = self.bot.units(UnitTypeId.RAVEN)
+        enemy_units: Units = self.bot.enemy_units
+        creep_cleaners: Units = self.bot.units.filter(
+            lambda unit: (
+                unit.type_id not in worker_types
+                and unit.can_attack_ground
+                and (
+                    ravens.amount == 0
+                    or ravens.closer_than(15, unit).amount == 0
+                )
+                and (
+                    enemy_units.amount == 0
+                    or enemy_units.closer_than(10, unit).amount == 0
+                )
+            )
+        )
+
+        if (self.scan_invisible_units(orbitals_with_energy)):
+            return
+        if (creep_cleaners.amount == 0):
+            return
+        self.scan_creep(orbitals_with_energy, creep_cleaners, BASE_RADIUS, SCAN_RADIUS)
+        
    
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready
@@ -295,7 +341,8 @@ class BuildingsHandler:
                 rally_point: Point2 = bunkers.closest_to(production_building).position
             else:
                 rally_point: Point2 = self.bot.expansions.closest_to(production_building.position).retreat_position
-            production_building(AbilityId.RALLY_BUILDING, rally_point)
+            if (len(production_building.rally_targets) == 0 or production_building.rally_targets[0].point != rally_point):
+                production_building(AbilityId.RALLY_BUILDING, rally_point)
             
     async def lift_townhalls(self):
         townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot.ready.idle

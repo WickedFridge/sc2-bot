@@ -208,7 +208,7 @@ class Debug:
     def range(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         if (selected_units.amount == 0):
-            return
+            selected_units = self.bot.enemy_units
         for unit in selected_units:
             # self.draw_sphere_on_world(unit.position, radius=1, draw_color=GREEN)
             # self.draw_sphere_on_world(unit.position, radius=2, draw_color=YELLOW)
@@ -309,20 +309,6 @@ class Debug:
 
             # Draw on SC2 world
             self.draw_text_on_world(world_pos, 'X', GREEN)
-    
-    async def invisible_units(self):
-        invisible_units: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-            lambda unit: (
-                unit.is_burrowed or unit.is_cloaked
-            )
-        )
-        scans: Set[EffectData] = set(filter(lambda effect: effect.id == EffectId.SCANNERSWEEP, self.bot.state.effects))
-        for scan in scans:
-            print(f'position: {scan.positions}')
-        
-        for unit in invisible_units:
-            self.draw_sphere_on_world(unit.position, radius=1, draw_color=YELLOW)
-            self.draw_text_on_world(unit.position, f'visible {unit.is_visible}', YELLOW)
 
     
     def full_effects(self, iteration: int):
@@ -554,3 +540,14 @@ class Debug:
         for i, unit_type in enumerate(self.bot.trainer.ordered_unit_types):
             position: Point2 = Point2((0.9, 0.02 + 0.015 * (i + 1)))
             self.draw_text_on_screen(unit_type.name, position)
+
+
+    def invisible_units(self):
+        invisible_units: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.is_visible == False
+            )
+        )
+        for unit in invisible_units:
+            self.draw_box_on_world(unit.position, size=1, draw_color=YELLOW)
+            self.draw_text_on_world(unit.position, f'invisible', YELLOW)

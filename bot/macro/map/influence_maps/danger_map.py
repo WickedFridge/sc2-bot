@@ -42,8 +42,11 @@ class DangerMap:
         self.ground_terrain.map[:] = 0
         self.air.map[:] = 0
 
-    def get_unit_property(self, unit: Unit) -> tuple[Point2, float, float, float, float, float, float]:
+    def get_unit_property(self, unit: Unit) -> tuple[Point2, float, float, float, float, float, float, float]:
+        RADIUS_BUFFER: float = 1.1
+        
         position: Point2 = unit.position
+        radius: float = unit.radius * RADIUS_BUFFER
         ground_dps: float = unit.ground_dps
         ground_range: float = unit.ground_range
         air_dps: float = unit.air_dps
@@ -79,6 +82,7 @@ class DangerMap:
 
         return (
             position,
+            radius,
             ground_dps,
             ground_range,
             air_dps,
@@ -99,6 +103,7 @@ class DangerMap:
     def update_unit(self, unit: Unit):
         (
             unit_position,
+            unit_radius,
             ground_dps,
             ground_range,
             air_dps,
@@ -112,8 +117,8 @@ class DangerMap:
         #     ground_dps = 15
 
         for weight, ms_factor in self.FALLOFF_LEVELS:
-            ground_radius = ground_range + move_speed * ms_factor / 2
-            air_radius = air_range + move_speed * ms_factor / 2
+            ground_radius = unit_radius + ground_range + move_speed * ms_factor / 2
+            air_radius = unit_radius + air_range + move_speed * ms_factor / 2
             self.ground.update(unit_position, ground_radius, ground_dps * weight, minimum_range)
             self.air.update(unit_position, air_radius, air_dps * weight, minimum_range)
 

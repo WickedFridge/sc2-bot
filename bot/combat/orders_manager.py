@@ -120,10 +120,10 @@ class OrdersManager:
     def global_enemy_units(self) -> Units:
         return self.bot.enemy_units.filter(
             lambda unit: (
-                unit.can_be_attacked
-                and unit.type_id not in dont_attack
+                # unit.can_be_attacked and
+                unit.type_id not in dont_attack
             )
-        )    
+        )
     
     @property
     def stim_completed(self) -> bool:
@@ -355,6 +355,7 @@ class OrdersManager:
         local_enemy_supply: float,
         global_enemy_menacing: Units
     ):
+        MAX_PICKUP_SUPPLY: float = 30
         weighted_army_supply: float = army.weighted_supply
         
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
@@ -381,9 +382,9 @@ class OrdersManager:
             return Orders.FIGHT_DEFENSE
         
         if (
-            army.ground_units.amount >= 6 and (
-                weighted_army_supply >= local_enemy_supply * 0.7
-            )
+            army.ground_units.amount >= 6
+            and weighted_army_supply >= local_enemy_supply * 0.7
+            and army.potential_supply < MAX_PICKUP_SUPPLY
         ):
             return Orders.FIGHT_DISENGAGE
         return Orders.PICKUP_LEAVE
@@ -565,7 +566,7 @@ class OrdersManager:
                     await self.execute.harass(army, self.get_local_enemy_workers(army.center, army.radius))
                      
                 case Orders.KILL_BUILDINGS:
-                    await self.execute.kill_buildings(army, army.radius)
+                    await self.execute.kill_buildings(army)
 
                 case Orders.CHASE_BUILDINGS:
                     await self.execute.chase_buildings(army)
