@@ -31,6 +31,7 @@ dependencies = [
     "aiohttp>=3.11.10",
     "loguru>=0.7.3",
     "mpyq>=0.2.5",
+    "numpy>=2.3.3; python_full_version >= '3.14'",
     "numpy>=2.1.0; python_full_version >= '3.13'",
     "numpy>=2.0.0; python_full_version < '3.13'",
     "portpicker>=1.6.0",
