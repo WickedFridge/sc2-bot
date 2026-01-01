@@ -37,7 +37,8 @@ dependencies = [
     "portpicker>=1.6.0",
     "protobuf<4.0.0",
     "s2clientprotocol>=5.0.14.93333.0",
-    "scipy>=1.16.3; python_full_version >= '3.13'",
+    "scipy>=1.16.3; python_full_version >= '3.14'",
+    "scipy>=1.14.1; python_full_version >= '3.13'",
     "scipy>=1.7.1; python_full_version < '3.13'",
 ]
 
