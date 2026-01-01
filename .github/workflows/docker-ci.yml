@@ -73,11 +73,6 @@ jobs:
         run: sh dockerfiles/download_maps.sh
         if: steps.cache-sc2-maps.outputs.cache-hit != 'true'
 
-      - name: Enable experimental docker features
-        run: |
-          echo $'{\n    "experimental": true\n}' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker.service
-
       - name: Run shell script
         env:
           VERSION_NUMBER: ${{ env.VERSION_NUMBER }}
@@ -111,11 +106,6 @@ jobs:
       - name: Download sc2 maps
         run: sh dockerfiles/download_maps.sh
         if: steps.cache-sc2-maps.outputs.cache-hit != 'true'
-
-      - name: Enable experimental docker features
-        run: |
-          echo $'{\n    "experimental": true\n}' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker.service
 
       - name: Run shell script
         continue-on-error: true

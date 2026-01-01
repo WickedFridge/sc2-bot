@@ -15,21 +15,15 @@ download_with_retry() {
 }
 
 # Download and process sc2ai.net ladder maps
-for i in {1..7}; do
-    case $i in
-        1) url="https://sc2ai.net/wiki/184/plugin/attachments/download/9/" ;;
-        2) url="https://sc2ai.net/wiki/184/plugin/attachments/download/14/" ;;
-        3) url="https://sc2ai.net/wiki/184/plugin/attachments/download/21/" ;;
-        4) url="https://sc2ai.net/wiki/184/plugin/attachments/download/35/" ;;
-        5) url="https://sc2ai.net/wiki/184/plugin/attachments/download/36/" ;;
-        6) url="https://sc2ai.net/wiki/184/plugin/attachments/download/38/" ;;
-        7) url="https://sc2ai.net/wiki/184/plugin/attachments/download/39/" ;;
-    esac
-    
-    download_with_retry "$url" "$i.zip"
-    unzip -q -o "$i.zip"
-    rm "$i.zip"
-done
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/9/ -o 1.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/14/ -o 2.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/21/ -o 3.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/35/ -o 4.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/36/ -o 5.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/38/ -o 6.zip
+curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/39/ -o 7.zip
+unzip -q -o '*.zip'
+rm *.zip
 
 # Download and process official blizzard maps
 download_with_retry "http://blzdistsc2-a.akamaihd.net/MapPacks/Ladder2019Season3.zip" "Ladder2019Season3.zip"
