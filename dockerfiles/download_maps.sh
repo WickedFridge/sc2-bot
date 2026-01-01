@@ -15,13 +15,13 @@ download_with_retry() {
 }
 
 # Download and process sc2ai.net ladder maps
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/9/ -o 1.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/14/ -o 2.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/21/ -o 3.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/35/ -o 4.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/36/ -o 5.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/38/ -o 6.zip
-curl -L https://sc2ai.net/wiki/184/plugin/attachments/download/39/ -o 7.zip
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/9/" "1.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/14/" "2.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/21/" "3.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/35/" "4.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/36/" "5.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/38/" "6.zip"
+download_with_retry "https://sc2ai.net/wiki/184/plugin/attachments/download/39/" "7.zip"
 unzip -q -o '*.zip'
 rm *.zip
 
