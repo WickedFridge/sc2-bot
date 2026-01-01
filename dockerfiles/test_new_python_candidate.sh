@@ -16,7 +16,7 @@ IMAGE_NAME=burnysc2/python-sc2-docker:py_$PYTHON_VERSION-sc2_$SC2_VERSION-v$VERS
 BUILD_ARGS="--build-arg PYTHON_VERSION=$PYTHON_VERSION --build-arg SC2_VERSION=$SC2_VERSION"
 
 # Build image
-docker build -t $IMAGE_NAME $BUILD_ARGS - < dockerfiles/Dockerfile
+docker build -f dockerfiles/Dockerfile -t $IMAGE_NAME $BUILD_ARGS .
 
 # Delete previous container if it exists
 docker rm -f test_container
