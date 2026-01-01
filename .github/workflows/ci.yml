@@ -417,6 +417,9 @@ jobs:
       - name: Install uv
         run: pip install uv
 
+      - name: Remove test folder to not include it in package
+        run: rm -rf test
+
       - name: Build package
         run: uv build
 
