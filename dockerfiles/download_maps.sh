@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run via
 # sh dockerfiles/download_maps.sh
-set -euo pipefail
+set -e
 
 # Create maps directory if it doesn't exist
 mkdir -p dockerfiles/maps
