@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[6, 9, 16, 29, 58]
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -792,7 +791,7 @@ class DrawItem:
         r = getattr(color, "r", getattr(color, "x", 255))
         g = getattr(color, "g", getattr(color, "y", 255))
         b = getattr(color, "b", getattr(color, "z", 255))
-        # pyre-ignore[20]
+
         if max(r, g, b) <= 1:
             r *= 255
             g *= 255

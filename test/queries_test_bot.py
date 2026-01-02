@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[16]
 """
 This testbot's purpose is to test the query behavior of the API.
 These query functions are:

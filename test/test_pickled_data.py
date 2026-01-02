@@ -291,7 +291,6 @@ def test_bot_ai():
 
     def calc_cost(item_id) -> Cost:
         if isinstance(item_id, AbilityId):
-            # pyre-ignore[16]
             return bot.game_data.calculate_ability_cost(item_id)
         elif isinstance(item_id, UpgradeId):
             return bot.game_data.upgrades[item_id.value].cost

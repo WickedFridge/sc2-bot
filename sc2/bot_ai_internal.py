@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[6, 16, 29]
 from __future__ import annotations
 
 import itertools
@@ -103,7 +102,7 @@ class BotAIInternal(ABC):
         self.warp_gate_count: int = 0
         self.actions: list[UnitCommand] = []
         self.blips: set[Blip] = set()
-        # pyre-ignore[11]
+
         self.race: Race | None = None
         self.enemy_race: Race | None = None
         self._generated_frame = -100

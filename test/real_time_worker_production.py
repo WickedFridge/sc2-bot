@@ -92,7 +92,6 @@ class RealTimeTestBot(BotAI):
         if unit.is_structure:
             unit(AbilityId.RALLY_WORKERS, self.mineral_field.closest_to(unit))
 
-    # pyre-ignore[11]
     async def on_end(self, game_result: Result):
         global on_end_was_called
         on_end_was_called = True

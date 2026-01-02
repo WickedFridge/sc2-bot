@@ -174,7 +174,6 @@ class EmptyBot(BotAI):
             await self.client.debug_kill_unit(self.units)
 
     async def on_step(self, iteration: int):
-        # pyre-ignore[16]
         map_center = self.game_info.map_center
         enemies = self.enemy_units | self.enemy_structures
         if enemies:

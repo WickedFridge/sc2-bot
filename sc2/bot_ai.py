@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[6, 16]
 from __future__ import annotations
 
 import math
@@ -71,7 +70,6 @@ class BotAI(BotAIInternal):
             self._last_step_step_time * 1000,
         )
 
-    # pyre-ignore[11]
     def alert(self, alert_code: Alert) -> bool:
         """
         Check if alert is triggered in the current step.
@@ -1125,7 +1123,7 @@ class BotAI(BotAIInternal):
             return False
 
         research_structure_type: UnitTypeId = UPGRADE_RESEARCHED_FROM[upgrade_type]
-        # pyre-ignore[9]
+
         required_tech_building: UnitTypeId | None = RESEARCH_INFO[research_structure_type][upgrade_type].get(
             "required_building", None
         )
@@ -1368,7 +1366,6 @@ class BotAI(BotAIInternal):
         """
         raise NotImplementedError
 
-    # pyre-ignore[11]
     async def on_end(self, game_result: Result) -> None:
         """Override this in your bot class. This function is called at the end of a game.
         Unsure if this function will be called on the laddermanager client as the bot process may forcefully be terminated.

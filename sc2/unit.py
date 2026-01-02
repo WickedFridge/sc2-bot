@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[11, 16, 29]
 from __future__ import annotations
 
 import math
@@ -1358,7 +1357,10 @@ class Unit(HasPosition2D):
         :param queue:
         :param can_afford_check:
         """
-        normal_creation_ability = self._bot_object.game_data.units[unit.value].creation_ability.id
+        creation_ability = self._bot_object.game_data.units[unit.value].creation_ability
+        if creation_ability is None:
+            return False
+        normal_creation_ability = creation_ability.id
         return self(
             warpgate_abilities[normal_creation_ability],
             target=position,

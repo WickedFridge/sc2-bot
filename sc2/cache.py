@@ -36,13 +36,13 @@ class property_cache_once_per_frame(property):  # noqa: N801
 
     def __set__(self, obj: BotAI, value: T) -> None:
         obj.cache[self.__name__] = value
-        # pyre-ignore[16]
+
         obj.cache[self.__frame__] = obj.state.game_loop
 
     # pyre-fixme[34]
     def __get__(self, obj: BotAI, _type=None) -> T:
         value = obj.cache.get(self.__name__, None)
-        # pyre-ignore[16]
+
         bot_frame = obj.state.game_loop
         if value is None or obj.cache[self.__frame__] < bot_frame:
             value = self.func(obj)

@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[16]
 """
 This "bot" will loop over several available ladder maps and generate the pickle file in the "/test/pickle_data/" subfolder.
 These will then be used to run tests from the test script "test_pickled_data.py"

@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[11, 16]
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -321,7 +320,7 @@ class GameState:
         List of successful unit actions since last frame.
         See https://github.com/Blizzard/s2client-proto/blob/01ab351e21c786648e4c6693d4aad023a176d45c/s2clientprotocol/raw.proto#L185-L193
         """
-        # pyre-ignore[7]
+
         return list(filter(lambda action: isinstance(action, ActionRawUnitCommand), self.actions))
 
     @cached_property
@@ -330,7 +329,7 @@ class GameState:
         List of successful autocast toggle actions since last frame.
         See https://github.com/Blizzard/s2client-proto/blob/01ab351e21c786648e4c6693d4aad023a176d45c/s2clientprotocol/raw.proto#L199-L202
         """
-        # pyre-ignore[7]
+
         return list(filter(lambda action: isinstance(action, ActionRawToggleAutocast), self.actions))
 
     @cached_property

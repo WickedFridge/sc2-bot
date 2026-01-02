@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[6, 11, 16, 29]
 from __future__ import annotations
 
 from abc import ABC

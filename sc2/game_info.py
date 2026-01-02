@@ -1,4 +1,3 @@
-# pyre-ignore-all-errors[6, 11, 16, 58]
 from __future__ import annotations
 
 import heapq
@@ -174,7 +173,7 @@ class Ramp:
         middle = self.depot_in_middle
         # direction up the ramp
         direction = self.barracks_in_middle.negative_offset(middle)
-        # pyre-ignore[7]
+
         return middle + 6 * direction
 
     @cached_property
@@ -223,7 +222,7 @@ class GameInfo:
         self.players: list[Player] = [Player.from_proto(p) for p in self._proto.player_info]
         self.map_name: str = self._proto.map_name
         self.local_map_path: str = self._proto.local_map_path
-        # pyre-ignore[8]
+
         self.map_size: Size = Size.from_proto(self._proto.start_raw.map_size)
 
         # self.pathing_grid[point]: if 0, point is not pathable, if 1, point is pathable
@@ -234,9 +233,9 @@ class GameInfo:
         self.placement_grid: PixelMap = PixelMap(self._proto.start_raw.placement_grid, in_bits=True)
         self.playable_area = Rect.from_proto(self._proto.start_raw.playable_area)
         self.map_center = self.playable_area.center
-        # pyre-ignore[8]
+
         self.map_ramps: list[Ramp] = None  # Filled later by BotAI._prepare_first_step
-        # pyre-ignore[8]
+
         self.vision_blockers: frozenset[Point2] = None  # Filled later by BotAI._prepare_first_step
         self.player_races: dict[int, int] = {
             p.player_id: p.race_actual or p.race_requested for p in self._proto.player_info
@@ -244,7 +243,7 @@ class GameInfo:
         self.start_locations: list[Point2] = [
             Point2.from_proto(sl).round(decimals=1) for sl in self._proto.start_raw.start_locations
         ]
-        # pyre-ignore[8]
+
         self.player_start_location: Point2 = None  # Filled later by BotAI._prepare_first_step
 
     def _find_ramps_and_vision_blockers(self) -> tuple[list[Ramp], frozenset[Point2]]:
