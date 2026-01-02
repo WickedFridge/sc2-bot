@@ -1,5 +1,4 @@
 from __future__ import annotations
-from pyglet.image import ImageData
 
 
 from pyglet.text import Label
@@ -17,6 +16,7 @@ from sc2.position import Point2
 
 if TYPE_CHECKING:
     from sc2.client import Client
+    from pyglet.image import ImageData
 
 
 class Renderer:
