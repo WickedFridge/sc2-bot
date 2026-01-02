@@ -194,8 +194,8 @@ for item in {class_name}:
                 f.write(f'ID_VERSION_STRING = "{self.game_version}"\n')
 
     def update_ids_from_stableid_json(self) -> None:
-        if self.game_version is None or ID_VERSION_STRING is None or self.game_version != ID_VERSION_STRING:
-            if self.verbose and self.game_version is not None and ID_VERSION_STRING is not None:
+        if self.game_version is None or self.game_version != ID_VERSION_STRING:
+            if self.verbose and self.game_version is not None:
                 logger.info(
                     f"Game version is different (Old: {self.game_version}, new: {ID_VERSION_STRING}. Updating ids to match game version"
                 )

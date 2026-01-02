@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Sequence
 from enum import Enum
 
 from google.protobuf.message import Message
@@ -71,7 +71,7 @@ class TargetType(Enum):
 class Weapon(Message):
     type: int
     damage: float
-    damage_bonus: Iterable[DamageBonus]
+    damage_bonus: Sequence[DamageBonus]
     attacks: int
     range: float
     speed: float
@@ -79,7 +79,7 @@ class Weapon(Message):
         self,
         type: int = ...,
         damage: float = ...,
-        damage_bonus: Iterable[DamageBonus] = ...,
+        damage_bonus: Sequence[DamageBonus] = ...,
         attacks: int = ...,
         range: float = ...,
         speed: float = ...,
@@ -100,14 +100,14 @@ class UnitTypeData(Message):
     has_vespene: bool
     has_minerals: bool
     sight_range: float
-    tech_alias: Iterable[int]
+    tech_alias: Sequence[int]
     unit_alias: int
     tech_requirement: int
     require_attached: bool
-    attributes: Iterable[int]
+    attributes: Sequence[int]
     movement_speed: float
     armor: float
-    weapons: Iterable[Weapon]
+    weapons: Sequence[Weapon]
     def __init__(
         self,
         unit_id: int = ...,
@@ -124,14 +124,14 @@ class UnitTypeData(Message):
         has_vespene: bool = ...,
         has_minerals: bool = ...,
         sight_range: float = ...,
-        tech_alias: Iterable[int] = ...,
+        tech_alias: Sequence[int] = ...,
         unit_alias: int = ...,
         tech_requirement: int = ...,
         require_attached: bool = ...,
-        attributes: Iterable[int] = ...,
+        attributes: Sequence[int] = ...,
         movement_speed: float = ...,
         armor: float = ...,
-        weapons: Iterable[Weapon] = ...,
+        weapons: Sequence[Weapon] = ...,
     ) -> None: ...
 
 class UpgradeData(Message):

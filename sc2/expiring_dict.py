@@ -73,7 +73,7 @@ class ExpiringDict(OrderedDict[Hashable, Any]):
 
     def __repr__(self) -> str:
         """Printable version of the dict instead of getting memory adress"""
-        print_list = []
+        print_list: list[str] = []
         with self.lock:
             for key, value in OrderedDict.items(self):
                 if self.frame - value[1] < self.max_age:

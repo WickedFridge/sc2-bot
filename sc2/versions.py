@@ -1,4 +1,4 @@
-VERSIONS = [
+VERSIONS: list[dict[str, int | str]] = [
     {
         "base-version": 52910,
         "data-hash": "8D9FEF2E1CF7C6C9CBE4FBCA830DDE1C",

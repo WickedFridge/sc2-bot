@@ -52,7 +52,7 @@ from sc2.constants import (
     UNIT_PHOTONCANNON,
     transforming,
 )
-from sc2.data import Alliance, Attribute, CloakState, Race, Target, race_gas, warpgate_abilities
+from sc2.data import Attribute, CloakState, Race, Target, race_gas, warpgate_abilities
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -286,7 +286,7 @@ class Unit(HasPosition2D):
         return 0
 
     @cached_property
-    def bonus_damage(self) -> tuple[int, str] | None:
+    def bonus_damage(self) -> tuple[float, str] | None:
         """Returns a tuple of form '(bonus damage, armor type)' if unit does 'bonus damage' against 'armor type'.
         Possible armor typs are: 'Light', 'Armored', 'Biological', 'Mechanical', 'Psionic', 'Massive', 'Structure'."""
         # TODO: Consider units with ability attacks (Oracle, Baneling) or multiple attacks (Thor).
@@ -471,7 +471,8 @@ class Unit(HasPosition2D):
         if self.base_build >= 82457:
             return self._proto.display_type == IS_SNAPSHOT
         # TODO: Fixed in version 5.0.4, remove if a new linux binary is released: https://github.com/Blizzard/s2client-proto/issues/167
-        position = self.position.rounded
+        # pyrefly: ignore
+        position: tuple[int, int] = self.position.rounded
         return self._bot_object.state.visibility.data_numpy[position[1], position[0]] != 2
 
     @cached_property
@@ -503,7 +504,7 @@ class Unit(HasPosition2D):
         return self._proto.display_type == IS_PLACEHOLDER
 
     @property
-    def alliance(self) -> Alliance:
+    def alliance(self) -> int:
         """Returns the team the unit belongs to."""
         return self._proto.alliance
 
@@ -528,7 +529,7 @@ class Unit(HasPosition2D):
         return self._proto.pos.x, self._proto.pos.y
 
     @cached_property
-    def position(self) -> Point2:  # pyright: ignore[reportIncompatibleMethodOverride]
+    def position(self) -> Point2:
         """Returns the 2d position of the unit."""
         return Point2.from_proto(self._proto.pos)
 
@@ -593,9 +594,7 @@ class Unit(HasPosition2D):
                 <= (cast_range + self.radius + target.radius + bonus_distance) ** 2
             )
         # For casting abilities on the ground, like queen creep tumor, ravager bile, HT storm
-        if ability_target_type in {Target.Point.value, Target.PointOrUnit.value} and isinstance(
-            target, (Point2, tuple)
-        ):
+        if ability_target_type in {Target.Point.value, Target.PointOrUnit.value} and isinstance(target, Point2):
             return (
                 self._bot_object._distance_pos_to_pos(self.position_tuple, target)
                 <= cast_range + self.radius + bonus_distance
@@ -1027,6 +1026,7 @@ class Unit(HasPosition2D):
     def orders(self) -> list[UnitOrder]:
         """Returns the a list of the current orders."""
         # TODO: add examples on how to use unit orders
+        # pyrefly: ignore
         return [UnitOrder.from_proto(order, self._bot_object) for order in self._proto.orders]
 
     @cached_property
@@ -1153,6 +1153,7 @@ class Unit(HasPosition2D):
     @cached_property
     def passengers(self) -> set[Unit]:
         """Returns the units inside a Bunker, CommandCenter, PlanetaryFortress, Medivac, Nydus, Overlord or WarpPrism."""
+        # pyrefly: ignore
         return {Unit(unit, self._bot_object) for unit in self._proto.passengers}
 
     @cached_property
@@ -1258,8 +1259,12 @@ class Unit(HasPosition2D):
         :param queue:
         :param can_afford_check:
         """
+        creation_ability = self._bot_object.game_data.units[unit.value].creation_ability
+        if creation_ability is None:
+            return False
+
         return self(
-            self._bot_object.game_data.units[unit.value].creation_ability.id,
+            creation_ability.id,
             queue=queue,
             subtract_cost=True,
             can_afford_check=can_afford_check,
@@ -1289,8 +1294,11 @@ class Unit(HasPosition2D):
             assert isinstance(position, Unit), (
                 "When building the gas structure, the target needs to be a unit (the vespene geysir) not the position of the vespene geysir."
             )
+        creation_ability = self._bot_object.game_data.units[unit.value].creation_ability
+        if creation_ability is None:
+            return False
         return self(
-            self._bot_object.game_data.units[unit.value].creation_ability.id,
+            creation_ability.id,
             target=position,
             queue=queue,
             subtract_cost=True,
@@ -1317,8 +1325,11 @@ class Unit(HasPosition2D):
         assert isinstance(target_geysir, Unit), (
             "When building the gas structure, the target needs to be a unit (the vespene geysir) not the position of the vespene geysir."
         )
+        creation_ability = self._bot_object.game_data.units[gas_structure_type_id.value].creation_ability
+        if creation_ability is None:
+            return False
         return self(
-            self._bot_object.game_data.units[gas_structure_type_id.value].creation_ability.id,
+            creation_ability.id,
             target=target_geysir,
             queue=queue,
             subtract_cost=True,
@@ -1338,8 +1349,11 @@ class Unit(HasPosition2D):
         :param queue:
         :param can_afford_check:
         """
+        research_ability = self._bot_object.game_data.upgrades[upgrade.value].research_ability
+        if research_ability is None:
+            return False
         return self(
-            self._bot_object.game_data.upgrades[upgrade.value].research_ability.exact_id,
+            research_ability.exact_id,
             queue=queue,
             subtract_cost=True,
             can_afford_check=can_afford_check,
@@ -1360,9 +1374,8 @@ class Unit(HasPosition2D):
         creation_ability = self._bot_object.game_data.units[unit.value].creation_ability
         if creation_ability is None:
             return False
-        normal_creation_ability = creation_ability.id
         return self(
-            warpgate_abilities[normal_creation_ability],
+            warpgate_abilities[creation_ability.id],
             target=position,
             subtract_cost=True,
             subtract_supply=True,

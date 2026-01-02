@@ -36,8 +36,8 @@ class Client(Protocol):
         # How many frames will be waited between iterations before the next one is called
         self.game_step: int = 4
         self.save_replay_path: str | None = save_replay_path
-        self._player_id = None
-        self._game_result = None
+        self._player_id: int = None
+        self._game_result: dict[int, Result] = None
         # Store a hash value of all the debug requests to prevent sending the same ones again if they haven't changed last frame
         self._debug_hash_tuple_last_iteration: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._debug_draw_last_frame = False

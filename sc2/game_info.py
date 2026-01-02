@@ -30,7 +30,7 @@ class Ramp:
         return 0.5
 
     @cached_property
-    def _height_map(self):
+    def _height_map(self) -> PixelMap:
         return self.game_info.terrain_height
 
     @cached_property
@@ -145,6 +145,7 @@ class Ramp:
         """Test if a barracks can fit an addon at natural ramp"""
         # https://i.imgur.com/4b2cXHZ.png
         if len(self.upper2_for_ramp_wall) == 2:
+            # pyrefly: ignore
             return self.barracks_in_middle.x + 1 > max(self.corner_depots, key=lambda depot: depot.x).x
 
         raise Exception("Not implemented. Trying to access a ramp that has a wrong amount of upper points.")
@@ -172,6 +173,7 @@ class Ramp:
             raise Exception("Not implemented. Trying to access a ramp that has a wrong amount of upper points.")
         middle = self.depot_in_middle
         # direction up the ramp
+        # pyrefly: ignore
         direction = self.barracks_in_middle.negative_offset(middle)
 
         return middle + 6 * direction
@@ -187,12 +189,14 @@ class Ramp:
         if len(self.upper2_for_ramp_wall) == 2:
             middle = self.depot_in_middle
             # direction up the ramp
+            # pyrefly: ignore
             direction = self.barracks_in_middle.negative_offset(middle)
             # sort depots based on distance to start to get wallin orientation
             sorted_depots = sorted(
                 self.corner_depots, key=lambda depot: depot.distance_to(self.game_info.player_start_location)
             )
             wall1: Point2 = sorted_depots[1].offset(direction)
+            # pyrefly: ignore
             wall2 = middle + direction + (middle - wall1) / 1.5
             return frozenset([wall1, wall2])
 
@@ -210,6 +214,7 @@ class Ramp:
             raise Exception("Not implemented. Trying to access a ramp that has a wrong amount of upper points.")
         middle = self.depot_in_middle
         # direction up the ramp
+        # pyrefly: ignore
         direction = self.barracks_in_middle.negative_offset(middle)
         # sort depots based on distance to start to get wallin orientation
         sorted_depots = sorted(self.corner_depots, key=lambda x: x.distance_to(self.game_info.player_start_location))
@@ -233,9 +238,9 @@ class GameInfo:
         self.placement_grid: PixelMap = PixelMap(self._proto.start_raw.placement_grid, in_bits=True)
         self.playable_area = Rect.from_proto(self._proto.start_raw.playable_area)
         self.map_center = self.playable_area.center
-
+        # pyrefly: ignore
         self.map_ramps: list[Ramp] = None  # Filled later by BotAI._prepare_first_step
-
+        # pyrefly: ignore
         self.vision_blockers: frozenset[Point2] = None  # Filled later by BotAI._prepare_first_step
         self.player_races: dict[int, int] = {
             p.player_id: p.race_actual or p.race_requested for p in self._proto.player_info
@@ -243,7 +248,7 @@ class GameInfo:
         self.start_locations: list[Point2] = [
             Point2.from_proto(sl).round(decimals=1) for sl in self._proto.start_raw.start_locations
         ]
-
+        # pyrefly: ignore
         self.player_start_location: Point2 = None  # Filled later by BotAI._prepare_first_step
 
     def _find_ramps_and_vision_blockers(self) -> tuple[list[Ramp], frozenset[Point2]]:
@@ -269,10 +274,10 @@ class GameInfo:
         # divide points into ramp points and vision blockers
         ramp_points = [point for point in points if not equal_height_around(point)]
         vision_blockers = frozenset(point for point in points if equal_height_around(point))
-        ramps = [Ramp(group, self) for group in self._find_groups(ramp_points)]
+        ramps = [Ramp(frozenset(group), self) for group in self._find_groups(ramp_points)]
         return ramps, vision_blockers
 
-    def _find_groups(self, points: frozenset[Point2], minimum_points_per_group: int = 8) -> Iterable[frozenset[Point2]]:
+    def _find_groups(self, points: Iterable[Point2], minimum_points_per_group: int = 8) -> Iterable[frozenset[Point2]]:
         """
         From a set of points, this function will try to group points together by
         painting clusters of points in a rectangular map using flood fill algorithm.
@@ -286,6 +291,7 @@ class GameInfo:
         picture: list[list[int]] = [[-2 for _ in range(map_width)] for _ in range(map_height)]
 
         def paint(pt: Point2) -> None:
+            # pyrefly: ignore
             picture[pt.y][pt.x] = current_color
 
         nearby: list[tuple[int, int]] = [(a, b) for a in [-1, 0, 1] for b in [-1, 0, 1] if a != 0 or b != 0]
@@ -309,12 +315,12 @@ class GameInfo:
                     # Do we ever reach out of map bounds?
                     if not (0 <= px < map_width and 0 <= py < map_height):
                         continue
+                    # pyrefly: ignore
                     if picture[py][px] != NOT_COLORED_YET:
                         continue
                     point: Point2 = Point2((px, py))
                     remaining.discard(point)
                     paint(point)
-                    queue.append(point)
                     current_group.add(point)
             if len(current_group) >= minimum_points_per_group:
                 yield frozenset(current_group)

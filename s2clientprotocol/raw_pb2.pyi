@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Sequence
 from enum import Enum
 
 from google.protobuf.message import Message
@@ -11,7 +11,7 @@ class StartRaw(Message):
     terrain_height: ImageData
     placement_grid: ImageData
     playable_area: RectangleI
-    start_locations: Iterable[Point2D]
+    start_locations: Sequence[Point2D]
     def __init__(
         self,
         map_size: Size2DI = ...,
@@ -19,24 +19,24 @@ class StartRaw(Message):
         terrain_height: ImageData = ...,
         placement_grid: ImageData = ...,
         playable_area: RectangleI = ...,
-        start_locations: Iterable[Point2D] = ...,
+        start_locations: Sequence[Point2D] = ...,
     ) -> None: ...
 
 class ObservationRaw(Message):
     player: PlayerRaw
-    units: Iterable[Unit]
+    units: Sequence[Unit]
     map_state: MapState
     event: Event
-    effects: Iterable[Effect]
-    radar: Iterable[RadarRing]
+    effects: Sequence[Effect]
+    radar: Sequence[RadarRing]
     def __init__(
         self,
         player: PlayerRaw = ...,
-        units: Iterable[Unit] = ...,
+        units: Sequence[Unit] = ...,
         map_state: MapState = ...,
         event: Event = ...,
-        effects: Iterable[Effect] = ...,
-        radar: Iterable[RadarRing] = ...,
+        effects: Sequence[Effect] = ...,
+        radar: Sequence[RadarRing] = ...,
     ) -> None: ...
 
 class RadarRing(Message):
@@ -51,14 +51,14 @@ class PowerSource(Message):
     def __init__(self, pos: Point = ..., radius: float = ..., tag: int = ...) -> None: ...
 
 class PlayerRaw(Message):
-    power_sources: Iterable[PowerSource]
+    power_sources: Sequence[PowerSource]
     camera: Point
-    upgrade_ids: Iterable[int]
+    upgrade_ids: Sequence[int]
     def __init__(
         self,
-        power_sources: Iterable[PowerSource] = ...,
+        power_sources: Sequence[PowerSource] = ...,
         camera: Point = ...,
-        upgrade_ids: Iterable[int] = ...,
+        upgrade_ids: Sequence[int] = ...,
     ) -> None: ...
 
 class UnitOrder(Message):
@@ -130,7 +130,7 @@ class Unit(Message):
     radius: float
     build_progress: float
     cloak: int
-    buff_ids: Iterable[int]
+    buff_ids: Sequence[int]
     detect_range: float
     radar_range: float
     is_selected: bool
@@ -152,9 +152,9 @@ class Unit(Message):
     is_flying: bool
     is_burrowed: bool
     is_hallucination: bool
-    orders: Iterable[UnitOrder]
+    orders: Sequence[UnitOrder]
     add_on_tag: int
-    passengers: Iterable[PassengerUnit]
+    passengers: Sequence[PassengerUnit]
     cargo_space_taken: int
     cargo_space_max: int
     assigned_harvesters: int
@@ -163,7 +163,7 @@ class Unit(Message):
     engaged_target_tag: int
     buff_duration_remain: int
     buff_duration_max: int
-    rally_targets: Iterable[RallyTarget]
+    rally_targets: Sequence[RallyTarget]
     def __init__(
         self,
         display_type: int = ...,
@@ -176,7 +176,7 @@ class Unit(Message):
         radius: float = ...,
         build_progress: float = ...,
         cloak: int = ...,
-        buff_ids: Iterable[int] = ...,
+        buff_ids: Sequence[int] = ...,
         detect_range: float = ...,
         radar_range: float = ...,
         is_selected: bool = ...,
@@ -198,9 +198,9 @@ class Unit(Message):
         is_flying: bool = ...,
         is_burrowed: bool = ...,
         is_hallucination: bool = ...,
-        orders: Iterable[UnitOrder] = ...,
+        orders: Sequence[UnitOrder] = ...,
         add_on_tag: int = ...,
-        passengers: Iterable[PassengerUnit] = ...,
+        passengers: Sequence[PassengerUnit] = ...,
         cargo_space_taken: int = ...,
         cargo_space_max: int = ...,
         assigned_harvesters: int = ...,
@@ -209,7 +209,7 @@ class Unit(Message):
         engaged_target_tag: int = ...,
         buff_duration_remain: int = ...,
         buff_duration_max: int = ...,
-        rally_targets: Iterable[RallyTarget] = ...,
+        rally_targets: Sequence[RallyTarget] = ...,
     ) -> None: ...
 
 class MapState(Message):
@@ -218,19 +218,19 @@ class MapState(Message):
     def __init__(self, visibility: ImageData = ..., creep: ImageData = ...) -> None: ...
 
 class Event(Message):
-    dead_units: Iterable[int]
-    def __init__(self, dead_units: Iterable[int] = ...) -> None: ...
+    dead_units: Sequence[int]
+    def __init__(self, dead_units: Sequence[int] = ...) -> None: ...
 
 class Effect(Message):
     effect_id: int
-    pos: Iterable[Point2D]
+    pos: Sequence[Point2D]
     alliance: int
     owner: int
     radius: float
     def __init__(
         self,
         effect_id: int = ...,
-        pos: Iterable[Point2D] = ...,
+        pos: Sequence[Point2D] = ...,
         alliance: int = ...,
         owner: int = ...,
         radius: float = ...,
@@ -251,14 +251,14 @@ class ActionRawUnitCommand(Message):
     ability_id: int
     target_world_space_pos: Point2D
     target_unit_tag: int
-    unit_tags: Iterable[int]
+    unit_tags: Sequence[int]
     queue_command: bool
     def __init__(
         self,
         ability_id: int = ...,
         target_world_space_pos: Point2D = ...,
         target_unit_tag: int = ...,
-        unit_tags: Iterable[int] = ...,
+        unit_tags: Sequence[int] = ...,
         queue_command: bool = ...,
     ) -> None: ...
 
@@ -268,5 +268,5 @@ class ActionRawCameraMove(Message):
 
 class ActionRawToggleAutocast(Message):
     ability_id: int
-    unit_tags: Iterable[int]
-    def __init__(self, ability_id: int = ..., unit_tags: Iterable[int] = ...) -> None: ...
+    unit_tags: Sequence[int]
+    def __init__(self, ability_id: int = ..., unit_tags: Sequence[int] = ...) -> None: ...

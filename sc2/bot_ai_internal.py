@@ -103,7 +103,7 @@ class BotAIInternal(ABC):
         self.actions: list[UnitCommand] = []
         self.blips: set[Blip] = set()
 
-        self.race: Race | None = None
+        self.race: Race = None
         self.enemy_race: Race | None = None
         self._generated_frame = -100
         self._units_created: Counter = Counter()

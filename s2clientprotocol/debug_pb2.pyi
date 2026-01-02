@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Sequence
 from enum import Enum
 
 from google.protobuf.message import Message
@@ -27,16 +27,16 @@ class DebugCommand(Message):
     ) -> None: ...
 
 class DebugDraw(Message):
-    text: Iterable[DebugText]
-    lines: Iterable[DebugLine]
-    boxes: Iterable[DebugBox]
-    spheres: Iterable[DebugSphere]
+    text: Sequence[DebugText]
+    lines: Sequence[DebugLine]
+    boxes: Sequence[DebugBox]
+    spheres: Sequence[DebugSphere]
     def __init__(
         self,
-        text: Iterable[DebugText] = ...,
-        lines: Iterable[DebugLine] = ...,
-        boxes: Iterable[DebugBox] = ...,
-        spheres: Iterable[DebugSphere] = ...,
+        text: Sequence[DebugText] = ...,
+        lines: Sequence[DebugLine] = ...,
+        boxes: Sequence[DebugBox] = ...,
+        spheres: Sequence[DebugSphere] = ...,
     ) -> None: ...
 
 class Line(Message):
@@ -110,8 +110,8 @@ class DebugCreateUnit(Message):
     ) -> None: ...
 
 class DebugKillUnit(Message):
-    tag: Iterable[int]
-    def __init__(self, tag: Iterable[int] = ...) -> None: ...
+    tag: Sequence[int]
+    def __init__(self, tag: Sequence[int] = ...) -> None: ...
 
 class Test(Enum):
     hang: int

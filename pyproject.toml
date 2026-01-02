@@ -98,9 +98,18 @@ project_includes = [
     # "examples",
     # "test"
 ]
+project-excludes = [
+    # Disable for those files and folders
+    "sc2/data.py",
+    # TODO Temp disable for those files and folders
+    "sc2/client.py",
+    "sc2/bot_ai_internal.py",
+    "sc2/bot_ai.py",
+]
 
 [tool.pyrefly.errors]
 bad-override = false
+inconsistent-overload = false
 
 [tool.ruff]
 target-version = 'py310'

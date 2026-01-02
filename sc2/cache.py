@@ -32,6 +32,7 @@ class property_cache_once_per_frame(property):  # noqa: N801
     def __init__(self, func: Callable[[BotAI], T], name: str | None = None) -> None:
         self.__name__ = name or func.__name__
         self.__frame__ = f"__frame__{self.__name__}"
+        # pyrefly: ignore
         self.func = func
 
     def __set__(self, obj: BotAI, value: T) -> None:

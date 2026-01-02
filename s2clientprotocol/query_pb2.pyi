@@ -1,31 +1,31 @@
-from collections.abc import Iterable
+from collections.abc import Sequence
 
 from google.protobuf.message import Message
 
 from .common_pb2 import AvailableAbility, Point2D
 
 class RequestQuery(Message):
-    pathing: Iterable[RequestQueryPathing]
-    abilities: Iterable[RequestQueryAvailableAbilities]
-    placements: Iterable[RequestQueryBuildingPlacement]
+    pathing: Sequence[RequestQueryPathing]
+    abilities: Sequence[RequestQueryAvailableAbilities]
+    placements: Sequence[RequestQueryBuildingPlacement]
     ignore_resource_requirements: bool
     def __init__(
         self,
-        pathing: Iterable[RequestQueryPathing] = ...,
-        abilities: Iterable[RequestQueryAvailableAbilities] = ...,
-        placements: Iterable[RequestQueryBuildingPlacement] = ...,
+        pathing: Sequence[RequestQueryPathing] = ...,
+        abilities: Sequence[RequestQueryAvailableAbilities] = ...,
+        placements: Sequence[RequestQueryBuildingPlacement] = ...,
         ignore_resource_requirements: bool = ...,
     ) -> None: ...
 
 class ResponseQuery(Message):
-    pathing: Iterable[ResponseQueryPathing]
-    abilities: Iterable[ResponseQueryAvailableAbilities]
-    placements: Iterable[ResponseQueryBuildingPlacement]
+    pathing: Sequence[ResponseQueryPathing]
+    abilities: Sequence[ResponseQueryAvailableAbilities]
+    placements: Sequence[ResponseQueryBuildingPlacement]
     def __init__(
         self,
-        pathing: Iterable[ResponseQueryPathing] = ...,
-        abilities: Iterable[ResponseQueryAvailableAbilities] = ...,
-        placements: Iterable[ResponseQueryBuildingPlacement] = ...,
+        pathing: Sequence[ResponseQueryPathing] = ...,
+        abilities: Sequence[ResponseQueryAvailableAbilities] = ...,
+        placements: Sequence[ResponseQueryBuildingPlacement] = ...,
     ) -> None: ...
 
 class RequestQueryPathing(Message):
@@ -48,12 +48,12 @@ class RequestQueryAvailableAbilities(Message):
     def __init__(self, unit_tag: int = ...) -> None: ...
 
 class ResponseQueryAvailableAbilities(Message):
-    abilities: Iterable[AvailableAbility]
+    abilities: Sequence[AvailableAbility]
     unit_tag: int
     unit_type_id: int
     def __init__(
         self,
-        abilities: Iterable[AvailableAbility] = ...,
+        abilities: Sequence[AvailableAbility] = ...,
         unit_tag: int = ...,
         unit_type_id: int = ...,
     ) -> None: ...
