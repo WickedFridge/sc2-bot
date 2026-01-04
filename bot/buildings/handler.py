@@ -2,6 +2,7 @@ import math
 from typing import List, Set
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
@@ -541,6 +542,16 @@ class BuildingsHandler:
         )
         for bunker in bunkers_to_salvage:
             bunker(AbilityId.SALVAGEEFFECT_SALVAGE)
+    
+    def reserve_bunkers(self):
+        buildings_layer: BuildingLayer = self.bot.map.influence_maps.buildings
+        for expansion in self.bot.expansions:
+            bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
+            if (bunkers.closer_than(12, expansion.position).amount >= 1):
+                continue
+            bunker_position: Point2 = expansion.bunker_position
+            if (bunker_position not in buildings_layer.reservations):
+                buildings_layer.reserve_bunker(bunker_position)
     
     async def find_land_position(self, building: Unit):
         possible_land_positions_offset = sorted(

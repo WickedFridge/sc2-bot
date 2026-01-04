@@ -39,14 +39,6 @@ class Bunker(Building):
             )
         )
     
-    @property
-    def wall_position(self) -> Point2:
-        main_slot: Point2 = self.bot.expansions.main.position
-        # ramp_middle: Point2 = center([self.bot.main_base_ramp.bottom_center, self.bot.main_base_ramp.top_center])
-        # prefered_position: Point2 = center([ramp_middle, self.bot.main_base_ramp.top_center])
-        prefered_position: Point2 = self.bot.main_base_ramp.top_center
-        return dfs_in_pathing(self.bot, prefered_position, self.unitId, main_slot, radius=1)
-    
     @override
     @property
     def custom_conditions(self) -> bool:    
@@ -86,13 +78,4 @@ class Bunker(Building):
     @property
     def position(self) -> Point2:
         expansion_not_defended: Expansion = self.expansions_without_defense.first
-        # return wall if we're talking about the main
-        if (expansion_not_defended.position == self.bot.expansions.main.position):
-            return self.wall_position
-        
-        bunker_position: Point2 = (
-            expansion_not_defended.bunker_ramp
-            if self.bot.matchup == Matchup.TvZ and expansion_not_defended.bunker_ramp is not None
-            else expansion_not_defended.bunker_forward_in_pathing
-        )
-        return bunker_position
+        return expansion_not_defended.bunker_position

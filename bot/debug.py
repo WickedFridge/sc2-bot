@@ -1,8 +1,5 @@
-import json
 import math
-import random
 from typing import List, Optional, Set
-from unittest import case
 
 import numpy as np
 from bot.army_composition.composition import Composition
@@ -15,8 +12,6 @@ from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE,
 from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
@@ -80,6 +75,15 @@ class Debug:
                 elif (UnitTypeId.MISSILETURRET in tile.reserved_for):
                     draw_color = ORANGE
                     text = 'MT'
+                elif (UnitTypeId.BARRACKSREACTOR in tile.reserved_for):
+                    draw_color = YELLOW
+                    text = 'Ad'
+                elif (UnitTypeId.BARRACKS in tile.reserved_for):
+                    draw_color = YELLOW
+                    text = 'Prd'
+                elif (UnitTypeId.BUNKER in tile.reserved_for):
+                    draw_color = ORANGE
+                    text = 'Bkr'
                 self.draw_text_on_world(point_position, text, draw_color, 10)
             self.draw_box_on_world(point_position, 0.45, draw_color)
 
@@ -340,17 +344,27 @@ class Debug:
                 passengers: Units = Units(unit.passengers, self.bot)
                 print("loaded units: ", passengers)
 
+    def tag(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'Tag: {unit.tag}', ORANGE)
+
+    def radius(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'radius: {unit.radius}', ORANGE)
+            self.draw_text_on_world(Point2((unit.position.x, unit.position.y - 1)), f'footprint: {unit.footprint_radius}', ORANGE)
+
+    def addon_position(self):
+        selected_units: Units = self.bot.structures.selected
+        for unit in selected_units:
+            position: Point2 = unit.add_on_position
+            self.draw_text_on_world(unit.position, f'Addon Pos: {position}', ORANGE)
 
     async def bunker_positions(self):
-        for expansion in self.bot.expansions:
-            bunker_forward_in_pathing: Optional[Point2] = expansion.bunker_forward_in_pathing
-            bunker_ramp: Optional[Point2] = expansion.bunker_ramp
-            if (expansion.is_defended or expansion.is_main):
-                continue
-            if (bunker_forward_in_pathing):
-                self.draw_grid_on_world(bunker_forward_in_pathing, 3, "forward in pathing")
-            if (bunker_ramp):
-                self.draw_grid_on_world(bunker_ramp, 3, "ramp")
+        for expansion in self.bot.expansions.not_defended:
+            bunker_position: Point2 = expansion.bunker_position
+            self.draw_grid_on_world(bunker_position, 3, "Bunker")
             
     async def wall_placement(self):
         self.draw_grid_on_world(self.bot.map.wall_placement[0], 2, "Depot")

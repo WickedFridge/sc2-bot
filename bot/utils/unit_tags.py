@@ -75,6 +75,7 @@ add_ons: List[UnitTypeId] = [
     UnitTypeId.STARPORTTECHLAB,
     UnitTypeId.REACTOR,
     UnitTypeId.TECHLAB,
+    UnitTypeId.TECHREACTOR,
 ]
 bio: List[UnitTypeId] = [
     UnitTypeId.REAPER,
@@ -149,4 +150,9 @@ production: List[UnitTypeId] = [
     UnitTypeId.BARRACKS,
     UnitTypeId.FACTORY,
     UnitTypeId.STARPORT,
+]
+production_flying: List[UnitTypeId] = [
+    UnitTypeId.BARRACKSFLYING,
+    UnitTypeId.FACTORYFLYING,
+    UnitTypeId.STARPORTFLYING,
 ]

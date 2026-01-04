@@ -9,7 +9,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from .....utils.unit_tags import add_ons, production
+from .....utils.unit_tags import add_ons, production, production_flying
 
 @dataclass(frozen=True)
 class BuildingTile:
@@ -19,6 +19,7 @@ class BuildingTile:
 ADDON_RADIUS = 1
 DEPOT_RADIUS = 1
 PRODUCTION_RADIUS = 1.5
+BUNKER_RADIUS = 1.5
 CC_RADIUS = 2.5
 
 class BuildingLayer:
@@ -51,12 +52,12 @@ class BuildingLayer:
                 self.block_area(origin, size)
 
         # Expansions
-        for expansion in self.bot.expansion_locations_list:
-            minerals: Units = self.bot.mineral_field.closer_than(10, expansion)
-            vespene_geysers: Units = self.bot.vespene_geyser.closer_than(10, expansion)
+        for expansion_position in self.bot.expansion_locations_list:
+            minerals: Units = self.bot.mineral_field.closer_than(10, expansion_position)
+            vespene_geysers: Units = self.bot.vespene_geyser.closer_than(10, expansion_position)
             # clear the building grid for the expansion
             for mineral in minerals + vespene_geysers:
-                selected_positions: List[Point2] = [expansion, mineral.position]
+                selected_positions: List[Point2] = [expansion_position, mineral.position]
                 # draw the pathing grid between the two selected units
                 
                 min_x, max_x = sorted([pos.x for pos in selected_positions])
@@ -74,7 +75,7 @@ class BuildingLayer:
                         self.reserve_tile(Point2((x, y)).rounded, set([UnitTypeId.MISSILETURRET]))
                         y += 1.0
                     x += 1.0
-            self.reserve_cc(expansion)
+            self.reserve_cc(expansion_position)
 
         # Main base wall
         for depot_position in self.bot.main_base_ramp.corner_depots:
@@ -95,6 +96,12 @@ class BuildingLayer:
                 continue
 
             tag: int = unit.tag
+
+            # addons - should block tiles around it for production buildings
+            if (unit.type_id in add_ons):
+                production_position: Point2 = unit.position - Point2((2.5, -0.5))
+                if (production_position.rounded not in self.reservations):
+                    self.reserve_production(production_position)
 
             # Flying building: should NOT block
             if (unit.is_flying):
@@ -150,6 +157,9 @@ class BuildingLayer:
         }:
             radius = CC_RADIUS
 
+        if unit.type_id in production_flying:
+            radius = PRODUCTION_RADIUS
+        
         if unit.type_id in add_ons:
             radius = ADDON_RADIUS
 
@@ -234,18 +244,33 @@ class BuildingLayer:
     def reserve_production(self, pos: Point2) -> None:
         size = PRODUCTION_RADIUS * 2
         origin = pos.rounded - Point2((1, 1))
-
+        addon_position = pos.rounded + Point2((2.5, -0.5))
         self.reserve_area(
             origin,
             size,
-            {UnitTypeId.BARRACKS, UnitTypeId.FACTORY, UnitTypeId.STARPORT},
+            set(production),
         )
+        self.reserve_area(
+            addon_position,
+            2 * ADDON_RADIUS,
+            set(add_ons),
+        )
+    
+    def reserve_bunker(self, pos: Point2) -> None:
+        size = BUNKER_RADIUS * 2
+        origin = pos.rounded - Point2((1, 1))
+        self.reserve_area(
+            origin,
+            size,
+            {UnitTypeId.BUNKER},
+        )
+
     
     def on_building_created(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)
         self.block_area(origin, size)
 
-        if (unit.type_id in production):
+        if (unit.type_id in production + production_flying):
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
 
@@ -253,35 +278,6 @@ class BuildingLayer:
         origin, size = self._get_footprint(unit)
         self.unblock_area(origin, size)
 
-        if (unit.type_id in production):
+        if (unit.type_id in production + production_flying):
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.unreserve_area(addon_origin, 2 * ADDON_RADIUS)
-
-    # def on_building_lifted(self, unit: Unit) -> None:
-    #     origin, size = self._get_footprint(unit)
-    #     self.unblock_area(origin, size)
-
-    #     if (unit.type_id in production):
-    #         addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
-    #         self.unreserve_area(addon_origin, 2 * ADDON_RADIUS)
-
-    # def on_building_landed(self, unit: Unit) -> None:
-    #     origin, size = self._get_footprint(unit)
-    #     self.block_area(origin, size)
-
-    #     if (unit.type_id in production):
-    #         addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
-    #         self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
-    
-    def reserve_expansion_cc(self, expansion_pos: Point2) -> None:
-        size = CC_RADIUS * 2
-        origin = expansion_pos.rounded - Point2((2, 2))
-        self.reserve_area(
-            origin,
-            size,
-            {
-                UnitTypeId.COMMANDCENTER,
-                UnitTypeId.ORBITALCOMMAND,
-                UnitTypeId.PLANETARYFORTRESS,
-            }
-        )
