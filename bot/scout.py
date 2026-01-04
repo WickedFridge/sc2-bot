@@ -48,9 +48,9 @@ class Scout:
             target: Point2
             if (len(unscouted_b2) > 0):
                 # tell our scout to walk to the closest unscouted tile
-                target: Point2 = closest_point(self.scout, unscouted_b2)
+                target: Point2 = closest_point(self.scout.position, unscouted_b2)
             else:
-                target: Point2 = closest_point(self.scout, unscouted_main)
+                target: Point2 = closest_point(self.scout.position, unscouted_main)
             self.scout.move(target)
             print(f'[{self.bot.time.__round__(1)}] Scouting, {len(unscouted_b2) + len(unscouted_main)} unscouted points left')
         else:

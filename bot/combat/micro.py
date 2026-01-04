@@ -245,7 +245,7 @@ class Micro(CachedClass):
             if self.bot.expansions.enemy_bases.amount >= 1
             else self.bot.expansions.enemy_main
         )
-        MARGIN: int = 5
+        MARGIN: int = 10
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
             drop_target = closest_enemy_base.mineral_line
 
@@ -260,7 +260,8 @@ class Micro(CachedClass):
 
         # otherwise just unload and survive
         await self.medivac_unload(medivac)
-        await self.medivac_safety_disengage(medivac)
+        if (medivac.health_percentage <= 0.75):
+            await self.medivac_safety_disengage(medivac)
     
     async def medivac_heal(self, medivac: Unit, local_army: Units):
         # heal damaged ally in local army

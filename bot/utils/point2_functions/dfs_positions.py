@@ -9,7 +9,8 @@ from sc2.position import Point2
 def valid_building_position(bot: BotAI, center: Point2, unit_type: UnitTypeId, radius: int, has_addon: bool) -> bool:
     points: list[Point2] = grid_offsets(radius, initial_position=center)
     if (has_addon):
-        points += points_to_build_addon(center)
+        if (not all(valid_position(bot, p, UnitTypeId.TECHREACTOR) for p in points_to_build_addon(center))):
+            return False
     return all(valid_position(bot, p, unit_type) for p in points)
 
 def valid_position(bot: BotAI, pos: Point2, unit_type: UnitTypeId) -> bool:
@@ -19,7 +20,6 @@ def valid_position(bot: BotAI, pos: Point2, unit_type: UnitTypeId) -> bool:
         pos.x >= 0 and pos.y >= 0
         and pos.x <= width - 1
         and pos.y <= height - 1
-        # and bot.in_placement_grid(pos)
         and map.influence_maps.buildings.can_build(pos, unit_type)
         and map.influence_maps.creep.creep_map[pos] == 0
     )
