@@ -45,7 +45,7 @@ class InfluenceMap:
     
     def _region(
         self, pos: Point2, radius: float, exact_dist = True
-    ) -> Optional[tuple[int, int, int, int, np.ndarray, np.ndarray, np.ndarray]]:
+    ) -> Optional[tuple[int, int, int, int, np.ndarray, np.ndarray]]:
         """
         Returns all geometry needed for reading or writing influence maps.
         use exact_dist = True to get exact distance instead of squared distance

@@ -14,15 +14,12 @@ def center(points: List[Point2]) -> Optional[Point2]:
         y += point.y
     return Point2((x / length, y / length))
 
-def closest_point(unit: Unit, points: List [Point2]) -> Point2:
-    closest_point: Point2 = points[0]
-    closest_distance: float = math.inf
+def closest_point(position: Point2, points: list[Point2]) -> Point2:
+    closest: Point2 = points[0]
     for point in points:
-        distance: float = unit.distance_to_squared(point)
-        if (distance < closest_distance):
-            closest_point = point
-            closest_distance = distance
-    return closest_point
+        if (point._distance_squared(position) < closest._distance_squared(position)):
+            closest = point
+    return closest
 
 def grid_offsets(radius: float, step: float = 1.0, initial_position: Point2 = Point2((0,0))) -> List[Point2]:
     count = int((2 * radius) / step) + 1

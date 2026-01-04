@@ -1,11 +1,10 @@
-import json
 import math
-import random
 from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
 from bot.macro.expansion import Expansion
+from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -13,8 +12,6 @@ from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE,
 from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
@@ -61,10 +58,34 @@ class Debug:
                 point_positions = grid_offsets(1, initial_position = pos.rounded_half)
             case 5:
                 point_positions = grid_offsets(2, initial_position = pos.rounded_half)
+            case 7:
+                point_positions = grid_offsets(3, initial_position = pos.rounded_half)
         for i, point_position in enumerate(point_positions):
-            draw_color = GREEN if (self.bot.map.in_building_grid(point_position)) else RED
-            self.draw_box_on_world(point_position, 0.5, draw_color)
-            self.draw_text_on_world(point_position, f'{i}', draw_color, 10)
+            tile: BuildingTile = self.bot.map.influence_maps.buildings.get_tile(point_position)
+            draw_color: tuple = RED if tile.blocked else GREEN
+            if (not tile.blocked and tile.reserved_for is not None):
+                text: str = ''
+                draw_color = YELLOW
+                if (UnitTypeId.COMMANDCENTER in tile.reserved_for):
+                    draw_color = BLUE
+                    text = 'CC'
+                elif (UnitTypeId.SUPPLYDEPOT in tile.reserved_for):
+                    draw_color = PURPLE
+                    text = 'Dpt'
+                elif (UnitTypeId.MISSILETURRET in tile.reserved_for):
+                    draw_color = ORANGE
+                    text = 'MT'
+                elif (UnitTypeId.BARRACKSREACTOR in tile.reserved_for):
+                    draw_color = YELLOW
+                    text = 'Ad'
+                elif (UnitTypeId.BARRACKS in tile.reserved_for):
+                    draw_color = YELLOW
+                    text = 'Prd'
+                elif (UnitTypeId.BUNKER in tile.reserved_for):
+                    draw_color = ORANGE
+                    text = 'Bkr'
+                self.draw_text_on_world(point_position, text, draw_color, 10)
+            self.draw_box_on_world(point_position, 0.45, draw_color)
 
 
     def draw_text_on_world(self, pos: Point2, text: str, draw_color: tuple = (255, 102, 255), font_size: int = 14) -> None:
@@ -156,30 +177,13 @@ class Debug:
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
         for unit in selected_units:
-            buildable: bool = self.bot.map.in_building_grid(unit.position)
-            color: tuple = GREEN if buildable else RED
+            tile: BuildingTile = self.bot.map.influence_maps.buildings.get_tile(unit.position)
+            color: tuple = RED if tile.blocked else GREEN
+            if (tile.reserved_for is not None):
+                color = ORANGE
+                self.draw_text_on_world(unit.position, tile.reserved_for, 0.5, color)
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
-        
-        if (selected_units.amount == 2):
-            # draw the pathing grid between the two selected units
-            
-            min_x, max_x = sorted([pos.x for pos in selected_positions])
-            min_y, max_y = sorted([pos.y for pos in selected_positions])
-
-            start_x = math.ceil(min_x) - 0.5
-            end_x = math.floor(max_x) + 0.5
-            start_y = math.ceil(min_y) - 0.5
-            end_y = math.floor(max_y) + 0.5
-
-            x = start_x
-            while (x <= end_x):
-                y = start_y
-                while (y <= end_y):
-                    color = GREEN if self.bot.map.in_building_grid(Point2((x, y))) else RED
-                    self.draw_box_on_world(Point2((x, y)), 0.5, color)
-                    y += 1.0
-                x += 1.0
             
         for unit in selected_units:
             order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
@@ -340,17 +344,27 @@ class Debug:
                 passengers: Units = Units(unit.passengers, self.bot)
                 print("loaded units: ", passengers)
 
+    def tag(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'Tag: {unit.tag}', ORANGE)
+
+    def radius(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'radius: {unit.radius}', ORANGE)
+            self.draw_text_on_world(Point2((unit.position.x, unit.position.y - 1)), f'footprint: {unit.footprint_radius}', ORANGE)
+
+    def addon_position(self):
+        selected_units: Units = self.bot.structures.selected
+        for unit in selected_units:
+            position: Point2 = unit.add_on_position
+            self.draw_text_on_world(unit.position, f'Addon Pos: {position}', ORANGE)
 
     async def bunker_positions(self):
-        for expansion in self.bot.expansions:
-            bunker_forward_in_pathing: Optional[Point2] = expansion.bunker_forward_in_pathing
-            bunker_ramp: Optional[Point2] = expansion.bunker_ramp
-            if (expansion.is_defended or expansion.is_main):
-                continue
-            if (bunker_forward_in_pathing):
-                self.draw_grid_on_world(bunker_forward_in_pathing, 3, "forward in pathing")
-            if (bunker_ramp):
-                self.draw_grid_on_world(bunker_ramp, 3, "ramp")
+        for expansion in self.bot.expansions.not_defended:
+            bunker_position: Point2 = expansion.bunker_position
+            self.draw_grid_on_world(bunker_position, 3, "Bunker")
             
     async def wall_placement(self):
         self.draw_grid_on_world(self.bot.map.wall_placement[0], 2, "Depot")
@@ -388,17 +402,10 @@ class Debug:
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
             return
-        position: Point2 = selected_units.center
-        radius: float = 10
+        position: Point2 = selected_units.center.rounded_half
+        radius: float = 7
         # Read a region of size radius=8 around the center
-        for x in range(int(position.x) - radius, int(position.x) + radius + 1):
-            for y in range(int(position.y) - radius, int(position.y) + radius + 1):
-                # Check if the point lies within the circle
-                if math.sqrt((x - position.x)**2 + (y - position.y)**2) <= radius:
-                    point = Point2((x, y))
-                    if (not self.bot.map.in_building_grid(point)):
-                        center: Point2 = Point2((point.x + 0.5, point.y + 0.5))
-                        self.draw_box_on_world(center, 0.5, RED)
+        self.draw_grid_on_world(position, radius)
         
 
     def parse_unit_type(self, name: str) -> UnitTypeId | None:

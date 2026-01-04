@@ -153,11 +153,11 @@ class Builder:
 
     
     async def build(self, unit_type: UnitTypeId, position: Point2, radius: float, has_addon: bool = False, force_position: bool = False):
-        theorical_location: Point2 = dfs_in_pathing(self.bot, position, self.bot._game_info.map_center, radius, has_addon)
+        theorical_location: Point2 = dfs_in_pathing(self.bot, position, unit_type, self.bot._game_info.map_center, radius, has_addon)
         location: Point2 = theorical_location
         if (not force_position):
             location: Point2 = await self.bot.find_placement(unit_type, near=theorical_location)
-            if (location is None or not self.bot.map.in_building_grid(location)):
+            if (location is None or not self.bot.map.influence_maps.buildings.can_build(location, unit_type)):
                 await self.bot.client.chat_send(f'Tag:Build_{unit_type.name}_incorrect', False)
         workers: Units = self.worker_builders
         if (workers.amount == 0 or location is None):

@@ -55,10 +55,10 @@ class Upgrade:
             return resources
         
         searching_cost: Cost = self.bot.calculate_cost(self.upgrade)
-        can_build: bool
+        enough_resources: bool
         resources_updated: Resources
-        can_build, resources_updated = resources.update(searching_cost)
-        if (can_build == False):
+        enough_resources, resources_updated = resources.update(searching_cost)
+        if (enough_resources == False):
             if (
                 self.block_gas_only
                 and resources_updated.vespene.short

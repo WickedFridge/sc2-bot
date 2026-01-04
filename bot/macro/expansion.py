@@ -1,11 +1,12 @@
 from collections import deque
 import math
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from bot.macro.map.map import MapData, get_map
 from bot.utils.army import Army
+from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
-from bot.utils.point2_functions.utils import center
+from bot.utils.point2_functions.utils import center, closest_point
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
@@ -268,9 +269,9 @@ class Expansion(CachedClass):
         
         # Calculate preferred direction away from CC toward opponent
         opponent_position: Point2 = self.bot.enemy_start_locations[0]
-        direction_vector = opponent_position - self.position
-        preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
-        return dfs_in_pathing(self.bot, start, preferred_direction)     
+        # direction_vector = opponent_position - self.position
+        # preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
+        return dfs_in_pathing(self.bot, start, UnitTypeId.BUNKER, opponent_position)
 
     @cached_property
     def bunker_forward(self) -> Point2:
@@ -280,6 +281,11 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def bunker_ramp(self) -> Optional[Point2]:
+        if (self.is_main == True):
+            # prefered_position: Point2 = self.bot.main_base_ramp.top_center
+            depot_walls: List[Point2] = list(self.bot.main_base_ramp.corner_depots)
+            closest_depot_wall: Point2 = closest_point(self.position, depot_walls)
+            return dfs_in_pathing(self.bot, closest_depot_wall, UnitTypeId.BUNKER, self.position, radius=1)
         closest_ramp_bottom: Point2 = find_closest_bottom_ramp(self.bot, self.position).bottom_center
         if (self.position.distance_to(closest_ramp_bottom) >= 15):
             return None
@@ -289,7 +295,19 @@ class Expansion(CachedClass):
             bunker_position = bunker_position.towards(enemy_spawn)
         direction_vector = self.position - closest_ramp_bottom
         preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
-        return dfs_in_pathing(self.bot, bunker_position.rounded_half, preferred_direction)
+        return dfs_in_pathing(self.bot, bunker_position.rounded_half, UnitTypeId.BUNKER, preferred_direction)
+    
+    @custom_cache_once_per_frame
+    def bunker_position(self) -> Point2:
+        if (self.is_main):
+            return self.bunker_ramp
+        matchup: Matchup = get_matchup(self.bot)
+        bunker_position: Point2 = (
+            self.bunker_ramp
+            if matchup == Matchup.TvZ and self.bunker_ramp is not None
+            else self.bunker_forward_in_pathing
+        )
+        return bunker_position
     
     @custom_cache_once_per_frame
     def defending_structure(self) -> Optional[Unit]:

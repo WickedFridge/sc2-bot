@@ -1,6 +1,6 @@
 from time import perf_counter
 from typing import Awaitable, Callable, List, override
-from bot.army_composition.army_composition_manager import get_composition_manager
+from bot.army_composition.army_composition_manager import ArmyCompositionManager, get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
 from bot.combat.orders_manager import OrdersManager
@@ -11,7 +11,7 @@ from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
 from bot.scouting.scouting import Scouting, get_scouting
-from bot.strategy.build_order.manager import get_build_order
+from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
 from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
 from bot.technology.search import Search
@@ -23,7 +23,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "8.9.1"
+VERSION: str = "9.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -84,12 +84,12 @@ class WickedBot(Superbot):
 
     @override
     @property
-    def composition_manager(self):
+    def composition_manager(self) -> ArmyCompositionManager:
         return get_composition_manager(self)
 
     @override
     @property
-    def build_order(self):
+    def build_order(self) -> BuildOrderManager:
         return get_build_order(self)
 
 
@@ -139,7 +139,6 @@ class WickedBot(Superbot):
         
         # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
-        await self.map.update()
         self.expansions.update_scout_status()
         self.map.influence_maps.update()
         
@@ -158,7 +157,7 @@ class WickedBot(Superbot):
         await self.strategy.update_situation()
         self.composition_manager.update_composition()
         
-        # Specific Worker Management
+        # Specific Worker Management & Strategy updates
         await self.macro.workers_response_to_threat()
         await self.strategy.cheese_response()
         await self.buildings.repair_buildings()
@@ -168,6 +167,7 @@ class WickedBot(Superbot):
         await self.builder.command_center.move_worker_expand()
 
         # Control buildings
+        self.buildings.reserve_bunkers()
         await self.buildings.scan()
         await self.buildings.drop_mules()
         await self.buildings.handle_supplies()
@@ -272,7 +272,7 @@ class WickedBot(Superbot):
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
-        # await self.debug.building_grid()
+        await self.debug.building_grid()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
@@ -285,7 +285,10 @@ class WickedBot(Superbot):
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
         # self.debug.danger_map()
-        self.debug.invisible_units()
+        # self.debug.invisible_units()
+        # self.debug.tag()
+        # self.debug.radius()
+        # self.debug.addon_position()
         # self.debug.range()
         # self.debug.creep_map()
         # self.debug.unit_type()
@@ -333,10 +336,10 @@ class WickedBot(Superbot):
         if (unit_tag in self.structures_memory.tags):
             print('structure destroyed - Removing it from grid')
             dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)
-            self.map.update_building_grid(dead_structure, enable=True)
+            self.map.influence_maps.buildings.on_building_destroyed(dead_structure)
 
     async def on_building_construction_started(self, unit):
-        self.map.update_building_grid(unit)
+        self.map.influence_maps.buildings.on_building_created(unit)
 
     async def on_end(self, result: Result):
         """
