@@ -59,17 +59,20 @@ class BuildOrderStep:
         if (isinstance(self.step_id, UpgradeId)):
             return self.bot.already_pending_upgrade(self.step_id) > 0
         
-        return self.building_amount(self.step_id)
+        return self.unit_amount(self.step_id)
     
-    def building_amount(self, building_id: UnitTypeId, include_pending: bool = True):
-        unit_ids: list[UnitTypeId] = [building_id]
+    def unit_amount(self, unit_id: UnitTypeId, include_pending: bool = True):
+        unit_ids: list[UnitTypeId] = [unit_id]
 
-        if (building_id in self.equivalences.keys()):
-            unit_ids.extend(self.equivalences[building_id])
+        if (unit_id in self.equivalences.keys()):
+            unit_ids.extend(self.equivalences[unit_id])
         
-        count: int = self.bot.structures(unit_ids).ready.amount
+        count: int = (
+            self.bot.structures(unit_ids).ready.amount
+            + self.bot.units(unit_ids).ready.amount
+        )
         if (include_pending):
-            count += self.bot.already_pending(building_id)
+            count += self.bot.already_pending(unit_id)
         
         return count
     
@@ -91,7 +94,7 @@ class BuildOrderStep:
         if (self.bot.supply_workers < self.workers):
             return False, f'(not enough workers)'
         for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = self.building_amount(unit_type, include_pending=not completed)
+            unit_count: int = self.unit_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
                 return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
         for upgrade in self.upgrades_required:
@@ -110,7 +113,7 @@ class BuildOrderStep:
         if (self.bot.supply_workers < self.workers):
             return False
         for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = self.building_amount(unit_type, include_pending=not completed)
+            unit_count: int = self.unit_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
                 return False
         for upgrade in self.upgrades_required:
