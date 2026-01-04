@@ -115,9 +115,9 @@ class BarracksAddon(Building):
         resources_updated: Resources = resources
         for barracks in self.barracks_without_addon:
             building_cost: Cost = self.bot.calculate_cost(self.unitId)
-            can_build, resources_updated = resources_updated.update(building_cost)
+            enough_resources, resources_updated = resources_updated.update(building_cost)
 
-            if (can_build == False):
+            if (enough_resources == False):
                 continue
             
             print(f'Reactor/Techlab count: {self.techlab_count}/{self.reactor_count}')

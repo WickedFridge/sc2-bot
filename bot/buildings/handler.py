@@ -407,7 +407,7 @@ class BuildingsHandler:
                 if (self.bot.expansions.taken.safe.amount == 0):
                     continue
                 safest_base: Expansion = self.bot.expansions.taken.safe.closest_to(townhall.position)
-                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, landing_spot, 2)
+                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, landing_spot, 2)
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
                     townhall(AbilityId.LAND_COMMANDCENTER, safe_spot)
                 else:
@@ -490,10 +490,10 @@ class BuildingsHandler:
         for flying_building in flying_buildings:
             match (flying_building.type_id):
                 case UnitTypeId.BARRACKSFLYING:
-                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.BARRACKS, self.bot.game_info.map_center, 1, True)
                     flying_building(AbilityId.LAND, land_position)    
                 case UnitTypeId.FACTORYFLYING:
-                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.FACTORY, self.bot.game_info.map_center, 1, True)
                     flying_building(AbilityId.LAND, land_position)
                     # if (
                     #     free_reactors.amount <= 1 and
@@ -514,7 +514,7 @@ class BuildingsHandler:
                             # print("Move Starport over Factory building Reactor")
                             flying_building.move(building_factory_reactors.closest_to(flying_building).add_on_land_position)
                         elif (starports.amount >= 2):
-                            land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
+                            land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.STARPORT, self.bot.game_info.map_center, 1, True)
                             flying_building(AbilityId.LAND, land_position)
                         else:
                             print("no free reactor")

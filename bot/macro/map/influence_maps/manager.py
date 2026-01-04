@@ -1,6 +1,7 @@
 import numpy as np
 from bot.macro.map.influence_maps.danger_map import DangerMap
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
 from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.macro.map.influence_maps.layers.detection_layer import DetectionLayer
 from bot.macro.map.influence_maps.layers.effect_layer import EffectLayer
@@ -16,6 +17,7 @@ class InfluenceMapManager:
     effects: EffectLayer
     creep: CreepLayer
     detection: DetectionLayer
+    buildings: BuildingLayer
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -29,6 +31,8 @@ class InfluenceMapManager:
         self.static.update_dynamic_block_grid()
         self.creep = CreepLayer(self.bot)
         self.detection = DetectionLayer(self.bot)
+        self.buildings = BuildingLayer(self.bot)
+        self.buildings.initialize()
         
         ground_map: np.ndarray = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
         # self.danger = DangerMap(self.bot, self.creep, map=ground_map)
@@ -39,6 +43,7 @@ class InfluenceMapManager:
         self.static.update_dynamic_block_grid()
         self.creep.update()
         self.detection.update()
+        self.buildings.update()
 
         # 2) unit-based danger
         self.danger.update(include_structures=True)

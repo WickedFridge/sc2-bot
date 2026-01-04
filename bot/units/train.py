@@ -79,10 +79,10 @@ class Train:
         for building in self.building_group:
             if (not self.conditions):
                 return resources_updated
-            can_build: bool
+            enough_resources: bool
             resources_updated: Resources
-            can_build, resources_updated = resources.update(self.training_cost)
-            if (can_build == False):
+            enough_resources, resources_updated = resources.update(self.training_cost)
+            if (enough_resources == False):
                 return resources_updated            
             self.log(self.i)
             building.train(self.unitId)

@@ -139,7 +139,7 @@ class WickedBot(Superbot):
         
         # Update Building grid and last known enemy positions
         self.structures_memory = self.structures.copy()
-        await self.map.update()
+        # await self.map.update()
         self.expansions.update_scout_status()
         self.map.influence_maps.update()
         
@@ -158,7 +158,7 @@ class WickedBot(Superbot):
         await self.strategy.update_situation()
         self.composition_manager.update_composition()
         
-        # Specific Worker Management
+        # Specific Worker Management & Strategy updates
         await self.macro.workers_response_to_threat()
         await self.strategy.cheese_response()
         await self.buildings.repair_buildings()
@@ -272,7 +272,7 @@ class WickedBot(Superbot):
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
-        # await self.debug.building_grid()
+        await self.debug.building_grid()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
@@ -280,7 +280,7 @@ class WickedBot(Superbot):
         # await self.debug.selection()
         # await self.debug.invisible_units()
         # await self.debug.loaded_stuff(iteration)
-        # await self.debug.bunker_positions()
+        await self.debug.bunker_positions()
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
@@ -333,10 +333,12 @@ class WickedBot(Superbot):
         if (unit_tag in self.structures_memory.tags):
             print('structure destroyed - Removing it from grid')
             dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)
-            self.map.update_building_grid(dead_structure, enable=True)
+            self.map.influence_maps.buildings.on_building_destroyed(dead_structure)
+            # self.map.update_building_grid(dead_structure, enable=True)
 
     async def on_building_construction_started(self, unit):
-        self.map.update_building_grid(unit)
+        self.map.influence_maps.buildings.on_building_created(unit)
+        # self.map.update_building_grid(unit)
 
     async def on_end(self, result: Result):
         """
