@@ -51,10 +51,10 @@ class FactoryAddon(Building):
         resources_updated: Resources = resources
         for factory in self.factory_without_addon:
             building_cost: Cost = self.bot.calculate_cost(self.unitId)
-            can_build: bool
+            enough_resources: bool
             resources_updated: Resources
-            can_build, resources_updated = resources.update(building_cost)
-            if (can_build == False):
+            enough_resources, resources_updated = resources.update(building_cost)
+            if (enough_resources == False):
                 return resources_updated
 
             factory.build(self.unitId)

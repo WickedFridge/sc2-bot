@@ -22,6 +22,7 @@ class EffectLayer:
     Handles temporary / persistent map effects (psistorms, ravager bile, etc).
     Each call to update() should reset and reapply active effects.
     """
+    bot: BotAI
     ground: InfluenceMap
     air: InfluenceMap
     effect_data: dict[str|EffectId, EffectStaticData] = {

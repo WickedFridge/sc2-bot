@@ -75,10 +75,10 @@ class Building:
             return resources
         
         building_cost: Cost = self.bot.calculate_cost(self.unitId)
-        can_build: bool
+        enough_resources: bool
         resources_updated: Resources
-        can_build, resources_updated = resources.update(building_cost)
-        if (can_build == False):
+        enough_resources, resources_updated = resources.update(building_cost)
+        if (enough_resources == False):
             return resources_updated
         
         pos: Point2 | None = self.position
@@ -86,7 +86,7 @@ class Building:
             print("Error, no valid position for {self.name}")
             return resources_updated
         
-        position: Point2 = dfs_in_pathing(self.bot, pos, self.bot.game_info.map_center, self.radius, self.has_addon)
+        position: Point2 = dfs_in_pathing(self.bot, pos, self.unitId, self.bot.game_info.map_center, self.radius, self.has_addon)
         await self.builder.build(self.unitId, position, self.radius, self.has_addon, self.force_position)
         self.on_complete()
         return resources_updated
