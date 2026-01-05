@@ -1,7 +1,7 @@
 import math
 from operator import pos
+from typing import List
 from attr import dataclass
-from rpds import List
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
