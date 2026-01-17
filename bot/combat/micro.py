@@ -626,7 +626,6 @@ class Micro(CachedClass):
             or bio_unit.has_buff(BuffId.STIMPACK)
             or bio_unit.has_buff(BuffId.STIMPACKMARAUDER)
             or bio_unit.type_id == UnitTypeId.GHOST
-            or self.bot.map.influence_maps.danger.ground[bio_unit.position] <= DANGER_THRESHOLD
         ):
             return
         
@@ -635,6 +634,7 @@ class Micro(CachedClass):
         MARAUDER_HEALTH_SAFETY: int = 10
         MEDIVAC_ENERGY_THRESHOLD: int = 25
         MEDIVAC_HEALTH_THRESHOLD: int = 40
+        RANGE_BUFFER: int = 2
         health_safety: int = MARAUDER_HEALTH_SAFETY if bio_unit.type_id == UnitTypeId.MARAUDER else 0
         
         local_usable_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
@@ -644,13 +644,25 @@ class Micro(CachedClass):
                 and medivac.health >= MEDIVAC_HEALTH_THRESHOLD
             )
         )
-    
+
+        targets_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
+            lambda target: bio_unit.distance_to(target) <= bio_unit.radius + target.radius + RANGE_BUFFER + (
+                bio_unit.air_range if target.is_flying else bio_unit.ground_range
+            )
+        )
         
         if (
-            bio_unit.health >= WITHOUT_MEDIVAC_HEALTH_THRESHOLD + health_safety
-            or (
-                local_usable_medivacs.amount >= 1
-                and bio_unit.health >= WITH_MEDIVAC_HEALTH_THRESHOLD + health_safety
+            (
+                bio_unit.health >= WITHOUT_MEDIVAC_HEALTH_THRESHOLD + health_safety
+                or (
+                    local_usable_medivacs.amount >= 1
+                    and bio_unit.health >= WITH_MEDIVAC_HEALTH_THRESHOLD + health_safety
+                )
+            )
+            and (
+                # only stimming if there's enough danger or a target in range
+                targets_in_range.amount >= 1
+                or self.bot.map.influence_maps.danger.ground[bio_unit.position] >= DANGER_THRESHOLD
             )
         ):
             bio_unit(AbilityId.EFFECT_STIM)

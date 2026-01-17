@@ -301,13 +301,14 @@ class Expansion(CachedClass):
     def bunker_position(self) -> Point2:
         if (self.is_main):
             return self.bunker_ramp
-        matchup: Matchup = get_matchup(self.bot)
-        bunker_position: Point2 = (
-            self.bunker_ramp
-            if matchup == Matchup.TvZ and self.bunker_ramp is not None
-            else self.bunker_forward_in_pathing
-        )
-        return bunker_position
+        return self.bunker_forward_in_pathing
+        # matchup: Matchup = get_matchup(self.bot)
+        # bunker_position: Point2 = (
+        #     self.bunker_ramp
+        #     if matchup == Matchup.TvZ and self.bunker_ramp is not None
+        #     else self.bunker_forward_in_pathing
+        # )
+        # return bunker_position
     
     @custom_cache_once_per_frame
     def defending_structure(self) -> Optional[Unit]:

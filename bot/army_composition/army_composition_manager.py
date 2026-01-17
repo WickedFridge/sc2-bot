@@ -95,7 +95,11 @@ class ArmyCompositionManager(CachedClass):
             Matchup.TvP: 0.3,
             Matchup.TvR: 0.2,
         }
+        
         if (self.wicked.scouting.known_enemy_army.supply < 10):
+            # default is 0 if we can't make medivacs yet
+            if (UnitTypeId.MEDIVAC not in self.available_units):
+                return 0
             return default_marauder_ratio[self.wicked.matchup]
         return max(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
     
