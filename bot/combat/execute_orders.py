@@ -15,6 +15,7 @@ from sc2.units import Units
 from ..utils.unit_tags import building_priorities, creep
 
 PICKUP_RANGE: int = 3
+WEAPON_READY_THRESHOLD: float = 6.0
 
 class Execute(CachedClass):
     bot: Superbot
@@ -319,7 +320,7 @@ class Execute(CachedClass):
 
                 # if we are on cooldown, find the best target and shoot at it
                 closest_enemy_bunker_in_progress: Unit = enemy_bunkers_in_progress.closest_to(unit)
-                if (unit.weapon_cooldown == 0):
+                if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
                     target: Unit = self.find_bunker_rush_target(
                         unit,
                         closest_scv_building,
@@ -434,7 +435,7 @@ class Execute(CachedClass):
                 )
             ):
                 self.micro.stim_bio(unit, force=True)
-            if (unit.weapon_cooldown == 0):
+            if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
                 in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
                 if (in_range_enemy_buildings.amount >= 1):
                     target = in_range_enemy_buildings.first
@@ -466,7 +467,7 @@ class Execute(CachedClass):
                 await self.micro.medivac_fight(unit, army.units)
                 continue
             enemy_units_in_range = self.micro.get_enemy_units_in_range(unit)
-            if (unit.weapon_cooldown == 0 and enemy_units_in_range.amount >= 1):
+            if (unit.weapon_cooldown == WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
                 unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
             elif (unit.distance_to(army.leader) >= 3):
                 unit.move(army.leader.position)

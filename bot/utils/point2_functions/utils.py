@@ -1,5 +1,6 @@
 import math
 from typing import List, Optional
+from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from sc2.position import Point2
 from sc2.unit import Unit
 
@@ -36,3 +37,46 @@ def points_to_build_addon(building_position: Point2) -> List[Point2]:
         (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
     ]
     return addon_points
+
+def sample_tile_path(
+    start: Point2,
+    end: Point2,
+) -> list[Point2]:
+    x0, y0 = int(start.x), int(start.y)
+    x1, y1 = int(end.x), int(end.y)
+
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+
+    err = dx - dy
+
+    x, y = x0, y0
+    path: list[Point2] = []
+
+    while True:
+        path.append(Point2((x, y)))
+        if x == x1 and y == y1:
+            break
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            x += sx
+        if e2 < dx:
+            err += dx
+            y += sy
+
+    return path
+
+def evaluate_path_debug(
+    influence: InfluenceMap,
+    path: list[Point2],
+) -> tuple[float, float]:
+    dangers = [influence[p] for p in path]
+
+    max_danger = max(dangers)
+    avg_danger = sum(dangers) / len(dangers)
+
+    return max_danger, avg_danger

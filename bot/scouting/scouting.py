@@ -7,7 +7,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import burrowed_units, cloaked_units, creep
+from bot.utils.unit_tags import burrowed_units, cloaked_units, creep, tower_types
 
 scouting: Scouting | None = None
 
@@ -34,7 +34,7 @@ class Scouting:
         return enemy_composition
     
     def detect_enemy_army(self):
-        enemy_units: Units = self.bot.enemy_units
+        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.type_id not in tower_types)
         self.known_enemy_army.detect_units(enemy_units)
         for enemy in enemy_units:
             if (enemy.type_id not in self.known_enemy_composition):

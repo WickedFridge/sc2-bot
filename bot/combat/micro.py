@@ -21,6 +21,7 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 from s2clientprotocol import ui_pb2 as ui_pb
 
 MAXIMUM_SNIPE_COUNT: int = 2
+WEAPON_READY_THRESHOLD: float = 6.0
 
 class Micro(CachedClass):
     bot: Superbot
@@ -379,7 +380,7 @@ class Micro(CachedClass):
                 reaper.move(safest_spot)
         
         # --- CASE 2: Short Cooldown (stutter step micro) ---
-        elif (reaper.weapon_cooldown <= 5):
+        elif (reaper.weapon_cooldown <= WEAPON_READY_THRESHOLD):
             best_target: Unit = self.enemy_all.closest_to(reaper)
             best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
@@ -495,7 +496,7 @@ class Micro(CachedClass):
         
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
-        if (viking.weapon_cooldown <= 5):
+        if (viking.weapon_cooldown <= WEAPON_READY_THRESHOLD):
             potential_targets: Units = self.bot.enemy_units.filter(
                 lambda unit: (
                     unit.can_be_attacked and (
@@ -524,7 +525,7 @@ class Micro(CachedClass):
             viking.move(local_units.center)
 
     async def viking_retreat(self, viking: Unit):
-        if (viking.weapon_cooldown > 5):
+        if (viking.weapon_cooldown > WEAPON_READY_THRESHOLD):
             await self.retreat(viking)
             return
 
@@ -740,11 +741,11 @@ class Micro(CachedClass):
             return
         
         # in these case we should target a worker
-        if (worker_potential_targets.amount >= 1 or unit.weapon_cooldown > 0 or buildings_in_range.amount == 0):
+        if (worker_potential_targets.amount >= 1 or unit.weapon_cooldown > WEAPON_READY_THRESHOLD or buildings_in_range.amount == 0):
             # define the best target
             target: Unit = worker_potential_targets.first if worker_potential_targets.amount >= 1 else closest_worker
             # if we're not on cooldown and workers are really close, run away
-            if (unit.weapon_cooldown > 0):
+            if (unit.weapon_cooldown > WEAPON_READY_THRESHOLD):
                 if (workers.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
                     safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
                     unit.move(safest_spot)
@@ -890,7 +891,7 @@ class Micro(CachedClass):
         if (unit.distance_to(target_position) > 50):
             target_position = unit.position.towards(target_position, 50)
         enemy_units_in_range = self.get_enemy_units_in_range(unit)
-        if (unit.weapon_cooldown == 0 and enemy_units_in_range.amount >= 1):
+        if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
             unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
         else:
             unit.move(target_position)

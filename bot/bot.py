@@ -19,11 +19,12 @@ from bot.units.trainer import Trainer
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.bot_ai import Race
 from sc2.data import Result
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "9.0.1"
+VERSION: str = "9.1.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -123,13 +124,13 @@ class WickedBot(Superbot):
             # await self.client.debug_show_map()
             await self.client.debug_control_enemy()
             # await self.client.debug_upgrade()
-            # await self.client.debug_create_unit([[UnitTypeId.REAPER, 1, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
             # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
-            # await self.client.debug_create_unit([[UnitTypeId.HYDRALISK, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
         
         start_time: float = perf_counter()
         await self.check_surrend_condition()
@@ -272,7 +273,7 @@ class WickedBot(Superbot):
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
-        await self.debug.building_grid()
+        # await self.debug.building_grid()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
@@ -285,6 +286,7 @@ class WickedBot(Superbot):
         # self.debug.full_composition(iteration)
         # self.debug.full_effects(iteration)
         # self.debug.danger_map()
+        self.debug.danger_trajectories()
         # self.debug.invisible_units()
         # self.debug.tag()
         # self.debug.radius()

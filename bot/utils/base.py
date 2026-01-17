@@ -15,6 +15,8 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, menacing
 
+WEAPON_READY_THRESHOLD: float = 6.0
+
 class Base:
     bot: Superbot
     cc: Unit
@@ -314,7 +316,7 @@ class Base:
                     self.buildings(UnitTypeId.BUNKER).filter(lambda unit: unit.build_progress >= 0.95).amount >= 1
                     and (
                         enemy_in_range.amount == 0
-                        or worker.weapon_cooldown > 0
+                        or worker.weapon_cooldown > WEAPON_READY_THRESHOLD
                     )
                 ):
                     bunker: Unit = self.buildings(UnitTypeId.BUNKER).closest_to(worker)

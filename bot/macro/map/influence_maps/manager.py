@@ -1,4 +1,5 @@
 import numpy as np
+from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.map.influence_maps.danger_map import DangerMap
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
@@ -6,6 +7,7 @@ from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.macro.map.influence_maps.layers.detection_layer import DetectionLayer
 from bot.macro.map.influence_maps.layers.effect_layer import EffectLayer
 from bot.macro.map.influence_maps.layers.static_layer import StaticLayer
+from bot.utils.point2_functions.utils import sample_tile_path
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -35,7 +37,6 @@ class InfluenceMapManager:
         self.buildings.initialize()
         
         ground_map: np.ndarray = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
-        # self.danger = DangerMap(self.bot, self.creep, map=ground_map)
         self.danger = DangerMap(self.bot, map=ground_map)
 
     def update(self):
@@ -102,6 +103,7 @@ class InfluenceMapManager:
         danger: bool = True,
         terrain: bool = True,
         effects: bool = True,
+        trajectory: bool = True,
     ) -> tuple[Point2, float]:
         
         # Get the masked window: returns x1, y1, masked_values
@@ -128,17 +130,31 @@ class InfluenceMapManager:
         rounded: Point2 = pos.position.rounded
         x: int = int(rounded.x)
         y: int = int(rounded.y)
+
+        danger_map = masked_values.filled(999)  # masked → lethal
+        evaluator = DangerEvaluator(self.bot, masked_values, x1, y1)
         
         best_point: Point2 | None = None
         best_score: float = -999
 
         for iy, ix in zip(ys, xs):
-            value: float = masked_values[iy, ix]
+            
             px: int = x1 + ix
             py: int = y1 + iy
 
             dx: int = px - x
             dy: int = py - y
+
+            start: Point2 = Point2((x, y))
+            end: Point2 = Point2((px, py))
+
+            path: list[Point2] = sample_tile_path(
+                start,
+                end,
+            )
+
+            path_value: float = evaluator.evaluate_path(path)
+            value: float = masked_values[iy, ix]
 
             if (Dx is not None):
                 # 1. Forward/backward component
@@ -155,7 +171,11 @@ class InfluenceMapManager:
                 extend: float = 0.0
 
             # Compute score
-            score: float = score_fn(value, towards, extend)
+            score: float = (
+                score_fn(path_value, towards, extend)
+                if trajectory == True
+                else score_fn(value, towards, extend)
+            )
 
             if (best_score is None or score > best_score):
                 best_score = score

@@ -23,6 +23,8 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep
 
+WEAPON_READY_THRESHOLD: float = 6.0
+
 class OrdersManager:
     bot: Superbot
     execute: Execute
@@ -691,7 +693,7 @@ class OrdersManager:
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: pf.target_in_range(unit)
             )
-            if (enemy_units_in_range.amount >= 1 and pf.weapon_cooldown == 0):
+            if (enemy_units_in_range.amount >= 1 and pf.weapon_cooldown <= WEAPON_READY_THRESHOLD):
                 enemy_units_in_range.sort(key = lambda unit: unit.health + unit.shield)
                 pf.attack(enemy_units_in_range.first)
 

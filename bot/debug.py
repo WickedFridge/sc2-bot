@@ -3,13 +3,15 @@ from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
+from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
+from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
-from bot.utils.point2_functions.utils import grid_offsets
+from bot.utils.point2_functions.utils import evaluate_path_debug, grid_offsets, sample_tile_path
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.unit_typeid import UnitTypeId
@@ -95,6 +97,14 @@ class Debug:
             Point3((pos.x, pos.y, z_height)),
             color=draw_color,
             size=font_size,
+        )
+
+    def draw_line_world(self, p0: Point2, p1: Point2, draw_color: tuple = (255, 102, 255)) -> None:
+        z_height: float = self.bot.get_terrain_z_height(p0)
+        self.bot.client.debug_line_out(
+            Point3((p0.x, p0.y, z_height)),
+            Point3((p1.x, p1.y, z_height)),
+            color=draw_color,
         )
 
     def draw_text_on_screen(self, text: str, pos: Point2 = Point2((0.01, 0.01)), draw_color: tuple = WHITE, font_size: int = 12) -> None:
@@ -262,6 +272,41 @@ class Debug:
             # Draw on SC2 world
             self.draw_text_on_world(world_pos, f"{danger:.1f}", color)
 
+    def danger_trajectories(self):
+        selected_units: Units = self.bot.units.selected
+        if (selected_units.amount == 0):
+            return
+
+        start: Point2 = selected_units.center
+        flying_only: bool = all(u.is_flying for u in selected_units)
+
+        x1, y1, masked = self.bot.map.influence_maps.read(
+            start,
+            radius=8,
+            air=flying_only,
+            include_terrain_penalty=False,
+        )
+
+        evaluator = DangerEvaluator(self.bot, masked, x1, y1)
+
+        ys, xs = np.where(~masked.mask)
+
+        for iy, ix in zip(ys, xs):
+            end = Point2((x1 + ix, y1 + iy))
+
+            path = sample_tile_path(start, end)
+            danger: float = evaluator.evaluate_path(path)
+
+            # Build a readable color scale
+            red = min(255, int(danger * 255 / 40))
+            color = (red, 255 - red, 128)
+
+            self.draw_text_on_world(
+                end,
+                f"{danger:.1f}",
+                color,
+            )
+    
     def creep_map(self):
         selected_units: Units = self.bot.units.selected
         if (selected_units.amount == 0):
