@@ -156,3 +156,25 @@ production_flying: List[UnitTypeId] = [
     UnitTypeId.FACTORYFLYING,
     UnitTypeId.STARPORTFLYING,
 ]
+flying_units: list[UnitTypeId] = [
+    # Terran
+    UnitTypeId.VIKING,
+    UnitTypeId.MEDIVAC,
+    UnitTypeId.LIBERATOR,
+    UnitTypeId.RAVEN,
+    UnitTypeId.BANSHEE,
+    UnitTypeId.BATTLECRUISER,
+    # Zerg
+    UnitTypeId.MUTALISK,
+    UnitTypeId.CORRUPTOR,
+    UnitTypeId.VIPER,
+    UnitTypeId.BROODLORD,
+    # Protoss
+    UnitTypeId.PHOENIX,
+    UnitTypeId.VOIDRAY,
+    UnitTypeId.ORACLE,
+    UnitTypeId.CARRIER,
+    UnitTypeId.TEMPEST,
+    UnitTypeId.MOTHERSHIP,
+    UnitTypeId.COLOSSUS,
+]

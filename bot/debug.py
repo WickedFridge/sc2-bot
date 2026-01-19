@@ -593,6 +593,12 @@ class Debug:
             position: Point2 = Point2((0.9, 0.02 + 0.015 * (i + 1)))
             self.draw_text_on_screen(unit_type.name, position)
 
+    def enemy_composition(self):
+        start_position: float = 0.65 - 0.015 * len(self.bot.scouting.possible_enemy_composition)
+        for i, unit_type in enumerate(self.bot.scouting.possible_enemy_composition):
+            position: Point2 = Point2((0.9, start_position + 0.015 * (i + 1)))
+            color = GREEN if unit_type in self.bot.scouting.known_enemy_composition else YELLOW
+            self.draw_text_on_screen(unit_type.name, position, color)
 
     def invisible_units(self):
         invisible_units: Units = self.bot.enemy_units.filter(

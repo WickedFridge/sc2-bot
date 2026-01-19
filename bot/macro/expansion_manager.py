@@ -119,12 +119,7 @@ class Expansions(CachedClass):
     
     @custom_cache_once_per_frame
     def free(self) -> Expansions:
-        return self.not_taken.filter(
-            lambda expansion: (
-                expansion.is_enemy == False
-                and self.bot.has_creep(expansion.position) == False
-            )
-        )
+        return self.filter(lambda expansion: expansion.is_free == True)
 
     @custom_cache_once_per_frame
     def defended(self) -> Expansions:
@@ -209,17 +204,9 @@ class Expansions(CachedClass):
             return None
         return taken_expansions.expansions[taken_expansions.amount - 1]
     
-    @property
-    def potential_next(self) -> Expansion:
-        taken_expansions: Expansions = self.taken
-        if (taken_expansions.amount == self.amount):
-            return self.last_taken
-        return self.not_taken[0]
     
     @property
     def next(self) -> Expansion:
-        if (len(self.free) >= 1):
-            return self.free[0]
         if (len(self.not_taken) >= 1):
             return self.not_taken[0]
         return self.last_taken

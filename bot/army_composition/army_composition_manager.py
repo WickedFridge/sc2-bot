@@ -12,7 +12,7 @@ from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
-from bot.utils.unit_tags import cloaked_units, burrowed_units
+from bot.utils.unit_tags import cloaked_units, burrowed_units, flying_units
 
 if TYPE_CHECKING:
     from bot import WickedBot  # only imported for type hints
@@ -61,7 +61,6 @@ class ArmyCompositionManager(CachedClass):
         max_viking_amount: int = 36
 
         # we want pretty much matching air supply
-        enemy_units: Units = self.wicked.scouting.known_enemy_army.units + self.wicked.enemy_structures
         viking_response: dict[UnitTypeId, int] = {
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
@@ -72,17 +71,18 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.WARPPRISM: 0.33,
             UnitTypeId.MUTALISK: 0,
             UnitTypeId.OBSERVER: 0,
-
-            # buildings that produce air units
-            UnitTypeId.ROBOTICSBAY: 2,
-            UnitTypeId.STARGATE: 1,
-            UnitTypeId.FLEETBEACON: 2,
-            UnitTypeId.GREATERSPIRE: 2,
         }
-        viking_amount: float = sum(
-            viking_response.get(unit.type_id, get_unit_supply(unit.type_id) / 2 if unit.is_flying else 0)
-            for unit in enemy_units
-        )
+        
+        viking_amount: float = 0
+        for unit_type in self.wicked.scouting.possible_enemy_composition:
+            if (unit_type not in flying_units):
+                continue
+            enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
+            viking_response_amount: float = viking_response.get(unit_type, get_unit_supply(unit_type) / 2)
+            if (enemy_units.amount > 0):
+                viking_amount += viking_response_amount * enemy_units.amount
+            else:
+                viking_amount += viking_response_amount / 2
 
         # round, because 2.3 vikings = 2 vikings in practice
         return min(max_viking_amount, round(viking_amount))

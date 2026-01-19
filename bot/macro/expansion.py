@@ -73,6 +73,15 @@ class Expansion(CachedClass):
         return self.is_taken and self.cc.is_ready and not self.cc.is_flying
 
     @custom_cache_once_per_frame
+    def is_free(self) -> bool:
+        return (
+            self.is_scouted
+            and not self.is_taken
+            and not self.is_enemy
+            and not self.bot.has_creep(self.position)
+        )
+    
+    @custom_cache_once_per_frame
     def is_safe(self) -> bool:
         # Positions with high HP PF are considered safe
         if (self.cc and self.cc.type_id == UnitTypeId.PLANETARYFORTRESS and self.cc.health_percentage >= 0.6):

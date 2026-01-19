@@ -1,4 +1,4 @@
-from typing import override
+from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
@@ -12,6 +12,14 @@ from sc2.units import Units
 
 
 class Bunker(Building):
+    precarious_situations: List[Situation] = [
+        Situation.PROXY_BUILDINGS,
+        Situation.UNDER_ATTACK,
+        Situation.CHEESE_LING_DRONE,
+        Situation.CHEESE_ROACH_RUSH,
+        Situation.CHEESE_UNKNOWN,
+    ]
+    
     def __init__(self, build):
         super().__init__(build)
         self.unitId = UnitTypeId.BUNKER
@@ -24,10 +32,7 @@ class Bunker(Building):
         
         # build a bunker in the main if we're getting proxy'd
         if (
-            self.bot.scouting.situation in [
-                Situation.PROXY_BUILDINGS,
-                Situation.UNDER_ATTACK
-            ]
+            self.bot.scouting.situation in self.precarious_situations
             and self.bot.expansions.taken.amount < 3
         ):
             expansions.add(self.bot.expansions.main)
@@ -52,12 +57,11 @@ class Bunker(Building):
         bunker_amount_target: int = expansions_count - 1
         
         # place a bunker in the main if we're under attack on b2
-        situation = self.bot.scouting.situation
-        precarious_situation: bool = situation in [Situation.PROXY_BUILDINGS, Situation.UNDER_ATTACK]
+        precarious: bool = self.bot.scouting.situation in self.precarious_situations
         ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(self.bot.main_base_ramp.top_center) < 8)
         if (
             ramp_bunkers.amount >= 1 or (
-                precarious_situation and self.bot.expansions.taken.amount < 3
+                precarious and self.bot.expansions.taken.amount < 3
             )
         ):
             bunker_amount_target += 1
@@ -68,7 +72,7 @@ class Bunker(Building):
             and self.bot.supply_army >= 1
             and (
                 self.expansions_without_defense.amount >= 1
-                or precarious_situation
+                or precarious
             )
             and defense_count < bunker_amount_target
             and bunker_to_construct_amount == 0

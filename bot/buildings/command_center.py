@@ -57,16 +57,32 @@ class CommandCenter(Building):
     
     async def move_worker_expand(self):
         # move SCV for first expand
-        if (self.bot.time >= 100 or self.bot.build_order.build.name != BuildOrderName.KOKA_BUILD.value):
+        if (self.bot.time >= 100 or self.bot.townhalls.amount >= 2):
             return
-        rax_builder: Units = self.bot.workers.filter(
-            lambda unit: (
-                len(unit.orders) == 1
-                and unit.orders[0].ability.id == AbilityId.TERRANBUILD_BARRACKS
+        if (self.bot.build_order.build.name == BuildOrderName.KOKA_BUILD.value):
+            rax_builder: Units = self.bot.workers.filter(
+                lambda unit: (
+                    len(unit.orders) == 1
+                    and unit.orders[0].ability.id == AbilityId.TERRANBUILD_BARRACKS
+                )
             )
-        )
-        if (rax_builder.amount == 0):
-            return
-        print("queue gather command for expand")
-        mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
-        rax_builder.first.gather(mineral_field, True)
+            if (rax_builder.amount == 0):
+                return
+            print("queue gather command for expand")
+            mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
+            rax_builder.first.gather(mineral_field, True)
+        elif (self.bot.build_order.build.name == BuildOrderName.CC_FIRST_TWO_RAX.value):
+            b2: Point2 = self.bot.expansions.b2.position
+            supply_builder: Units = self.bot.workers.filter(
+                lambda unit: (
+                    len(unit.orders) == 1
+                    and unit.orders[0].ability.id == AbilityId.TERRANBUILD_SUPPLYDEPOT
+                )
+            )
+            if (supply_builder.amount == 0):
+                return
+            print("queue gather command for expand")
+            mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
+            supply_builder.first.gather(mineral_field, True)
+            supply_builder.first.move(b2, True)
+            supply_builder.first.patrol(b2.towards(self.bot.expansions.main.position), True)

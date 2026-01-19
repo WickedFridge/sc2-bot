@@ -51,15 +51,17 @@ class StrategyHandler:
         if (early_cheese_situation):
             return early_cheese_situation
         
+        # enemy has more than twice our army supply
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         army: Army = Army(fighting_units, self.bot)
         OVER_POWERED_RATIO: float = 2
         if (self.bot.scouting.known_enemy_army.fighting_supply >= OVER_POWERED_RATIO * army.supply + 1):
             return Situation.UNDER_ATTACK
+        
         return Situation.STABLE
     
     def detect_early_cheese(self):
-        if (self.bot.townhalls.amount >= 3):
+        if (self.bot.townhalls.amount > 3):
             return None
         
         main: Point2 = self.bot.expansions.main.position
@@ -90,9 +92,6 @@ class StrategyHandler:
         
         if (close_workers.amount >= 6):
             return Situation.WORKER_RUSH
-        
-        if (menacing_enemy_units.amount == 0):
-            return None
 
         # detect ling drone rush
         zerglings: Units = menacing_enemy_units(UnitTypeId.ZERGLING)
@@ -102,18 +101,46 @@ class StrategyHandler:
             and drones.amount >= 2
         ):
             return Situation.CHEESE_LING_DRONE
+        
+        # detect roach rush
+        # enemy has roach tech and has either no B2
+        # or we're not sure they have a b2 and it's before 3"30
+        roach_tech: bool = UnitTypeId.ROACH in self.bot.scouting.possible_enemy_composition
+
+        if (
+            roach_tech
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                or (
+                    self.bot.expansions.enemy_b2.is_unknown
+                    and self.bot.time <= 210
+                )
+            )
+        ):
+            return Situation.CHEESE_ROACH_RUSH
+        
+        # enemy has no b2 while our b3 is started
+        if (
+            self.bot.expansions.enemy_b2.is_free
+            and self.bot.townhalls.amount == 3
+        ):
+            return Situation.CHEESE_UNKNOWN
+        
+        return None
     
     async def cheese_response(self):
-        if (self.bot.scouting.situation == Situation.CHEESE_LING_DRONE):
-            # cancel B2 and switch towards Conservative Expand
+        situation: Situation = self.bot.scouting.situation
+        if (situation in [Situation.CHEESE_LING_DRONE, Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_UNKNOWN]):
+            # cancel B2/B3 and switch towards Conservative Expand
             expand_in_construction: Units = self.bot.townhalls.not_ready
             if (expand_in_construction):
                 expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
             
             self.bot.build_order.build = ConservativeExpand(self.bot)
             return
-        if (self.bot.scouting.situation in [Situation.PROXY_BUILDINGS, Situation.WORKER_RUSH]):
+        if (situation in [Situation.PROXY_BUILDINGS, Situation.WORKER_RUSH]):
             self.bot.build_order.build = ConservativeExpand(self.bot)
+
     
     def detect_tower_rush(self) -> Optional[Situation]:
         if (self.bot.townhalls.amount >= 3):

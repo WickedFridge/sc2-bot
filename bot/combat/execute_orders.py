@@ -487,7 +487,7 @@ class Execute(CachedClass):
             BASE_RADIUS: int = 6
             creep_layer = self.bot.map.influence_maps.creep
             expansions_to_check: Expansions = self.bot.expansions.taken.copy()
-            expansions_to_check.add(self.bot.expansions.potential_next)
+            expansions_to_check.add(self.bot.expansions.next)
             
             for expansion in expansions_to_check:
                 density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
