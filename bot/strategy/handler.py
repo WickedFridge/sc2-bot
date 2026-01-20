@@ -1,6 +1,7 @@
 from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
+from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
 from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
@@ -119,6 +120,8 @@ class StrategyHandler:
         ):
             return Situation.CHEESE_ROACH_RUSH
         
+        # TODO add last scouting time of the b2
+        # TODO they might have taken it by now
         # enemy has no b2 while our b3 is started
         if (
             self.bot.expansions.enemy_b2.is_free
@@ -130,7 +133,10 @@ class StrategyHandler:
     
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (situation in [Situation.CHEESE_LING_DRONE, Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_UNKNOWN]):
+        if (
+            situation in [Situation.CHEESE_LING_DRONE, Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_UNKNOWN]
+            and self.bot.build_order.build.name != BuildOrderName.CONSERVATIVE_EXPAND.value
+        ):
             # cancel B2/B3 and switch towards Conservative Expand
             expand_in_construction: Units = self.bot.townhalls.not_ready
             if (expand_in_construction):
