@@ -8,14 +8,18 @@ from sc2.position import Point2
 
 def valid_building_position(bot: BotAI, center: Point2, unit_type: UnitTypeId, radius: int, has_addon: bool) -> bool:
     points: list[Point2] = grid_offsets(radius, initial_position=center)
+    map: MapData = get_map(bot)
     if (has_addon):
         if (not all(valid_position(bot, p, UnitTypeId.TECHREACTOR) for p in points_to_build_addon(center))):
             return False
-    return all(valid_position(bot, p, unit_type) for p in points)
+    return (
+        all(valid_position(bot, p, unit_type) for p in points)
+        and map.influence_maps.buildings.should_build_building(center, unit_type, radius)
+    )
 
 def valid_position(bot: BotAI, pos: Point2, unit_type: UnitTypeId) -> bool:
     map: MapData = get_map(bot)
-    width, height =map.influence_maps.buildings.occupancy.map.shape
+    width, height = map.influence_maps.buildings.occupancy.map.shape
     return (
         pos.x >= 0 and pos.y >= 0
         and pos.x <= width - 1

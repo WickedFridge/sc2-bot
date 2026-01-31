@@ -156,6 +156,12 @@ production_flying: List[UnitTypeId] = [
     UnitTypeId.FACTORYFLYING,
     UnitTypeId.STARPORTFLYING,
 ]
+important_buildings: List[UnitTypeId] = [
+    UnitTypeId.COMMANDCENTER,
+    UnitTypeId.BUNKER,
+    UnitTypeId.MISSILETURRET,
+    UnitTypeId.SUPPLYDEPOT,
+]
 flying_units: list[UnitTypeId] = [
     # Terran
     UnitTypeId.VIKING,

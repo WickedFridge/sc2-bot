@@ -96,7 +96,10 @@ class BarracksAddon(Building):
     def custom_conditions(self) -> bool:
         return (
             self.barracks_without_addon.amount >= 1
-            and self.next_addon == self.unitId
+            and (
+                self.next_addon == self.unitId or
+                self.bot.build_order.build.is_completed == False
+            )
             and not self.bot.composition_manager.should_train(UnitTypeId.REAPER)
             and self.bot.scouting.situation != Situation.CHEESE_LING_DRONE
             and (

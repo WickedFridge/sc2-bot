@@ -3,13 +3,14 @@ from operator import pos
 from typing import List
 from attr import dataclass
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.utils.point2_functions.utils import grid_offsets
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from .....utils.unit_tags import add_ons, production, production_flying
+from .....utils.unit_tags import add_ons, production, production_flying, important_buildings
 
 @dataclass(frozen=True)
 class BuildingTile:
@@ -124,6 +125,29 @@ class BuildingLayer:
     def is_free(self, pos: Point2) -> bool:
         pos = pos.rounded
         return self.occupancy[pos] > 0.0
+    
+    def should_build_building(self, pos: Point2, unit_type: UnitTypeId, radius: int) -> bool:
+        pos = pos.rounded
+        points: list[Point2] = grid_offsets(radius, initial_position=pos)
+        
+        # 1) Hard blocked
+        if (any(self.can_build(point, unit_type) == False for point in points)):
+            return False
+
+        # 2) Reservation check
+        reserved_amount: int = 0
+        for point in points:
+            reserved_for = self.reservations.get(point)
+            if (reserved_for is not None and unit_type not in reserved_for):
+                return False
+            if (reserved_for is not None and unit_type in reserved_for):
+                reserved_amount += 1
+
+        # either no point was reserved, or all points were reserved for this unit type
+        return (
+            reserved_amount == 0 or
+            reserved_amount == len(points)
+        )
     
     def can_build(self, pos: Point2, unit_type: UnitTypeId) -> bool:
         pos = pos.rounded
@@ -241,6 +265,32 @@ class BuildingLayer:
             {UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED},
         )
     
+    def reserve_around_production(self, origin: Point2) -> None:
+        points: List[tuple[int, int]] = [
+            (-1, 0),
+            (-1, 1),
+            (-1, 2),
+            (5, 0),
+            (5, 1)
+        ]
+        
+        # reserve space between production buildings
+        for point in points:
+            self.reserve_area(origin + Point2(point), 1, set(important_buildings))
+    
+    def unreserve_around_production(self, origin: Point2) -> None:
+        points: List[tuple[int, int]] = [
+            (-1, 0),
+            (-1, 1),
+            (-1, 2),
+            (5, 0),
+            (5, 1)
+        ]
+        
+        # unreserve space between production buildings
+        for point in points:
+            self.unreserve_area(origin + Point2(point), 1)
+    
     def reserve_production(self, pos: Point2) -> None:
         size = PRODUCTION_RADIUS * 2
         origin = pos.rounded - Point2((1, 1))
@@ -255,6 +305,7 @@ class BuildingLayer:
             2 * ADDON_RADIUS,
             set(add_ons),
         )
+        self.reserve_around_production(origin)
     
     def reserve_bunker(self, pos: Point2) -> None:
         size = BUNKER_RADIUS * 2
@@ -273,6 +324,7 @@ class BuildingLayer:
         if (unit.type_id in production + production_flying):
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
+            self.reserve_around_production(origin)
 
     def on_building_destroyed(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)
@@ -281,3 +333,4 @@ class BuildingLayer:
         if (unit.type_id in production + production_flying):
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.unreserve_area(addon_origin, 2 * ADDON_RADIUS)
+            self.unreserve_around_production(origin)
