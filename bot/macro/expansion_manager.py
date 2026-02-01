@@ -22,7 +22,7 @@ class Expansions(CachedClass):
         self.expansions = expansions if expansions is not None else []
 
     def __iter__(self) -> Generator[Expansion, None, None]:
-        return (item for item in self.expansions)
+        return iter(self.expansions)
 
     def __getitem__(self, index: int) -> Expansion:
         return self.expansions[index]

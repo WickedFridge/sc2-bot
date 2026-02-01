@@ -600,6 +600,12 @@ class Debug:
             color = GREEN if unit_type in self.bot.scouting.known_enemy_composition else YELLOW
             self.draw_text_on_screen(unit_type.name, position, color)
 
+    def ghost_units(self):
+        ghost_units: Units = self.bot.ghost_units.assumed_enemy_units
+        for unit in ghost_units:
+            self.draw_box_on_world(unit.position, size=1, draw_color = ORANGE)
+            self.draw_text_on_world(unit.position, f'{unit.type_id}', ORANGE)
+    
     def invisible_units(self):
         invisible_units: Units = self.bot.enemy_units.filter(
             lambda unit: (

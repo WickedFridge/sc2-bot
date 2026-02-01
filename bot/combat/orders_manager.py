@@ -6,6 +6,9 @@ from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
 from bot.macro.macro import BASE_SIZE
+from bot.scouting.ghost_units.ghost_army import GhostArmy
+from bot.scouting.ghost_units.ghost_units import GhostUnits
+from bot.scouting.ghost_units.manager import GhostUnit
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -160,9 +163,17 @@ class OrdersManager:
 
     def reapers_orders(self, army: Army) -> Orders:
         situation: Situation = self.bot.scouting.situation
+        # Enemy units
+        ghost_enemy_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
         local_enemy_units: Units = self.get_local_enemy_units(army.units.center, army.radius)
+        local_enemy_ghosts: GhostUnits = ghost_enemy_units.filter(
+            lambda ghost: ghost.position.distance_to(army.units.center) <= army.radius + 10
+        )
+        # enemy supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
-        local_enemy_supply: float = local_enemy_army.weighted_supply
+        local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply + local_ghost_army.weighted_supply
+        # enemy buildings and workers
         global_enemy_buildings: Units = self.bot.enemy_structures
         local_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
@@ -216,9 +227,14 @@ class OrdersManager:
             return self.reapers_orders(army)
         
         # -- Define local enemies
+        ghost_enemy_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
         local_enemy_units: Units = self.get_local_enemy_units(army.center, army.radius)
         local_enemy_buildings = self.get_local_enemy_buildings(army.center, army.radius)
         local_enemy_workers: Units = self.get_local_enemy_workers(army.center, army.radius)
+        local_enemy_ghosts: GhostUnits = ghost_enemy_units.filter(
+            lambda ghost: ghost.position.distance_to(army.units.center) <= army.radius + 10
+        )
+        
         
         self.bot.enemy_units.filter(
             lambda unit: (
@@ -237,11 +253,13 @@ class OrdersManager:
         )
                 
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
-        local_enemy_supply: float = local_enemy_army.weighted_supply
+        local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply + local_ghost_army.weighted_supply
+        
         
         unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
         unseen_enemy_supply: float = unseen_enemy_army.supply
-        potential_enemy_supply: float = local_enemy_supply + unseen_enemy_supply
+        potential_enemy_supply: float = local_enemy_army.weighted_supply + unseen_enemy_supply
                 
         # -- High-priority hardcoded situations
         if (situation == Situation.BUNKER_RUSH):

@@ -1,14 +1,16 @@
+from attr import dataclass
 from bot.army_composition.army_composition_manager import ArmyCompositionManager
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.map import MapData
+from bot.scouting.ghost_units.manager import GhostUnitsManager
 from bot.scouting.scouting import Scouting
 from bot.strategy.build_order.manager import BuildOrderManager
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.cache import property_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 from sc2.units import Units
-
 
 class Superbot(BotAI):
     @property
@@ -33,6 +35,10 @@ class Superbot(BotAI):
 
     @property
     def build_order(self) -> BuildOrderManager:
+        pass
+
+    @property
+    def ghost_units(self) -> GhostUnitsManager:
         pass
 
     @property

@@ -3,6 +3,7 @@ from typing import List
 
 import numpy as np
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.point2_functions.utils import center
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -99,8 +100,12 @@ class DangerMap:
         
         for unit in units:
             self.update_unit(unit)
+
+        ghost_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
+        for ghost in ghost_units:
+            self.update_unit(ghost)
     
-    def update_unit(self, unit: Unit):
+    def update_unit(self, unit: Unit | GhostUnit):
         (
             unit_position,
             unit_radius,

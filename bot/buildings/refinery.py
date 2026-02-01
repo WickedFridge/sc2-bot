@@ -34,7 +34,7 @@ class Refinery(Building):
                 return True
             
             case 2:
-                # build third rafinery as long as we have 3CCs and at least 40 SCVs  
+                # build third rafinery as long as we have 3CCs and at least 38 SCVs  
                 return (
                     self.bot.townhalls.amount >= 3
                     and workers_amount >= 38

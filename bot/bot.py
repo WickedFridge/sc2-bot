@@ -10,6 +10,7 @@ from bot.macro.macro import Macro
 from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
+from bot.scouting.ghost_units.manager import GhostUnitsManager
 from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
 from bot.strategy.handler import StrategyHandler
@@ -24,7 +25,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "9.4.0"
+VERSION: str = "10.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -93,6 +94,10 @@ class WickedBot(Superbot):
     def build_order(self) -> BuildOrderManager:
         return get_build_order(self)
 
+    @override
+    @property
+    def ghost_units(self) -> GhostUnitsManager:
+        return GhostUnitsManager(self)
 
     async def on_start(self):
         """
@@ -142,6 +147,7 @@ class WickedBot(Superbot):
         self.structures_memory = self.structures.copy()
         self.expansions.update_scout_status()
         self.map.influence_maps.update()
+        self.ghost_units.update_ghost_units()
         
         # General Worker management
         await self.macro.distribute_workers(iteration)
@@ -297,6 +303,7 @@ class WickedBot(Superbot):
         # self.debug.detection_map()
         # self.macro.supply_block_update()
         self.debug.enemy_composition()
+        self.debug.ghost_units()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()
         await self.debug.chat_commands()

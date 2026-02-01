@@ -387,6 +387,10 @@ class Micro(CachedClass):
        
         # --- CASE 3: Long cooldown → retreat & wait ---
         else:
+            if (self.enemy_all.amount == 0):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(reaper)
+                reaper.move(safest_spot)
+                return
             closest_enemy: Unit = self.enemy_all.closest_to(reaper)
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, closest_enemy)
             reaper.move(safest_spot)
@@ -444,6 +448,10 @@ class Micro(CachedClass):
             return
 
         self.stim_bio(unit)
+        if (other_enemies.amount == 0):
+            # No valid targets regroup
+            unit.move(local_army.center)
+            return
         target: Unit = other_enemies.closest_to(unit)
         best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
         unit.move(best_position)
