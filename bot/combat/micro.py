@@ -381,6 +381,10 @@ class Micro(CachedClass):
         
         # --- CASE 2: Short Cooldown (stutter step micro) ---
         elif (reaper.weapon_cooldown <= WEAPON_READY_THRESHOLD):
+            if (self.enemy_all.amount == 0):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(reaper)
+                reaper.move(safest_spot)
+                return
             best_target: Unit = self.enemy_all.closest_to(reaper)
             best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
             reaper.move(best_attack_spot)
