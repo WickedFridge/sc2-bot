@@ -9,6 +9,7 @@ from bot.utils.ability_tags import AbilityRepair
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import center, points_to_build_addon
+from bot.utils.unit_functions import is_being_constructed
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
@@ -37,13 +38,7 @@ class BuildingsHandler:
                 and structure.type_id not in add_ons
                 and structure.type_id != UnitTypeId.ORBITALCOMMAND
                 and structure.type_id != UnitTypeId.PLANETARYFORTRESS
-                and self.is_being_constructed(structure) == False
-                and self.bot.workers.filter(
-                    lambda worker: (
-                        worker.is_constructing_scv
-                        and worker.orders[0].target == structure.tag
-                    )
-                ).amount == 0
+                and is_being_constructed(self.bot, structure) == False
             )
         )
 
@@ -268,11 +263,13 @@ class BuildingsHandler:
                     )
                 )
             )
-            local_enemy_units: Units = self.bot.enemy_units.closer_than(10, enemy_unit)
+            local_enemy_units: Units = self.bot.enemy_units.closer_than(8, enemy_unit).filter(
+                lambda unit: unit.tag != enemy_unit.tag
+            )
             if (local_fighting_units.amount == 0):
                 print(f'no fighting unit close to {enemy_unit.name}')
                 continue
-            if (local_enemy_units.amount >= 0):
+            if (local_enemy_units.amount > local_fighting_units.amount + 5):
                 print(f'too much enemy units close to {enemy_unit.name}')
                 continue
             print(f'scan enemy unit {enemy_unit.name}')
@@ -578,9 +575,3 @@ class BuildingsHandler:
             return 1
         building: Unit = self.bot.structures.closest_to(scv)
         return 1 if building.is_ready else building.build_progress
-    
-    def is_being_constructed(self, building: Unit) -> bool:
-        return (
-            self.bot.workers.closest_to(building).is_constructing_scv == True
-            or self.bot.workers.closest_distance_to(building) <= building.radius * math.sqrt(2)
-        )

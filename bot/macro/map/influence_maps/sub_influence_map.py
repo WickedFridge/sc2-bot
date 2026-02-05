@@ -13,7 +13,9 @@ class SubInfluenceMap(InfluenceMap):
     
     escape_threshold: float
     relief_weight: float
+    peak_weight: float
     early_window: int
+    INVALID: float = 999.0
 
     def __init__(
         self,
@@ -22,8 +24,9 @@ class SubInfluenceMap(InfluenceMap):
         x1: int,
         y1: int,
         escape_threshold: float = 5.0,
-        relief_weight: float = 0.7,
-        early_window: int = 3,
+        relief_weight: float = 0.5,
+        peak_weight: float = 0.7,
+        early_window: int = 4,
     ):
         """
         masked_array: the masked window of danger values
@@ -35,10 +38,11 @@ class SubInfluenceMap(InfluenceMap):
         
         self.escape_threshold = escape_threshold
         self.relief_weight = relief_weight
+        self.peak_weight = peak_weight
         self.early_window = early_window
 
         # Convert masked array to full array with np.inf for masked tiles
-        map_data = masked_array.filled(0.0).astype(np.float32)
+        map_data = masked_array.filled(self.INVALID).astype(np.float32)
         self.valid = ~masked_array.mask  # True = usable tile
         super().__init__(bot, map_data)
 

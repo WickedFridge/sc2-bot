@@ -60,6 +60,10 @@ class DangerMap:
             ground_range = 1
 
         match(unit.type_id):
+            case UnitTypeId.BUNKER:
+                # assume 2 marines inside
+                ground_dps = 20
+                ground_range = 7
             case UnitTypeId.SIEGETANK:
                 minimum_range = 2
             case UnitTypeId.DISRUPTORPHASED:

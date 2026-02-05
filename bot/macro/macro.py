@@ -24,6 +24,7 @@ class Macro:
     bases: List[Base]
     speed_mining: SpeedMining
     supply_block_time: int = 0
+    structure_to_base: dict[int, Base] = {}
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -59,7 +60,9 @@ class Macro:
         bases: List[Base] = []
         # First create a Base object for each expansion we own
         for expansion in expansions_taken:
-            bases.append(Base(self.bot, expansion, Threat.NO_THREAT))
+            base: Base = Base(self.bot, expansion, Threat.NO_THREAT)
+            bases.append(base)
+            self.structure_to_base[base.cc.tag] = base
         
         # Then distribute our other structures among these bases based on proximity
         other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in expansions_taken.ccs.tags)
@@ -69,38 +72,54 @@ class Macro:
                 continue
             closest_base: Base = min(bases_with_same_height, key=lambda base: (
                 base.cc.distance_to(building)
-                # and self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)
             ))
             closest_base.buildings.append(building)
+            self.structure_to_base[building.tag] = closest_base
         
         # Then distribute our units and workers among these bases based on proximity
-        for unit in self.bot.units:
-            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
+        for enemy in self.bot.units:
+            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(enemy))
             
             # skip enemy units that are too far from the base
-            if (closest_base.distance_to(unit) > THREAT_DISTANCE):
+            if (closest_base.distance_to(enemy) > THREAT_DISTANCE):
                 continue
             
-            if (unit.type_id in worker_types):
-                closest_base.workers.append(unit)
-            closest_base.units.append(unit)
+            if (enemy.type_id in worker_types):
+                closest_base.workers.append(enemy)
+            closest_base.units.append(enemy)
 
         # Then distribute enemy units and structures among these bases based on proximity
-        for unit in self.bot.enemy_units + self.bot.enemy_structures:
-            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
+        for enemy in self.bot.enemy_units + self.bot.enemy_structures:
+            # find closest structure first
+            # find the base the structure belongs to
+            closest_base: Base = None
+            
+            if (other_structures.amount > 0):
+                closest_structure: Unit = other_structures.closest_to(enemy)
+
+                if (closest_structure.distance_to(enemy) < 8):
+                    closest_base = self.structure_to_base.get(closest_structure.tag)
+            
+            if (closest_base is None):
+                closest_base = min(bases, key=lambda b: b.cc.distance_to(enemy))
+
+            if (closest_base is None):
+                continue
+
+            # closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
             
             # skip enemy units that are too far from the base
             if (
-                closest_base.distance_to(unit) > THREAT_DISTANCE
-                and unit.type_id not in tower_types
-                and unit.type_id != UnitTypeId.PYLON
+                closest_base.distance_to(enemy) > THREAT_DISTANCE
+                and enemy.type_id not in tower_types
+                and enemy.type_id != UnitTypeId.PYLON
             ):
                 continue
 
-            if (unit.is_structure):
-                closest_base.enemy_structures.append(unit)
+            if (enemy.is_structure):
+                closest_base.enemy_structures.append(enemy)
             else:
-                closest_base.enemy_units.append(unit)
+                closest_base.enemy_units.append(enemy)
         
         # Then, for each base, analyze nearby enemy units to determine the threat level
         for base in bases:
@@ -361,9 +380,9 @@ class Macro:
             for unit in base.units:
                 self.draw_box_on_world(unit.position, 0.5, color)
                 self.draw_text_on_world(unit.position, unit_descriptor, color)
-            for worker in base.workers:
-                self.draw_box_on_world(worker.position, 0.3, color)
-                self.draw_text_on_world(worker.position, unit_descriptor, color)
+            # for worker in base.workers:
+            #     self.draw_box_on_world(worker.position, 0.3, color)
+            #     self.draw_text_on_world(worker.position, unit_descriptor, color)
 
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)

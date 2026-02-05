@@ -1,5 +1,7 @@
 from sc2.bot_ai import BotAI
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.position import Point2
 from sc2.unit import Unit
 
 
@@ -26,6 +28,16 @@ def scv_build_progress(bot: BotAI, scv: Unit) -> float:
     if (building.distance_to(scv) > building.radius):
         return 0
     return 1 if building.is_ready else building.build_progress
+
+def is_being_constructed(bot: BotAI, building: Unit) -> bool:
+    closest_worker: Unit = bot.workers.closest_to(building)
+    potential_targets: list[int | Point2] = [building.tag, building.position]
+    if (building.type_id == UnitTypeId.REFINERY):
+        potential_targets.append(bot.vespene_geyser.closest_to(building).tag)
+    return (
+        closest_worker.is_constructing_scv == True
+        and closest_worker.orders[0].target in potential_targets
+    )
 
 def calculate_bunker_range(bot: BotAI, bunker: Unit) -> tuple[float, float]:
     bunker_default_range: int = 5

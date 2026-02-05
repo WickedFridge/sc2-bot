@@ -131,7 +131,6 @@ class InfluenceMapManager:
         x: int = int(rounded.x)
         y: int = int(rounded.y)
 
-        danger_map = masked_values.filled(999)  # masked → lethal
         evaluator = DangerEvaluator(self.bot, masked_values, x1, y1)
         
         best_point: Point2 | None = None

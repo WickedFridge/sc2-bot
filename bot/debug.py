@@ -12,7 +12,7 @@ from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.point2_functions.utils import evaluate_path_debug, grid_offsets, sample_tile_path
-from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, scv_build_progress
+from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
@@ -183,6 +183,34 @@ class Debug:
         for unit in selected_units:
             self.draw_text_on_world(unit.position, f'{unit.name} [{unit.type_id}]')
     
+    def building(self):
+        selected_structures: Units = self.bot.structures.selected
+        for structure in selected_structures:
+            constructing: bool = is_being_constructed(self.bot, structure)
+            progress: float = scv_build_progress(self.bot, self.bot.workers.closest_to(structure))
+            self.draw_text_on_world(structure.position, f'Constructing: {constructing}, Progress: {progress:.2f}')
+
+    
+    def orders(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
+            target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
+            
+            self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
+
+            # draw target
+            if (unit.is_idle):
+                break
+            target: int|Point2 = unit.orders[0].target
+            if (isinstance(target, Point2)):
+                self.draw_box_on_world(target)
+            else:
+                # find target unit
+                target_unit: Unit = find_by_tag(self.bot, target)
+                if (target_unit):
+                    self.draw_box_on_world(target_unit.position)
+    
     async def selection(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
@@ -196,24 +224,8 @@ class Debug:
             selected_positions.append(unit.position)
             
         for unit in selected_units:
-            order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
-            target: str = "none" if len(unit.orders) == 0 or unit.orders[0].target is None else str(unit.orders[0].target)
-            # self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')
-            
             for i, buff in enumerate(unit.buffs):
                 self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
-            
-            # draw target
-            if (unit.is_idle):
-                break
-            target: int|Point2 = unit.orders[0].target
-            if (isinstance(target, Point2)):
-                self.draw_box_on_world(target)
-            else:
-                # find target unit
-                target_unit: Unit = find_by_tag(self.bot, target)
-                if (target_unit):
-                    self.draw_box_on_world(target_unit.position)
             
             # draw "virtual range"
             range: float = unit.ground_range + unit.distance_to_weapon_ready
@@ -543,16 +555,6 @@ class Debug:
             await self.spawn_creep()
             return
         print(f'No command recognized')
-
-    def order(self):
-        selected_buildings: Units = self.bot.structures.selected
-        if (selected_buildings.amount == 0):
-            return
-        building: Unit = selected_buildings.first
-        order: UnitOrder = building.orders[0]
-        print("####################################################")
-        print(vars(order.ability))
-        print("####################################################")
 
 
     async def zerg_rush(self):
