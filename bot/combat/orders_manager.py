@@ -325,10 +325,9 @@ class OrdersManager:
         # If enemy near → follow the normal fighting logic
         if (local_enemy_supply > 0):
             # If winning with stim
-            if (self.stim_completed and army.potential_supply >= local_enemy_supply):
-                if (army.potential_supply >= army.supply * 2):
-                    if (army.can_drop_medivacs.amount >= 2):
-                        return Orders.FIGHT_OFFENSE
+            if (self.stim_completed and army.potential_supply >= local_enemy_supply * 1.2):
+                # if army is mostly in medivacs, we drop if we have enough hp on medivacs, otherwise we retreat
+                if (army.cant_drop_medivacs.amount >= 1 and army.is_full_drop):
                     return Orders.PICKUP_LEAVE
 
                 if (army.potential_supply >= local_enemy_supply * 1.5):
@@ -348,7 +347,7 @@ class OrdersManager:
 
         # Harass Workers or buildings we fly above
         if (local_enemy_workers.amount >= 1 or local_enemy_buildings.amount >= 1):
-            if (army.potential_supply >= army.supply * 2):
+            if (army.is_full_drop):
                 return Orders.FIGHT_DROP
             return Orders.HARASS
             
@@ -403,8 +402,10 @@ class OrdersManager:
         
         if (
             army.ground_units.amount >= 6
-            and weighted_army_supply >= local_enemy_supply * 0.7
-            and army.potential_supply < MAX_PICKUP_SUPPLY
+            and (
+                weighted_army_supply >= local_enemy_supply * 0.7
+                or army.potential_supply >= MAX_PICKUP_SUPPLY
+            )
         ):
             return Orders.FIGHT_DISENGAGE
         return Orders.PICKUP_LEAVE

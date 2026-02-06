@@ -86,11 +86,17 @@ class Army(CachedClass):
     @property
     def potential_bio_supply(self) -> float:
         return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
-
+    
     @property
     def can_drop_medivacs(self) -> Units:
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.health_percentage >= 0.4
+        )
+    
+    @property
+    def cant_drop_medivacs(self) -> Units:
+        return self.units(UnitTypeId.MEDIVAC).filter(
+            lambda unit: unit.health_percentage < 0.4
         )
     
     @property
@@ -196,7 +202,15 @@ class Army(CachedClass):
             self.passengers.amount > self.bio_units.amount
             or (self.cargo_left == 0 and self.units(UnitTypeId.MEDIVAC).amount >= 2)
         )
-    
+
+    @property
+    def is_full_drop(self) -> bool:
+        return (
+            self.units(UnitTypeId.MEDIVAC).amount >= 1
+            and self.passengers.amount > 0
+            and self.ground_units.amount == 0
+        )
+
     @property
     def average_ground_range(self) -> float:
         attacking_units: Units = self.ground_units.filter(lambda unit: unit.can_attack)
