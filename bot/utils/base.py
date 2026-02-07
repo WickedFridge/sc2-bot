@@ -178,7 +178,30 @@ class Base:
             Micro.move_away(worker, enemies_facing_almost_in_range.center, self.RANGE_THRESHOLD / 2)
 
     def track_enemy_scout(self, max_scv_attacking = 1) -> None:
-        for enemy_scout in self.enemy_units.filter(lambda unit: unit.type_id in worker_types):
+        # First stop tracking out of range enemy scouts to avoid chasing them across the map
+        enemy_scouts: Units = self.enemy_units.filter(
+            lambda unit: unit.type_id in worker_types
+        )
+        scouts_out_of_range: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.type_id in worker_types
+                and unit.tag not in enemy_scouts.tags
+                and unit.distance_to(self.position) >= self.BASE_SIZE * 1.5
+            )
+        )
+        
+        for enemy_scout in scouts_out_of_range:
+            # is scout is too far, stop chasing it
+            attacking_workers: Units = self.workers.filter(
+                lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
+            )
+            if (attacking_workers.amount > 0):
+                print("enemy scout too far, stopping workers")
+            for worker in attacking_workers:
+                worker.stop()
+            
+        # Then track nearby enemy scouts with a limited amount of workers to avoid overcommitting
+        for enemy_scout in enemy_scouts:
             if (self.full_available_workers.amount == 0):
                 return
             # if no scv is already chasing
@@ -393,7 +416,7 @@ class Base:
     def evacuate(self) -> None:
         # find closest safe expansion
         retreat_base: Expansion = None
-        safe_expansions: Units = self.bot.expansions.safe
+        safe_expansions: Units = self.bot.expansions.taken.safe
         if (safe_expansions.amount == 0):
             retreat_base = self.bot.expansions.main
         else:

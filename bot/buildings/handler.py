@@ -390,7 +390,8 @@ class BuildingsHandler:
                 townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
                 else self.bot.expansions.next.position if flying_townhall.amount == 1
                 else self.bot.expansions.free.closest_to(townhall.position).position if self.bot.expansions.free.amount >= 1
-                else self.bot.expansions.last_taken.position
+                else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
+                else self.bot.expansions.main.position
             )
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
             # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)

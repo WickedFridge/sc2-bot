@@ -624,7 +624,7 @@ class OrdersManager:
 
             # unload bunker if no enemy can shoot the bunker and the bunker can't shoot any unit => bunker is safe and doesn't need to be loaded
             enemy_units_menacing: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
-                lambda unit: unit.target_in_range(bunker)
+                lambda unit: unit.target_in_range(bunker) or unit.distance_to(bunker) <= 10
             )
                 
             # unload bunker if no unit around

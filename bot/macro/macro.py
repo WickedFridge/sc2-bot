@@ -77,31 +77,32 @@ class Macro:
             self.structure_to_base[building.tag] = closest_base
         
         # Then distribute our units and workers among these bases based on proximity
-        for enemy in self.bot.units:
-            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(enemy))
+        for unit in self.bot.units:
+            closest_base: Base = min(bases, key=lambda base: base.cc.distance_to(unit))
             
-            # skip enemy units that are too far from the base
-            if (closest_base.distance_to(enemy) > THREAT_DISTANCE):
+            # workers are always assigned to the closest base, even if they're far, to ensure they can respond to threats and not get lost in the middle of the map
+            if (unit.type_id in worker_types):
+                closest_base.workers.append(unit)
                 continue
-            
-            if (enemy.type_id in worker_types):
-                closest_base.workers.append(enemy)
-            closest_base.units.append(enemy)
+
+            # skip units that are too far from the base
+            if (closest_base.distance_to(unit) < THREAT_DISTANCE):
+                closest_base.units.append(unit)
 
         # Then distribute enemy units and structures among these bases based on proximity
-        for enemy in self.bot.enemy_units + self.bot.enemy_structures:
+        for unit in self.bot.enemy_units + self.bot.enemy_structures:
             # find closest structure first
             # find the base the structure belongs to
             closest_base: Base = None
             
             if (other_structures.amount > 0):
-                closest_structure: Unit = other_structures.closest_to(enemy)
+                closest_structure: Unit = other_structures.closest_to(unit)
 
-                if (closest_structure.distance_to(enemy) < 8):
+                if (closest_structure.distance_to(unit) < 8):
                     closest_base = self.structure_to_base.get(closest_structure.tag)
             
             if (closest_base is None):
-                closest_base = min(bases, key=lambda b: b.cc.distance_to(enemy))
+                closest_base = min(bases, key=lambda b: b.cc.distance_to(unit))
 
             if (closest_base is None):
                 continue
@@ -110,16 +111,16 @@ class Macro:
             
             # skip enemy units that are too far from the base
             if (
-                closest_base.distance_to(enemy) > THREAT_DISTANCE
-                and enemy.type_id not in tower_types
-                and enemy.type_id != UnitTypeId.PYLON
+                closest_base.distance_to(unit) > THREAT_DISTANCE
+                and unit.type_id not in tower_types
+                and unit.type_id != UnitTypeId.PYLON
             ):
                 continue
 
-            if (enemy.is_structure):
-                closest_base.enemy_structures.append(enemy)
+            if (unit.is_structure):
+                closest_base.enemy_structures.append(unit)
             else:
-                closest_base.enemy_units.append(enemy)
+                closest_base.enemy_units.append(unit)
         
         # Then, for each base, analyze nearby enemy units to determine the threat level
         for base in bases:
@@ -223,62 +224,6 @@ class Macro:
             and least_saturated_expansion.mineral_worker_count < least_saturated_expansion.optimal_mineral_workers - 2
         ):
             most_saturated_expansion.mineral_workers.random.stop()
-
-        # saturate gas
-        # v2
-        # for expansion in self.bot.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
-        #     # Calculate the ideal number of gas workers per refinery
-        #     total_vespene_workers_needed: int = expansion.desired_vespene_saturation * 3
-        #     actual_vespene_workers: int = expansion.vespene_worker_count
-        #     vespene_worker_difference: float = total_vespene_workers_needed - actual_vespene_workers
-
-        #     # we don't change until we have a 0.75 difference
-        #     if (abs(vespene_worker_difference) <= 0.5):
-        #         break
-
-        #     # Loop through refineries and check if they need workers
-        #     for refinery in expansion.refineries:
-        #         # Current assigned workers for the refinery
-        #         current_workers = refinery.assigned_harvesters
-                                
-        #         # If the difference is above a threshold, we need to take action
-        #         if (vespene_worker_difference > 0):  # If we need more workers (threshold of 0.5)
-        #             # Find idle mineral workers
-        #             mineral_workers: Units = expansion.mineral_workers.filter(
-        #                 lambda unit: unit.is_carrying_minerals == False
-        #             )
-                    
-        #             # If there are mineral workers, assign the closest to the refinery
-        #             if mineral_workers.amount > 0:
-        #                 mineral_workers.closest_to(refinery).gather(refinery)
-        #                 break
-                        
-        #         elif (vespene_worker_difference < 0):  # If we have too many workers (threshold of -0.5)
-        #             # Find vespene workers that are not carrying vespene and stop them
-        #             vespene_workers: Units = expansion.vespene_workers.filter(
-        #                 lambda unit: unit.is_carrying_vespene == False
-        #             )
-                    
-        #             # Stop a worker if there's an excess
-        #             if vespene_workers.amount >= 1:
-        #                 vespene_workers.random.stop()
-        #                 break
-
-        # v1
-        # for expansion in self.bot.expansions.filter(lambda expansion: expansion.refineries.amount >= 1):
-        #     # if we're oversaturated
-        #     if (expansion.vespene_worker_count > expansion.desired_vespene_workers):
-        #         vespene_workers: Units = expansion.vespene_workers.filter(lambda unit: unit.is_carrying_vespene == False)
-        #         if (vespene_workers.amount >= 1):
-        #             vespene_workers.random.stop()
-        #     # if we're undersaturated
-        #     if (expansion.vespene_worker_count < expansion.desired_vespene_workers):
-        #         least_saturated_refinery: Unit = expansion.refineries.sorted(lambda unit: unit.assigned_harvesters).first
-        #         mineral_workers: Units = expansion.mineral_workers.filter(
-        #             lambda unit: unit.is_carrying_minerals == False
-        #         )
-        #         mineral_workers.closest_to(least_saturated_refinery).gather(least_saturated_refinery)
-        #         break
         
         #v0
         expansion_sorted_by_vespene_mining: Expansions = self.bot.expansions.ready.filter(
