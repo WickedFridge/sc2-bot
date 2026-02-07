@@ -133,7 +133,7 @@ class BuildingLayer:
         # 1) Hard blocked
         if (any(self.can_build(point, unit_type) == False for point in points)):
             return False
-
+        
         # 2) Reservation check
         reserved_amount: int = 0
         for point in points:
@@ -153,7 +153,7 @@ class BuildingLayer:
         pos = pos.rounded
 
         # 1) Hard blocked
-        if (self.occupancy[pos] <= 0.0):
+        if (self.occupancy[pos] <= 0.0 or self.bot.has_creep(pos)):
             return False
 
         # 2) Reservation check

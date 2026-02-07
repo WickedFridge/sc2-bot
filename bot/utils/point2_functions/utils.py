@@ -29,10 +29,12 @@ def grid_offsets(radius: float, step: float = 1.0, initial_position: Point2 = Po
     return offsets
 
 
+def addon_offset(position: Point2) -> Point2:
+    return position + Point2((2.5, -0.5))
+
 def points_to_build_addon(building_position: Point2) -> List[Point2]:
     """ Return all points that need to be checked when trying to build an addon. Returns 4 points. """
-    addon_offset: Point2 = Point2((2.5, -0.5))
-    addon_position: Point2 = building_position + addon_offset
+    addon_position: Point2 = addon_offset(building_position)
     addon_points = [
         (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
     ]
