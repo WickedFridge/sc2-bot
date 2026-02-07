@@ -57,6 +57,9 @@ class Bunker(Building):
         bunker_to_construct_amount: int = self.bot.already_pending(UnitTypeId.BUNKER) - self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
         expansions_count: int = self.bot.expansions.amount_taken
         bunker_amount_target: int = expansions_count - 1
+        useless_bunker_count: int = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda bunker: self.bot.expansions.taken.closest_to(bunker).position.distance_to(bunker.position) > 15
+        ).amount
         
         # place a bunker in the main if we're under attack on b2
         precarious: bool = self.bot.scouting.situation in self.precarious_situations
@@ -76,7 +79,7 @@ class Bunker(Building):
                 self.expansions_without_defense.amount >= 1
                 or precarious
             )
-            and defense_count < bunker_amount_target
+            and defense_count < bunker_amount_target - useless_bunker_count
             and bunker_to_construct_amount == 0
         )
     

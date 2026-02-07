@@ -142,6 +142,12 @@ class StrategyHandler:
             if (expand_in_construction):
                 expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
             
+            b2_bunker_in_construction: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+                lambda bunker: bunker.build_progress < 0.5 and bunker.distance_to(self.bot.expansions.b2.position) < 10
+            )
+            if (b2_bunker_in_construction):
+                b2_bunker_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
+            
             self.bot.build_order.build = ConservativeExpand(self.bot)
             return
         if (situation in [Situation.PROXY_BUILDINGS, Situation.WORKER_RUSH]):
