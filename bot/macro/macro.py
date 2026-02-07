@@ -36,7 +36,7 @@ class Macro:
 
     # due to speedmining, some workers sometimes bug
     async def unbug_workers(self):
-        for worker in (self.bot.units(UnitTypeId.MULE) + self.bot.workers).filter(lambda worker: worker.is_idle == False):
+        for worker in (self.bot.units(UnitTypeId.MULE) + self.bot.workers).filter(lambda worker: len(worker.orders) > 0):
             order: UnitOrder = worker.orders[0]
             townhall_ids: List[int] = [townhall.tag for townhall in self.bot.townhalls]
             positions = self.bot.expansions.taken.positions

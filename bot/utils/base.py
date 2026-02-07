@@ -274,8 +274,8 @@ class Base:
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)
 
-        bunkers: Units = self.buildings(UnitTypeId.BUNKER)
-        max_worker_to_pull: int = self.get_worker_amount_to_pull(local_enemy_units, attackable_enemy_units, bunkers)
+        defensive_structures: Units = self.buildings([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS])
+        max_worker_to_pull: int = self.get_worker_amount_to_pull(local_enemy_units, attackable_enemy_units, defensive_structures)
         workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)
         workers_to_pullback: Units = workers_pulled.filter(lambda unit: (unit.health < SCV_HEALTH_THRESHOLD))
 
@@ -334,16 +334,16 @@ class Base:
                     lambda unit: unit.distance_to(worker) <= 1
                 )
                 
-                # Move towards the bunker if there is one and we can't attack
+                # Move towards the defensive structure if there is one and we can't attack
                 if (
-                    self.buildings(UnitTypeId.BUNKER).filter(lambda unit: unit.build_progress >= 0.95).amount >= 1
+                    defensive_structures.filter(lambda unit: unit.build_progress >= 0.95).amount >= 1
                     and (
                         enemy_in_range.amount == 0
                         or worker.weapon_cooldown > WEAPON_READY_THRESHOLD
                     )
                 ):
-                    bunker: Unit = self.buildings(UnitTypeId.BUNKER).closest_to(worker)
-                    worker.move(bunker.position.towards(worker))
+                    defensive_structure: Unit = defensive_structures.closest_to(worker)
+                    worker.move(defensive_structure.position.towards(worker))
                 elif (worker.type_id != UnitTypeId.MULE):
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     worker.attack(target)

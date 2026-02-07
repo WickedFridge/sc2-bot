@@ -31,7 +31,7 @@ tech_unlocked: dict[UnitTypeId, List[UnitTypeId]] = {
     UnitTypeId.GHOSTACADEMY: [UnitTypeId.GHOST],
     UnitTypeId.FACTORY: [UnitTypeId.HELLION, UnitTypeId.WIDOWMINE],
     UnitTypeId.FACTORYTECHLAB: [UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK],
-    UnitTypeId.ARMORY: [UnitTypeId.HELLIONTANK, UnitTypeId.THOR],
+    UnitTypeId.ARMORY: [UnitTypeId.HELLIONTANK, UnitTypeId.THOR, UnitTypeId.WIDOWMINEBURROWED],
     UnitTypeId.STARPORT: [UnitTypeId.VIKING, UnitTypeId.MEDIVAC, UnitTypeId.LIBERATOR],
     UnitTypeId.STARPORTTECHLAB: [UnitTypeId.RAVEN, UnitTypeId.BANSHEE],
     UnitTypeId.FUSIONCORE: [UnitTypeId.BATTLECRUISER],

@@ -1,5 +1,6 @@
 import math
 from typing import List, Optional, Set
+from unittest import case
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.influence_maps.manager import InfluenceMapManager
@@ -19,6 +20,7 @@ from bot.utils.point2_functions.utils import grid_offsets
 from bot.utils.unit_cargo import get_building_cargo
 from bot.utils.unit_functions import calculate_bunker_range
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
@@ -254,7 +256,10 @@ class OrdersManager:
                 
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
-        local_enemy_supply: float = local_enemy_army.weighted_supply + local_ghost_army.weighted_supply
+        local_enemy_supply: float = local_enemy_army.weighted_supply
+        
+        if (local_enemy_supply > 0):
+            local_enemy_supply += local_ghost_army.weighted_supply
         
         
         unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
@@ -421,7 +426,10 @@ class OrdersManager:
         )
     
     def should_clean_creep(self, army: Army) -> Optional[Orders]:
-        if (self.bot.matchup != Matchup.TvZ):
+        if (
+            self.bot.matchup != Matchup.TvZ
+            or not army.can_attack_ground
+        ):
             return None
         
         # --- Case 1) very close tumor
@@ -652,8 +660,30 @@ class OrdersManager:
                 ):
                     print("stimming passengers")
                     bunker(AbilityId.EFFECT_STIM)
-                enemy_units_in_range.sort(key = lambda unit: (unit.shield, unit.health + unit.shield))
-                bunker.attack(enemy_units_in_range.first)
+                # sort with armored units first if we have marauders inside
+                # sort with light units first if we have ghosts inside
+                passengers_types: List[UnitTypeId] = [passenger.type_id for passenger in bunker.passengers]
+                
+                enemy_light_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_light)
+                enemy_armored_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_armored)
+                enemy_to_fight: Units = enemy_units_in_range
+                
+                # choose a better target if the unit has bonus damage
+                if (UnitTypeId.MARAUDER in passengers_types):
+                    enemy_to_fight = enemy_armored_units if enemy_armored_units.amount >= 1 else enemy_units_in_range
+                elif (UnitTypeId.GHOST in passengers_types):
+                    enemy_to_fight = enemy_light_units if enemy_light_units.amount >= 1 else enemy_units_in_range
+                else:
+                    enemy_to_fight = enemy_units_in_range
+
+                enemy_to_fight.sort(
+                    key=lambda enemy_unit: (
+                        BuffId.RAVENSHREDDERMISSILEARMORREDUCTION in enemy_unit.buffs,
+                        enemy_unit.shield,
+                        enemy_unit.shield + enemy_unit.health
+                    )
+                )
+                bunker.attack(enemy_to_fight.first)
             
             # load the bunker with bio if there is space
             if (bunker.cargo_left == 0):

@@ -19,6 +19,20 @@ class CommandCenter(Building):
 
     @override
     @property
+    def override_conditions(self) -> bool:
+        base_count: int = self.bot.expansions.amount
+        townhalls_count: int = self.bot.townhalls.amount
+        pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
+        max_pending_cc_count: int = 2
+
+        return (
+            townhalls_count <= base_count + 3
+            and pending_cc_count < max_pending_cc_count
+            and self.bot.minerals >= 600
+        )
+    
+    @override
+    @property
     def custom_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
@@ -46,9 +60,12 @@ class CommandCenter(Building):
             case 0:
                 return self.bot.expansions.main.position
             case 1:
-                if (next_expansion.is_safe and self.bot.build_order.build.name != BuildOrderName.DEFENSIVE_TWO_RAX.value):
-                    return next_expansion.position
-                return near_cc_position
+                if (
+                    self.bot.build_order.build.name in [BuildOrderName.DEFENSIVE_TWO_RAX.value, BuildOrderName.CONSERVATIVE_EXPAND.value]
+                    or not next_expansion.is_safe
+                ):
+                    return near_cc_position
+                return next_expansion.position
             case 2:
                 return near_cc_position
             case _:

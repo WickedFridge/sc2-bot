@@ -106,6 +106,10 @@ class Army(CachedClass):
         )
     
     @property
+    def can_attack_ground(self) -> bool:
+        return self.units.filter(lambda unit: unit.can_attack_ground).amount >= 1
+    
+    @property
     def units_not_in_sight(self) -> Units:
         unseen_units: List[Unit] = []
         for unit in self.units:

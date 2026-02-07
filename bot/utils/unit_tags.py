@@ -117,7 +117,8 @@ burrowed_units: List[UnitTypeId] = [
 ]
 cloaked_units: List[UnitTypeId] = [
     UnitTypeId.GHOST,
-    UnitTypeId.WIDOWMINE,
+    # This one is visible
+    # UnitTypeId.WIDOWMINE,
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.BANSHEE,
     # These shouldn't trigger detection on their own

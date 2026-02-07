@@ -158,6 +158,12 @@ class ArmyCompositionManager(CachedClass):
             ) 
         ):
             composition.set(UnitTypeId.RAVEN, 1)
+            # also if there's creep covering a lot of the map, we want more Ravens for the anti-creep coverage
+            if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.b3.position] > 0):
+                composition.add(UnitTypeId.RAVEN, 1)
+            if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.b4.position] > 0):
+                composition.add(UnitTypeId.RAVEN, 1)
+            
         
         # if we have medivacs and a lot of bio, get the medivac count up to 10
         if (UnitTypeId.MEDIVAC in available_units):
