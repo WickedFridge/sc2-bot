@@ -58,7 +58,7 @@ class Bunker(Building):
         expansions_count: int = self.bot.expansions.amount_taken
         bunker_amount_target: int = expansions_count - 1
         useless_bunker_count: int = self.bot.structures(UnitTypeId.BUNKER).filter(
-            lambda bunker: self.bot.expansions.taken.closest_to(bunker).position.distance_to(bunker.position) > 15
+            lambda bunker: self.bot.expansions.taken.closest_to(bunker).position.distance_to(bunker) > 10
         ).amount
         
         # place a bunker in the main if we're under attack on b2

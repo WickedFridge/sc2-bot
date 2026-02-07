@@ -147,6 +147,12 @@ class StrategyHandler:
             )
             if (b2_bunker_in_construction):
                 b2_bunker_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
+
+            worker_building_bunker: Units = self.bot.workers.filter(
+                lambda worker: len(worker.orders) > 0 and worker.orders[0].ability.id == AbilityId.TERRANBUILD_BUNKER
+            )
+            if (worker_building_bunker):
+                worker_building_bunker.first.stop()
             
             self.bot.build_order.build = ConservativeExpand(self.bot)
             return
