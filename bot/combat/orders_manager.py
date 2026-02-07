@@ -565,7 +565,7 @@ class OrdersManager:
                     await self.execute.fight(army)
                 
                 case Orders.FIGHT_CHASE:
-                    await self.execute.fight(army)
+                    await self.execute.fight(army, chase = True)
 
                 case Orders.FIGHT_DROP:
                     await self.execute.fight_drop(army)

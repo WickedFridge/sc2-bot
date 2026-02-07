@@ -44,7 +44,7 @@ class Debug:
     def draw_box_on_world(self, pos: Point2, size: float = 0.25, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)
         self.bot.client.debug_box2_out(
-            Point3((pos.x, pos.y, z_height-0.45)),
+            Point3((pos.x, pos.y, z_height-0.4)),
             size,
             draw_color,
         )
@@ -212,24 +212,24 @@ class Debug:
                     self.draw_box_on_world(target_unit.position)
     
     async def selection(self):
+        # print("- 1 -")
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
+        # print("- 2 -")
         for unit in selected_units:
+            # print("- 3 -")
             tile: BuildingTile = self.bot.map.influence_maps.buildings.get_tile(unit.position)
             color: tuple = RED if tile.blocked else GREEN
+            # print("- 4 -")
             if (tile.reserved_for is not None):
-                color = ORANGE
+                # print("- 5 -")
+                color = ORANGE if tile.reserved_for is not None else color
                 self.draw_text_on_world(unit.position, tile.reserved_for, 0.5, color)
+                # print("- 6 -")
+            # print("- 7 -")
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
-            
-        for unit in selected_units:
-            for i, buff in enumerate(unit.buffs):
-                self.draw_text_on_world(Point2((unit.position.x, unit.position.y + 2 * i)), f'Buff : {buff.name}')
-            
-            # draw "virtual range"
-            range: float = unit.ground_range + unit.distance_to_weapon_ready
-            self.draw_sphere_on_world(unit.position, radius=range, draw_color=ORANGE)
+            # print("- 8 -")
 
     def range(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected

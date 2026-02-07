@@ -399,7 +399,7 @@ class Micro(CachedClass):
             reaper.move(safest_spot)
 
 
-    async def bio_fight(self, unit: Unit, local_army: Units):
+    async def bio_fight(self, unit: Unit, local_army: Units, chase: bool = False):
         enemy_units_in_range = self.get_enemy_units_in_range(unit)
         potential_targets: Units = self.get_potential_targets(unit)
         buildings_in_range = self.bot.enemy_structures.filter(
@@ -410,6 +410,12 @@ class Micro(CachedClass):
         local_medivacs: Units = local_army(UnitTypeId.MEDIVAC)
         loaded_medivacs: Units = local_medivacs.filter(lambda unit: unit.cargo_used > 0)
         
+        # First, if we're chasing and only have a building in range, shoot at it
+        if (chase and potential_targets.amount == 0 and buildings_in_range.amount >= 1):
+            self.stim_bio(unit)
+            unit.attack(buildings_in_range.first)
+            return
+
         # Determine if we should kite back or pressure forward
         # This depends on the enemy range + movement speed
         # If their average range is less than our range, kite back

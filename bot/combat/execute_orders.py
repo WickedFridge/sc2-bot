@@ -197,7 +197,7 @@ class Execute(CachedClass):
             else:
                 await self.micro.retreat(unit)
 
-    async def fight(self, army: Army):
+    async def fight(self, army: Army, chase: bool = False):
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.REAPER:
@@ -205,9 +205,9 @@ class Execute(CachedClass):
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
                 case UnitTypeId.MARINE:
-                    await self.micro.bio_fight(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units, chase)
                 case UnitTypeId.MARAUDER:
-                    await self.micro.bio_fight(unit, army.units)
+                    await self.micro.bio_fight(unit, army.units, chase)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -220,7 +220,7 @@ class Execute(CachedClass):
                         unit.attack(closest_enemy_unit)
                     else:
                         unit.move(army.center)
-
+    
     async def fight_defense(self, army: Army):
         for unit in army.units:
             match unit.type_id:
