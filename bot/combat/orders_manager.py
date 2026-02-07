@@ -332,11 +332,11 @@ class OrdersManager:
             # If winning with stim
             if (self.stim_completed and army.potential_supply >= local_enemy_supply * 1.2):
                 # if army is mostly in medivacs, we drop if we have enough hp on medivacs, otherwise we retreat
-                if (army.cant_drop_medivacs.amount >= 1 and army.is_full_drop):
+                if (army.weak_medivacs.amount >= 1 and army.is_full_drop):
                     return Orders.PICKUP_LEAVE
 
-                if (army.potential_supply >= local_enemy_supply * 1.5):
-                    return Orders.FIGHT_CHASE
+                if (army.potential_supply >= local_enemy_supply * 2):
+                    return Orders.DROP_UNLOAD
                 return Orders.FIGHT_OFFENSE
 
             # If losing, defend if we need to
@@ -353,7 +353,7 @@ class OrdersManager:
         # Harass Workers or buildings we fly above
         if (local_enemy_workers.amount >= 1 or local_enemy_buildings.amount >= 1):
             if (army.is_full_drop):
-                return Orders.FIGHT_DROP
+                return Orders.DROP_UNLOAD
             return Orders.HARASS
             
         # Heal up first if low bio HP
@@ -567,8 +567,8 @@ class OrdersManager:
                 case Orders.FIGHT_CHASE:
                     await self.execute.fight(army, chase = True)
 
-                case Orders.FIGHT_DROP:
-                    await self.execute.fight_drop(army)
+                case Orders.DROP_UNLOAD:
+                    await self.execute.drop_unload(army)
 
                 case Orders.FIGHT_DISENGAGE:
                     await self.execute.disengage(army)
@@ -755,7 +755,7 @@ class OrdersManager:
             Orders.HEAL_UP: GREEN,
             Orders.FIGHT_OFFENSE: RED,
             Orders.FIGHT_CHASE: RED,
-            Orders.FIGHT_DROP: RED,
+            Orders.DROP_UNLOAD: RED,
             Orders.FIGHT_DEFENSE: ORANGE,
             Orders.FIGHT_DISENGAGE: ORANGE,
             Orders.DEFEND: YELLOW,

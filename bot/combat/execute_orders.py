@@ -242,11 +242,11 @@ class Execute(CachedClass):
                     closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
                     unit.attack(closest_enemy_unit)
 
-    async def fight_drop(self, army: Army):
+    async def drop_unload(self, army: Army):
         for unit in army.units:
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight_drop(unit, self.drop_target)
+                    await self.micro.medivac_fight_unload(unit, self.drop_target)
                 case UnitTypeId.MARINE:
                     await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.MARAUDER:
@@ -422,7 +422,7 @@ class Execute(CachedClass):
                 continue
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 if (unit.cargo_used >= 4):
-                    await self.micro.medivac_fight_drop(unit, local_enemy_buildings.first.position)
+                    await self.micro.medivac_fight_unload(unit, local_enemy_buildings.first.position)
                 else:
                     await self.micro.medivac_fight(unit, army.units)
                 continue

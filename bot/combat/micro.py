@@ -172,7 +172,7 @@ class Micro(CachedClass):
             margin: float = flying_unit.radius + enemy_unit.radius + enemy_unit.air_range + safety_distance
             excess_distance: float = margin - enemy_unit.distance_to(flying_unit)
             retreat_direction = retreat_direction.towards(enemy_unit, -excess_distance)
-        retreat_direction = retreat_direction.towards(self.retreat_position, 3.5 - safety_distance)
+        retreat_direction = retreat_direction.towards(self.retreat_position, 5 - safety_distance)
         
         # this should help us avoid splash damage like Storms and Biles
         safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_point(retreat_direction, air=True)
@@ -238,7 +238,7 @@ class Micro(CachedClass):
             return
         await self.medivac_heal(medivac, local_army)
 
-    async def medivac_fight_drop(self, medivac: Unit, drop_target: Point2):
+    async def medivac_fight_unload(self, medivac: Unit, drop_target: Point2):
         # if there's a base closer than our drop target, we attack it
         # if we don't know any enemy base, we just drop the enemy main
         closest_enemy_base: Expansion = (
@@ -246,23 +246,24 @@ class Micro(CachedClass):
             if self.bot.expansions.enemy_bases.amount >= 1
             else self.bot.expansions.enemy_main
         )
+        closest_enemy_building: Unit = self.bot.enemy_structures.closest_to(medivac) if self.bot.enemy_structures.amount >= 1 else None
         MARGIN: int = 10
         if (closest_enemy_base.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
             drop_target = closest_enemy_base.mineral_line
+        if (closest_enemy_building and closest_enemy_building.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN):
+            drop_target = closest_enemy_building.position
 
-        # if we are close to the drop target, boost and move towards it
+        # boost towards the drop target and move towards it
+        await self.medivac_boost(medivac)
+        medivac.move(drop_target)
+
+        # if we're close enough, unload and fight
         if (
-            medivac.distance_to(drop_target) <= 40
-            and self.bot.get_terrain_height(medivac.position) != self.bot.get_terrain_height(drop_target)
+            medivac.distance_to(drop_target) <= 30
+            and self.bot.get_terrain_height(medivac.position) == self.bot.get_terrain_height(drop_target)
         ):
-            await self.medivac_boost(medivac)
-            medivac.move(drop_target)
-            return
+            await self.medivac_unload(medivac)
 
-        # otherwise just unload and survive
-        await self.medivac_unload(medivac)
-        if (medivac.health_percentage <= 0.75):
-            await self.medivac_safety_disengage(medivac)
     
     async def medivac_heal(self, medivac: Unit, local_army: Units):
         # heal damaged ally in local army

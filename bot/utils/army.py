@@ -94,7 +94,7 @@ class Army(CachedClass):
         )
     
     @property
-    def cant_drop_medivacs(self) -> Units:
+    def weak_medivacs(self) -> Units:
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.health_percentage < 0.4
         )

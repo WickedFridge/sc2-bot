@@ -11,6 +11,7 @@ from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
+from sc2.game_info import Ramp
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -286,6 +287,14 @@ class Expansion(CachedClass):
     def bunker_forward(self) -> Point2:
         enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
         bunker_position: Point2 = self.position.towards(enemy_spawn, 3)
+        # if there's a ramp descending, position the bunker in top of it
+        ramps: List[Ramp] = self.bot.game_info.map_ramps
+        for ramp in ramps:
+            if (
+                ramp.top_center.distance_to(self.position) < ramp.bottom_center.distance_to(self.position)
+                and ramp.top_center.distance_to(self.position) <= 15
+            ):
+                bunker_position = center([self.position, ramp.top_center])
         return bunker_position.rounded_half
     
     @custom_cache_once_per_frame

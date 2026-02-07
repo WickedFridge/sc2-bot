@@ -16,7 +16,7 @@ class Orders(enum.Enum):
     DROP_MOVE = 12
     HEAL_UP = 13
     FIGHT_DISENGAGE = 14
-    FIGHT_DROP = 15
+    DROP_UNLOAD = 15
     SCOUT = 16
     FIGHT_CHASE = 17
     DROP_LOAD = 18
