@@ -56,7 +56,7 @@ def distance_matrix_scipy_cdist_mahalanobis(ps):
 
 def distance_matrix_scipy_cdist_matching(ps):
     # Calculate distances between each of the points
-    return cdist(ps, ps, "matching")
+    return cdist(ps, ps, "matching")  # pyrefly: ignore
 
 
 # def distance_matrix_scipy_cdist_minkowski(ps):

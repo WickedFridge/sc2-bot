@@ -25,7 +25,7 @@ from sc2.protocol import ProtocolError
 class ExporterBot(BotAI):
     def __init__(self):
         BotAI.__init__(self)
-        self.map_name: str = None
+        self.map_name: str = None  # pyrefly: ignore
 
     async def on_step(self, iteration):
         pass
@@ -44,7 +44,7 @@ class ExporterBot(BotAI):
         file_path = folder_path / subfolder_name / file_name
         return file_path
 
-    async def store_data_to_file(self, file_path: str):
+    async def store_data_to_file(self, file_path: Path):
         # Grab all raw data from observation
         raw_game_data = await self.client._execute(
             data=sc_pb.RequestData(ability_id=True, unit_type_id=True, upgrade_id=True, buff_id=True, effect_id=True)
@@ -86,10 +86,10 @@ class ExporterBot(BotAI):
         }
 
         # Create units for self
-        await self.client.debug_create_unit([[valid_unit, 1, self.start_location, 1] for valid_unit in valid_units])
+        await self.client.debug_create_unit([(valid_unit, 1, self.start_location, 1) for valid_unit in valid_units])
         # Create units for enemy
         await self.client.debug_create_unit(
-            [[valid_unit, 1, self.enemy_start_locations[0], 2] for valid_unit in valid_units]
+            [(valid_unit, 1, self.enemy_start_locations[0], 2) for valid_unit in valid_units]
         )
 
         await self._advance_steps(2)

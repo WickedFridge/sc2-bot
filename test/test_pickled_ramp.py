@@ -14,7 +14,6 @@ from pathlib import Path
 from loguru import logger
 
 from sc2.game_info import Ramp
-from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -25,6 +24,7 @@ from test.test_pickled_data import MAPS, get_map_specific_bot
 def pytest_generate_tests(metafunc):
     idlist = []
     argvalues = []
+    argnames = []
     for scenario in metafunc.cls.scenarios:
         idlist.append(scenario[0])
         items = scenario[1].items()
@@ -37,7 +37,7 @@ class TestClass:
     # Load all pickle files and convert them into bot objects from raw data (game_data, game_info, game_state)
     scenarios = [(map_path.name, {"map_path": map_path}) for map_path in MAPS]
 
-    MAPS_WITH_ODD_EXPANSION_COUNT: set[UnitTypeId] = {"Persephone AIE", "StargazersAIE", "Stasis LE"}
+    MAPS_WITH_ODD_EXPANSION_COUNT = {"Persephone AIE", "StargazersAIE", "Stasis LE"}
 
     def test_main_base_ramp(self, map_path: Path):
         bot = get_map_specific_bot(map_path)
