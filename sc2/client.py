@@ -226,7 +226,7 @@ class Client(Protocol):
             ActionResult(result) for result in response.action.result if ActionResult(result) != ActionResult.Success
         ]
 
-    async def query_pathing(self, start: Unit | Point2 | Point3, end: Point2 | Point3) -> int | float | None:
+    async def query_pathing(self, start: Unit | Point2 | Point3, end: Point2 | Point3) -> float | None:
         """Caution: returns "None" when path not found
         Try to combine queries with the function below because the pathing query is generally slow.
 
