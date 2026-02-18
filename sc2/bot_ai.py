@@ -886,9 +886,6 @@ class BotAI(BotAIInternal):
         """
         if isinstance(unit_type, UpgradeId):
             return self.already_pending_upgrade(unit_type)
-        creation_ability = self.game_data.units[unit_type.value].creation_ability
-        if creation_ability is None:
-            return 0
 
         if unit_type in CREATION_ABILITY_FIX:
             # Hotfix for checking pending archons and other abilities
@@ -896,6 +893,10 @@ class BotAI(BotAIInternal):
                 return self._abilities_count_and_build_progress[0][AbilityId.ARCHON_WARP_TARGET] / 2
             # Hotfix for rich geysirs
             return self._abilities_count_and_build_progress[0][CREATION_ABILITY_FIX[unit_type]]
+
+        creation_ability = self.game_data.units[unit_type.value].creation_ability
+        if creation_ability is None:
+            return 0
 
         creation_ability = self.game_data.units[unit_type.value].creation_ability
         if creation_ability is None:
