@@ -44,8 +44,8 @@ class Pointlike(tuple[float, ...]):
 
         :param target:"""
         # pyrefly: ignore
-        p: tuple[float, ...] = target if isinstance(target, tuple) else target.position
-        return math.hypot(self[0] - p[0], self[1] - p[1])
+        position: tuple[float, ...] = target if isinstance(target, tuple) else target.position
+        return math.hypot(self[0] - position[0], self[1] - position[1])
 
     def distance_to_point2(self, p: _PointLike) -> float:
         """Same as the function above, but should be a bit faster because of the dropped asserts

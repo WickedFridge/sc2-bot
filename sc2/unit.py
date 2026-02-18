@@ -1282,7 +1282,7 @@ class Unit(HasPosition2D):
             SCV.build(COMMANDCENTER, position)
             hatchery.build(UnitTypeId.LAIR)
             # Target for refinery, assimilator and extractor needs to be the vespene geysir unit, not its position
-            SCV.build(REFINERY, target_vespene_geysir)
+            SCV.build(REFINERY, target_vespene_geyser)
 
         :param unit:
         :param position:
@@ -1314,7 +1314,7 @@ class Unit(HasPosition2D):
         Usage::
 
             # Target for refinery, assimilator and extractor needs to be the vespene geysir unit, not its position
-            SCV.build_gas(target_vespene_geysir)
+            SCV.build_gas(target_vespene_geyser)
 
         :param target_geysir:
         :param queue:
