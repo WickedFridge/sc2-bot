@@ -41,7 +41,7 @@ docker cp test test_container:/root/python-sc2/test
 # Run various test bots
 docker exec -i test_container bash -c "cd python-sc2 && uv run python test/travis_test_script.py test/autotest_bot.py"
 docker exec -i test_container bash -c "cd python-sc2 && uv run python test/travis_test_script.py test/queries_test_bot.py"
-#docker exec -i test_container bash -c "cd python-sc2 && uv run python test/travis_test_script.py test/damagetest_bot.py"
+docker exec -i test_container bash -c "cd python-sc2 && uv run python test/travis_test_script.py test/damagetest_bot.py"
 
 docker cp examples test_container:/root/python-sc2/examples
 docker exec -i test_container bash -c "cd python-sc2 && uv run python test/run_example_bots_vs_computer.py"

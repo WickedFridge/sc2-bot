@@ -310,8 +310,8 @@ class MassReaperBot(BotAI):
                 surplus_gas_buildings[g.tag] = {"unit": g, "deficit": deficit}
 
         # Find all townhalls that have surplus or deficit
-        deficit_townhalls = dict[int, dict[Literal["unit", "deficit"], Unit | int]]()
-        surplus_townhalls = dict[int, dict[Literal["unit", "deficit"], Unit | int]]()
+        deficit_townhalls: dict[int, dict[Literal["unit", "deficit"], Unit | int]] = {}
+        surplus_townhalls: dict[int, dict[Literal["unit", "deficit"], Unit | int]] = {}
         if not only_saturate_gas:
             for th in self.townhalls:
                 deficit = th.ideal_harvesters - th.assigned_harvesters
