@@ -6,6 +6,8 @@ Bot has a chance to win against elite (=Difficulty.VeryHard) zerg AI
 Bot made by Burny
 """
 
+from __future__ import annotations
+
 import random
 from typing import Literal
 
