@@ -494,7 +494,7 @@ class BotAI(BotAIInternal):
             # Cost of morphs is automatically correctly calculated by 'calculate_ability_cost'
             creation_ability = unit_data.creation_ability
             if creation_ability is None:
-                logger.error(f"Unknown item_id for calculate_cost: {item_id}")
+                logger.error(f"Unknown creation_ability in calculate_cost for item_id: {item_id}")
                 return Cost(0, 0)
             return self.game_data.calculate_ability_cost(creation_ability.exact_id)
 
@@ -633,7 +633,7 @@ class BotAI(BotAIInternal):
         if isinstance(building, UnitTypeId):
             creation_ability = self.game_data.units[building.value].creation_ability
             if creation_ability is None:
-                logger.error(f"Unknown building for can_place_single: {building}")
+                logger.error(f"Unknown creation_ability in can_place_single for building: {building}")
                 return False
             creation_ability_id = creation_ability.id
             return (await self.client._query_building_placement_fast(creation_ability_id, [position]))[0]
@@ -896,11 +896,7 @@ class BotAI(BotAIInternal):
 
         creation_ability = self.game_data.units[unit_type.value].creation_ability
         if creation_ability is None:
-            return 0
-
-        creation_ability = self.game_data.units[unit_type.value].creation_ability
-        if creation_ability is None:
-            logger.error(f"Unknown unit_type for already_pending: {unit_type}")
+            logger.error(f"Unknown creation_ability in already_pending for unit_type: {unit_type}")
             return 0
         ability_id = creation_ability.exact_id
         return self._abilities_count_and_build_progress[0][ability_id]
@@ -911,7 +907,7 @@ class BotAI(BotAIInternal):
         :param unit_type:"""
         creation_ability = self.game_data.units[unit_type.value].creation_ability
         if creation_ability is None:
-            logger.error(f"Unknown unit_type for worker_en_route_to_build: {unit_type}")
+            logger.error(f"Unknown creation_ability in worker_en_route_to_build for unit_type: {unit_type}")
             return 0
         ability = creation_ability.exact_id
         return self._worker_orders[ability]
