@@ -102,7 +102,6 @@ project-excludes = [
     # Disable for those files and folders
     "sc2/data.py",
     # TODO Temp disable for those files and folders
-    "sc2/bot_ai_internal.py",
     "sc2/bot_ai.py",
 ]
 

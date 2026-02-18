@@ -62,7 +62,6 @@ from sc2.unit_command import UnitCommand
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
-    from sc2.bot_ai_internal import BotAIInternal
     from sc2.game_data import AbilityData, UnitTypeData
 
 
@@ -108,7 +107,7 @@ class Unit(HasPosition2D):
     def __init__(
         self,
         proto_data: raw_pb2.Unit,
-        bot_object: BotAI | BotAIInternal,
+        bot_object: BotAI,
         distance_calculation_index: int = -1,
         base_build: int = -1,
     ) -> None:
