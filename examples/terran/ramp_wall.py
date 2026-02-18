@@ -36,7 +36,7 @@ class RampWallBot(BotAI):
             for depo in self.structures(UnitTypeId.SUPPLYDEPOT).ready:
                 for unit in self.enemy_units:
                     if unit.distance_to(depo) < 15:
-                        break
+                        return
                 else:
                     depo(AbilityId.MORPH_SUPPLYDEPOT_LOWER)
             # Lower depos when no enemies are nearby
@@ -44,7 +44,7 @@ class RampWallBot(BotAI):
                 for unit in self.enemy_units:
                     if unit.distance_to(depo) < 10:
                         depo(AbilityId.MORPH_SUPPLYDEPOT_RAISE)
-                        break
+                        return
 
         raise_and_lower_depots()
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 VERSIONS: list[dict[str, int | str]] = [
     {
         "base-version": 52910,

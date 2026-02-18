@@ -321,6 +321,7 @@ class GameInfo:
                     point: Point2 = Point2((px, py))
                     remaining.discard(point)
                     paint(point)
+                    queue.append(point)
                     current_group.add(point)
             if len(current_group) >= minimum_points_per_group:
                 yield frozenset(current_group)
