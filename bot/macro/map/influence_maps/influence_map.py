@@ -137,19 +137,18 @@ class InfluenceMap:
 
         x1, y1, x2, y2, _, dist = self._region(position, radius, exact_dist=True)
 
-        # Uniform density inside radius
-        density: np.ndarray = (dist <= radius).astype(float)
+        # Uniform density inside radius, excluding inner hole
+        in_outer: np.ndarray = dist <= radius
+        in_inner: np.ndarray = (dist <= min_radius) if (min_radius > 0) else np.zeros_like(in_outer)
+        density: np.ndarray = (in_outer & ~in_inner).astype(float)
 
-        # Apply inner hole if needed
-        if (min_radius > 0):
-            density[dist <= min_radius] = 0.0
+        # Center bonus: calculated relative to effective zone (excluding inner hole)
+        # so tiles just outside the hole don't get inflated bonuses
+        effective_dist: np.ndarray = np.clip(dist - min_radius, 0.0, None)
+        effective_radius: float = max(radius - min_radius, 1e-6)
+        center_bonus: np.ndarray = 1.0 + density_alpha * np.clip(1.0 - effective_dist / effective_radius, 0.0, 1.0)
 
-        # -------- 2) Center bonus (optional) --------
-        # makes center moderately more dangerous because escaping takes longer
-        with np.errstate(divide="ignore", invalid="ignore"):
-            center_bonus: np.ndarray = 1.0 + density_alpha * np.clip(1.0 - dist / radius, 0.0, 1.0)
-
-        # -------- 3) Combine --------
+        # Combine
         delta: np.ndarray = value * density * center_bonus
 
         self.map[y1:y2, x1:x2] += delta

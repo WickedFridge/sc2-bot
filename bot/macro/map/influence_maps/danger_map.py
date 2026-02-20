@@ -64,7 +64,7 @@ class DangerMap:
                 # assume 2 marines inside
                 ground_dps = 20
                 ground_range = 7
-            case UnitTypeId.SIEGETANK:
+            case UnitTypeId.SIEGETANKSIEGED:
                 minimum_range = 2
             case UnitTypeId.DISRUPTORPHASED:
                 ground_dps = 100
@@ -121,15 +121,18 @@ class DangerMap:
             minimum_range,
         ) = self.get_unit_property(unit)
         
-        
+        if (minimum_range > 0):
+            print(f"Tank: unit_radius={unit_radius}, ground_range={ground_range}, minimum_range={minimum_range}, effective_min={unit_radius + minimum_range}")
+
         # if (ground_dps == 0 and unit.type_id in menacing):
         #     ground_dps = 15
 
         for weight, ms_factor in self.FALLOFF_LEVELS:
             ground_radius = unit_radius + ground_range + move_speed * ms_factor / 2
             air_radius = unit_radius + air_range + move_speed * ms_factor / 2
-            self.ground.update(unit_position, ground_radius, ground_dps * weight, minimum_range)
-            self.air.update(unit_position, air_radius, air_dps * weight, minimum_range)
+            effective_min_radius: float = unit_radius + minimum_range  # fix
+            self.ground.update(unit_position, ground_radius, ground_dps * weight, effective_min_radius)
+            self.air.update(unit_position, air_radius, air_dps * weight, effective_min_radius)
 
 
     def apply_wall_and_blocking(self, wall_distance: np.ndarray, block_mask: np.ndarray):

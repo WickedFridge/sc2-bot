@@ -8,6 +8,7 @@ from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from bot.strategy.situations import precarious_situations
 
 if TYPE_CHECKING:
     from .builder import Builder
@@ -16,6 +17,7 @@ class Building:
     bot: Superbot
     builder: Builder
     unitId: UnitTypeId
+    unitIdFlying: Optional[UnitTypeId] = None
     abilityId: Optional[AbilityId] = None
     name: str
     radius: float = 1
@@ -67,6 +69,32 @@ class Building:
             UnitTypeId.STARPORT,
         ]
 
+    @property
+    def base_amount(self) -> int:
+        return self.bot.townhalls.amount
+        
+    @property
+    def pending_amount(self) -> int:
+        return max(
+            self.bot.structures(self.unitId).not_ready.amount,
+            self.bot.already_pending(self.unitId)
+        )
+
+    @property
+    def amount(self) -> int:
+        amount: int = (
+            self.bot.structures(self.unitId).ready.amount +
+            self.pending_amount
+        )
+        if (self.unitIdFlying):
+            amount += self.bot.structures(self.unitIdFlying).ready.amount
+
+        return amount
+    
+    @property
+    def precarious(self) -> int:
+        return self.bot.scouting.situation in precarious_situations
+    
     def on_complete(self):
         print(f'Build {self.name}')
 

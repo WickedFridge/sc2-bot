@@ -19,7 +19,7 @@ class MissileTurret(Building):
     def expansions_without_turret(self) -> Expansions:
         return self.bot.expansions.populated.filter(
             lambda expansion: (
-                self.bot.structures(UnitTypeId.MISSILETURRET).amount == 0 
+                self.bot.structures(UnitTypeId.MISSILETURRET).amount == 0
                 or self.bot.structures(UnitTypeId.MISSILETURRET).closest_distance_to(expansion.position) > 12
             )
         )
@@ -27,13 +27,11 @@ class MissileTurret(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
-        have_ebay: bool = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount >= 1
         enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
         turret_to_construct_amount: int = self.bot.already_pending(UnitTypeId.MISSILETURRET) - self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
         
         return (
-            have_ebay
-            and enemy_burrow
+            enemy_burrow
             and self.expansions_without_turret.amount >= 1
             and turret_to_construct_amount == 0
         )

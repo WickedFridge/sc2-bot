@@ -152,7 +152,8 @@ class InfluenceMapManager:
                 end,
             )
 
-            path_value: float = evaluator.evaluate_path(path)
+            path_value: float = masked_values[iy, ix]
+            # path_value: float = evaluator.evaluate_path(path)
             value: float = masked_values[iy, ix]
 
             if (Dx is not None):

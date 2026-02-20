@@ -2,8 +2,6 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
-from bot.strategy.build_order.bo_names import BuildOrderName
-from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from bot.utils.unit_supply import get_unit_supply
@@ -13,6 +11,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
 from bot.utils.unit_tags import cloaked_units, burrowed_units, flying_units
+from bot.strategy.situations import precarious_situations
 
 if TYPE_CHECKING:
     from bot import WickedBot  # only imported for type hints
@@ -97,8 +96,11 @@ class ArmyCompositionManager(CachedClass):
         }
         
         if (self.wicked.scouting.known_enemy_army.supply < 10):
-            # default is 0 if we can't make medivacs yet
-            if (UnitTypeId.MEDIVAC not in self.available_units):
+            # default is 0 if we can't make medivacs yet and we're not in a precarious situation
+            if (
+                UnitTypeId.MEDIVAC not in self.available_units
+                and self.wicked.scouting.situation not in precarious_situations
+            ):
                 return 0
             return default_marauder_ratio[self.wicked.matchup]
         return max(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
@@ -106,7 +108,7 @@ class ArmyCompositionManager(CachedClass):
     def default_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:
             case UnitTypeId.MEDIVAC:
-                return 6
+                return 4
             case UnitTypeId.MARINE:
                 return 20
             case _:

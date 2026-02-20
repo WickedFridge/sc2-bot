@@ -2,7 +2,6 @@ from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
-from bot.strategy.strategy_types import Situation
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import center
@@ -12,14 +11,6 @@ from sc2.units import Units
 
 
 class Bunker(Building):
-    precarious_situations: List[Situation] = [
-        Situation.PROXY_BUILDINGS,
-        Situation.UNDER_ATTACK,
-        Situation.CHEESE_LING_DRONE,
-        Situation.CHEESE_ROACH_RUSH,
-        Situation.CHEESE_UNKNOWN,
-    ]
-    
     def __init__(self, build):
         super().__init__(build)
         self.unitId = UnitTypeId.BUNKER
@@ -32,7 +23,7 @@ class Bunker(Building):
         
         # build a bunker in the main if we're getting proxy'd
         if (
-            self.bot.scouting.situation in self.precarious_situations
+            self.precarious
             and self.bot.expansions.taken.amount < 3
         ):
             expansions.add(self.bot.expansions.main)
@@ -65,11 +56,10 @@ class Bunker(Building):
         )
         
         # place a bunker in the main if we're under attack on b2
-        precarious: bool = self.bot.scouting.situation in self.precarious_situations
         ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(self.bot.main_base_ramp.top_center) < 8)
         if (
             ramp_bunkers.amount >= 1 or (
-                precarious and self.bot.expansions.taken.amount < 3
+                self.precarious and self.bot.expansions.taken.amount < 3
             )
         ):
             bunker_amount_target += 1
@@ -80,7 +70,7 @@ class Bunker(Building):
             and (reaper_amount >= 1 or marine_amount >= 2)
             and (
                 self.expansions_without_defense.amount >= 1
-                or precarious
+                or self.precarious
             )
             and defense_count < bunker_amount_target - useless_bunker_count
             and bunker_to_construct_amount == 0

@@ -9,15 +9,8 @@ class Starport(Building):
     def __init__(self, build):
         super().__init__(build)
         self.unitId = UnitTypeId.STARPORT
+        self.unitIdFlying = UnitTypeId.STARPORTFLYING
         self.name = "Starport"
-
-    @property
-    def starport_amount(self) -> int:
-        return (
-            self.bot.structures(UnitTypeId.STARPORT).ready.amount
-            + self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount
-            + self.bot.already_pending(UnitTypeId.STARPORT)
-        )
     
     @override
     @property
@@ -25,15 +18,18 @@ class Starport(Building):
         if (self.bot.build_order.build.is_completed == False):
             return True
         
-        if (self.starport_amount < 1):
+        if (self.amount < 1):
             return True
         
-        # We want 2nd/3rd starport after we have a 3rd base if our composition is mostly air units
+        ebays_amount: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount
+
+        # We want 2nd/3rd starport after we have a 3rd base and 2 Ebays if our composition is mostly air units
         return (
-            self.bot.townhalls.amount >= 3
-            and self.starport_amount < 2
+            self.base_amount >= 3
+            and self.amount < 2
+            and ebays_amount >= 2
             and (
-                self.bot.composition_manager.vikings_amount >= 4 * self.starport_amount
+                self.bot.composition_manager.vikings_amount >= 4 * self.amount
                 or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
             )
         )
