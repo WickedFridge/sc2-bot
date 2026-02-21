@@ -120,17 +120,11 @@ class DangerMap:
             move_speed,
             minimum_range,
         ) = self.get_unit_property(unit)
-        
-        if (minimum_range > 0):
-            print(f"Tank: unit_radius={unit_radius}, ground_range={ground_range}, minimum_range={minimum_range}, effective_min={unit_radius + minimum_range}")
-
-        # if (ground_dps == 0 and unit.type_id in menacing):
-        #     ground_dps = 15
 
         for weight, ms_factor in self.FALLOFF_LEVELS:
             ground_radius = unit_radius + ground_range + move_speed * ms_factor / 2
             air_radius = unit_radius + air_range + move_speed * ms_factor / 2
-            effective_min_radius: float = unit_radius + minimum_range  # fix
+            effective_min_radius: float = unit_radius + minimum_range  if (minimum_range > 0) else 0
             self.ground.update(unit_position, ground_radius, ground_dps * weight, effective_min_radius)
             self.air.update(unit_position, air_radius, air_dps * weight, effective_min_radius)
 

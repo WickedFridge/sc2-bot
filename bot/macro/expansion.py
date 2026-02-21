@@ -320,13 +320,12 @@ class Expansion(CachedClass):
         if (self.is_main):
             return self.bunker_ramp
         return self.bunker_forward_in_pathing
-        # matchup: Matchup = get_matchup(self.bot)
-        # bunker_position: Point2 = (
-        #     self.bunker_ramp
-        #     if matchup == Matchup.TvZ and self.bunker_ramp is not None
-        #     else self.bunker_forward_in_pathing
-        # )
-        # return bunker_position
+    
+    @custom_cache_once_per_frame
+    def turret_wall_position(self) -> Point2:
+        if (self.is_main):
+            return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
+        return center([self.position, self.bunker_position])
     
     @custom_cache_once_per_frame
     def defending_structure(self) -> Optional[Unit]:

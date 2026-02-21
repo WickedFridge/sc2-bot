@@ -56,18 +56,6 @@ class DangerEvaluator(SubInfluenceMap):
         v = values - values.max()
         return (np.log(np.exp(alpha * v).sum()) / alpha) + values.max()
     
-    # def evaluate_path(self, path: list[Point2]) -> float:
-    #     values = self.sample_danger(path)
-    #     current_peak = 0
-        
-    #     for i in range(0, len(values)):
-    #         if (values[i] == 999.0):
-    #             continue
-    #         if (values[i] >= current_peak):
-    #             current_peak = values[i]
-        
-    #     return current_peak
-    
     def evaluate_path(self, path: list[Point2]) -> float:
         values: np.ndarray = self.sample_danger(path)
 

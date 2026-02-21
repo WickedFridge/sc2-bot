@@ -28,15 +28,14 @@ class MissileTurret(Building):
     @property
     def custom_conditions(self) -> bool:
         enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
-        turret_to_construct_amount: int = self.bot.already_pending(UnitTypeId.MISSILETURRET) - self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
         
         return (
             enemy_burrow
             and self.expansions_without_turret.amount >= 1
-            and turret_to_construct_amount == 0
+            and self.pending_amount == 0
         )
     
     @override
     @property
     def position(self) -> Point2:
-        return self.expansions_without_turret.first.bunker_forward_in_pathing
+        return self.expansions_without_turret.first.turret_wall_position

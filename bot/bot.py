@@ -25,7 +25,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "10.6.0"
+VERSION: str = "10.7.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -225,15 +225,18 @@ class WickedBot(Superbot):
             self.search.infantry_armor_level_2.search,
             self.search.infantry_attack_level_3.search,
             self.search.infantry_armor_level_3.search,
+            self.search.caduceus_reactor.search,
         ])
         # army
         money_spenders.extend(self.trainer.ordered_army_trainers)
         money_spenders.extend([
             # advanced tech
-            self.search.caduceus_reactor.search,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
             self.search.air_attack_level_3.search,
+            self.search.air_armor_level_1.search,
+            self.search.air_armor_level_2.search,
+            self.search.air_armor_level_3.search,
         ])
         money_spenders.extend([
             # production buildings
@@ -246,9 +249,6 @@ class WickedBot(Superbot):
             self.builder.ebay.build,
             self.builder.ghost_academy.build,
             self.builder.fusion_core.build,
-            self.search.air_armor_level_1.search,
-            self.search.air_armor_level_2.search,
-            self.search.air_armor_level_3.search,
             self.search.building_armor.search,
             self.search.building_range.search,
         ])
