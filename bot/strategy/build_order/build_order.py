@@ -1,6 +1,7 @@
 
 from typing import List
 from bot.army_composition.composition import Composition
+from bot.buildings.addon_swap.swap_plan import SwapPlan
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -27,7 +28,7 @@ class BuildOrderStep:
             UnitTypeId.ORBITALCOMMANDFLYING,
             UnitTypeId.PLANETARYFORTRESS,
         ],
-        UnitTypeId.FACTORYREACTOR: [UnitTypeId.STARPORTREACTOR],
+        # UnitTypeId.FACTORYREACTOR: [UnitTypeId.STARPORTREACTOR],
     }
     
     def __init__(
@@ -66,6 +67,13 @@ class BuildOrderStep:
 
         if (unit_id in self.equivalences.keys()):
             unit_ids.extend(self.equivalences[unit_id])
+
+        # TODO add addons that are swapped
+        # for swap in self.bot.current_build.addon_swaps:
+        #     if (swap.desired_addon_type == unit_id):
+        #         unit_ids.append(swap.donor_type)
+        #         if (swap.donor_needs_addon_after_swap):
+        #             unit_ids.append(swap.recipient_type)
         
         count: int = (
             self.bot.structures(unit_ids).ready.amount
@@ -130,9 +138,11 @@ class BuildOrderStep:
 class BuildOrder:
     steps: List[BuildOrderStep]
     name: str
+    addon_swaps: List[SwapPlan]
 
     def __init__(self, bot: BotAI):
         self.bot = bot
+        self.addon_swaps = []
     
     # steps not yet completed
     @property

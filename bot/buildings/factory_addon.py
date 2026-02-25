@@ -34,14 +34,19 @@ class FactoryAddon(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
-        factories_available_amount, starport_amount, starport_with_reactor_amount, free_reactors_amount = self._factory_info()
-
+        # add on are only built in our build order so far
         return (
-            factories_available_amount >= 1
-            and starport_amount >= 1
-            and starport_with_reactor_amount == 0
-            and free_reactors_amount == 0
+            not self.bot.build_order.build.is_completed
         )
+        
+        # factories_available_amount, starport_amount, starport_with_reactor_amount, free_reactors_amount = self._factory_info()
+
+        # return (
+        #     factories_available_amount >= 1
+        #     and starport_amount >= 1
+        #     and starport_with_reactor_amount == 0
+        #     and free_reactors_amount == 0
+        # )
     
     @override
     async def build(self, resources: Resources) -> Resources:

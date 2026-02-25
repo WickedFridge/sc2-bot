@@ -1,5 +1,6 @@
 from attr import dataclass
 from bot.army_composition.army_composition_manager import ArmyCompositionManager
+from bot.buildings.addon_swap.manager import AddonSwapManager
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.map import MapData
 from bot.scouting.ghost_units.manager import GhostUnitsManager
@@ -13,6 +14,8 @@ from sc2.position import Point2
 from sc2.units import Units
 
 class Superbot(BotAI):
+    addon_swap: AddonSwapManager
+    
     @property
     def matchup(self) -> Matchup:
         pass

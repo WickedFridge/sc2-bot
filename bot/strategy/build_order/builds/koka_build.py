@@ -1,5 +1,6 @@
 from typing import override
 from bot.army_composition.composition import Composition
+from bot.buildings.addon_swap.swap_plan import SwapPlan
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -36,4 +37,15 @@ class KokaBuild(BuildOrder):
             # BuildOrderStep(bot, 'medivac #1', UnitTypeId.MEDIVAC, target_count=1, requirements=[(UnitTypeId.STARPORTREACTOR, 1, True)]),
             # BuildOrderStep(bot, 'medivac #2', UnitTypeId.MEDIVAC, target_count=2, requirements=[(UnitTypeId.STARPORTREACTOR, 1, True)]),
             BuildOrderStep(bot, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
+        ]
+
+        self.addon_swaps: list[SwapPlan] = [
+            SwapPlan(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.FACTORYFLYING,
+                UnitTypeId.STARPORT,
+                UnitTypeId.STARPORTFLYING,
+                UnitTypeId.FACTORYREACTOR
+            )
         ]

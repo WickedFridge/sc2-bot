@@ -412,111 +412,94 @@ class BuildingsHandler:
                 else:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, safe_spot)
 
-    async def reposition_buildings(self):
-        production_building_ids: List[UnitTypeId] = [
+    async def reposition_buildings(self) -> None:
+        """
+        Lift production buildings that cannot build an addon at their current
+        position (blocked by creep, enemy structures, or a misplaced own
+        building), and land flying production buildings that are not being
+        managed by the AddonSwapManager.
+
+        Responsibility split:
+        - This method handles the *reposition* concern: a building ended up
+          somewhere it cannot build its addon → lift it so it can find a
+          better spot.
+        - AddonSwapManager handles the *swap* concern: a building needs to
+          vacate its addon for another building type.
+
+        Buildings that are mid-swap (tracked by AddonSwapManager.managed_tags)
+        are explicitly excluded so the two systems never fight each other.
+        """
+        # Tags currently managed by an active swap — we must not touch these.
+        swap_managed_tags: set[int] = self.bot.addon_swap.managed_tags
+
+        production_building_ids: list[UnitTypeId] = [
             UnitTypeId.BARRACKS,
             UnitTypeId.FACTORY,
             UnitTypeId.STARPORT,
         ]
+
+        # --- Lift grounded buildings that cannot build their addon ----------
         production_buildings_without_addon: Units = self.bot.structures.ready.idle.filter(
             lambda structure: (
                 structure.type_id in production_building_ids
                 and structure.has_add_on == False
+                and structure.tag not in swap_managed_tags
             )
         )
-        
-        # never reposition the first barrack
-        barracks_amount: int = self.bot.structures([UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING]).amount + self.bot.already_pending(UnitTypeId.BARRACKS)
+
+        # Never reposition the very first barracks (it walls the ramp).
+        barracks_amount: int = (
+            self.bot.structures([UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING]).amount
+            + self.bot.already_pending(UnitTypeId.BARRACKS)
+        )
         if (barracks_amount >= 2):
             for production_building in production_buildings_without_addon:
-                if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, production_building.add_on_position)):
-                    print(f'Can not build add-on, {production_building.name} lifts')
+                addon_pos: Point2 = production_building.add_on_position
+                if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, addon_pos)):
+                    print(
+                        f"[reposition_buildings] Cannot build addon — "
+                        f"{production_building.name} (tag={production_building.tag}) lifts."
+                    )
                     production_building(AbilityId.LIFT)
-        
-        # if starport is complete and has no reactor, lift it
-        if (
-            self.bot.structures(UnitTypeId.STARPORT).ready.amount == 1
-            and self.bot.structures(UnitTypeId.STARPORTREACTOR).ready.amount == 0
-        ):
-            starport = self.bot.structures(UnitTypeId.STARPORT).ready.first
-            if (not starport.has_add_on):
-                print("Lift Starport")
-                starport(AbilityId.LIFT_STARPORT)
-        
-        # or 2nd starport can't build addon
-        if (
-            self.bot.structures(UnitTypeId.STARPORT).ready.amount == 2
-            and self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 0
-        ):
-            for starport in self.bot.structures(UnitTypeId.STARPORT).ready:
-                if (not starport.has_add_on and not self.bot.in_placement_grid(starport.add_on_position)):
-                    print("Lift Starport")
-                    starport(AbilityId.LIFT_STARPORT)
-        
-        # if factory is complete with a reactor, lift it
-        if (
-            (
-                self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1
-                and self.bot.structures(UnitTypeId.FACTORYREACTOR).ready.amount >= 1
-            )
-            or self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1
-        ):
-            for factory in self.bot.structures(UnitTypeId.FACTORY).ready:
-                reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
-                free_reactors: Units = reactors.filter(
-                    lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-                )
-                if (factory.has_add_on or free_reactors.amount >= 1):
-                    print ("Lift Factory")
-                    factory(AbilityId.LIFT_FACTORY)
-        
-        flying_building_ids: List[UnitTypeId] = [
+
+        # --- Land flying buildings that are idle and not mid-swap -----------
+        flying_building_ids: list[UnitTypeId] = [
             UnitTypeId.BARRACKSFLYING,
             UnitTypeId.FACTORYFLYING,
             UnitTypeId.STARPORTFLYING,
         ]
         flying_buildings: Units = self.bot.structures.idle.filter(
-            lambda building: building.type_id in flying_building_ids
+            lambda building: (
+                building.type_id in flying_building_ids
+                and building.tag not in swap_managed_tags
+            )
         )
-        
-        starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready + self.bot.structures(UnitTypeId.STARPORTFLYING)
-        starports_pending_amount: int = self.bot.already_pending(UnitTypeId.STARPORT)
-        starports_without_reactor: Units = starports.filter(lambda starport : starport.has_add_on == False)
-        free_reactors: Units = self.bot.structures(UnitTypeId.REACTOR).filter(
-            lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-        )
-                    
+
         for flying_building in flying_buildings:
-            match (flying_building.type_id):
+            land_type: UnitTypeId
+            match flying_building.type_id:
                 case UnitTypeId.BARRACKSFLYING:
-                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.BARRACKS, self.bot.game_info.map_center, 1, True)
-                    flying_building(AbilityId.LAND, land_position)    
+                    land_type = UnitTypeId.BARRACKS
                 case UnitTypeId.FACTORYFLYING:
-                    land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.FACTORY, self.bot.game_info.map_center, 1, True)
-                    flying_building(AbilityId.LAND, land_position)
-                    # if (
-                    #     free_reactors.amount <= 1 and
-                    #     (starports_pending_amount >= 1 or starports_without_reactor.amount >= 1)
-                    # ):
-                    #     land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, self.bot.game_info.map_center, 1, True)
-                    #     flying_building(AbilityId.LAND, land_position)
+                    land_type = UnitTypeId.FACTORY
                 case UnitTypeId.STARPORTFLYING:
-                    if (free_reactors.amount >= 1):
-                        print("Land Starport")
-                        closest_free_reactor = free_reactors.closest_to(flying_building)
-                        flying_building(AbilityId.LAND, closest_free_reactor.add_on_land_position)
-                    else:
-                        building_factory_reactors: Units = self.bot.structures(UnitTypeId.FACTORYREACTOR).filter(
-                            lambda reactor: reactor.build_progress < 1
-                        )
-                        if (building_factory_reactors.amount >= 1):                
-                            # print("Move Starport over Factory building Reactor")
-                            flying_building.move(building_factory_reactors.closest_to(flying_building).add_on_land_position)
-                        elif (starports.amount >= 2):
-                            land_position: Point2 = dfs_in_pathing(self.bot, flying_building.position, UnitTypeId.STARPORT, self.bot.game_info.map_center, 1, True)
-                            flying_building(AbilityId.LAND, land_position)
-                        else:
-                            print("no free reactor")
+                    land_type = UnitTypeId.STARPORT
+                case _:
+                    continue
+
+            land_position: Point2 = dfs_in_pathing(
+                self.bot,
+                flying_building.position,
+                land_type,
+                self.bot.game_info.map_center,
+                1,
+                True,
+            )
+            print(
+                f"[reposition_buildings] Landing {flying_building.name} "
+                f"(tag={flying_building.tag}) at {land_position}."
+            )
+            flying_building(AbilityId.LAND, land_position)
 
     async def salvage_bunkers(self) -> None:
         if (self.bot.scouting.situation != Situation.STABLE or self.bot.expansions.taken.amount < 3):

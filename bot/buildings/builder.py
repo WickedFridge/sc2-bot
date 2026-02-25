@@ -8,7 +8,7 @@ from bot.buildings.bunker import Bunker
 from bot.buildings.command_center import CommandCenter
 from bot.buildings.ebay import Ebay
 from bot.buildings.factory import Factory
-from bot.buildings.factory_addon import FactoryReactor
+from bot.buildings.factory_addon import FactoryReactor, FactoryTechlab
 from bot.buildings.fusion_core import FusionCore
 from bot.buildings.ghost_academy import GhostAcademy
 from bot.buildings.missile_turret import MissileTurret
@@ -38,6 +38,7 @@ class Builder:
     barracks_techlab: BarracksTechlab
     barracks_reactor: BarracksReactor
     factory_reactor: FactoryReactor
+    factory_techlab: FactoryTechlab
     starport_techlab: StarportTechlab
     starport_reactor: StarportReactor
     orbital_command: OrbitalCommand
@@ -60,6 +61,7 @@ class Builder:
         self.barracks_techlab = BarracksTechlab(self)
         self.barracks_reactor = BarracksReactor(self)
         self.factory_reactor = FactoryReactor(self)
+        self.factory_techlab = FactoryTechlab(self)
         self.starport_techlab = StarportTechlab(self)
         self.starport_reactor = StarportReactor(self)
         self.orbital_command = OrbitalCommand(self)
@@ -95,62 +97,6 @@ class Builder:
                 )
             )
         )
-    
-    async def switch_addons(self):
-        # if starport is complete and has no reactor, lift it
-        if (
-            self.bot.structures(UnitTypeId.STARPORT).ready.amount >= 1
-            and self.bot.structures(UnitTypeId.STARPORTREACTOR).ready.amount < self.bot.structures(UnitTypeId.STARPORT).ready.amount
-        ):
-            for starport in self.bot.structures(UnitTypeId.STARPORT).ready:
-                if (not starport.has_add_on):
-                    print("Lift Starport")
-                    starport(AbilityId.LIFT_STARPORT)
-        
-        # if factory is complete with a reactor, lift it
-        if (
-            (
-                self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1
-                and self.bot.structures(UnitTypeId.FACTORYREACTOR).ready.amount >= 1
-            )
-            or self.bot.structures(UnitTypeId.STARPORTFLYING).ready.amount >= 1
-        ):
-            for factory in self.bot.structures(UnitTypeId.FACTORY).ready:
-                reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
-                free_reactors: Units = reactors.filter(
-                    lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-                )
-                if (factory.has_add_on or free_reactors.amount >= 1):
-                    print ("Lift Factory")
-                    factory(AbilityId.LIFT_FACTORY)
-
-        # Handle flying Starports
-        await self.handle_starport_addons()
-
-
-    async def handle_starport_addons(self):
-        if (self.bot.structures(UnitTypeId.STARPORTFLYING).ready.idle.amount == 0):
-            return
-        for flying_starport in self.bot.structures(UnitTypeId.STARPORTFLYING).ready.idle:
-            reactors: Units = self.bot.structures(UnitTypeId.REACTOR)
-                
-            free_reactors: Units = reactors.filter(
-                lambda reactor: self.bot.in_placement_grid(reactor.add_on_land_position)
-            )
-            if (free_reactors.amount >= 1):
-                print("Land Starport")
-                closest_free_reactor = free_reactors.closest_to(flying_starport)
-                flying_starport(AbilityId.LAND, closest_free_reactor.add_on_land_position)
-            else:
-                building_factory_reactors: Units = self.bot.structures(UnitTypeId.FACTORYREACTOR).filter(
-                    lambda reactor: reactor.build_progress < 1
-                )
-                if (building_factory_reactors):                
-                    # print("Move Starport over Factory building Reactor")
-                    flying_starport.move(building_factory_reactors.closest_to(flying_starport).add_on_land_position)
-                else:
-                    print("no free reactor")
-
     
     async def build(self, unit_type: UnitTypeId, position: Point2, radius: float, has_addon: bool = False, force_position: bool = False):
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, unit_type, self.bot._game_info.map_center, radius, has_addon)

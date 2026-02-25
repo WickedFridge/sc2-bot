@@ -3,6 +3,7 @@ from typing import Awaitable, Dict, List
 from bot.combat.orders_manager import OrdersManager
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
+from bot.units.cyclone import Cyclone
 from bot.units.ghost import Ghost
 from bot.units.marauder import Marauder
 from bot.units.marine import Marine
@@ -44,6 +45,7 @@ class Trainer:
         self.marauder = Marauder(self)
         self.medivac = Medivac(self)
         self.ghost = Ghost(self)
+        self.cyclone = Cyclone(self)
         self.viking = Viking(self)
         self.raven = Raven(self)
         
@@ -53,6 +55,7 @@ class Trainer:
             UnitTypeId.MARAUDER: self.marauder,
             UnitTypeId.MEDIVAC: self.medivac,
             UnitTypeId.GHOST: self.ghost,
+            UnitTypeId.CYCLONE: self.cyclone,
             UnitTypeId.VIKINGFIGHTER: self.viking,
             UnitTypeId.RAVEN: self.raven,
         }

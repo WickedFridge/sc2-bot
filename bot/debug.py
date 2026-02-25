@@ -212,35 +212,23 @@ class Debug:
                     self.draw_box_on_world(target_unit.position)
     
     async def selection(self):
-        # print("- 1 -")
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         selected_positions: List[Point2] = []
-        # print("- 2 -")
         for unit in selected_units:
-            # print("- 3 -")
+            self.draw_text_on_world(unit.position, f'id: {unit.tag}, type: {unit.type_id}')
             tile: BuildingTile = self.bot.map.influence_maps.buildings.get_tile(unit.position)
             color: tuple = RED if tile.blocked else GREEN
-            # print("- 4 -")
             if (tile.reserved_for is not None):
-                # print("- 5 -")
                 color = ORANGE if tile.reserved_for is not None else color
                 self.draw_text_on_world(unit.position, tile.reserved_for, 0.5, color)
-                # print("- 6 -")
-            # print("- 7 -")
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
-            # print("- 8 -")
 
     def range(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         if (selected_units.amount == 0):
             selected_units = self.bot.enemy_units
         for unit in selected_units:
-            # self.draw_sphere_on_world(unit.position, radius=1, draw_color=GREEN)
-            # self.draw_sphere_on_world(unit.position, radius=2, draw_color=YELLOW)
-            # self.draw_sphere_on_world(unit.position, radius=3, draw_color=RED)
-            
-
             ground_range: float = unit.ground_range
             radius: float = unit.radius
             footprint: float = unit.footprint_radius

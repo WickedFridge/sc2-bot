@@ -17,6 +17,7 @@ from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
 from bot.technology.search import Search
 from bot.units.trainer import Trainer
+from bot.buildings.addon_swap import AddonSwapManager
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.bot_ai import Race
 from sc2.data import Result
@@ -25,12 +26,11 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "10.7.0"
+VERSION: str = "11.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
     RACE: Race = Race.Terran
-    
     builder: Builder
     buildings: BuildingsHandler
     search: Search
@@ -49,6 +49,7 @@ class WickedBot(Superbot):
         self.enable_feature_layer = False
         self.builder = Builder(self)
         self.buildings = BuildingsHandler(self)
+        self.addon_swap = AddonSwapManager(self)
         self.search = Search(self)
         self.combat = OrdersManager(self)
         self.trainer = Trainer(self, self.combat)
@@ -99,6 +100,7 @@ class WickedBot(Superbot):
     def ghost_units(self) -> GhostUnitsManager:
         return GhostUnitsManager(self)
 
+    @override
     async def on_start(self):
         """
         This code runs once at the start of the game
@@ -108,6 +110,7 @@ class WickedBot(Superbot):
         print(f'Game started, version {VERSION}')
         await self.macro.split_workers()
 
+    @override
     async def on_step(self, iteration: int):
         """
         This code runs continually throughout the game
@@ -181,6 +184,7 @@ class WickedBot(Superbot):
         await self.buildings.rally_points()
         await self.buildings.lift_townhalls()
         await self.buildings.land_townhalls()
+        self.addon_swap.on_step()
         await self.buildings.reposition_buildings()
         await self.buildings.salvage_bunkers()
         
@@ -203,6 +207,7 @@ class WickedBot(Superbot):
             # add ons
             self.builder.barracks_techlab.build,
             self.builder.barracks_reactor.build,
+            self.builder.factory_techlab.build,
             self.builder.factory_reactor.build,
             self.builder.starport_techlab.build,
             self.builder.starport_reactor.build,
@@ -335,10 +340,13 @@ class WickedBot(Superbot):
         await self.client.chat_send(f'Build : {self.build_order.build.name}', False)
         self.tag_to_update = False
 
+    @override
     async def on_unit_took_damage(self, unit: Unit, amount_damage_taken: int):
         pass
     
+    @override
     async def on_unit_destroyed(self, unit_tag: int):
+        self.addon_swap.on_unit_destroyed(unit_tag)
         if (unit_tag in self.scouting.known_enemy_buildings.tags):
             destroyed_building: Unit = self.scouting.known_enemy_buildings.by_tag(unit_tag)
             if (destroyed_building.type_id in zerg_townhalls or destroyed_building.type_id in creep):
@@ -350,9 +358,11 @@ class WickedBot(Superbot):
             dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)
             self.map.influence_maps.buildings.on_building_destroyed(dead_structure)
 
+    @override
     async def on_building_construction_started(self, unit):
         self.map.influence_maps.buildings.on_building_created(unit)
 
+    @override
     async def on_end(self, result: Result):
         """
         This code runs once at the end of the game

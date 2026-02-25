@@ -1,5 +1,6 @@
 from typing import override
 from bot.army_composition.composition import Composition
+from bot.buildings.addon_swap.swap_plan import SwapPlan
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -36,4 +37,15 @@ class TwoRaxReapers(BuildOrder):
             BuildOrderStep(bot, 'starport', UnitTypeId.STARPORT),
             BuildOrderStep(bot, 'facto reactor', UnitTypeId.FACTORYREACTOR, requirements=[(UnitTypeId.STARPORT, 1, False)]),
             BuildOrderStep(bot, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
+        ]
+        
+        self.addon_swaps: list[SwapPlan] = [
+            SwapPlan(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.FACTORYFLYING,
+                UnitTypeId.STARPORT,
+                UnitTypeId.STARPORTFLYING,
+                UnitTypeId.FACTORYREACTOR
+            )
         ]
