@@ -39,7 +39,6 @@ class AddonSwapManager:
 
     def __init__(self, bot: Superbot) -> None:
         self.bot: Superbot = bot
-        self.swaps: List[SwapPlan] = []
 
     # Approximate game steps between repeated "waiting" prints (≈ 4 seconds).
     WAIT_PRINT_INTERVAL: int = 88
@@ -48,12 +47,10 @@ class AddonSwapManager:
     # Public API
     # ------------------------------------------------------------------
 
-    def register_swaps(self, swaps: List[SwapPlan]) -> None:
-        """Register the list of swaps for the current build order."""
-        self.swaps = list(swaps)
-        print(f"[AddonSwapManager] Registered {len(self.swaps)} swap(s).")
-        for swap in self.swaps:
-            print(f"[AddonSwapManager]   → {swap.donor_type.name} cedes {swap.desired_addon_type.name} to {swap.recipient_type.name}")
+    @property
+    def swap_plans(self) -> List[SwapPlan]:
+        """Live reference to the active build order's swap plans."""
+        return self.bot.build_order.build.swap_plans
 
     def on_unit_destroyed(self, tag: int) -> None:
         """
@@ -63,7 +60,7 @@ class AddonSwapManager:
           addon step is unsatisfied and rebuild it automatically.
         - Donor or recipient destroyed: reset if build order still running, abort otherwise.
         """
-        for swap in self.swaps:
+        for swap in self.bot.build_order.build.swap_plans:
             if (swap.is_finished):
                 continue
 
@@ -86,7 +83,7 @@ class AddonSwapManager:
     def managed_tags(self) -> Set[int]:
         """Tags of all buildings currently mid-swap (donor, recipient, addon)."""
         tags: Set[int] = set()
-        for swap in self.swaps:
+        for swap in self.bot.build_order.build.swap_plans:
             if (not swap.is_active):
                 continue
             if (swap.donor_tag is not None):
@@ -99,7 +96,7 @@ class AddonSwapManager:
 
     def on_step(self) -> None:
         """Advance all registered swaps by one step."""
-        for swap in self.swaps:
+        for swap in self.bot.build_order.build.swap_plans:
             if (swap.state == SwapState.DONE or swap.state == SwapState.ABORTED):
                 continue
             self.process(swap)

@@ -1,22 +1,17 @@
 
 from typing import List
 from bot.army_composition.composition import Composition
-from bot.buildings.addon_swap.swap_plan import SwapPlan
+from bot.buildings.addon_swap.swap_plan import SwapPlan, SwapState
+from bot.strategy.build_order.build_order_step import BuildOrderStep
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from bot.utils.unit_tags import build_order_structures
 
-class BuildOrderStep:
-    bot: BotAI
-    step_id: UnitTypeId | UpgradeId
-    target_count: int
-    workers: int
-    supply: int
-    army_supply: int
-    townhalls: int
-    requirements: tuple[UnitTypeId, int, bool]
-    upgrades_required: List[UpgradeId]
+
+class BuildOrder:
+    steps: List[BuildOrderStep]
+    name: str
+    swap_plans: List[SwapPlan]
     equivalences: dict[UnitTypeId, List[UnitTypeId]] = {
         UnitTypeId.SUPPLYDEPOT: [UnitTypeId.SUPPLYDEPOTLOWERED],
         UnitTypeId.BARRACKS: [UnitTypeId.BARRACKSFLYING],
@@ -28,122 +23,47 @@ class BuildOrderStep:
             UnitTypeId.ORBITALCOMMANDFLYING,
             UnitTypeId.PLANETARYFORTRESS,
         ],
-        # UnitTypeId.FACTORYREACTOR: [UnitTypeId.STARPORTREACTOR],
     }
-    
-    def __init__(
-        self,
-        bot: BotAI,
-        name: str,
-        step_id: UnitTypeId | UpgradeId,
-        target_count: int = 1,
-        workers: int = 0,
-        supply: int = 0,
-        army_supply: int = 0,
-        townhalls: int = 1,
-        requirements: List[tuple[UnitTypeId, int, bool]] = None,
-        upgrades_required: List[UpgradeId] = None,
-    ) -> None:
+
+    def __init__(self, bot: BotAI):
         self.bot = bot
-        self.name = name
-        self.step_id = step_id
-        self.target_count = target_count
-        self.workers = workers
-        self.supply = supply
-        self.army_supply = army_supply
-        self.townhalls = townhalls
-        self.requirements = requirements or []
-        self.upgrades_required = upgrades_required or []
+        self.swap_plans = []
 
     @property
-    def current_amount(self) -> int:
-        if (isinstance(self.step_id, UpgradeId)):
-            return self.bot.already_pending_upgrade(self.step_id) > 0
-        
-        return self.unit_amount(self.step_id)
-    
-    def unit_amount(self, unit_id: UnitTypeId, include_pending: bool = True):
-        unit_ids: list[UnitTypeId] = [unit_id]
+    def addon_transfer_map(self) -> dict[int, UnitTypeId]:
+        """
+        Maps addon_tag → desired_addon_type for every swap that is past PENDING.
+        During and after a transfer, the addon's real in-game type may differ
+        (e.g. REACTOR instead of FACTORYREACTOR) — this map lets unit_amount
+        count it under the type the build order originally requested.
+        """
+        return {
+            plan.addon_tag: plan.desired_addon_type
+            for plan in self.swap_plans
+            if plan.addon_tag is not None and plan.state != SwapState.PENDING
+        }
 
-        if (unit_id in self.equivalences.keys()):
+    def unit_amount(self, unit_id: UnitTypeId, include_pending: bool = True) -> int:
+        unit_ids: list[UnitTypeId] = [unit_id]
+        if (unit_id in self.equivalences):
             unit_ids.extend(self.equivalences[unit_id])
 
-        # TODO add addons that are swapped
-        # for swap in self.bot.current_build.addon_swaps:
-        #     if (swap.desired_addon_type == unit_id):
-        #         unit_ids.append(swap.donor_type)
-        #         if (swap.donor_needs_addon_after_swap):
-        #             unit_ids.append(swap.recipient_type)
-        
         count: int = (
             self.bot.structures(unit_ids).ready.amount
             + self.bot.units(unit_ids).ready.amount
         )
+
+        # Addons mid-transfer or post-transfer count under their desired_addon_type,
+        # not their current in-game type_id.
+        for tag, desired_type in self.addon_transfer_map.items():
+            if (desired_type == unit_id):
+                count += 1
+
         if (include_pending):
             count += self.bot.already_pending(unit_id)
-        
+
         return count
-    
-    @property
-    def is_satisfied(self) -> bool:
-        return self.current_amount >= self.target_count
-    
-    def is_available_debug(self) -> tuple[bool, str]:
-        # if (self.is_satisfied):
-        #     return True, ''
-        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
-            return False, f'(tech requirement not ready)'
-        if (self.bot.townhalls.amount < self.townhalls):
-            return False, f'(not enough townhalls)'
-        if (self.bot.supply_used < self.supply):
-            return False, f'(not enough supply)'
-        if (self.bot.supply_army < self.army_supply):
-            return False, f'(not enough army)'
-        if (self.bot.supply_workers < self.workers):
-            return False, f'(not enough workers)'
-        for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = self.unit_amount(unit_type, include_pending=not completed)
-            if (unit_count < amount_required):
-                return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
-        for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) < 1):
-                return False, f'(upgrade {upgrade} not ready)'
-        return True, ''
-    
-    @property
-    def is_available(self) -> bool:
-        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
-            return False
-        if (self.bot.townhalls.amount < self.townhalls):
-            return False
-        if (self.bot.supply_used < self.supply):
-            return False
-        if (self.bot.supply_workers < self.workers):
-            return False
-        for unit_type, amount_required, completed in self.requirements:
-            unit_count: int = self.unit_amount(unit_type, include_pending=not completed)
-            if (unit_count < amount_required):
-                return False
-        for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) < 1):
-                return False
-        return True
-    
-    # def print_check(self) -> None:
-    #     checked_character: str = 'X' if self.checked else ' '
-    #     print(f'[{checked_character}] BO -- {self.name}')
 
-
-
-class BuildOrder:
-    steps: List[BuildOrderStep]
-    name: str
-    addon_swaps: List[SwapPlan]
-
-    def __init__(self, bot: BotAI):
-        self.bot = bot
-        self.addon_swaps = []
-    
     # steps not yet completed
     @property
     def steps_remaining(self) -> List[BuildOrderStep]:

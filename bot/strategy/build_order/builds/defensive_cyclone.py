@@ -1,6 +1,7 @@
 from typing import override
 
 from bot.army_composition.composition import Composition
+from bot.buildings.addon_swap.swap_plan import SwapPlan
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -24,14 +25,25 @@ class DefensiveCyclone(BuildOrder):
     def __init__(self, bot: BotAI):
         super().__init__(bot)
         self.steps = [
-            BuildOrderStep(bot, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),
-            BuildOrderStep(bot, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
-            BuildOrderStep(bot, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
-            BuildOrderStep(bot, 'factory', UnitTypeId.FACTORY, target_count=1, townhalls=2),
-            BuildOrderStep(bot, 'factory techlab', UnitTypeId.FACTORYTECHLAB, target_count=1, requirements=[(UnitTypeId.FACTORY, 1, False)]),
-            BuildOrderStep(bot, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, False)], workers=21, townhalls=2),
-            BuildOrderStep(bot, 'starport', UnitTypeId.STARPORT, target_count=1, requirements=[(UnitTypeId.CYCLONE, 1, False)]),
-            BuildOrderStep(bot, 'reactor', UnitTypeId.BARRACKSREACTOR, target_count=1, requirements=[(UnitTypeId.STARPORT, 1, False)]),
-            BuildOrderStep(bot, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
-            BuildOrderStep(bot, 'rax #3', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
+            BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),
+            BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
+            BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
+            BuildOrderStep(bot, self, 'factory', UnitTypeId.FACTORY, target_count=1, townhalls=2),
+            BuildOrderStep(bot, self, 'barracks techlab', UnitTypeId.BARRACKSTECHLAB, target_count=1, requirements=[(UnitTypeId.FACTORY, 1, False)]),
+            BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, False)], workers=21, townhalls=2),
+            BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT, target_count=1, requirements=[(UnitTypeId.CYCLONE, 1, False)]),
+            BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, target_count=1, requirements=[(UnitTypeId.STARPORT, 1, False)]),
+            BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
+            BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
+        ]
+
+        self.swap_plans = [
+            SwapPlan(
+                bot,
+                UnitTypeId.BARRACKS,
+                UnitTypeId.BARRACKSFLYING,
+                UnitTypeId.FACTORY,
+                UnitTypeId.FACTORYFLYING,
+                UnitTypeId.BARRACKSTECHLAB
+            )
         ]

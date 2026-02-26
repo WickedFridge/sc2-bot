@@ -48,16 +48,10 @@ class BuildOrderManager:
                     # DefensiveCyclone(self.bot),
                     # Dummybuild(self.bot),
                     KokaBuild(self.bot),
-                    # CCFirstTwoRax(self.bot)
+                    CCFirstTwoRax(self.bot)
                 ])
             case _:
                 self.build = KokaBuild(self.bot)
-
-        # Register any addon swaps declared by the selected build order.
-        # If the build order has no addon_swaps attribute, an empty list is used
-        # so any swaps from a previous build order are cleared.
-        addon_swaps: list = getattr(self.build, "addon_swaps", [])
-        self.wicked.addon_swap.register_swaps(addon_swaps)
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager
