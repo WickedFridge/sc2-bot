@@ -1,11 +1,12 @@
 
-from typing import List
+from typing import List, Optional
 from bot.army_composition.composition import Composition
 from bot.buildings.addon_swap.swap_plan import SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.unit import Unit
 
 
 class BuildOrder:
@@ -53,9 +54,16 @@ class BuildOrder:
             + self.bot.units(unit_ids).ready.amount
         )
 
-        # Addons mid-transfer or post-transfer count under their desired_addon_type,
-        # not their current in-game type_id.
+        # For each transferring addon, adjust the count:
+        # - its real in-game type may already be counted under unit_ids → subtract 1
+        # - if its desired_addon_type matches unit_id → add 1 back
+        # Net effect: +1 if desired matches and real doesn't, -1 if real matches and desired doesn't, 0 if both or neither match.
         for tag, desired_type in self.addon_transfer_map.items():
+            addon: Optional[Unit] = self.bot.structures.find_by_tag(tag)
+            if (addon is None):
+                continue
+            if (addon.type_id in unit_ids):
+                count -= 1
             if (desired_type == unit_id):
                 count += 1
 
