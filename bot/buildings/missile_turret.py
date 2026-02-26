@@ -13,7 +13,7 @@ class MissileTurret(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.MISSILETURRET
         self.name = "Missile Turret"
-
+        self.ignore_build_order = True
     
     @property
     def expansions_without_turret(self) -> Expansions:
