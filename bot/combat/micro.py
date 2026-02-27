@@ -27,6 +27,7 @@ class Micro(CachedClass):
     bot: Superbot
     snipe_targets: dict[int, int] = {}
     emp_targets: dict[int, int] = {}
+    cyclone_locks: dict[int, int] = {}
     
     def __init__(self, bot: Superbot) -> None:
         super().__init__(bot)
@@ -512,6 +513,60 @@ class Micro(CachedClass):
         return False
     
         
+    async def cyclone(self, cyclone: Unit, local_army: Units):
+        LOCKON_KEEP_RANGE: int = 15
+        
+        if (cyclone.is_using_ability(AbilityId.LOCKON_LOCKON)):
+            target_tag: int = cyclone.orders[0].target
+            # print("target: ", target_tag)
+            target: Unit = self.bot.enemy_units.find_by_tag(target_tag)
+            if (target):
+                # print(f"Cyclone is currently locking on to a {target.type_id.name}")
+                self.cyclone_locks[cyclone.tag] = target.tag
+                return            
+        
+        local_enemies: Units = self.get_local_enemy_units(cyclone.position, only_menacing=True)
+        
+        # if we have locked onto a target, stay in range and find the safest spot to kite around it
+        available_abilities = (await self.bot.get_available_abilities([cyclone]))[0]
+        if (AbilityId.LOCKON_LOCKON not in available_abilities):
+            target_tag: int = self.cyclone_locks.get(cyclone.tag, None)
+            target: Unit = self.bot.enemy_units.find_by_tag(target_tag) if target_tag else None
+            if (target_tag is None or target is None):
+                # print("Cyclone is on lock cooldown but target is lost/dead")
+                self.hit_n_run(cyclone, local_enemies)
+                return
+            target: Unit = self.bot.enemy_units.find_by_tag(target_tag)
+            if (target):
+                # print(f"Cyclone is locked on to a {target.type_id.name}, kiting around it")
+                if (target.is_facing(cyclone, math.pi / 3) and target.distance_to(cyclone) < LOCKON_KEEP_RANGE + cyclone.radius + target.radius - 2):
+                    self.hit_n_run(cyclone, Units([target], self.bot))
+                else:
+                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(cyclone, target, risk=0.75 * cyclone.health_percentage)
+                    cyclone.move(best_position)
+                return
+        
+        # else if we have the lock on cooldown
+        else:
+            print("looking for a lock target")
+            # look for potential targets, prioritize in range, then lowest health
+            LOCKON_RANGE: int = 7
+            total_range: float = LOCKON_RANGE + cyclone.radius
+            possible_targets: Units = local_enemies.sorted(
+                key=lambda enemy_unit: (
+                    enemy_unit.distance_to(cyclone) > total_range,   # False (in range) before True
+                    -(enemy_unit.health + enemy_unit.shield),        # more total hp first
+                    -enemy_unit.shield,                              # more shield first
+                    enemy_unit.distance_to(cyclone)                  # closer first
+                )
+            )
+            if (possible_targets.amount >= 1):
+                target: Unit = possible_targets.first
+                print(f"Locking on to {target.type_id}")
+                cyclone(AbilityId.LOCKON_LOCKON, target)
+                self.cyclone_locks[cyclone.tag] = target.tag
+                return
+    
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown
         if (viking.weapon_cooldown <= WEAPON_READY_THRESHOLD):
@@ -1052,7 +1107,9 @@ class Micro(CachedClass):
         if (only_menacing):
             enemies = enemies.filter(self.is_fighting_unit)
 
-        return enemies.closer_than(radius, position)
+        return enemies.filter(
+            lambda enemy: enemy.distance_to(position) <= radius + enemy.radius
+        )
 
     def get_local_enemy_buildings(self, position: Point2) -> Units:
         buildings = self.bot.enemy_structures.filter(self.is_valid_enemy).closer_than(10, position)

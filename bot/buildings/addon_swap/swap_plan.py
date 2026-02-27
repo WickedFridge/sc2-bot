@@ -53,8 +53,6 @@ class SwapPlan:
         UnitTypeId of the recipient when airborne (e.g. STARPORTFLYING).
     desired_addon_type:
         The addon being transferred (e.g. FACTORYREACTOR).
-    donor_needs_addon_after_swap:
-        If True, the donor's new landing spot must have room for a future addon.
     """
 
     def __init__(
@@ -65,7 +63,6 @@ class SwapPlan:
         recipient_type: UnitTypeId,
         recipient_flying_type: UnitTypeId,
         desired_addon_type: UnitTypeId,
-        donor_needs_addon_after_swap: bool = True,
     ) -> None:
         self.bot: BotAI = bot
 
@@ -75,7 +72,6 @@ class SwapPlan:
         self.recipient_type: UnitTypeId = recipient_type
         self.recipient_flying_type: UnitTypeId = recipient_flying_type
         self.desired_addon_type: UnitTypeId = desired_addon_type
-        self.donor_needs_addon_after_swap: bool = donor_needs_addon_after_swap
 
         # Runtime state — set via commit(), cleared via reset()
         self.donor_tag: Optional[int] = None
@@ -85,6 +81,10 @@ class SwapPlan:
         self.recipient_original_position: Optional[Point2] = None
         self.state: SwapState = SwapState.PENDING
 
+    @property
+    def name(self) -> str:
+        return f'{self.desired_addon_type.name} ({self.donor_type.name} -> {self.recipient_type.name})'
+    
     def __repr__(self) -> str:
         return (
             f"SwapPlan({self.donor_type.name} → {self.recipient_type.name} "

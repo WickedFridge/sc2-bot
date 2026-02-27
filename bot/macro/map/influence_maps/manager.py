@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.map.influence_maps.danger_map import DangerMap
@@ -256,8 +258,8 @@ class InfluenceMapManager:
         )
         return position
     
-    def safest_spot_around_unit(self, unit: Unit) -> Point2:
-        radius: int = round(unit.real_speed * 1.4)
+    def safest_spot_around_unit(self, unit: Unit, radius: Optional[float] = None) -> Point2:
+        radius: int = round(unit.real_speed * 1.4) if radius is None else round(radius)
         air: bool = unit.is_flying
 
         position, score = self.pick_tile(

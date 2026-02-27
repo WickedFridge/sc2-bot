@@ -85,6 +85,7 @@ class OrdersManager:
             UnitTypeId.MARINE,
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST,
+            UnitTypeId.CYCLONE,
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
             UnitTypeId.RAVEN,
@@ -143,7 +144,7 @@ class OrdersManager:
     @property
     def enemy_anti_air(self) -> Units:
         return self.bot.scouting.known_enemy_army.units(
-            [UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR]
+            [UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR, UnitTypeId.STALKER]
         )
     
     def debug_cluster(self) -> None:

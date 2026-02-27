@@ -3,6 +3,7 @@ from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
+from bot.buildings.addon_swap.swap_plan import SwapState
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
@@ -562,8 +563,10 @@ class Debug:
 
     async def build_order(self):
         build_order: BuildOrder = self.bot.build_order.build
-        for i, step in enumerate(build_order.steps):
-            position: Point2 = Point2((0, 0.3 + 0.015 * (i + 1)))
+        screen_y: float = 0.3
+        for step in build_order.steps:
+            screen_y += 0.015
+            position: Point2 = Point2((0, screen_y))
             color = RED
             can_check, why = step.is_available_debug()
             if (can_check):
@@ -571,6 +574,15 @@ class Debug:
             if (step.is_satisfied):
                 color = GREEN
             self.draw_text_on_screen(f'{step.name} {why}', position, color, font_size=14)
+        for swap in build_order.swap_plans:
+            screen_y += 0.015
+            position: Point2 = Point2((0, screen_y))
+            color: tuple = (
+                GREEN if swap.state == SwapState.DONE else
+                RED if swap.state == SwapState.ABORTED else
+                YELLOW
+            )
+            self.draw_text_on_screen(f'{swap.name} : {swap.state}', position, color, font_size=14)
     
     async def composition_manager(self):
         composition: Composition = self.bot.composition_manager.composition

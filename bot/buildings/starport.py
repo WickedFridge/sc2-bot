@@ -37,5 +37,11 @@ class Starport(Building):
     @override
     @property
     def position(self) -> Point2:
+        if (self.bot.build_order.build.name in ['Defensive Cyclone']):
+            return self.bot.expansions.main.position.towards(self.bot.game_info.map_center, 4)
         factories: Units = self.bot.structures(UnitTypeId.FACTORY).ready + self.bot.structures(UnitTypeId.FACTORYFLYING)
-        return factories.first.position.towards(self.bot.game_info.map_center, 2)
+        factory_position: Point2 = factories.first.position
+        # if (self.bot.game_info.map_center.y > factory_position.y):
+        #     return factory_position + Point2((0, 2.5))
+        # return factory_position + Point2((0, -2.5))
+        return factory_position.towards(self.bot.game_info.map_center, 2)

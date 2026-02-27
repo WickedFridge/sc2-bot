@@ -35,20 +35,22 @@ class BuildOrderManager:
                 self.build = random.choice([
                     # Dummybuild(self.bot)
                     # TwoRaxReapers(self.bot),
-                    DefensiveTwoRax(self.bot),
+                    DefensiveCyclone(self.bot),
+                    # DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    TwoRaxReapers(self.bot),
+                    # TwoRaxReapers(self.bot),
+                    DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)
                 ])
             case Matchup.TvP:
                 self.build = random.choice([
-                    # DefensiveCyclone(self.bot),
+                    DefensiveCyclone(self.bot),
                     # Dummybuild(self.bot),
-                    KokaBuild(self.bot),
-                    CCFirstTwoRax(self.bot)
+                    # KokaBuild(self.bot),
+                    # CCFirstTwoRax(self.bot)
                 ])
             case _:
                 self.build = KokaBuild(self.bot)

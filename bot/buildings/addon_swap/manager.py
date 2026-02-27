@@ -40,9 +40,6 @@ class AddonSwapManager:
     def __init__(self, bot: Superbot) -> None:
         self.bot: Superbot = bot
 
-    # Approximate game steps between repeated "waiting" prints (≈ 4 seconds).
-    WAIT_PRINT_INTERVAL: int = 88
-
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -130,19 +127,14 @@ class AddonSwapManager:
         Path A — addon ready first (or both): lift donor → DONOR_LIFTING.
         Path B — recipient ready first: lift recipient → RECIPIENT_LIFTING_FIRST.
         """
-        should_print: bool = (self.bot.state.game_loop % self.WAIT_PRINT_INTERVAL == 0)
         busy: Set[int] = self.managed_tags
 
         donor: Optional[Unit] = swap.find_donor(busy)
         if (donor is None):
-            if (should_print):
-                print(f"[AddonSwapManager] Waiting for donor: no {swap.donor_type.name} with/building {swap.desired_addon_type.name}.")
             return
 
         recipient: Optional[Unit] = swap.find_recipient(busy)
         if (recipient is None):
-            if (should_print):
-                print(f"[AddonSwapManager] Waiting for recipient: no {swap.recipient_type.name} found.")
             return
 
         addon_tag: Optional[int] = swap.detect_addon_tag(donor)
@@ -151,16 +143,7 @@ class AddonSwapManager:
         addon_ready: bool = addon is not None and addon.is_ready
         recipient_ready: bool = recipient.is_ready
 
-        if (should_print):
-            print(
-                f"[AddonSwapManager] donor={donor.tag} has_add_on={donor.has_add_on} "
-                f"| addon_tag={addon_tag} addon_ready={addon_ready} "
-                f"| recipient={recipient.tag} recipient_ready={recipient_ready}"
-            )
-
         if (not addon_ready and not recipient_ready):
-            if (should_print):
-                print(f"[AddonSwapManager] Waiting: neither addon nor recipient ready yet.")
             return
 
         swap.commit(donor, recipient, addon_tag)
@@ -226,7 +209,20 @@ class AddonSwapManager:
         # Donor is airborne — move toward recipient's original position.
         assert swap.recipient_original_position is not None
         if (not swap.donor_flying.is_moving):
-            swap.donor_flying.move(swap.recipient_original_position)
+            # check if either the position on top or bottom of the building is free and take it
+            top_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
+
+            land_position: Point2 = dfs_in_pathing(
+                self.bot,
+                top_position,
+                swap.donor_type,
+                self.bot.game_info.map_center,
+                1,
+                True,
+            )
+            swap.donor_flying(AbilityId.LAND, land_position)
+            # swap.donor_flying.move(land_position)
+            # swap.donor_flying.move(swap.recipient_original_position)
 
         if (swap.recipient_flying is not None):
             print(f"[AddonSwapManager] Donor airborne (Path B) — recipient already flying, proceeding to RECIPIENT_LANDING.")
@@ -297,15 +293,35 @@ class AddonSwapManager:
         if (swap.donor_flying.is_moving):
             return
 
-        assert swap.recipient_original_position is not None
+        # check if either the position on top or bottom of the building is free and take it
+        top_position: Point2 = swap.donor_original_position + Point2((0, -2.5))
+        bottom_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
+
+        free_position: Point2 = (
+            top_position
+            if self.bot.map.influence_maps.buildings.can_build(top_position, swap.donor_type)
+            else bottom_position if self.bot.map.influence_maps.buildings.can_build(bottom_position, swap.donor_type)
+            else swap.donor_original_position
+        )
+
         land_position: Point2 = dfs_in_pathing(
             self.bot,
-            swap.recipient_original_position,
+            free_position,
             swap.donor_type,
             self.bot.game_info.map_center,
             1,
-            swap.donor_needs_addon_after_swap,
+            True,
         )
+
+        # assert swap.recipient_original_position is not None
+        # land_position: Point2 = dfs_in_pathing(
+        #     self.bot,
+        #     swap.recipient_original_position,
+        #     swap.donor_type,
+        #     self.bot.game_info.map_center,
+        #     1,
+        #     True,
+        # )
 
         print(f"[AddonSwapManager] Landing donor {swap.donor_type.name} at {land_position}.")
         swap.donor_flying(AbilityId.LAND, land_position)
