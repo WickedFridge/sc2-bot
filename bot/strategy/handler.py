@@ -92,7 +92,7 @@ class StrategyHandler:
             return Situation.PROXY_BUILDINGS
         
         if (close_workers.amount >= 6):
-            return Situation.WORKER_RUSH
+            return Situation.CHEESE_WORKER_RUSH
 
         # detect ling drone rush
         zerglings: Units = menacing_enemy_units(UnitTypeId.ZERGLING)
@@ -133,32 +133,34 @@ class StrategyHandler:
     
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (
-            situation in [Situation.CHEESE_LING_DRONE, Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_UNKNOWN]
-            and self.bot.build_order.build.name != BuildOrderName.CONSERVATIVE_EXPAND.value
-        ):
-            # cancel B2/B3 and switch towards Conservative Expand
-            expand_in_construction: Units = self.bot.townhalls.not_ready
-            if (expand_in_construction):
-                expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
-            
-            b2_bunker_in_construction: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
-                lambda bunker: bunker.build_progress < 0.5 and bunker.distance_to(self.bot.expansions.b2.position) < 10
-            )
-            if (b2_bunker_in_construction):
-                b2_bunker_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
-
-            worker_building_bunker: Units = self.bot.workers.filter(
-                lambda worker: len(worker.orders) > 0 and worker.orders[0].ability.id == AbilityId.TERRANBUILD_BUNKER
-            )
-            if (worker_building_bunker):
-                worker_building_bunker.first.stop()
-            
-            self.bot.build_order.build = ConservativeExpand(self.bot)
+        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_EXPAND.value):
             return
-        if (situation in [Situation.PROXY_BUILDINGS, Situation.WORKER_RUSH]):
+        
+        if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
             self.bot.build_order.build = ConservativeExpand(self.bot)
+        
+        if (not situation.is_cheese):
+            return
+        
+        # cancel B2/B3 and switch towards Conservative Expand
+        expand_in_construction: Units = self.bot.townhalls.not_ready
+        if (expand_in_construction):
+            expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
+        
+        b2_bunker_in_construction: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda bunker: bunker.build_progress < 0.5 and bunker.distance_to(self.bot.expansions.b2.position) < 10
+        )
+        if (b2_bunker_in_construction):
+            b2_bunker_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
 
+        worker_building_bunker: Units = self.bot.workers.filter(
+            lambda worker: len(worker.orders) > 0 and worker.orders[0].ability.id == AbilityId.TERRANBUILD_BUNKER
+        )
+        if (worker_building_bunker):
+            worker_building_bunker.first.stop()
+        
+        self.bot.build_order.build = ConservativeExpand(self.bot)
+        
     
     def detect_tower_rush(self) -> Optional[Situation]:
         if (self.bot.townhalls.amount >= 3):

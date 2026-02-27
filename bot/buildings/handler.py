@@ -96,7 +96,7 @@ class BuildingsHandler:
             max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
             local_avaiable_workers: Units = (
                 available_workers.closer_than(REPAIR_RANGE_DANGER, burning_building)
-                if (burning_building.type_id not in must_repair and self.bot.scouting.situation == Situation.UNDER_ATTACK)
+                if (burning_building.type_id not in must_repair and self.bot.scouting.situation.is_precarious)
                 else available_workers.closer_than(REPAIR_RANGE_SAFE, burning_building)
             )
             if (
@@ -128,7 +128,7 @@ class BuildingsHandler:
                     (structure.health < 100 and structure.health_percentage < 0.1)
                     or (
                         structure.health_percentage < 0.3
-                        and self.bot.scouting.situation == Situation.UNDER_ATTACK
+                        and self.bot.scouting.situation.is_precarious
                     )
                 )
             )

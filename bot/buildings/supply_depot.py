@@ -73,7 +73,7 @@ class SupplyDepot(Building):
         if (current_supply <= 23):
             # 21 if 1 rax, 20 if 2 rax
             return (
-                self.bot.scouting.situation == Situation.UNDER_ATTACK
+                self.bot.scouting.situation.is_precarious
                 or self.bot.supply_used >= 22 - self.bot.structures(UnitTypeId.BARRACKS).amount
             )
         

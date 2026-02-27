@@ -8,7 +8,6 @@ from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
-from bot.strategy.situations import precarious_situations
 
 if TYPE_CHECKING:
     from .builder import Builder
@@ -93,7 +92,7 @@ class Building:
     
     @property
     def precarious(self) -> int:
-        return self.bot.scouting.situation in precarious_situations
+        return self.bot.scouting.situation.is_cheese
     
     def on_complete(self):
         print(f'Build {self.name}')
