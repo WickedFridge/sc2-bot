@@ -201,9 +201,9 @@ class OrdersManager:
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
 
         # if there are units, fight or retreat
-        if (situation == Situation.BUNKER_RUSH):
+        if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
-        if (situation == Situation.CANON_RUSH):
+        if (situation == Situation.CHEESE_CANON_RUSH):
             return Orders.DEFEND_CANON_RUSH
             
         if (local_enemy_supply > 0):        
@@ -268,9 +268,9 @@ class OrdersManager:
         potential_enemy_supply: float = local_enemy_army.weighted_supply + unseen_enemy_supply
                 
         # -- High-priority hardcoded situations
-        if (situation == Situation.BUNKER_RUSH):
+        if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
-        if (situation == Situation.CANON_RUSH):
+        if (situation == Situation.CHEESE_CANON_RUSH):
             return Orders.DEFEND_CANON_RUSH
         
         # -- Drop logic

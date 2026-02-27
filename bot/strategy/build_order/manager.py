@@ -4,6 +4,7 @@ import random
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.dummy_build import Dummybuild
 from bot.strategy.build_order.builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.two_rax_reaper_defensive import DefensiveTwoRax
@@ -35,19 +36,19 @@ class BuildOrderManager:
                 self.build = random.choice([
                     # Dummybuild(self.bot)
                     # TwoRaxReapers(self.bot),
-                    DefensiveCyclone(self.bot),
+                    MacroCyclone(self.bot),
                     # DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    # TwoRaxReapers(self.bot),
-                    DefensiveCyclone(self.bot),
+                    TwoRaxReapers(self.bot),
+                    # DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)
                 ])
             case Matchup.TvP:
                 self.build = random.choice([
-                    DefensiveCyclone(self.bot),
+                    MacroCyclone(self.bot),
                     # Dummybuild(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)

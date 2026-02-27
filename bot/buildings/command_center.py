@@ -1,4 +1,4 @@
-from typing import override
+from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.strategy.build_order.bo_names import BuildOrderName
@@ -56,12 +56,17 @@ class CommandCenter(Building):
         cc_position: Point2 = self.bot.expansions.next.position
         next_expansion: Expansion = self.bot.expansions.next
         near_cc_position: Point2 = self.bot.expansions.main.position.towards(cc_position, 2)
+        in_base_builds: List[BuildOrderName] = [
+            BuildOrderName.DEFENSIVE_TWO_RAX.value,
+            BuildOrderName.CONSERVATIVE_EXPAND.value,
+            BuildOrderName.DEFENSIVE_CYCLONE.value
+        ]
         match (townhall_amount):
             case 0:
                 return self.bot.expansions.main.position
             case 1:
                 if (
-                    self.bot.build_order.build.name in [BuildOrderName.DEFENSIVE_TWO_RAX.value, BuildOrderName.CONSERVATIVE_EXPAND.value]
+                    self.bot.build_order.build.name in in_base_builds
                     or not next_expansion.is_safe
                 ):
                     return near_cc_position

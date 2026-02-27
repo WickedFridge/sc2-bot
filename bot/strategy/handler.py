@@ -3,6 +3,8 @@ from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
+from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
@@ -137,7 +139,10 @@ class StrategyHandler:
             return
         
         if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
-            self.bot.build_order.build = ConservativeExpand(self.bot)
+            if (situation == Situation.CHEESE_ROACH_RUSH):
+                self.bot.build_order.build = DefensiveCyclone(self.bot)
+            else:
+                self.bot.build_order.build = ConservativeExpand(self.bot)
         
         if (not situation.is_cheese):
             return
@@ -159,7 +164,7 @@ class StrategyHandler:
         if (worker_building_bunker):
             worker_building_bunker.first.stop()
         
-        self.bot.build_order.build = ConservativeExpand(self.bot)
+        
         
     
     def detect_tower_rush(self) -> Optional[Situation]:
@@ -178,10 +183,10 @@ class StrategyHandler:
         if (enemy_towers.amount >= 1):
             match(enemy_towers.first.type_id):
                 case UnitTypeId.PYLON:
-                    return Situation.CANON_RUSH
+                    return Situation.CHEESE_CANON_RUSH
                 case UnitTypeId.PHOTONCANNON:
-                    return Situation.CANON_RUSH
+                    return Situation.CHEESE_CANON_RUSH
                 case UnitTypeId.BUNKER:
-                    return Situation.BUNKER_RUSH
+                    return Situation.CHEESE_BUNKER_RUSH
                 case _:
                     return Situation.UNDER_ATTACK

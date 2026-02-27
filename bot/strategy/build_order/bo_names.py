@@ -6,6 +6,7 @@ class BuildOrderName(enum.Enum):
     DEFENSIVE_TWO_RAX = 'Defensive 2 Rax Reapers'
     CONSERVATIVE_EXPAND = 'Conservative Expand'
     CC_FIRST_TWO_RAX = 'CC First 2 Rax Macro'
+    MACRO_CYCLONE = 'Macro Cyclone'
     DEFENSIVE_CYCLONE = 'Defensive Cyclone'
     DUMMY_BUILD = 'Dummy Build'
 

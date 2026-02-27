@@ -44,7 +44,7 @@ class Macro:
                 order.ability.id == AbilityId.MOVE and order.target in townhall_ids
                 or (
                     (worker.is_repairing or worker.is_attacking)
-                    and self.bot.scouting.situation not in [Situation.CANON_RUSH, Situation.BUNKER_RUSH]
+                    and not self.bot.scouting.situation.is_cheese
                     and positions and min(worker.distance_to(p) for p in positions) >= 20
                 )
             ):
