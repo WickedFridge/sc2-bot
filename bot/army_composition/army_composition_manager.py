@@ -169,7 +169,17 @@ class ArmyCompositionManager(CachedClass):
             if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.b4.position] > 0):
                 composition.add(UnitTypeId.RAVEN, 1)
             
-        
+        # if we're playing late game TvT, we want Ravens, depending on the amount of powerful enemy units
+        if (
+            self.wicked.matchup == Matchup.TvT
+            and self.wicked.expansions.amount_taken >= 4
+            and self.bot.structures(UnitTypeId.REFINERY).amount >= 8
+        ):
+            powerful_unit_amount: int = self.wicked.scouting.known_enemy_army.units.filter(lambda unit: get_unit_supply(unit.type_id) >= 3).amount
+            raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
+            composition.set(UnitTypeId.RAVEN, max([3, raven_amount, powerful_unit_amount]))
+
+
         # if we have medivacs and a lot of bio, get the medivac count up to 10
         if (UnitTypeId.MEDIVAC in available_units):
             # add up to 4 Medivac if we already have a lot of bio

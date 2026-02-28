@@ -740,6 +740,33 @@ class Micro(CachedClass):
         ):
             bio_unit(AbilityId.EFFECT_STIM)
 
+    async def raven_interference_matrix(self, raven: Unit) -> bool:
+        INTERFERENCE_MATRIX_RANGE: int = 9
+        
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 2, only_menacing=True)
+        # TODO improve this, so far we consider that every unit that costs 3 or more supply is a good potential target
+        potential_targets: Units = close_enemy_units.filter(
+            lambda enemy_unit: (
+                get_unit_supply(enemy_unit.type_id) > 2
+                and BuffId.RAVENSCRAMBLERMISSILE not in enemy_unit.buffs
+            )
+        )
+        
+        if (potential_targets.amount == 0):
+            return False
+        
+        best_target: Unit = potential_targets.sorted(
+            lambda enemy_unit: (
+                get_unit_supply(enemy_unit.type_id),
+                enemy_unit.health + enemy_unit.shield,
+            ),
+            reverse=True
+        ).first
+        print("Casting interference matrix on ", best_target.type_id)
+        raven(AbilityId.EFFECT_INTERFERENCEMATRIX, best_target)
+        return True
+        
+    
     async def raven_antiarmor_missile(self, raven: Unit) -> bool:
         close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10, only_menacing=True)
         if (close_enemy_units.amount < 3):
@@ -785,9 +812,18 @@ class Micro(CachedClass):
     async def raven(self, raven: Unit, local_army: Units):
         # if we have enough energy, cast anti armor missile on the closest group of enemy units
         ANTI_ARMOR_MISSILE_ENERGY_COST: int = 75
+        INTERFERENCE_MATRIX_ENERGY_COST: int = 75
         AUTO_TURRET_ENERGY_COST: int = 50
 
         available_abilities = (await self.bot.get_available_abilities([raven]))[0]
+        if (AbilityId.EFFECT_INTERFERENCEMATRIX in available_abilities and raven.energy >= INTERFERENCE_MATRIX_ENERGY_COST):
+            if (await self.raven_interference_matrix(raven)):
+                return
+
+        if (AbilityId.EFFECT_ANTIARMORMISSILE in available_abilities and raven.energy >= ANTI_ARMOR_MISSILE_ENERGY_COST):
+            if (await self.raven_antiarmor_missile(raven)):
+                return
+        
         if (AbilityId.EFFECT_ANTIARMORMISSILE in available_abilities and raven.energy >= ANTI_ARMOR_MISSILE_ENERGY_COST):
             if (await self.raven_antiarmor_missile(raven)):
                 return

@@ -191,7 +191,12 @@ class Debug:
             progress: float = scv_build_progress(self.bot, self.bot.workers.closest_to(structure))
             self.draw_text_on_world(structure.position, f'Constructing: {constructing}, Progress: {progress:.2f}')
 
-    
+    def buffs(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected + self.bot.enemy_units.selected
+        for unit in selected_units:
+            buffs: List[str] = [str(buff) for buff in unit.buffs]
+            self.draw_text_on_world(unit.position, f'{unit.name} {buffs}')
+
     def orders(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         for unit in selected_units:
