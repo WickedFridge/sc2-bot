@@ -13,6 +13,7 @@ class OrbitalCommand(UpgradeBuilding):
         self.name = "Orbital Command"
         self.base_building_id = UnitTypeId.COMMANDCENTER
         self.ignore_build_order = True
+        self.radius = 2.5
 
     @override
     @property

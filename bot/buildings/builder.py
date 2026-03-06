@@ -28,6 +28,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
+from ..utils.unit_tags import production
 
 class Builder:
     bot: Superbot
@@ -111,6 +112,11 @@ class Builder:
             return
         worker: Unit = workers.closest_to(location)
         worker.build(unit_type, location)
+        # Reserve the area in the influence map to prevent other buildings from getting built on top while it's being built
+        # if (unit_type in production):
+        #     self.bot.map.influence_maps.buildings.reserve_production(location)
+        # else:
+        #     self.bot.map.influence_maps.buildings.reserve_area(location, radius * 2, {unit_type})
         # TODO : replace with the correct building id
         worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
 

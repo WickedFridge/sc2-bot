@@ -14,7 +14,7 @@ class SupplyDepot(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.SUPPLYDEPOT
         self.name = "Supply Depot"
-        self.radius = 0.5
+        self.radius = 1
         self.ignore_build_order = True
     
     @override

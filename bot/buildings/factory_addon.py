@@ -11,6 +11,7 @@ class FactoryAddon(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.FACTORYTECHREACTOR
         self.name = "Factory Addon"
+        self.radius = 1
 
     @property
     def factory_without_addon(self) -> Units:

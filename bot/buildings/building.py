@@ -19,7 +19,7 @@ class Building:
     unitIdFlying: Optional[UnitTypeId] = None
     abilityId: Optional[AbilityId] = None
     name: str
-    radius: float = 1
+    radius: float = 1.5
     ignore_build_order: bool = False
 
     def __init__(self, build: Builder):
@@ -115,7 +115,7 @@ class Building:
         
         position: Point2 = dfs_in_pathing(self.bot, pos, self.unitId, self.bot.game_info.map_center, self.radius, self.has_addon)
         if (position != pos):
-            print(f"position changed for {self.name} from {pos} to {position}")
+            print(f"position changed for {self.name} from {pos.round(2)} to {position}")
         await self.builder.build(self.unitId, position, self.radius, self.has_addon, self.force_position)
         self.on_complete()
         return resources_updated

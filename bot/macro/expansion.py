@@ -274,7 +274,13 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def bunker_forward_in_pathing(self) -> Point2 | None:
         """Finds the nearest buildable position for a bunker, avoiding the Command Center's hitbox."""
-
+        # Guard: CC reservation must exist before we search
+        buildings_layer = self.bot.map.influence_maps.buildings
+        cc_center: Point2 = self.position
+        if (not self.is_main and not buildings_layer.is_cc_reserved(cc_center)):
+            print("CC reservation not done yet")
+            return None
+        
         start: Point2 = self.bunker_forward
         
         # Calculate preferred direction away from CC toward opponent
@@ -303,7 +309,7 @@ class Expansion(CachedClass):
             # prefered_position: Point2 = self.bot.main_base_ramp.top_center
             depot_walls: List[Point2] = list(self.bot.main_base_ramp.corner_depots)
             closest_depot_wall: Point2 = closest_point(self.position, depot_walls)
-            return dfs_in_pathing(self.bot, closest_depot_wall, UnitTypeId.BUNKER, self.position, radius=1)
+            return dfs_in_pathing(self.bot, closest_depot_wall, UnitTypeId.BUNKER, self.position)
         closest_ramp_bottom: Point2 = find_closest_bottom_ramp(self.bot, self.position).bottom_center
         if (self.position.distance_to(closest_ramp_bottom) >= 15):
             return None
@@ -316,7 +322,7 @@ class Expansion(CachedClass):
         return dfs_in_pathing(self.bot, bunker_position.rounded_half, UnitTypeId.BUNKER, preferred_direction)
     
     @custom_cache_once_per_frame
-    def bunker_position(self) -> Point2:
+    def bunker_position(self) -> Point2 | None:
         if (self.is_main):
             return self.bunker_ramp
         return self.bunker_forward_in_pathing

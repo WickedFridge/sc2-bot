@@ -197,6 +197,12 @@ class Debug:
             buffs: List[str] = [str(buff) for buff in unit.buffs]
             self.draw_text_on_world(unit.position, f'{unit.name} {buffs}')
 
+    def height(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected + self.bot.enemy_units.selected
+        for unit in selected_units:
+            height: float = self.bot.get_terrain_height(unit.position)
+            self.draw_text_on_world(unit.position, f'{unit.name} height: {height:.2f}')
+
     def orders(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         for unit in selected_units:

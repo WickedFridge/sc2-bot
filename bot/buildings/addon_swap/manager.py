@@ -217,7 +217,7 @@ class AddonSwapManager:
                 top_position,
                 swap.donor_type,
                 self.bot.game_info.map_center,
-                1,
+                1.5,
                 True,
             )
             swap.donor_flying(AbilityId.LAND, land_position)
@@ -309,7 +309,7 @@ class AddonSwapManager:
             free_position,
             swap.donor_type,
             self.bot.game_info.map_center,
-            1,
+            1.5,
             True,
         )
 
@@ -319,7 +319,7 @@ class AddonSwapManager:
         #     swap.recipient_original_position,
         #     swap.donor_type,
         #     self.bot.game_info.map_center,
-        #     1,
+        #     1.5,
         #     True,
         # )
 

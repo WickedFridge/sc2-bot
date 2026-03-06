@@ -1,10 +1,7 @@
-from typing import List, override
+from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
-from bot.utils.matchup import Matchup
-from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
-from bot.utils.point2_functions.utils import center
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units

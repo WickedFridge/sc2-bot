@@ -12,6 +12,7 @@ class PlanetaryFortress(UpgradeBuilding):
         self.abilityId = AbilityId.UPGRADETOPLANETARYFORTRESS_PLANETARYFORTRESS
         self.name = "Planetary Fortress"
         self.base_building_id = UnitTypeId.COMMANDCENTER
+        self.radius = 2.5
 
     @override
     @property

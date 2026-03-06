@@ -406,7 +406,7 @@ class BuildingsHandler:
                 if (self.bot.expansions.taken.safe.amount == 0):
                     continue
                 safest_base: Expansion = self.bot.expansions.taken.safe.closest_to(townhall.position)
-                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, landing_spot, 2)
+                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, landing_spot, 2.5)
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
                     townhall(AbilityId.LAND_COMMANDCENTER, safe_spot)
                 else:
@@ -492,7 +492,7 @@ class BuildingsHandler:
                 flying_building.position,
                 land_type,
                 self.bot.game_info.map_center,
-                1,
+                1.5,
                 True,
             )
             print(
@@ -531,6 +531,8 @@ class BuildingsHandler:
             if (bunkers.closer_than(12, expansion.position).amount >= 1):
                 continue
             bunker_position: Point2 = expansion.bunker_position
+            if (bunker_position is None):  # CC not yet reserved, skip this frame
+                continue
             if (bunker_position not in buildings_layer.reservations):
                 buildings_layer.reserve_bunker(bunker_position)
     

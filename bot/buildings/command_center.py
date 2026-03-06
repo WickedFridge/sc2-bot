@@ -15,7 +15,7 @@ class CommandCenter(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.COMMANDCENTER
         self.name = "Command Center"
-        self.radius = 2
+        self.radius = 2.5
 
     @override
     @property

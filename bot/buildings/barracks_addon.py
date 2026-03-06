@@ -14,6 +14,7 @@ class BarracksAddon(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.BARRACKSTECHREACTOR
         self.name = "Barracks Addon"
+        self.radius = 1
 
     @property
     def sequence(self) -> List[UnitTypeId]:

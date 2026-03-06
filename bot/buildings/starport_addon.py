@@ -11,6 +11,7 @@ class StarportAddon(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.STARPORTTECHREACTOR
         self.name = "Starport Addon"
+        self.radius = 1
 
     @property
     def starports_without_addon(self) -> Units:

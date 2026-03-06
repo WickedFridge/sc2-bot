@@ -2,8 +2,9 @@ import math
 from operator import pos
 from typing import List
 from attr import dataclass
+from numpy.ma import size
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
-from bot.utils.point2_functions.utils import grid_offsets
+from bot.utils.point2_functions.utils import addon_offset, grid_offsets
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -52,6 +53,7 @@ class BuildingLayer:
                 origin, size = self._get_footprint(rock)
                 self.block_area(origin, size)
 
+    def _reserve_expansion_locations(self) -> None:
         # Expansions
         for expansion_position in self.bot.expansion_locations_list:
             minerals: Units = self.bot.mineral_field.closer_than(10, expansion_position)
@@ -89,6 +91,7 @@ class BuildingLayer:
     
     def initialize(self) -> None:
         self._initialize_static_blockers()
+        self._reserve_expansion_locations()
         self._initialize_existing_structures()
 
     def update(self):
@@ -126,17 +129,37 @@ class BuildingLayer:
         pos = pos.rounded
         return self.occupancy[pos] > 0.0
     
-    def should_build_building(self, pos: Point2, unit_type: UnitTypeId, radius: int) -> bool:
+    def should_build_building(self, pos: Point2, unit_type: UnitTypeId, radius: float) -> bool:
         pos = pos.rounded
-        points: list[Point2] = grid_offsets(radius, initial_position=pos)
+        size: int = int(round(radius * 2))
+        half: int = size // 2
+        origin: Point2 = Point2((pos.x - half, pos.y - half))
+        
+        points: list[Point2] = [
+            Point2((origin.x + x, origin.y + y))
+            for x in range(size)
+            for y in range(size)
+        ]
         
         # 1) Hard blocked
         if (any(self.can_build(point, unit_type) == False for point in points)):
             return False
         
-        # 2) Reservation check
+        # 2) Reservation + Height check
         reserved_amount: int = 0
+        # TODO : implement this once LeyLine isn't bugged
+        # max_height: float = self.bot.get_terrain_height(points[0])
+        # min_height: float = max_height
         for point in points:
+            # If too much height difference, it's not buildable
+            # point_height: float = self.bot.get_terrain_height(point)
+            # if (point_height > max_height):
+            #     max_height = point_height
+            # elif (point_height < min_height):
+            #     min_height = point_height
+            # if (max_height - min_height > 5):
+            #     return False
+            
             reserved_for = self.reservations.get(point)
             if (reserved_for is not None and unit_type not in reserved_for):
                 return False
@@ -245,6 +268,7 @@ class BuildingLayer:
         size = CC_RADIUS * 2
         origin = pos.rounded - Point2((2, 2))
 
+        print(f'Reserving CC at {pos}, origin {origin}, size {size}')
         self.reserve_area(
             origin,
             size,
@@ -294,7 +318,7 @@ class BuildingLayer:
     def reserve_production(self, pos: Point2) -> None:
         size = PRODUCTION_RADIUS * 2
         origin = pos.rounded - Point2((1, 1))
-        addon_position = pos.rounded + Point2((2.5, -0.5))
+        addon_position = addon_offset(pos.rounded)
         self.reserve_area(
             origin,
             size,
@@ -308,14 +332,30 @@ class BuildingLayer:
         self.reserve_around_production(origin)
     
     def reserve_bunker(self, pos: Point2) -> None:
-        size = BUNKER_RADIUS * 2
-        origin = pos.rounded - Point2((1, 1))
-        self.reserve_area(
-            origin,
-            size,
-            {UnitTypeId.BUNKER},
-        )
+        size: int = int(BUNKER_RADIUS * 2)
+        origin: Point2 = pos.rounded - Point2((1, 1))
+        ox: int = int(origin.x)
+        oy: int = int(origin.y)
 
+        for x in range(ox, ox + size):
+            for y in range(oy, oy + size):
+                tile: Point2 = Point2((x, y)).rounded
+                # Never overwrite an existing reservation
+                if (tile not in self.reservations or UnitTypeId.COMMANDCENTER not in self.reservations[tile]):
+                    self.reservations[tile] = {UnitTypeId.BUNKER}
+
+    def is_cc_reserved(self, pos: Point2) -> bool:
+        size: int = int(CC_RADIUS * 2)
+        origin: Point2 = pos.rounded - Point2((2, 2))
+        
+        for x in range(int(origin.x), int(origin.x) + size):
+            for y in range(int(origin.y), int(origin.y) + size):
+                tile: Point2 = Point2((x, y))
+                reserved_for: set[UnitTypeId] | None = self.reservations.get(tile)
+                if (reserved_for is None or UnitTypeId.COMMANDCENTER not in reserved_for):
+                    print(f"[is_cc_reserved] FAIL at tile {tile}, reserved_for={reserved_for}")
+                    return False
+        return True
     
     def on_building_created(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)

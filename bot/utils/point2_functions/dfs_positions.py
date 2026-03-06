@@ -1,26 +1,34 @@
 from collections import deque
 from typing import List, Optional
+from bot.macro.map.influence_maps.layers.buildings_layer import ADDON_RADIUS
 from bot.macro.map.map import MapData, get_map
 from bot.utils.point2_functions.utils import addon_offset
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
-def valid_building_position(bot: BotAI, origin: Point2, unit_type: UnitTypeId, radius: int, has_addon: bool) -> bool:
+def valid_building_position(bot: BotAI, position: Point2, unit_type: UnitTypeId, radius: float, has_addon: bool) -> bool:
     map: MapData = get_map(bot)
     if (
         has_addon
-        and not map.influence_maps.buildings.should_build_building(addon_offset(origin), UnitTypeId.BARRACKSTECHLAB, 0.5)
+        and not map.influence_maps.buildings.should_build_building(addon_offset(position), UnitTypeId.BARRACKSTECHLAB, ADDON_RADIUS)
     ):
         return False
-    return (
-        map.influence_maps.buildings.should_build_building(origin, unit_type, radius)
-    )
+    should_build: bool = map.influence_maps.buildings.should_build_building(position, unit_type, radius)    
+    return should_build
 
-def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferred_direction: Optional[Point2] = None, radius: int = 1, has_addon: bool = False) -> Point2:
+def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferred_direction: Optional[Point2] = None, radius: float = 1.5, has_addon: bool = False) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
         The radius in tiles around the position to search for valid buildable positions."""
+    size: int = int(round(radius * 2))
     
+    def normalize(p: Point2) -> Point2:
+        # Odd size (3x3, 5x5) → rounded_half, Even size (2x2) → rounded
+        return p.rounded_half if (size % 2 != 0) else p.rounded
+
+    position = normalize(position)
+
+
     # If already valid, return it
     if (valid_building_position(bot, position, unit_type, radius, has_addon)):
         return position
@@ -57,7 +65,7 @@ def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferre
         current = search_queue.popleft()
 
         for dx, dy in biased_directions(current):
-            neighbor = Point2((current.x + dx, current.y + dy))
+            neighbor = normalize(Point2((current.x + dx, current.y + dy)))
             
             if (neighbor in visited):
                 continue  # Skip already checked locations
