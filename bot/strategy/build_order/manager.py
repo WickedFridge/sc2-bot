@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 import random
+from bot.buildings.addon_swap.swap_plan import SwapState
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
@@ -55,6 +56,16 @@ class BuildOrderManager:
                 ])
             case _:
                 self.build = KokaBuild(self.bot)
+
+    def switch_build(self, new_build_order: BuildOrder) -> None:
+        # Abort any in-progress swaps from the old build order
+        for plan in self.build.swap_plans:
+            if (not plan.is_finished and plan.state != SwapState.PENDING):
+                print(f"[BuildOrder] Aborting in-progress swap {plan.name} due to BO switch.")
+                plan.state = SwapState.ABORTED
+
+        self.build = new_build_order
+        self.build.reconcile()
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager

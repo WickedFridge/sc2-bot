@@ -72,6 +72,27 @@ class BuildOrder:
 
         return count
 
+    def reconcile(self) -> None:
+        """
+        Called when this build order becomes active mid-game.
+        Marks swap plans as DONE if their outcome is already present in-game.
+        """
+        for plan in self.swap_plans:
+            if (plan.state != SwapState.PENDING):
+                continue
+            # The swap is done if a recipient-type building already has
+            # the desired addon attached.
+            recipient_with_addon: bool = any(
+                structure.type_id == plan.recipient_type
+                and structure.has_add_on
+                and self.bot.structures.find_by_tag(structure.add_on_tag) is not None
+                and self.bot.structures.find_by_tag(structure.add_on_tag).type_id == plan.desired_addon_type
+                for structure in self.bot.structures(plan.recipient_type)
+            )
+            if (recipient_with_addon):
+                print(f"[BuildOrder.reconcile] Swap {plan.name} already satisfied — marking DONE.")
+                plan.state = SwapState.DONE
+    
     # steps not yet completed
     @property
     def steps_remaining(self) -> List[BuildOrderStep]:

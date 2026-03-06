@@ -575,6 +575,10 @@ class Debug:
     async def build_order(self):
         build_order: BuildOrder = self.bot.build_order.build
         screen_y: float = 0.3
+        position: Point2 = Point2((0, screen_y))
+        self.draw_text_on_screen(f'{build_order.name.capitalize()}', position, ORANGE, font_size=16)
+        # linebreak
+        screen_y += 0.015
         for step in build_order.steps:
             screen_y += 0.015
             position: Point2 = Point2((0, screen_y))

@@ -140,9 +140,9 @@ class StrategyHandler:
         
         if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
             if (situation == Situation.CHEESE_ROACH_RUSH):
-                self.bot.build_order.build = DefensiveCyclone(self.bot)
+                self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
             else:
-                self.bot.build_order.build = ConservativeExpand(self.bot)
+                self.bot.build_order.switch_build(ConservativeExpand(self.bot))
         
         if (not situation.is_cheese):
             return
@@ -163,7 +163,6 @@ class StrategyHandler:
         )
         if (worker_building_bunker):
             worker_building_bunker.first.stop()
-        
         
         
     
