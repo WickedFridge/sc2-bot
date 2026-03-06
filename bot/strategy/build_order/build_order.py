@@ -68,7 +68,7 @@ class BuildOrder:
                 count += 1
 
         if (include_pending):
-            count += self.bot.already_pending(unit_id)
+            count += max(self.bot.already_pending(unit_id), self.bot.structures(unit_ids).not_ready.amount)
 
         return count
 

@@ -53,28 +53,6 @@ class BuildOrderStep:
             return self.bot.already_pending_upgrade(self.step_id) > 0
         return self.build_order.unit_amount(self.step_id)
 
-    # def unit_amount(self, unit_id: UnitTypeId, include_pending: bool = True) -> int:
-    #     unit_ids: list[UnitTypeId] = [unit_id]
-    #     if (unit_id in self.equivalences.keys()):
-    #         unit_ids.extend(self.equivalences[unit_id])
-
-    #     count: int = (
-    #         self.bot.structures(unit_ids).ready.amount
-    #         + self.bot.units(unit_ids).ready.amount
-    #     )
-
-    #     # An addon mid-swap or post-swap may have a different in-game type_id
-    #     # (e.g. REACTOR instead of FACTORYREACTOR). Count it under desired_addon_type.
-    #     committed: dict[int, UnitTypeId] = self.build_order.addon_transfer_map
-    #     for tag, desired_type in committed.items():
-    #         if (desired_type == unit_id):
-    #             count += 1
-
-    #     if (include_pending):
-    #         count += self.bot.already_pending(unit_id)
-
-    #     return count
-    
     @property
     def is_satisfied(self) -> bool:
         return self.current_amount >= self.target_count
