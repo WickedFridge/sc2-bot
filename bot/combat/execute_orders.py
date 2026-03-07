@@ -122,6 +122,11 @@ class Execute(CachedClass):
             distance_medivac_to_target = medivac.position.distance_to(self.drop_target)
             distance_edge_to_target = self.best_edge.distance_to(self.drop_target)
             
+            # if the medivac are far appart, bring them closer
+            if (medivac.distance_to(medivacs_to_use.center) > 4):
+                medivac.move(medivacs_to_use.center)
+                continue
+
             # If the edge is closer to the target than we are, take the detour
             if (distance_edge_to_target < distance_medivac_to_target):
                 # Optional: Only go to edge if not already very close to it
