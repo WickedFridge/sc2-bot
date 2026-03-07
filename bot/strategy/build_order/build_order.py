@@ -119,7 +119,7 @@ class BuildOrder:
                 continue
 
             # Case 3: donor doesn't exist yet, or has no addon → stay PENDING
-            print(f"[reconcile] {plan.name} stays PENDING.")
+            # print(f"[reconcile] {plan.name} stays PENDING.")
 
         self.swap_plans = plans_to_prepend + self.swap_plans
     

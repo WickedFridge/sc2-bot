@@ -302,62 +302,87 @@ class Execute(CachedClass):
         for unit in army.units:
             unit.attack(closest_expansion.position)
     
-    def defend_bunker_rush(self, army: Army):
+    def defend_bunker_rush(self, army: Army) -> None:
+        CENTER: Point2 = army.units.center
+
+        # -- Gather context -------------------------------------------------------
         enemy_bunkers: Units = self.bot.enemy_structures(UnitTypeId.BUNKER).filter(
-            lambda unit: (
-                unit.distance_to(army.units.center) <= 30
+            lambda u: u.distance_to(CENTER) <= 30
+        )
+        enemy_bunkers_in_progress: Units = enemy_bunkers.filter(lambda u: u.build_progress < 1)
+        enemy_bunkers_completed: Units = enemy_bunkers.ready
+        ally_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready
+
+        scv_menacing: Units = self.bot.enemy_units(UnitTypeId.SCV).filter(
+            lambda u: enemy_bunkers.closest_distance_to(u) <= 5
+        )
+        
+        scvs_building: Units = scv_menacing.filter(
+            lambda u: enemy_bunkers_in_progress.closest_distance_to(u) <= 5
+        ) if enemy_bunkers_in_progress.amount >= 1 else Units([], self.bot)
+
+        menacing_bunkers: Units = (enemy_bunkers_in_progress + enemy_bunkers_completed).filter(
+            lambda b: (
+                b.distance_to(self.bot.expansions.main.position) < 20
+                or b.distance_to(self.bot.expansions.b2.position) < 20
             )
         )
-        enemy_bunkers_completed: Units = enemy_bunkers.ready
-        enemy_bunkers_in_progress: Units = enemy_bunkers.filter(lambda unit: unit.build_progress < 1)
-        ally_bunkers: Units = self.bot.units(UnitTypeId.BUNKER).ready
-        enemy_marines: Units = self.bot.enemy_units(UnitTypeId.MARINE).filter(lambda unit: unit.distance_to(army.units.center) <= 20)
-        enemy_reapers: Units = self.bot.enemy_units(UnitTypeId.REAPER).filter(lambda unit: unit.distance_to(army.units.center) <= 20)
-        scvs_building: Units = (
-            Units([], self.bot) if enemy_bunkers_in_progress.amount == 0
-            else self.bot.enemy_units(UnitTypeId.SCV).filter(lambda unit: enemy_bunkers_in_progress.closest_distance_to(unit) <= 3)
+
+        enemy_combat_units: Units = self.bot.enemy_units.filter(
+            lambda u: (
+                u.type_id in [UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.REAPER]
+                and u.distance_to(CENTER) <= 20
+            )
         )
 
-        # focus the building SCVs first
+        # -- Issue orders per unit ------------------------------------------------
         for unit in army.units:
-            if (scvs_building.amount):
-                closest_scv_building: Unit = scvs_building.closest_to(unit)
-                
-                # if we have a completed bunker in range, hop in
-                if (ally_bunkers.amount >= 1):
-                    closest_ally_bunker: Unit = ally_bunkers.closest_to(closest_scv_building)
-                    if (closest_ally_bunker.distance_to(closest_scv_building) < 7):
-                        unit.move(closest_ally_bunker)
-                        closest_ally_bunker(AbilityId.LOAD_BUNKER, unit)
-                        break
+            if (ally_bunkers.amount >= 1 and scvs_building.amount >= 1):
+                closest_ally_bunker: Unit = ally_bunkers.closest_to(unit)
+                if (closest_ally_bunker.distance_to(scvs_building.closest_to(unit)) < 20):
+                    unit.move(closest_ally_bunker)
+                    closest_ally_bunker(AbilityId.LOAD_BUNKER, unit)
+                    continue
 
-                # if we are on cooldown, find the best target and shoot at it
-                closest_enemy_bunker_in_progress: Unit = enemy_bunkers_in_progress.closest_to(unit)
-                if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
-                    target: Unit = self.find_bunker_rush_target(
-                        unit,
-                        closest_scv_building,
-                        closest_enemy_bunker_in_progress,
-                        enemy_marines,
-                        enemy_reapers
-                    )
-                    if (target):
-                        unit.attack(target)
-                        break
+            # Highest priority target to move toward (SCV > bunker > combat)
+            move_target: Optional[Unit] = self._bunker_rush_target(
+                unit,
+                [scvs_building, scv_menacing, menacing_bunkers, enemy_combat_units],
+                in_range_only=False,
+            )
 
-            # otherwise identify menacing bunkers and attack the scv building them
-            menacing_bunkers: Units = enemy_bunkers_in_progress.in_distance_of_group(self.bot.townhalls, 7)
-            if (self.handle_enemy_bunkers(unit, ally_bunkers, menacing_bunkers)):
-                break
+            # Best target to actually shoot (in-range only, same priority)
+            attack_target: Optional[Unit] = self._bunker_rush_target(
+                unit,
+                [scvs_building, scv_menacing, menacing_bunkers, enemy_combat_units],
+                in_range_only=True,
+            )
 
-            # if enemy has terrifying bunkers completed, not sure what to do yet
-            terrifying_bunkers: Units = enemy_bunkers_completed.in_distance_of_group(self.bot.townhalls, 7)
-            if (self.handle_enemy_bunkers(unit, ally_bunkers, terrifying_bunkers)):
-                break
-            
-            # Here there's a bunker menacing nothing
-            # go back to main then
-            unit.attack(self.bot.main_base_ramp.top_center)
+            if (move_target is None):
+                unit.attack(self.bot.main_base_ramp.top_center)
+                continue
+
+            if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD and attack_target is not None):
+                unit.attack(attack_target)
+            else:
+                attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, move_target)
+                unit.move(attack_spot)
+
+
+    def _bunker_rush_target(
+        self,
+        unit: Unit,
+        all_threats: List[Units],
+        in_range_only: bool = False,
+    ) -> Optional[Unit]:
+        for threat_group in all_threats:
+            in_range: Units = threat_group.filter(lambda t: unit.target_in_range(t))
+            if (in_range.amount >= 1):
+                return in_range.sorted(lambda t: t.health + t.shield).first
+            if (not in_range_only and threat_group.amount >= 1):
+                return threat_group.closest_to(unit)
+
+        return None
             
     def handle_enemy_bunkers(self, unit: Unit, bunkers: Units, menacing_bunkers: Units) -> bool:
         if (menacing_bunkers.amount >= 1):

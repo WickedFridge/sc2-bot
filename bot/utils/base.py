@@ -137,7 +137,17 @@ class Base:
     def defend_bunker_rush(self) -> None:
         bunkers: Units = self.enemy_structures(UnitTypeId.BUNKER)
         # track the SCVs with 3 workers each
-        self.track_enemy_scout(3)
+        constructing_scvs: Units = self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.type_id in worker_types
+                and (
+                    unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
+                    or unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
+                )
+            )
+        )
+        for scv in constructing_scvs:
+            self.pull_workers(scv, 3)
         
         # try to destroy the constructing bunkers but commit on finished bunkers
         for bunker in bunkers:
@@ -177,7 +187,7 @@ class Base:
                 return
             Micro.move_away(worker, enemies_facing_almost_in_range.center, self.RANGE_THRESHOLD / 2)
 
-    def track_enemy_scout(self, max_scv_attacking = 1) -> None:
+    def track_enemy_scout(self, max_scv_attacking: int = 1, chase_scout: bool = False) -> None:
         # First stop tracking out of range enemy scouts to avoid chasing them across the map
         enemy_scouts: Units = self.enemy_units.filter(
             lambda unit: unit.type_id in worker_types
@@ -195,8 +205,9 @@ class Base:
             attacking_workers: Units = self.workers.filter(
                 lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
             )
-            if (attacking_workers.amount > 0):
-                print("enemy scout too far, stopping workers")
+            if (attacking_workers.amount == 0 or chase_scout == True):
+                continue
+            print("enemy scout too far, stopping workers")
             for worker in attacking_workers:
                 worker.stop()
             
@@ -210,6 +221,7 @@ class Base:
             )
             if (attacking_workers.amount < max_scv_attacking):
                 # pull 1 scv to follow it
+                print(f'tracking enemy scout with {attacking_workers.amount + 1} workers')
                 closest_worker: Unit = self.full_available_workers.closest_to(enemy_scout)
                 closest_worker.attack(enemy_scout)
         
