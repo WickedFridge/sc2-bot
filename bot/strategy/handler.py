@@ -57,8 +57,14 @@ class StrategyHandler:
         # enemy has more than twice our army supply
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         army: Army = Army(fighting_units, self.bot)
+        enemy_supply: int = self.bot.scouting.known_enemy_army.fighting_supply
         OVER_POWERED_RATIO: float = 2
-        if (self.bot.scouting.known_enemy_army.fighting_supply >= OVER_POWERED_RATIO * army.supply + 1):
+        BASIC_THRESHOLD: int = 4
+        
+        if (
+            enemy_supply > BASIC_THRESHOLD
+            and enemy_supply >= OVER_POWERED_RATIO * army.supply + 1
+        ):
             return Situation.UNDER_ATTACK
         
         return Situation.STABLE
