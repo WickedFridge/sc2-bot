@@ -153,8 +153,10 @@ class StrategyHandler:
         if (not situation.is_cheese):
             return
         
-        # cancel B2/B3 and switch towards Conservative Expand
-        expand_in_construction: Units = self.bot.townhalls.not_ready
+        # cancel B2/B3 and switch towards Conservative Expand, don't cancel indoor CCs
+        expand_in_construction: Units = self.bot.townhalls.not_ready.filter(
+            lambda th: th.position in [self.bot.expansions.b2.position, self.bot.expansions.b3.position]
+        )
         if (expand_in_construction):
             expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
         

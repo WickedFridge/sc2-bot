@@ -10,6 +10,14 @@ from sc2.unit import Unit
 from ...utils.unit_tags import reactors, techlabs
 
 
+def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
+    """Return all addon types functionally equivalent to the given one."""
+    if (addon_type in reactors):
+        return reactors
+    if (addon_type in techlabs):
+        return techlabs
+    return [addon_type]
+
 class BuildOrder:
     steps: List[BuildOrderStep]
     name: str
@@ -73,14 +81,6 @@ class BuildOrder:
 
         return count
 
-    def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
-        """Return all addon types functionally equivalent to the given one."""
-        if (addon_type in reactors):
-            return reactors
-        if (addon_type in techlabs):
-            return techlabs
-        return [addon_type]
-
     def reconcile(self) -> None:
         plans_to_prepend: list[AddonDetachSwap] = []
 
@@ -88,7 +88,7 @@ class BuildOrder:
             if (plan.state != SwapState.PENDING):
                 continue
 
-            desired_group: list[UnitTypeId] = self._addon_group(plan.desired_addon_type)
+            desired_group: list[UnitTypeId] = _addon_group(plan.desired_addon_type)
 
             # Case 1: recipient already has a functionally equivalent addon → DONE
             recipient_with_equivalent_addon: bool = any(

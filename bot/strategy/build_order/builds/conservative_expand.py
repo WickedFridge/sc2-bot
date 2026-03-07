@@ -17,7 +17,7 @@ class ConservativeExpand(BuildOrder):
             BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.REFINERY, 1, False)]),
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, False)]),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, townhalls=2, requirements=[(UnitTypeId.MARINE, 1, False)]),
-            BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2, requirements=[(UnitTypeId.MARINE, 1, False)]),
+            BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2, requirements=[(UnitTypeId.MARINE, 1, False), (UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=3, townhalls=2),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
             BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
