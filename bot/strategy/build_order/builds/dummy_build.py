@@ -1,6 +1,6 @@
 from typing import override
 
-from bot.buildings.addon_swap.swap_plan import SwapPlan
+from bot.strategy.build_order.addon_swap.swap_plan import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -33,8 +33,8 @@ class Dummybuild(BuildOrder):
             # BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.FACTORY, 1, False)]),
         ]
         
-        self.swap_plans: list[SwapPlan] = [
-            SwapPlan(
+        self.swap_plans = [
+            AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
                 UnitTypeId.FACTORYFLYING,

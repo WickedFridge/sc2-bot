@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional, Set
 
-from bot.buildings.addon_swap.swap_plan import SwapPlan, SwapState
+from bot.strategy.build_order.addon_swap.swap_plan import SwapPlan, SwapState
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -206,8 +206,6 @@ class AddonSwapManager:
                 grounded(_LIFT_ABILITY[swap.donor_type], queue=True)
             return
 
-        # Donor is airborne — move toward recipient's original position.
-        assert swap.recipient_original_position is not None
         if (not swap.donor_flying.is_moving):
             # check if either the position on top or bottom of the building is free and take it
             top_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
@@ -221,9 +219,12 @@ class AddonSwapManager:
                 True,
             )
             swap.donor_flying(AbilityId.LAND, land_position)
-            # swap.donor_flying.move(land_position)
-            # swap.donor_flying.move(swap.recipient_original_position)
 
+        # AddonDetachSwap has no recipient — go straight to DONOR_LANDING
+        if (swap.recipient_tag is None):
+            swap.state = SwapState.DONOR_LANDING
+            return
+        
         if (swap.recipient_flying is not None):
             print(f"[AddonSwapManager] Donor airborne (Path B) — recipient already flying, proceeding to RECIPIENT_LANDING.")
             swap.state = SwapState.RECIPIENT_LANDING

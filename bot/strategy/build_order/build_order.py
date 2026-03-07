@@ -1,12 +1,13 @@
 
 from typing import List, Optional
 from bot.army_composition.composition import Composition
-from bot.buildings.addon_swap.swap_plan import SwapPlan, SwapState
+from bot.strategy.build_order.addon_swap.swap_plan import AddonDetachSwap, SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
+from ...utils.unit_tags import reactors, techlabs
 
 
 class BuildOrder:
@@ -72,26 +73,55 @@ class BuildOrder:
 
         return count
 
+    def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
+        """Return all addon types functionally equivalent to the given one."""
+        if (addon_type in reactors):
+            return reactors
+        if (addon_type in techlabs):
+            return techlabs
+        return [addon_type]
+
     def reconcile(self) -> None:
-        """
-        Called when this build order becomes active mid-game.
-        Marks swap plans as DONE if their outcome is already present in-game.
-        """
+        plans_to_prepend: list[AddonDetachSwap] = []
+
         for plan in self.swap_plans:
             if (plan.state != SwapState.PENDING):
                 continue
-            # The swap is done if a recipient-type building already has
-            # the desired addon attached.
-            recipient_with_addon: bool = any(
-                structure.type_id == plan.recipient_type
-                and structure.has_add_on
+
+            desired_group: list[UnitTypeId] = self._addon_group(plan.desired_addon_type)
+
+            # Case 1: recipient already has a functionally equivalent addon → DONE
+            recipient_with_equivalent_addon: bool = any(
+                structure.has_add_on
                 and self.bot.structures.find_by_tag(structure.add_on_tag) is not None
-                and self.bot.structures.find_by_tag(structure.add_on_tag).type_id == plan.desired_addon_type
+                and self.bot.structures.find_by_tag(structure.add_on_tag).type_id in desired_group
                 for structure in self.bot.structures(plan.recipient_type)
             )
-            if (recipient_with_addon):
-                print(f"[BuildOrder.reconcile] Swap {plan.name} already satisfied — marking DONE.")
+            if (recipient_with_equivalent_addon):
+                print(f"[reconcile] {plan.name} already satisfied (equivalent addon) — DONE.")
                 plan.state = SwapState.DONE
+                continue
+
+            # Case 2: donor exists with a non-equivalent addon → inject detach swap
+            donor_with_wrong_addon: bool = any(
+                structure.has_add_on
+                and self.bot.structures.find_by_tag(structure.add_on_tag) is not None
+                and self.bot.structures.find_by_tag(structure.add_on_tag).type_id not in desired_group
+                for structure in self.bot.structures(plan.donor_type)
+            )
+            if (donor_with_wrong_addon):
+                print(f"[reconcile] {plan.name} donor has wrong addon — injecting AddonDetachSwap.")
+                plans_to_prepend.append(AddonDetachSwap(
+                    self.bot,
+                    donor_type=plan.donor_type,
+                    donor_flying_type=plan.donor_flying_type,
+                ))
+                continue
+
+            # Case 3: donor doesn't exist yet, or has no addon → stay PENDING
+            print(f"[reconcile] {plan.name} stays PENDING.")
+
+        self.swap_plans = plans_to_prepend + self.swap_plans
     
     # steps not yet completed
     @property

@@ -3,7 +3,7 @@ from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
-from bot.buildings.addon_swap.swap_plan import SwapState
+from bot.strategy.build_order.addon_swap.swap_plan import SwapState
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
 from bot.macro.map.influence_maps.influence_map import InfluenceMap

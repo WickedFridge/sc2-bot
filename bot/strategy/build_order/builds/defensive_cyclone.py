@@ -1,7 +1,7 @@
 from typing import override
 
 from bot.army_composition.composition import Composition
-from bot.buildings.addon_swap.swap_plan import SwapPlan
+from bot.strategy.build_order.addon_swap.swap_plan import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -39,7 +39,7 @@ class DefensiveCyclone(BuildOrder):
         ]
 
         self.swap_plans = [
-            SwapPlan(
+            AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
                 UnitTypeId.BARRACKSFLYING,

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Set
 
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -10,6 +12,7 @@ from sc2.units import Units
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
+    from bot.strategy.build_order.addon_swap.manager import AddonSwapManager
 
 
 class SwapState(str, Enum):
@@ -22,6 +25,9 @@ class SwapState(str, Enum):
 
     Path B — recipient ready first:
       PENDING → RECIPIENT_LIFTING_FIRST → DONOR_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
+
+    Detach-only path (AddonDetachSwap):
+      PENDING → DONOR_LIFTING → DONOR_LANDING → DONE
     """
 
     PENDING = "PENDING"
@@ -34,25 +40,19 @@ class SwapState(str, Enum):
     ABORTED = "ABORTED"
 
 
-class SwapPlan:
-    """
-    Declares the intent to swap an addon from a donor building to a recipient,
-    and holds all runtime state for the swap.
+_LIFT_ABILITY: dict[UnitTypeId, AbilityId] = {
+    UnitTypeId.BARRACKS: AbilityId.LIFT_BARRACKS,
+    UnitTypeId.FACTORY: AbilityId.LIFT_FACTORY,
+    UnitTypeId.STARPORT: AbilityId.LIFT_STARPORT,
+}
 
-    Static parameters (set at construction time)
-    --------------------------------------------
-    bot:
-        Reference to the bot, used by all property lookups.
-    donor_type:
-        UnitTypeId of the grounded donor (e.g. FACTORY).
-    donor_flying_type:
-        UnitTypeId of the donor when airborne (e.g. FACTORYFLYING).
-    recipient_type:
-        UnitTypeId of the grounded recipient (e.g. STARPORT).
-    recipient_flying_type:
-        UnitTypeId of the recipient when airborne (e.g. STARPORTFLYING).
-    desired_addon_type:
-        The addon being transferred (e.g. FACTORYREACTOR).
+
+class SwapPlan(ABC):
+    """
+    Abstract base for all addon swap plans.
+
+    Subclasses implement process() to drive their own state machine,
+    and may delegate individual states back to AddonSwapManager methods.
     """
 
     def __init__(
@@ -84,10 +84,10 @@ class SwapPlan:
     @property
     def name(self) -> str:
         return f'{self.desired_addon_type.name} ({self.donor_type.name} -> {self.recipient_type.name})'
-    
+
     def __repr__(self) -> str:
         return (
-            f"SwapPlan({self.donor_type.name} → {self.recipient_type.name} "
+            f"{self.__class__.__name__}({self.donor_type.name} → {self.recipient_type.name} "
             f"via {self.desired_addon_type.name}, state={self.state.value})"
         )
 
@@ -104,16 +104,16 @@ class SwapPlan:
     def is_finished(self) -> bool:
         return self.state in (SwapState.DONE, SwapState.ABORTED)
 
-    def commit(self, donor: Unit, recipient: Unit, addon_tag: Optional[int]) -> None:
+    def commit(self, donor: Unit, recipient: Optional[Unit], addon_tag: Optional[int]) -> None:
         """
         Assign all runtime fields at the moment the swap is initiated.
-        Called once by the manager when conditions are met.
+        recipient may be None for detach-only swaps.
         """
         self.donor_tag = donor.tag
-        self.recipient_tag = recipient.tag
+        self.recipient_tag = recipient.tag if recipient is not None else None
         self.addon_tag = addon_tag
         self.donor_original_position = donor.position
-        self.recipient_original_position = recipient.position
+        self.recipient_original_position = recipient.position if recipient is not None else donor.position
 
     def reset(self) -> None:
         """Clear all runtime state so the swap can be retried from PENDING."""
@@ -159,7 +159,16 @@ class SwapPlan:
         return self.bot.structures.find_by_tag(self.addon_tag)
 
     # ------------------------------------------------------------------
-    # Search properties (used while PENDING — no tags set yet)
+    # Abstract interface
+    # ------------------------------------------------------------------
+
+    @abstractmethod
+    def process(self, manager: AddonSwapManager) -> None:
+        """Advance the swap by one step. Called every game frame by the manager."""
+        ...
+
+    # ------------------------------------------------------------------
+    # Search methods (used while PENDING — no tags set yet)
     # ------------------------------------------------------------------
 
     def find_donor(self, busy_tags: Set[int]) -> Optional[Unit]:
@@ -177,7 +186,7 @@ class SwapPlan:
         if (candidates):
             return candidates.first
 
-        # Case 2: donor is currently building the addon (exists but build_progress < 1).
+        # Case 2: donor is currently building the addon (build_progress < 1).
         pending_addons: Units = self.bot.structures(self.desired_addon_type).filter(
             lambda a: a.build_progress < 1
         )
@@ -236,3 +245,88 @@ class SwapPlan:
         if (attached is None):
             return False
         return attached.type_id == self.desired_addon_type
+
+
+class AddonSwap(SwapPlan):
+    """
+    Standard addon swap: donor transfers its addon to a recipient building.
+
+    State machine:
+      Path A — PENDING → DONOR_LIFTING → RECIPIENT_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
+      Path B — PENDING → RECIPIENT_LIFTING_FIRST → DONOR_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
+    """
+
+    def process(self, manager: AddonSwapManager) -> None:
+        match self.state:
+            case SwapState.PENDING:
+                manager.initiate(self)
+            case SwapState.DONOR_LIFTING:
+                manager.donor_lifting(self)
+            case SwapState.RECIPIENT_LIFTING_FIRST:
+                manager.recipient_lifting_first(self)
+            case SwapState.RECIPIENT_LIFTING:
+                manager.recipient_lifting(self)
+            case SwapState.RECIPIENT_LANDING:
+                manager.recipient_landing(self)
+            case SwapState.DONOR_LANDING:
+                manager.donor_landing(self)
+
+
+class AddonDetachSwap(SwapPlan):
+    """
+    Detach-only swap: donor lifts off to drop its current addon, then lands
+    elsewhere. No recipient involved.
+
+    Used during build order transitions when a donor has the wrong addon type
+    and needs to free itself before the correct addon can be built or swapped.
+
+    State machine: PENDING → DONOR_LIFTING → DONOR_LANDING → DONE
+    """
+
+    def __init__(
+        self,
+        bot: BotAI,
+        donor_type: UnitTypeId,
+        donor_flying_type: UnitTypeId,
+    ) -> None:
+        super().__init__(
+            bot=bot,
+            donor_type=donor_type,
+            donor_flying_type=donor_flying_type,
+            recipient_type=donor_type,               # unused — no recipient
+            recipient_flying_type=donor_flying_type,  # unused — no recipient
+            desired_addon_type=UnitTypeId.INVALID,    # unused — any addon qualifies
+        )
+
+    @property
+    def name(self) -> str:
+        return f'DetachAddon ({self.donor_type.name})'
+
+    def __repr__(self) -> str:
+        return f"AddonDetachSwap({self.donor_type.name}, state={self.state.value})"
+
+    def process(self, manager: AddonSwapManager) -> None:
+        match self.state:
+            case SwapState.PENDING:
+                self._initiate(manager)
+            case SwapState.DONOR_LIFTING:
+                manager.donor_lifting(self)
+            case SwapState.DONOR_LANDING:
+                manager.donor_landing(self)
+
+    def _initiate(self, manager: AddonSwapManager) -> None:
+        """Find a donor with any addon and lift it."""
+        busy: Set[int] = manager.managed_tags
+        donor: Optional[Unit] = self.bot.structures(self.donor_type).filter(
+            lambda b: b.tag not in busy and b.has_add_on and b.is_ready
+        ).first
+        if (donor is None):
+            return
+
+        # Commit with no recipient — recipient_original_position falls back to donor position.
+        self.commit(donor, None, donor.add_on_tag if donor.has_add_on else None)
+
+        print(f"[AddonDetachSwap] Lifting {self.donor_type.name} (tag={donor.tag}) to detach addon.")
+        donor(AbilityId.STOP)
+        donor(_LIFT_ABILITY[self.donor_type], queue=True)
+        self.state = SwapState.DONOR_LIFTING

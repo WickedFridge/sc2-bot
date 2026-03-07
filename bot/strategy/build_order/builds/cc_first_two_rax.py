@@ -1,4 +1,4 @@
-from bot.buildings.addon_swap.swap_plan import SwapPlan
+from bot.strategy.build_order.addon_swap.swap_plan import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -26,8 +26,8 @@ class CCFirstTwoRax(BuildOrder):
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
         ]
 
-        self.swap_plans: list[SwapPlan] = [
-            SwapPlan(
+        self.swap_plans = [
+            AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
                 UnitTypeId.FACTORYFLYING,

@@ -17,7 +17,7 @@ from bot.strategy.handler import StrategyHandler
 from bot.superbot import Superbot
 from bot.technology.search import Search
 from bot.units.trainer import Trainer
-from bot.buildings.addon_swap import AddonSwapManager
+from bot.strategy.build_order.addon_swap import AddonSwapManager
 from bot.utils.matchup import Matchup, get_matchup
 from sc2.bot_ai import Race
 from sc2.data import Result
@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "11.4.3"
+VERSION: str = "11.5.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
