@@ -81,7 +81,7 @@ class CommandCenter(Building):
         # move SCV for first expand
         if (self.bot.time >= 100 or self.bot.townhalls.amount >= 2):
             return
-        if (self.bot.build_order.build.name == BuildOrderName.KOKA_BUILD.value):
+        if (self.bot.build_order.build.name in [BuildOrderName.KOKA_BUILD.value, BuildOrderName.MACRO_CYCLONE.value]):
             rax_builder: Units = self.bot.workers.filter(
                 lambda unit: (
                     len(unit.orders) == 1

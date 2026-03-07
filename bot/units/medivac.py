@@ -31,6 +31,12 @@ class Medivac(Train):
             or barracks_inactive.amount == 0
         )
     
+    def no_addon_conditions(self, starport: Unit) -> bool:
+        return (
+            not starport.has_add_on
+            and len(starport.orders) == 0
+        )
+    
     def reactor_conditions(self, starport: Unit) -> bool:
         return (
             starport.has_reactor

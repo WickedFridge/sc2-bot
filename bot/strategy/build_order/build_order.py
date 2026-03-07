@@ -1,14 +1,17 @@
+from __future__ import annotations
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap.swap_plan import AddonDetachSwap, SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
-from sc2.bot_ai import BotAI
+# from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 from ...utils.unit_tags import reactors, techlabs
 
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 
 def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
     """Return all addon types functionally equivalent to the given one."""
@@ -19,6 +22,7 @@ def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
     return [addon_type]
 
 class BuildOrder:
+    bot: Superbot
     steps: List[BuildOrderStep]
     name: str
     swap_plans: List[SwapPlan]
@@ -35,7 +39,7 @@ class BuildOrder:
         ],
     }
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         self.bot = bot
         self.swap_plans = []
 

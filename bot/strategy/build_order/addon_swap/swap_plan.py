@@ -54,6 +54,7 @@ class SwapPlan(ABC):
     Subclasses implement process() to drive their own state machine,
     and may delegate individual states back to AddonSwapManager methods.
     """
+    condition: callable[[], bool]  # Optional additional condition that must be true to initiate the swap
 
     def __init__(
         self,
@@ -63,6 +64,7 @@ class SwapPlan(ABC):
         recipient_type: UnitTypeId,
         recipient_flying_type: UnitTypeId,
         desired_addon_type: UnitTypeId,
+        condition: Optional[callable[[], bool]] = None,
     ) -> None:
         self.bot: BotAI = bot
 
@@ -80,7 +82,10 @@ class SwapPlan(ABC):
         self.donor_original_position: Optional[Point2] = None
         self.recipient_original_position: Optional[Point2] = None
         self.state: SwapState = SwapState.PENDING
-
+        if (condition is not None):
+            self.condition: callable[[], bool] = condition
+        else:
+            self.condition: callable[[], bool] = callable(lambda: True)
     @property
     def name(self) -> str:
         return f'{self.desired_addon_type.name} ({self.donor_type.name} -> {self.recipient_type.name})'
@@ -257,6 +262,8 @@ class AddonSwap(SwapPlan):
     """
 
     def process(self, manager: AddonSwapManager) -> None:
+        if (self.condition is not None and not self.condition()):
+            return
         match self.state:
             case SwapState.PENDING:
                 manager.initiate(self)
