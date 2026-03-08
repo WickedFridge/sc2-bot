@@ -58,4 +58,4 @@ class Marine(Train):
                 or self.reactor_conditions(rax)
                 or self.techlab_conditions(rax)
             )
-        )
+        ).sorted(lambda rax: rax.has_reactor, reverse=True)

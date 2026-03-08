@@ -12,10 +12,17 @@ class InterferenceMatrix(Upgrade):
     ability = AbilityId.STARPORTTECHLABRESEARCH_RESEARCHRAVENINTERFERENCEMATRIX
     name = "Raven Matrix"
     is_ability = True
+    completed: bool = False
 
+    @override
+    def on_complete(self):
+        self.completed = True
+    
     @override
     @property
     def custom_conditions(self) -> bool:
+        if (self.completed):
+            return False
         raven_target: int = self.bot.composition_manager.composition[UnitTypeId.RAVEN]
         raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
         return max(raven_target, raven_amount) >= 2

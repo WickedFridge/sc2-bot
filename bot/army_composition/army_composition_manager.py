@@ -114,6 +114,8 @@ class ArmyCompositionManager(CachedClass):
                 return 20
             case UnitTypeId.CYCLONE:
                 return 2
+            case UnitTypeId.RAVEN:
+                return 10
             case _:
                 return False
 

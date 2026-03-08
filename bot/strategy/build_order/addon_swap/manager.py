@@ -103,6 +103,8 @@ class AddonSwapManager:
     # ------------------------------------------------------------------
 
     def process(self, swap: SwapPlan) -> None:
+        if (swap.condition is not None and not swap.condition()):
+            return
         match swap.state:
             case SwapState.PENDING:
                 self.initiate(swap)

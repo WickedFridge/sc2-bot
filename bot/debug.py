@@ -16,6 +16,7 @@ from bot.utils.point2_functions.utils import evaluate_path_debug, grid_offsets, 
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
@@ -622,6 +623,7 @@ class Debug:
         for unit in ghost_units:
             self.draw_box_on_world(unit.position, size=1, draw_color = ORANGE)
             self.draw_text_on_world(unit.position, f'{unit.type_id}', ORANGE)
+    
     
     def invisible_units(self):
         invisible_units: Units = self.bot.enemy_units.filter(

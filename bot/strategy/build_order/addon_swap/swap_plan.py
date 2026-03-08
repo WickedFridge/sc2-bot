@@ -85,7 +85,7 @@ class SwapPlan(ABC):
         if (condition is not None):
             self.condition: callable[[], bool] = condition
         else:
-            self.condition: callable[[], bool] = callable(lambda: True)
+            self.condition: callable[[], bool] = lambda: True
     @property
     def name(self) -> str:
         return f'{self.desired_addon_type.name} ({self.donor_type.name} -> {self.recipient_type.name})'
@@ -262,6 +262,7 @@ class AddonSwap(SwapPlan):
     """
 
     def process(self, manager: AddonSwapManager) -> None:
+        print(f'condition: {self.condition()}, state: {self.state}')
         if (self.condition is not None and not self.condition()):
             return
         match self.state:

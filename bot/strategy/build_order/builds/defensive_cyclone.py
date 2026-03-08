@@ -33,8 +33,7 @@ class DefensiveCyclone(BuildOrder):
             BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=3, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT, target_count=1, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'starport reactor', UnitTypeId.STARPORTREACTOR, target_count=1, requirements=[(UnitTypeId.STARPORT, 1, True)]),
-            BuildOrderStep(bot, self, 'rax techlab #1', UnitTypeId.BARRACKSTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
-            BuildOrderStep(bot, self, 'rax techlab #2', UnitTypeId.BARRACKSTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, True)]),
+            BuildOrderStep(bot, self, 'rax techlab #2', UnitTypeId.BARRACKSTECHLAB, target_count=1, requirements=[(UnitTypeId.BARRACKS, 3, True)]),
             BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
         ]
 
@@ -46,5 +45,16 @@ class DefensiveCyclone(BuildOrder):
                 UnitTypeId.FACTORY,
                 UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKSTECHLAB
+            ),
+            AddonSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.FACTORYFLYING,
+                UnitTypeId.BARRACKS,
+                UnitTypeId.BARRACKSFLYING,
+                UnitTypeId.FACTORYTECHLAB,
+                condition=lambda: (
+                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                )
             ),
         ]

@@ -65,4 +65,4 @@ class Viking(Train):
                 or self.reactor_conditions(starport)
                 or self.techlab_conditions(starport)
             )
-        )
+        ).sorted(lambda starport: starport.has_reactor, reverse=True)
