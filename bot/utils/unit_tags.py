@@ -197,3 +197,13 @@ flying_units: list[UnitTypeId] = [
     UnitTypeId.MOTHERSHIP,
     UnitTypeId.COLOSSUS,
 ]
+
+anti_air: List[UnitTypeId] = [
+    UnitTypeId.PHOENIX,
+    UnitTypeId.VIKING,
+    UnitTypeId.CYCLONE,
+    UnitTypeId.CORRUPTOR,
+    UnitTypeId.MUTALISK,
+    UnitTypeId.HYDRALISK,
+    UnitTypeId.STALKER
+]

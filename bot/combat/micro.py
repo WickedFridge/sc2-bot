@@ -748,7 +748,7 @@ class Micro(CachedClass):
         potential_targets: Units = close_enemy_units.filter(
             lambda enemy_unit: (
                 get_unit_supply(enemy_unit.type_id) > 2
-                and BuffId.RAVENSCRAMBLERMISSILE not in enemy_unit.buffs
+                and not enemy_unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)
             )
         )
         

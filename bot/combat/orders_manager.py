@@ -26,7 +26,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air
 
 WEAPON_READY_THRESHOLD: float = 6.0
 
@@ -143,9 +143,7 @@ class OrdersManager:
     
     @property
     def enemy_anti_air(self) -> Units:
-        return self.bot.scouting.known_enemy_army.units(
-            [UnitTypeId.PHOENIX, UnitTypeId.VIKING, UnitTypeId.CORRUPTOR, UnitTypeId.STALKER]
-        )
+        return self.bot.scouting.known_enemy_army.units(anti_air)
     
     def debug_cluster(self) -> None:
         clusters: List[Units] = self.get_army_clusters()

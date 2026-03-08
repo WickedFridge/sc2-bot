@@ -285,8 +285,6 @@ class Expansion(CachedClass):
         
         # Calculate preferred direction away from CC toward opponent
         opponent_position: Point2 = self.bot.enemy_start_locations[0]
-        # direction_vector = opponent_position - self.position
-        # preferred_direction = Point2((-direction_vector.x, -direction_vector.y))  # Invert to move away
         return dfs_in_pathing(self.bot, start, UnitTypeId.BUNKER, opponent_position)
 
     @cached_property

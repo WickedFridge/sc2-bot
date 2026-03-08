@@ -6,6 +6,7 @@ from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.point2_functions.utils import center
 from sc2.bot_ai import BotAI
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -110,6 +111,9 @@ class DangerMap:
             self.update_unit(ghost)
     
     def update_unit(self, unit: Unit | GhostUnit):
+        # Unit that are matrixed are ignored
+        if (unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)):
+            return
         (
             unit_position,
             unit_radius,

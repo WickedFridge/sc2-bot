@@ -303,7 +303,7 @@ class AddonDetachSwap(SwapPlan):
             donor_flying_type=donor_flying_type,
             recipient_type=donor_type,               # unused — no recipient
             recipient_flying_type=donor_flying_type,  # unused — no recipient
-            desired_addon_type=UnitTypeId.INVALID,    # unused — any addon qualifies
+            desired_addon_type=UnitTypeId.TECHLAB,    # unused — any addon qualifies
         )
 
     @property
