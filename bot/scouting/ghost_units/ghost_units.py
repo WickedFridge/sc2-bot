@@ -3,6 +3,7 @@ from typing import Any, Callable, Generator, List, Optional, Set
 
 from attr import dataclass
 from sc2.bot_ai import BotAI
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -33,6 +34,12 @@ class GhostUnit:
     can_attack_air: bool
     last_seen_frame: int
     expiry_frame: int
+
+    def has_buff(self, buff_id: BuffId) -> bool:
+        """ Checks if the ghost unit has a specific buff. """
+        # Since we don't have actual buffs for ghost units, this is a placeholder.
+        # In a real implementation, you would track buffs on ghost units as well.
+        return False
 
 class GhostUnits:
     """

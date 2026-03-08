@@ -12,6 +12,7 @@ def center(points: List[Point2]) -> Optional[Point2]:
     y: float = 0
     for point in points:
         if (point is None):
+            length -= 1
             continue
         x += point.x
         y += point.y

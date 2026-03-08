@@ -277,7 +277,7 @@ class Expansion(CachedClass):
         # Guard: CC reservation must exist before we search
         buildings_layer = self.bot.map.influence_maps.buildings
         cc_center: Point2 = self.position
-        if (not self.is_main and not buildings_layer.is_cc_reserved(cc_center)):
+        if (not self.is_main and self.cc is None and not buildings_layer.is_cc_reserved(cc_center)):
             print("CC reservation not done yet")
             return None
         
