@@ -303,35 +303,34 @@ class Execute(CachedClass):
             unit.attack(closest_expansion.position)
     
     def defend_bunker_rush(self, army: Army) -> None:
-        CENTER: Point2 = army.units.center
+        main: Point2 = self.bot.expansions.main.position
+        natural: Point2 = self.bot.expansions.b2.position
+        BASE_SIZE: int = 20
 
         # -- Gather context -------------------------------------------------------
         enemy_bunkers: Units = self.bot.enemy_structures(UnitTypeId.BUNKER).filter(
-            lambda u: u.distance_to(CENTER) <= 30
+            lambda bunker: min(bunker.distance_to(main), bunker.distance_to(natural)) <= BASE_SIZE
         )
         enemy_bunkers_in_progress: Units = enemy_bunkers.filter(lambda u: u.build_progress < 1)
         enemy_bunkers_completed: Units = enemy_bunkers.ready
         ally_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready
 
         scv_menacing: Units = self.bot.enemy_units(UnitTypeId.SCV).filter(
-            lambda u: enemy_bunkers.closest_distance_to(u) <= 5
+            lambda scv: enemy_bunkers.closest_distance_to(scv) <= 5
         )
         
         scvs_building: Units = scv_menacing.filter(
-            lambda u: enemy_bunkers_in_progress.closest_distance_to(u) <= 5
+            lambda scv: enemy_bunkers_in_progress.closest_distance_to(scv) <= 5
         ) if enemy_bunkers_in_progress.amount >= 1 else Units([], self.bot)
 
         menacing_bunkers: Units = (enemy_bunkers_in_progress + enemy_bunkers_completed).filter(
-            lambda b: (
-                b.distance_to(self.bot.expansions.main.position) < 20
-                or b.distance_to(self.bot.expansions.b2.position) < 20
-            )
+            lambda b: min(b.distance_to(self.bot.expansions.main.position), b.distance_to(self.bot.expansions.b2.position)) <= BASE_SIZE
         )
 
         enemy_combat_units: Units = self.bot.enemy_units.filter(
-            lambda u: (
-                u.type_id in [UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.REAPER]
-                and u.distance_to(CENTER) <= 20
+            lambda unit: (
+                unit.type_id in [UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.REAPER]
+                and min(unit.distance_to(main), unit.distance_to(natural)) <= BASE_SIZE
             )
         )
 

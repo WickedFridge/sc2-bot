@@ -1,6 +1,7 @@
 from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.utils.matchup import Matchup
 from sc2.ids.ability_id import AbilityId
@@ -61,6 +62,7 @@ class CommandCenter(Building):
             BuildOrderName.CONSERVATIVE_EXPAND.value,
             BuildOrderName.DEFENSIVE_CYCLONE.value
         ]
+        safe_expansions: Expansions = self.bot.expansions.taken.safe
         match (townhall_amount):
             case 0:
                 return self.bot.expansions.main.position
@@ -74,8 +76,9 @@ class CommandCenter(Building):
             case 2:
                 return near_cc_position
             case _:
-                return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
-            
+                if (safe_expansions.amount >= 1):
+                    return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
+                return self.bot.expansions.main.position
     
     async def move_worker_expand(self):
         # move SCV for first expand

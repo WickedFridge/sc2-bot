@@ -532,7 +532,6 @@ class Debug:
             # Step 3: construct a Point2
             pos: Point2 = Point2((xs[idx], ys[idx]))
             tumor_type: UnitTypeId = UnitTypeId.CREEPTUMORBURROWED
-            # tumor_type: UnitTypeId = random.choice([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
             await self._create_units(1, tumor_type, 2, pos)
 
     async def chat_commands(self):
