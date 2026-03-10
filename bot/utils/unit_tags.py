@@ -139,6 +139,7 @@ cloaked_units: List[UnitTypeId] = [
     # UnitTypeId.OBSERVER,
     # UnitTypeId.OBSERVERSIEGEMODE,
     UnitTypeId.DARKTEMPLAR,
+    UnitTypeId.MOTHERSHIP,
 ]
 friendly_fire: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
@@ -201,11 +202,15 @@ flying_units: list[UnitTypeId] = [
 ]
 
 anti_air: List[UnitTypeId] = [
-    UnitTypeId.PHOENIX,
+    # Terran
     UnitTypeId.VIKING,
     UnitTypeId.CYCLONE,
+    # Zerg
     UnitTypeId.CORRUPTOR,
     UnitTypeId.MUTALISK,
     UnitTypeId.HYDRALISK,
-    UnitTypeId.STALKER
+    # Protoss
+    UnitTypeId.PHOENIX,
+    UnitTypeId.STALKER,
+    UnitTypeId.TEMPEST,
 ]

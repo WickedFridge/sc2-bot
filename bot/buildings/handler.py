@@ -186,6 +186,20 @@ class BuildingsHandler:
             else:
                 scan_banked += 1
 
+    def scan_enemy_main(self, orbitals_with_energy: Units) -> bool:
+        if (
+            self.bot.scouting.situation == Situation.CHEESE_UNKNOWN
+            and (
+                self.bot.expansions.enemy_main.is_unknown
+                or self.bot.scouting.known_enemy_army.units.amount < 5
+            )
+        ):
+            position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.game_info.map_center, 2)
+            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+            return True
+        return False
+
+    
     def scan_creep(self, orbitals_with_energy: Units, units: Units, BASE_RADIUS: int, SCAN_RADIUS: int):
         CREEP_DENSITY_THRESHOLD: float = 0.5
         
@@ -282,6 +296,10 @@ class BuildingsHandler:
         
         orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
         if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
+            return
+        
+        # if we don't know much about what's happening, scan the main
+        if (self.scan_enemy_main(orbitals_with_energy)):
             return
         
         # if we have no fighting units we can't clean creep

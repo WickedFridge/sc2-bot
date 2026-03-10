@@ -115,7 +115,7 @@ class ArmyCompositionManager(CachedClass):
             case UnitTypeId.CYCLONE:
                 return 2
             case UnitTypeId.RAVEN:
-                return 10
+                return 1
             case _:
                 return False
 
@@ -179,7 +179,7 @@ class ArmyCompositionManager(CachedClass):
         ):
             powerful_unit_amount: int = self.wicked.scouting.known_enemy_army.units.filter(lambda unit: get_unit_supply(unit.type_id) >= 3).amount
             raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
-            composition.set(UnitTypeId.RAVEN, max([3, raven_amount, powerful_unit_amount]))
+            composition.set(UnitTypeId.RAVEN, min(max([3, raven_amount, powerful_unit_amount]), 15))
 
 
         # if we have medivacs and a lot of bio, get the medivac count up to 10
