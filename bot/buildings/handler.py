@@ -467,16 +467,6 @@ class BuildingsHandler:
             )
         )
 
-        # Never reposition the very first barracks (it walls the ramp).
-        for production_building in production_buildings_without_addon:
-            addon_pos: Point2 = production_building.add_on_position
-            if (not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)):
-                print(
-                    f"[reposition_buildings] Cannot build addon — "
-                    f"{production_building.name} (tag={production_building.tag}) lifts."
-                )
-                production_building(AbilityId.LIFT)
-
         # --- Land flying buildings that are idle and not mid-swap -----------
         flying_building_ids: dict[UnitTypeId, UnitTypeId] = {
             UnitTypeId.BARRACKSFLYING: UnitTypeId.BARRACKS,
@@ -490,9 +480,22 @@ class BuildingsHandler:
                 and building.tag not in swap_managed_tags
             )
         )
+        free_addons: Units = self.bot.structures([UnitTypeId.TECHLAB, UnitTypeId.REACTOR]).filter(
+            lambda building: flying_buildings.filter(
+                lambda f_building: len(f_building.orders) >= 1 and f_building.orders[0].target == building.add_on_land_position
+            ).amount == 0
+        )
+        free_addons_count: int = free_addons.amount
 
         for flying_building in flying_buildings:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
+            if (free_addons_count >= 1):
+                addon_to_land: Unit = free_addons.pop()
+                free_addons_count -= 1
+                if (self.bot.map.influence_maps.buildings.can_build(addon_to_land.add_on_land_position, land_type)):
+                    print(f"[reposition_buildings] Landing {flying_building.name} (stealing add-on {addon_to_land.type_id})")
+                    flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
+                    continue
 
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
@@ -502,11 +505,21 @@ class BuildingsHandler:
                 1.5,
                 True,
             )
-            print(
-                f"[reposition_buildings] Landing {flying_building.name} "
-                f"(tag={flying_building.tag}) at {land_position}."
-            )
+            print(f"[reposition_buildings] Landing {flying_building.name} ")
             flying_building(AbilityId.LAND, land_position)
+        
+        
+        for production_building in production_buildings_without_addon:
+            if (free_addons_count >= 1 and production_building.type_id == UnitTypeId.BARRACKS):
+                free_addons_count -= 1
+                print(f"[reposition_buildings] Lifting {production_building.type_id} to take the free {free_addons.first.type_id}")
+                production_building(AbilityId.LIFT)
+                continue
+            addon_pos: Point2 = production_building.add_on_position
+            if (not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)):
+                print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
+                production_building(AbilityId.LIFT)
+        
 
     async def salvage_bunkers(self) -> None:
         if (self.bot.scouting.situation != Situation.STABLE or self.bot.expansions.taken.amount < 3):

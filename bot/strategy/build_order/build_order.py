@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Optional
 from bot.army_composition.composition import Composition
-from bot.strategy.build_order.addon_swap.swap_plan import AddonDetachSwap, SwapPlan, SwapState
+from bot.strategy.build_order.addon_swap import AddonDetachSwap, SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 # from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId

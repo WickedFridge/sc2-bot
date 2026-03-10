@@ -3,12 +3,16 @@ from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
-from bot.strategy.build_order.addon_swap.swap_plan import SwapState
+from bot.strategy.build_order.addon_swap import SwapState
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
+from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
+from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
+from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.koka_build import KokaBuild
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
@@ -465,6 +469,12 @@ class Debug:
         # Read a region of size radius=8 around the center
         self.draw_grid_on_world(position, radius)
         
+    def parse_build_order(self, name:str) -> BuildOrderName | None:
+        try:
+            # normalize to uppercase, remove spaces if needed
+            return BuildOrderName[name.upper()]
+        except KeyError:
+            return None
 
     def parse_unit_type(self, name: str) -> UnitTypeId | None:
         try:
@@ -500,6 +510,21 @@ class Debug:
             player_camera = self.bot.state.observation_raw.player.camera
             pos = Point2((player_camera.x, player_camera.y))
         await self.bot.client.debug_create_unit([[unit_id, amount, pos, player_id]])
+    
+    async def spawn_creep(self):
+        tumor_count: int = 100
+        pathing: np.ndarray = self.bot.game_info.pathing_grid.data_numpy
+        # Step 1: find all coordinates where pathing is True
+        ys, xs = np.where(pathing == True)
+        
+        for i in range(tumor_count):
+            # Step 2: pick a random index
+            idx: int = np.random.randint(0, len(xs))
+
+            # Step 3: construct a Point2
+            pos: Point2 = Point2((xs[idx], ys[idx]))
+            tumor_type: UnitTypeId = UnitTypeId.CREEPTUMORBURROWED
+            await self._create_units(1, tumor_type, 2, pos)
 
     async def spawn_test_units(self, message: str):
         parts = message.split(" ", 2)  # split into at most 3 parts
@@ -518,31 +543,33 @@ class Debug:
             return
         await self._create_units(amount, unit_type, player)
 
+    def switch_build_order(self, message: str):
+        parts = message.split(" ", 1)  # split into at most 2 parts
+        build: str = parts[1]
+        build_order_name: BuildOrderName | None = self.parse_build_order(build)
+        if (build_order_name is None):
+            print(f'Unknown build order: {build} !')
+            return
+        print(f'Switching to {build_order_name} !')
+        match (build_order_name):
+            case BuildOrderName.KOKA_BUILD:
+                self.bot.build_order.switch_build(KokaBuild(self.bot))
+            case BuildOrderName.DEFENSIVE_CYCLONE:
+                self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
+            case BuildOrderName.CONSERVATIVE_EXPAND:
+                self.bot.build_order.switch_build(ConservativeExpand(self.bot))
+            case _:
+                print(f'switch to {build_order_name} not implemented')
     
-    async def spawn_creep(self):
-        tumor_count: int = 100
-        pathing: np.ndarray = self.bot.game_info.pathing_grid.data_numpy
-        # Step 1: find all coordinates where pathing is True
-        ys, xs = np.where(pathing == True)
-        
-        for i in range(tumor_count):
-            # Step 2: pick a random index
-            idx: int = np.random.randint(0, len(xs))
-
-            # Step 3: construct a Point2
-            pos: Point2 = Point2((xs[idx], ys[idx]))
-            tumor_type: UnitTypeId = UnitTypeId.CREEPTUMORBURROWED
-            await self._create_units(1, tumor_type, 2, pos)
-
     async def chat_commands(self):
         if (len(self.bot.state.chat) == 0 or self.bot.state.chat[0].player_id != self.bot.player_id):
             return
         message: str = self.bot.state.chat[0].message
         print(f'message: {message}')
 
-        if (message.startswith("order")):
-            print(f'Order info')
-            self.order()
+        if (message.startswith("BO")):
+            print(f'Build Order Switch')
+            self.switch_build_order(message)
             return
         
         if (message[0].isdigit()):
@@ -576,7 +603,11 @@ class Debug:
         build_order: BuildOrder = self.bot.build_order.build
         screen_y: float = 0.3
         position: Point2 = Point2((0, screen_y))
-        self.draw_text_on_screen(f'{build_order.name.capitalize()}', position, ORANGE, font_size=16)
+        build_color = GREEN if build_order.is_completed else ORANGE
+        self.draw_text_on_screen(f'{build_order.name.capitalize()}', position, build_color, font_size=16)
+        if (build_order.is_completed):
+            return
+        
         # linebreak
         screen_y += 0.015
         for step in build_order.steps:
@@ -598,6 +629,15 @@ class Debug:
                 YELLOW
             )
             self.draw_text_on_screen(f'{swap.name} : {swap.state}', position, color, font_size=14)
+            screen_y += 0.015
+            position = Point2((0, screen_y))
+            color = GREEN if swap.donor_tag is not None else RED
+            self.draw_text_on_screen(f'Donor : {swap.donor_type}', position, color, font_size=14)
+            screen_y += 0.015
+            position = Point2((0, screen_y))
+            color = GREEN if swap.recipient_tag is not None else RED
+            self.draw_text_on_screen(f'Recipient : {swap.recipient_type}', position, color, font_size=14)
+            
     
     async def composition_manager(self):
         composition: Composition = self.bot.composition_manager.composition

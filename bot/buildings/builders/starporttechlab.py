@@ -1,5 +1,5 @@
 from typing import override
-from bot.buildings.starport_addon import StarportAddon
+from bot.buildings.builders.starport_addon import StarportAddon
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 

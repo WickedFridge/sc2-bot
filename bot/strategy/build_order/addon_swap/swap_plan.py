@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from enum import Enum
 from typing import TYPE_CHECKING, Optional, Set
 
-from sc2.ids.ability_id import AbilityId
+from bot.strategy.build_order.addon_swap.state import SwapState
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -12,39 +11,7 @@ from sc2.units import Units
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
-    from bot.strategy.build_order.addon_swap.manager import AddonSwapManager
-
-
-class SwapState(str, Enum):
-    """
-    Lifecycle of an addon swap between a donor and a recipient building.
-    Two possible initiation paths depending on which building finishes first:
-
-    Path A — donor (addon) ready first:
-      PENDING → DONOR_LIFTING → RECIPIENT_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
-
-    Path B — recipient ready first:
-      PENDING → RECIPIENT_LIFTING_FIRST → DONOR_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
-
-    Detach-only path (AddonDetachSwap):
-      PENDING → DONOR_LIFTING → DONOR_LANDING → DONE
-    """
-
-    PENDING = "PENDING"
-    DONOR_LIFTING = "DONOR_LIFTING"
-    RECIPIENT_LIFTING_FIRST = "RECIPIENT_LIFTING_FIRST"
-    RECIPIENT_LIFTING = "RECIPIENT_LIFTING"
-    RECIPIENT_LANDING = "RECIPIENT_LANDING"
-    DONOR_LANDING = "DONOR_LANDING"
-    DONE = "DONE"
-    ABORTED = "ABORTED"
-
-
-_LIFT_ABILITY: dict[UnitTypeId, AbilityId] = {
-    UnitTypeId.BARRACKS: AbilityId.LIFT_BARRACKS,
-    UnitTypeId.FACTORY: AbilityId.LIFT_FACTORY,
-    UnitTypeId.STARPORT: AbilityId.LIFT_STARPORT,
-}
+    from bot.strategy.build_order.addon_swap import AddonSwapManager
 
 
 class SwapPlan(ABC):
@@ -52,9 +19,8 @@ class SwapPlan(ABC):
     Abstract base for all addon swap plans.
 
     Subclasses implement process() to drive their own state machine,
-    and may delegate individual states back to AddonSwapManager methods.
+    and may delegate individual state handlers back to AddonSwapManager.
     """
-    condition: callable[[], bool]  # Optional additional condition that must be true to initiate the swap
 
     def __init__(
         self,
@@ -81,19 +47,27 @@ class SwapPlan(ABC):
         self.addon_tag: Optional[int] = None
         self.donor_original_position: Optional[Point2] = None
         self.recipient_original_position: Optional[Point2] = None
+        self.reserved_donor_tag: Optional[int] = None
         self.state: SwapState = SwapState.PENDING
-        if (condition is not None):
-            self.condition: callable[[], bool] = condition
-        else:
-            self.condition: callable[[], bool] = lambda: True
+
+        self.condition: callable[[], bool] = condition if (condition is not None) else lambda: True
+
+    # ------------------------------------------------------------------
+    # Display
+    # ------------------------------------------------------------------
+
     @property
     def name(self) -> str:
         return f'{self.desired_addon_type.name} ({self.donor_type.name} -> {self.recipient_type.name})'
 
     def __repr__(self) -> str:
         return (
-            f"{self.__class__.__name__}({self.donor_type.name} → {self.recipient_type.name} "
-            f"via {self.desired_addon_type.name}, state={self.state.value})"
+            f"{self.__class__.__name__}("
+            f"{self.donor_type.name} → {self.recipient_type.name} "
+            f"via {self.desired_addon_type.name}, "
+            f"state={self.state.value}, "
+            f"donor={'OK' if self.donor_tag is not None else 'X'}, "
+            f"recipient={'OK' if self.recipient_tag is not None else 'X'})"
         )
 
     # ------------------------------------------------------------------
@@ -114,14 +88,16 @@ class SwapPlan(ABC):
         Assign all runtime fields at the moment the swap is initiated.
         recipient may be None for detach-only swaps.
         """
+        self.reserved_donor_tag = donor.tag
         self.donor_tag = donor.tag
-        self.recipient_tag = recipient.tag if recipient is not None else None
+        self.recipient_tag = recipient.tag if (recipient is not None) else None
         self.addon_tag = addon_tag
         self.donor_original_position = donor.position
-        self.recipient_original_position = recipient.position if recipient is not None else donor.position
+        self.recipient_original_position = recipient.position if (recipient is not None) else donor.position
 
     def reset(self) -> None:
         """Clear all runtime state so the swap can be retried from PENDING."""
+        self.reserved_donor_tag = None
         self.donor_tag = None
         self.recipient_tag = None
         self.addon_tag = None
@@ -250,91 +226,3 @@ class SwapPlan(ABC):
         if (attached is None):
             return False
         return attached.type_id == self.desired_addon_type
-
-
-class AddonSwap(SwapPlan):
-    """
-    Standard addon swap: donor transfers its addon to a recipient building.
-
-    State machine:
-      Path A — PENDING → DONOR_LIFTING → RECIPIENT_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
-      Path B — PENDING → RECIPIENT_LIFTING_FIRST → DONOR_LIFTING → RECIPIENT_LANDING → DONOR_LANDING → DONE
-    """
-
-    def process(self, manager: AddonSwapManager) -> None:
-        print(f'condition: {self.condition()}, state: {self.state}')
-        if (self.condition is not None and not self.condition()):
-            return
-        match self.state:
-            case SwapState.PENDING:
-                manager.initiate(self)
-            case SwapState.DONOR_LIFTING:
-                manager.donor_lifting(self)
-            case SwapState.RECIPIENT_LIFTING_FIRST:
-                manager.recipient_lifting_first(self)
-            case SwapState.RECIPIENT_LIFTING:
-                manager.recipient_lifting(self)
-            case SwapState.RECIPIENT_LANDING:
-                manager.recipient_landing(self)
-            case SwapState.DONOR_LANDING:
-                manager.donor_landing(self)
-
-
-class AddonDetachSwap(SwapPlan):
-    """
-    Detach-only swap: donor lifts off to drop its current addon, then lands
-    elsewhere. No recipient involved.
-
-    Used during build order transitions when a donor has the wrong addon type
-    and needs to free itself before the correct addon can be built or swapped.
-
-    State machine: PENDING → DONOR_LIFTING → DONOR_LANDING → DONE
-    """
-
-    def __init__(
-        self,
-        bot: BotAI,
-        donor_type: UnitTypeId,
-        donor_flying_type: UnitTypeId,
-    ) -> None:
-        super().__init__(
-            bot=bot,
-            donor_type=donor_type,
-            donor_flying_type=donor_flying_type,
-            recipient_type=donor_type,               # unused — no recipient
-            recipient_flying_type=donor_flying_type,  # unused — no recipient
-            desired_addon_type=UnitTypeId.TECHLAB,    # unused — any addon qualifies
-        )
-
-    @property
-    def name(self) -> str:
-        return f'DetachAddon ({self.donor_type.name})'
-
-    def __repr__(self) -> str:
-        return f"AddonDetachSwap({self.donor_type.name}, state={self.state.value})"
-
-    def process(self, manager: AddonSwapManager) -> None:
-        match self.state:
-            case SwapState.PENDING:
-                self._initiate(manager)
-            case SwapState.DONOR_LIFTING:
-                manager.donor_lifting(self)
-            case SwapState.DONOR_LANDING:
-                manager.donor_landing(self)
-
-    def _initiate(self, manager: AddonSwapManager) -> None:
-        """Find a donor with any addon and lift it."""
-        busy: Set[int] = manager.managed_tags
-        donor: Optional[Unit] = self.bot.structures(self.donor_type).filter(
-            lambda b: b.tag not in busy and b.has_add_on and b.is_ready
-        ).first
-        if (donor is None):
-            return
-
-        # Commit with no recipient — recipient_original_position falls back to donor position.
-        self.commit(donor, None, donor.add_on_tag if donor.has_add_on else None)
-
-        print(f"[AddonDetachSwap] Lifting {self.donor_type.name} (tag={donor.tag}) to detach addon.")
-        donor(AbilityId.STOP)
-        donor(_LIFT_ABILITY[self.donor_type], queue=True)
-        self.state = SwapState.DONOR_LIFTING

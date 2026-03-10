@@ -31,12 +31,10 @@ def scv_build_progress(bot: BotAI, scv: Unit) -> float:
     return 1 if building.is_ready else building.build_progress
 
 def is_being_constructed(bot: BotAI, building: Unit) -> bool:
-    THRESHOLD: int = 2
     potential_targets: list[int | Point2] = [building.tag, building.position]
     if (building.type_id == UnitTypeId.REFINERY):
         potential_targets.append(bot.vespene_geyser.closest_to(building).tag)
-    close_workers: Units = bot.workers.closer_than(building.radius + THRESHOLD, building)
-    potential_builders: Units = close_workers.filter(
+    potential_builders: Units = bot.workers.filter(
         lambda worker: (
             worker.is_constructing_scv == True
             and worker.orders[0].target in potential_targets

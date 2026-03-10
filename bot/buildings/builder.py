@@ -1,24 +1,24 @@
 from __future__ import annotations
 import math
 from typing import List
-from bot.buildings.armory import Armory
-from bot.buildings.barracks_addon import BarracksReactor, BarracksTechlab
-from bot.buildings.barracks import Barracks
-from bot.buildings.bunker import Bunker
-from bot.buildings.command_center import CommandCenter
-from bot.buildings.ebay import Ebay
-from bot.buildings.factory import Factory
-from bot.buildings.factory_addon import FactoryReactor, FactoryTechlab
-from bot.buildings.fusion_core import FusionCore
-from bot.buildings.ghost_academy import GhostAcademy
-from bot.buildings.missile_turret import MissileTurret
-from bot.buildings.refinery import Refinery
-from bot.buildings.orbital_command import OrbitalCommand
-from bot.buildings.planetary_fortress import PlanetaryFortress
-from bot.buildings.starport import Starport
-from bot.buildings.starportreactor import StarportReactor
-from bot.buildings.starporttechlab import StarportTechlab
-from bot.buildings.supply_depot import SupplyDepot
+from bot.buildings.builders.armory import Armory
+from bot.buildings.builders.barracks_addon import BarracksReactor, BarracksTechlab
+from bot.buildings.builders.barracks import Barracks
+from bot.buildings.builders.bunker import Bunker
+from bot.buildings.builders.command_center import CommandCenter
+from bot.buildings.builders.ebay import Ebay
+from bot.buildings.builders.factory import Factory
+from bot.buildings.builders.factory_addon import FactoryReactor, FactoryTechlab
+from bot.buildings.builders.fusion_core import FusionCore
+from bot.buildings.builders.ghost_academy import GhostAcademy
+from bot.buildings.builders.missile_turret import MissileTurret
+from bot.buildings.builders.refinery import Refinery
+from bot.buildings.builders.orbital_command import OrbitalCommand
+from bot.buildings.builders.planetary_fortress import PlanetaryFortress
+from bot.buildings.builders.starport import Starport
+from bot.buildings.builders.starportreactor import StarportReactor
+from bot.buildings.builders.starporttechlab import StarportTechlab
+from bot.buildings.builders.supply_depot import SupplyDepot
 from bot.superbot import Superbot
 from bot.utils.fake_order import FakeOrder
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
@@ -119,55 +119,7 @@ class Builder:
         #     self.bot.map.influence_maps.buildings.reserve_area(location, radius * 2, {unit_type})
         # TODO : replace with the correct building id
         worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
-
-
-    async def find_land_position(self, building: Unit):
-        possible_land_positions_offset = sorted(
-            (Point2((x, y)) for x in range(-10, 10) for y in range(-10, 10)),
-            key=lambda point: point.x**2 + point.y**2,
-        )
-        offset_point: Point2 = Point2((-0.5, -0.5))
-        possible_land_positions = (building.position.rounded + offset_point + p for p in possible_land_positions_offset)
-        for target_land_position in possible_land_positions:
-            land_and_addon_points: List[Point2] = self.building_land_positions(target_land_position)
-            if all(await self.bot.can_place(UnitTypeId.SUPPLYDEPOT, land_and_addon_points)):
-                print(building.name, " found a position to land")
-                building(AbilityId.LAND, target_land_position)
-                break
-
-
-    def building_land_positions(self, sp_position: Point2) -> List[Point2]:
-        """ Return all points that need to be checked when trying to land at a location where there is enough space to build an addon. Returns 13 points. """
-        land_positions = [(sp_position + Point2((x, y))).rounded for x in range(-1, 2) for y in range(-1, 2)]
-        return land_positions + self.points_to_build_addon(sp_position)
     
-    
-    def points_to_build_addon(self, building_position: Point2) -> List[Point2]:
-        """ Return all points that need to be checked when trying to build an addon. Returns 4 points. """
-        addon_offset: Point2 = Point2((2.5, -0.5))
-        addon_position: Point2 = building_position + addon_offset
-        addon_points = [
-            (addon_position + Point2((x - 0.5, y - 0.5))).rounded for x in range(0, 2) for y in range(0, 2)
-        ]
-        return addon_points
-
-    
-    def is_being_constructed(self, building: Unit) -> bool:
-        return (
-            self.bot.workers.closest_to(building).is_constructing_scv == True
-            or self.bot.workers.closest_distance_to(building) <= building.radius * math.sqrt(2)
-        )
-
-    
-    async def is_buildable(self, building: Unit, points: List[Point2]):
-        for point in points:
-            buildable: bool = await self.bot.can_place_single(building, point)
-            if not buildable:
-                print(point, False)
-                return False
-            else:
-                print(point, True)
-        return True
     
     def draw_sphere_on_world(self, pos: Point2, radius: float = 2, draw_color: tuple = (255, 0, 0)):
         z_height: float = self.bot.get_terrain_z_height(pos)

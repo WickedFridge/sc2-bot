@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 import random
-from bot.strategy.build_order.addon_swap.swap_plan import SwapState
+from bot.strategy.build_order.addon_swap import SwapState
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone

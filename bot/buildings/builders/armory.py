@@ -46,7 +46,10 @@ class Armory(Building):
             + composition[UnitTypeId.THOR]
         )
         if (armory_count == 1):
-            return mechanical_units_amount >= 8
+            return (
+                self.bot.expansions.amount_taken >= 4
+                and mechanical_units_amount >= 8
+            )
     
     @override
     @property
