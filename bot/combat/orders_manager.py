@@ -404,15 +404,19 @@ class OrdersManager:
         ):
             return Orders.FIGHT_DEFENSE
         
-        if (
-            army.ground_units.amount >= 6
-            and (
-                weighted_army_supply >= local_enemy_supply * 0.7
-                or army.potential_supply >= MAX_PICKUP_SUPPLY
-            )
-        ):
-            return Orders.FIGHT_DISENGAGE
-        return Orders.PICKUP_LEAVE
+        local_anti_air: Units = self.enemy_anti_air.closer_than(army.radius, army.center)
+        safe_from_anti_air: bool = local_anti_air.amount < 2
+        too_few_ground_units: bool = army.ground_units.amount < 6
+
+        # The army is outmatched and not yet at pickup capacity
+        should_pickup: bool = (
+            weighted_army_supply < local_enemy_supply * 0.7
+            and army.potential_supply < MAX_PICKUP_SUPPLY
+        )
+
+        if (safe_from_anti_air and (too_few_ground_units or should_pickup)):
+            return Orders.PICKUP_LEAVE
+        return Orders.FIGHT_DISENGAGE
     
     def should_defend_buildings(self, army: Army, global_enemy_menacing: Units) -> bool:
         closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)

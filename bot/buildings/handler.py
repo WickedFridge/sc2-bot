@@ -439,53 +439,42 @@ class BuildingsHandler:
         ]
 
         # --- Lift grounded buildings that cannot build their addon ----------
+        # Never reposition the very first barracks (it walls the ramp).
         production_buildings_without_addon: Units = self.bot.structures.ready.idle.filter(
             lambda structure: (
                 structure.type_id in production_building_ids
                 and structure.has_add_on == False
                 and structure.tag not in swap_managed_tags
+                and structure.position != self.bot.main_base_ramp.barracks_correct_placement
             )
         )
 
         # Never reposition the very first barracks (it walls the ramp).
-        barracks_amount: int = (
-            self.bot.structures([UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING]).amount
-            + self.bot.already_pending(UnitTypeId.BARRACKS)
-        )
-        if (barracks_amount >= 2):
-            for production_building in production_buildings_without_addon:
-                addon_pos: Point2 = production_building.add_on_position
-                if not (await self.bot.can_place_single(UnitTypeId.SUPPLYDEPOT, addon_pos)):
-                    print(
-                        f"[reposition_buildings] Cannot build addon — "
-                        f"{production_building.name} (tag={production_building.tag}) lifts."
-                    )
-                    production_building(AbilityId.LIFT)
+        for production_building in production_buildings_without_addon:
+            addon_pos: Point2 = production_building.add_on_position
+            if (not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)):
+                print(
+                    f"[reposition_buildings] Cannot build addon — "
+                    f"{production_building.name} (tag={production_building.tag}) lifts."
+                )
+                production_building(AbilityId.LIFT)
 
         # --- Land flying buildings that are idle and not mid-swap -----------
-        flying_building_ids: list[UnitTypeId] = [
-            UnitTypeId.BARRACKSFLYING,
-            UnitTypeId.FACTORYFLYING,
-            UnitTypeId.STARPORTFLYING,
-        ]
+        flying_building_ids: dict[UnitTypeId, UnitTypeId] = {
+            UnitTypeId.BARRACKSFLYING: UnitTypeId.BARRACKS,
+            UnitTypeId.FACTORYFLYING: UnitTypeId.FACTORY,
+            UnitTypeId.STARPORTFLYING: UnitTypeId.STARPORT,
+        }
+        
         flying_buildings: Units = self.bot.structures.idle.filter(
             lambda building: (
-                building.type_id in flying_building_ids
+                building.type_id in flying_building_ids.keys()
                 and building.tag not in swap_managed_tags
             )
         )
 
         for flying_building in flying_buildings:
-            land_type: UnitTypeId
-            match flying_building.type_id:
-                case UnitTypeId.BARRACKSFLYING:
-                    land_type = UnitTypeId.BARRACKS
-                case UnitTypeId.FACTORYFLYING:
-                    land_type = UnitTypeId.FACTORY
-                case UnitTypeId.STARPORTFLYING:
-                    land_type = UnitTypeId.STARPORT
-                case _:
-                    continue
+            land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
 
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
@@ -519,6 +508,7 @@ class BuildingsHandler:
             lambda unit: (
                 unit.cargo_used == 0
                 and planetaries.closest_distance_to(unit) <= BASE_SIZE
+                and self.bot.enemy_units.closer_than(7, unit).amount == 0
             )
         )
         for bunker in bunkers_to_salvage:

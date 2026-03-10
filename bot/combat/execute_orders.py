@@ -293,7 +293,7 @@ class Execute(CachedClass):
 
     
     async def defend(self, army: Army):
-        expansions_under_attack: Expansions = self.bot.expansions.under_attack
+        expansions_under_attack: Expansions = self.bot.expansions.taken.under_attack
         if (expansions_under_attack.amount == 0):
             print("Error: no expansions under attack to defend")
             await self.retreat_army(army)

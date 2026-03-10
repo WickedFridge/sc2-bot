@@ -32,19 +32,17 @@ class Ebay(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
-        starport_count: float = (
-            self.bot.structures(UnitTypeId.STARPORT).amount
-            + self.bot.structures(UnitTypeId.STARPORTFLYING).amount
-            + self.bot.already_pending(UnitTypeId.STARPORT)
+        barracks_count: float = (
+            self.bot.structures(UnitTypeId.BARRACKS).ready.amount
+            + self.bot.structures(UnitTypeId.BARRACKSFLYING).amount
+            + max(self.bot.already_pending(UnitTypeId.BARRACKS), self.bot.structures(UnitTypeId.BARRACKS).not_ready.amount)
         )
-        medivac_count: float = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
         
-        # We want 2 ebays once we have a 3rd CC and a Starport
+        # We want 2 ebays once we have a 3rd CC and 3 raxes (by this time we probably already have a Starport and such)
         return (
             self.ebays_count < 2
             and self.bot.townhalls.amount >= 3
-            and starport_count >= 1
-            and medivac_count >= 2
+            and barracks_count >= 3
         )
     
     @override

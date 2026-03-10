@@ -3,6 +3,7 @@ from typing import List, Optional
 from bot.combat.orders import Orders
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -179,6 +180,7 @@ class Army(CachedClass):
                 (unit.can_attack or unit.type_id in menacing)
                 and unit.type_id not in worker_types
                 and unit.type_id != UnitTypeId.MEDIVAC
+                and not unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)
             )
         )
         healing_medivacs: Units = self.units(UnitTypeId.MEDIVAC).filter(

@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "11.6.4"
+VERSION: str = "11.6.5"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -237,6 +237,7 @@ class WickedBot(Superbot):
         money_spenders.extend(self.trainer.ordered_army_trainers)
         money_spenders.extend([
             # advanced tech
+            self.builder.ebay.build,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
             self.search.air_attack_level_3.search,
@@ -252,7 +253,6 @@ class WickedBot(Superbot):
         ])
         money_spenders.extend([
             # late game tech
-            self.builder.ebay.build,
             self.builder.ghost_academy.build,
             self.builder.fusion_core.build,
             self.search.building_armor.search,
