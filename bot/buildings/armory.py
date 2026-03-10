@@ -1,4 +1,5 @@
 from typing import override
+from bot.army_composition.composition import Composition
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from sc2.ids.unit_typeid import UnitTypeId
@@ -17,19 +18,35 @@ class Armory(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
+        # We never want more than 2 armories
+        armory_count: int = self.bot.structures(UnitTypeId.ARMORY).ready.amount + self.bot.already_pending(UnitTypeId.ARMORY)
+        if (armory_count == 2):
+            return False
+        
+        # We want 1 armory once we have a +1 60% complete
         armory_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ARMORY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
-        armory_count: int = self.bot.structures(UnitTypeId.ARMORY).ready.amount + self.bot.already_pending(UnitTypeId.ARMORY)
         ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount
-
-        # We want 1 armory once we have a +1 60% complete
-        return (
-            armory_tech_requirement == 1
-            and upgrades_tech_requirement >= 0.6
-            and armory_count == 0
-            and self.bot.townhalls.amount >= 3
-            and ebays_count >= 1
+        if (armory_count == 0):
+            return (
+                armory_tech_requirement == 1
+                and upgrades_tech_requirement >= 0.6
+                and self.bot.townhalls.amount >= 3
+                and ebays_count >= 1
+            )
+        
+        # We want a second Armory once we have a bunch of mechanical units
+        # Vikings so far
+        composition: Composition = self.bot.composition_manager.composition
+        mechanical_units_amount: int = (
+            composition[UnitTypeId.VIKINGFIGHTER]
+            + composition[UnitTypeId.LIBERATOR]
+            + composition[UnitTypeId.HELLION]
+            + composition[UnitTypeId.SIEGETANK]
+            + composition[UnitTypeId.THOR]
         )
+        if (armory_count == 1):
+            return mechanical_units_amount >= 8
     
     @override
     @property

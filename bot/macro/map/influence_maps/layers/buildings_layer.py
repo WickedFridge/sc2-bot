@@ -24,6 +24,12 @@ PRODUCTION_RADIUS = 1.5
 BUNKER_RADIUS = 1.5
 CC_RADIUS = 2.5
 
+def one_block_over(pos: Point2) -> Point2:
+    return pos.offset(Point2((0, 2 * PRODUCTION_RADIUS)))
+
+def one_block_under(pos: Point2) -> Point2:
+    return pos.offset(Point2((0, -2 * PRODUCTION_RADIUS)))
+
 class BuildingLayer:
     bot: BotAI
     occupancy: InfluenceMap
@@ -290,6 +296,7 @@ class BuildingLayer:
         )
     
     def reserve_around_production(self, origin: Point2) -> None:
+        # Points to disable to avoid units getting stuck
         points: List[tuple[int, int]] = [
             (-1, 0),
             (-1, 1),
@@ -301,7 +308,7 @@ class BuildingLayer:
         # reserve space between production buildings
         for point in points:
             self.reserve_area(origin + Point2(point), 1, set(important_buildings))
-    
+
     def unreserve_around_production(self, origin: Point2) -> None:
         points: List[tuple[int, int]] = [
             (-1, 0),
@@ -365,6 +372,15 @@ class BuildingLayer:
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
             self.reserve_around_production(origin)
+            position_over: Point2 = one_block_over(unit.position)
+            position_under: Point2 = one_block_under(unit.position)
+            for position in [position_over, position_under]:
+                if (
+                    self.should_build_building(position, unit.type_id, PRODUCTION_RADIUS)
+                    and self.should_build_building(position.offset(Point2((2.5, -0.5))), UnitTypeId.BARRACKSTECHLAB, ADDON_RADIUS)
+                ):
+                    self.reserve_production(position)
+    
 
     def on_building_destroyed(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)
