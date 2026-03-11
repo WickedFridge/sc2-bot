@@ -191,6 +191,7 @@ class OrdersManager:
                     or unit.type_id in menacing
                     or unit.is_burrowed
                 )
+                and not unit.is_flying
             )
         ) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types

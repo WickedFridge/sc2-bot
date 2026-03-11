@@ -46,7 +46,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.MEDIVAC,
     UnitTypeId.RAVEN,
-    UnitTypeId.OVERLORD,
+    # TODO fix this
+    # UnitTypeId.OVERLORD,
     UnitTypeId.OVERLORDTRANSPORT,
     UnitTypeId.BANELING,
     UnitTypeId.BANELINGCOCOON,
