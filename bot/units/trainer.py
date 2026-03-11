@@ -5,6 +5,7 @@ from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.units.cyclone import Cyclone
 from bot.units.ghost import Ghost
+from bot.units.hellion import Hellion
 from bot.units.marauder import Marauder
 from bot.units.marine import Marine
 from bot.units.medivac import Medivac
@@ -32,6 +33,8 @@ class Trainer:
     marauder: Marauder
     medivac: Medivac
     ghost: Ghost
+    hellion: Hellion
+    cyclone: Cyclone
     viking: Viking
     raven: Raven
     army_trainers: Dict[UnitTypeId, Train]
@@ -44,6 +47,7 @@ class Trainer:
         self.marine = Marine(self)
         self.marauder = Marauder(self)
         self.medivac = Medivac(self)
+        self.hellion = Hellion(self)
         self.ghost = Ghost(self)
         self.cyclone = Cyclone(self)
         self.viking = Viking(self)
@@ -55,6 +59,7 @@ class Trainer:
             UnitTypeId.MARAUDER: self.marauder,
             UnitTypeId.MEDIVAC: self.medivac,
             UnitTypeId.GHOST: self.ghost,
+            UnitTypeId.HELLION: self.hellion,
             UnitTypeId.CYCLONE: self.cyclone,
             UnitTypeId.VIKINGFIGHTER: self.viking,
             UnitTypeId.RAVEN: self.raven,

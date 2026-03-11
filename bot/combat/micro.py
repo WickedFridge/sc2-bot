@@ -350,6 +350,52 @@ class Micro(CachedClass):
         reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     
+    async def hellion(self, reaper: Unit):
+        # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
+        if (self.enemy_all.amount == 0):
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(reaper)
+            reaper.move(safest_spot)
+            return
+
+        # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
+        SAFETY: int = 2
+        LIFE_THRESHOLD: int = 15
+        enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
+        threats: Units = self.enemies_threatening_ground_in_range(reaper, safety_distance=SAFETY, range_override=20)
+        
+        # --- CASE 1: Weapon Ready ---
+        if (reaper.weapon_ready):
+            # if we can safely shoot, just shoot
+            local_danger: float = self.bot.map.influence_maps.danger.ground[reaper.position]
+            if (threats.amount == 0 or (reaper.health >= LIFE_THRESHOLD and reaper.health > local_danger)):
+                if (enemy_units_in_range.amount >= 1):
+                    # shoot weakest enemy in range
+                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(reaper))).first
+                    reaper.attack(target)
+                else:
+                    # move toward closest enemy to chase
+                    reaper.attack(self.enemy_all.closest_to(reaper))
+
+            
+            # if we can't safely shoot, move away
+            else:
+                # safest_spot is preferably away from threats
+                kite_target = threats.closest_to(reaper)
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, kite_target)
+                reaper.move(safest_spot)
+        
+        # --- CASE 2: Short Cooldown (stutter step micro) ---
+        elif (reaper.weapon_cooldown <= WEAPON_READY_THRESHOLD):
+            best_target: Unit = self.enemy_all.closest_to(reaper)
+            best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
+            reaper.move(best_attack_spot)
+       
+        # --- CASE 3: Long cooldown → retreat & wait ---
+        else:
+            closest_enemy: Unit = self.enemy_all.closest_to(reaper)
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, closest_enemy)
+            reaper.move(safest_spot)
+    
     async def reaper(self, reaper: Unit):
         # Try grenade first
         if (await self.reaper_grenade(reaper)):

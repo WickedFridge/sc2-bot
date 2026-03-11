@@ -8,10 +8,11 @@ from bot.strategy.build_order.addon_swap.swap_plan import SwapPlan
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
+from sc2.units import Units
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
-    from bot.strategy.build_order.addon_swap import AddonSwapManager
+    from bot.strategy.build_order.addon_swap.manager import AddonSwapManager
 
 
 class AddonDetachSwap(SwapPlan):
@@ -30,6 +31,7 @@ class AddonDetachSwap(SwapPlan):
         bot: BotAI,
         donor_type: UnitTypeId,
         donor_flying_type: UnitTypeId,
+        condition: Optional[callable[[], bool]] = None,
     ) -> None:
         super().__init__(
             bot=bot,
@@ -38,6 +40,7 @@ class AddonDetachSwap(SwapPlan):
             recipient_type=donor_type,               # unused — no recipient
             recipient_flying_type=donor_flying_type,  # unused — no recipient
             desired_addon_type=UnitTypeId.TECHLAB,    # unused — any addon qualifies
+            condition=condition,
         )
 
     @property
@@ -59,19 +62,20 @@ class AddonDetachSwap(SwapPlan):
     def _initiate(self, manager: AddonSwapManager) -> None:
         """Find a donor with any addon and lift it."""
         busy: Set[int] = manager.managed_tags
-        donor: Optional[Unit] = self.bot.structures(self.donor_type).filter(
+        potential_donors: Units = self.bot.structures(self.donor_type).filter(
             lambda b: b.tag not in busy and b.has_add_on and b.is_ready
-        ).first
+        )
 
-        if (donor is None):
-            print(f"[AddonDetachSwap] No available donor of type {self.donor_type.name} — busy tags: {busy}")
+        if (potential_donors.amount == 0):
+            # print(f"[AddonDetachSwap] No available donor of type {self.donor_type.name} — busy tags: {busy}")
             return
+
+        donor: Unit = potential_donors.first
 
         # Reserve immediately so no other swap can steal this donor before commit.
         self.reserved_donor_tag = donor.tag
         self.commit(donor, None, donor.add_on_tag if donor.has_add_on else None)
 
         print(f"[AddonDetachSwap] Lifting {self.donor_type.name} (tag={donor.tag}) to detach addon.")
-        donor(AbilityId.STOP)
-        donor(LIFT_ABILITY[self.donor_type], queue=True)
+        donor(LIFT_ABILITY[self.donor_type])
         self.state = SwapState.DONOR_LIFTING

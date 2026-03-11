@@ -75,8 +75,8 @@ class BuildOrderStep:
             if (unit_count < amount_required):
                 return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
         for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) < 1):
-                return False, f'(upgrade {upgrade} not ready)'
+            if (self.bot.already_pending_upgrade(upgrade) == 0):
+                return False, f'(upgrade {upgrade} not started)'
         return True, ''
     
     @property
@@ -94,7 +94,7 @@ class BuildOrderStep:
             if (unit_count < amount_required):
                 return False
         for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) < 1):
+            if (self.bot.already_pending_upgrade(upgrade) == 0):
                 return False
         return True
     

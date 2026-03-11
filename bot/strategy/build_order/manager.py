@@ -8,6 +8,7 @@ from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.dummy_build import Dummybuild
 from bot.strategy.build_order.builds.koka_build import KokaBuild
+from bot.strategy.build_order.builds.reactor_hellion_3cc_1_1 import Greedy22Timing
 from bot.strategy.build_order.builds.two_rax_reaper_defensive import DefensiveTwoRax
 from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
@@ -42,7 +43,8 @@ class BuildOrderManager:
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    TwoRaxReapers(self.bot),
+                    # TwoRaxReapers(self.bot),
+                    Greedy22Timing(self.bot),
                     # DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)

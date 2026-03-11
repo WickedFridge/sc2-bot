@@ -11,7 +11,7 @@ from sc2.units import Units
 
 if TYPE_CHECKING:
     from sc2.bot_ai import BotAI
-    from bot.strategy.build_order.addon_swap import AddonSwapManager
+    from bot.strategy.build_order.addon_swap.manager import AddonSwapManager
 
 
 class SwapPlan(ABC):
@@ -48,7 +48,7 @@ class SwapPlan(ABC):
         self.donor_original_position: Optional[Point2] = None
         self.recipient_original_position: Optional[Point2] = None
         self.reserved_donor_tag: Optional[int] = None
-        self.state: SwapState = SwapState.PENDING
+        self.state: SwapState = SwapState.PENDING if (condition is None) else SwapState.CONDITION_NOT_MET
 
         self.condition: callable[[], bool] = condition if (condition is not None) else lambda: True
 
@@ -77,7 +77,7 @@ class SwapPlan(ABC):
     @property
     def is_active(self) -> bool:
         """True while the swap is in progress (at least one building is flying)."""
-        return self.state not in (SwapState.PENDING, SwapState.DONE, SwapState.ABORTED)
+        return self.state not in (SwapState.CONDITION_NOT_MET, SwapState.PENDING, SwapState.DONE, SwapState.ABORTED)
 
     @property
     def is_finished(self) -> bool:

@@ -1,4 +1,4 @@
-from typing import override
+from typing import List, override
 from bot.buildings.building import Building
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -19,6 +19,16 @@ class Starport(Building):
             return True
         
         ebays_amount: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount
+        flying_unit_types: List[UnitTypeId] = [
+            UnitTypeId.MEDIVAC,
+            UnitTypeId.VIKINGFIGHTER,
+            UnitTypeId.RAVEN,
+            UnitTypeId.BANSHEE,
+            UnitTypeId.BATTLECRUISER
+        ]
+        flying_units_amount: int = self.bot.units(flying_unit_types).amount
+        for unit_type in flying_unit_types:
+            flying_units_amount += self.bot.already_pending(unit_type)
 
         # We want 2nd/3rd starport after we have a 3rd base and 2 Ebays if our composition is mostly air units
         match self.amount:
@@ -28,6 +38,7 @@ class Starport(Building):
                 return (
                     self.base_amount >= 3
                     and ebays_amount >= 2
+                    and flying_units_amount >= 2
                     and (
                         self.bot.composition_manager.vikings_amount >= 4 * self.amount
                         or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= self.amount

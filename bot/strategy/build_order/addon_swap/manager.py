@@ -71,6 +71,13 @@ class AddonSwapManager:
         for swap in self.swap_plans:
             if (swap.is_finished):
                 continue
+            if (swap.state == SwapState.CONDITION_NOT_MET):
+                if (swap.condition()):
+                    swap.state = SwapState.PENDING
+                continue
+            if (not swap.condition() and swap.state == SwapState.PENDING):
+                swap.state = SwapState.CONDITION_NOT_MET
+                continue
             swap.process(self)
 
     def on_unit_destroyed(self, tag: int) -> None:
@@ -103,46 +110,6 @@ class AddonSwapManager:
     # State handlers — called by SwapPlan subclasses via process()
     # ------------------------------------------------------------------
 
-    def initiate(self, swap: SwapPlan) -> None:
-        """
-        Initiate as soon as donor (with addon) and recipient both exist, and at
-        least one of {addon, recipient} is ready.
-
-        Path A — addon ready first (or both): lift donor → DONOR_LIFTING.
-        Path B — recipient ready first: lift recipient → RECIPIENT_LIFTING_FIRST.
-        """
-        busy: Set[int] = self.managed_tags
-
-        donor: Optional[Unit] = swap.find_donor(busy)
-        if (donor is None):
-            return
-
-        recipient: Optional[Unit] = swap.find_recipient(busy)
-        if (recipient is None):
-            return
-
-        addon_tag: Optional[int] = swap.detect_addon_tag(donor)
-        addon: Optional[Unit] = self.bot.structures.find_by_tag(addon_tag) if (addon_tag is not None) else None
-
-        addon_ready: bool = addon is not None and addon.is_ready
-        recipient_ready: bool = recipient.is_ready
-
-        if (not addon_ready and not recipient_ready):
-            return
-
-        swap.commit(donor, recipient, addon_tag)
-
-        if (addon_ready):
-            print(f"[AddonSwapManager] Path A — lifting donor {swap.donor_type.name} (tag={donor.tag}) first.")
-            donor(AbilityId.STOP)
-            donor(LIFT_ABILITY[swap.donor_type], queue=True)
-            swap.state = SwapState.DONOR_LIFTING
-        else:
-            print(f"[AddonSwapManager] Path B — lifting recipient {swap.recipient_type.name} (tag={recipient.tag}) first.")
-            recipient(AbilityId.STOP)
-            recipient(LIFT_ABILITY[swap.recipient_type], queue=True)
-            swap.state = SwapState.RECIPIENT_LIFTING_FIRST
-
     def recipient_lifting_first(self, swap: SwapPlan) -> None:
         """
         Path B: re-issue recipient lift until airborne, then wait for addon to
@@ -151,8 +118,7 @@ class AddonSwapManager:
         if (swap.recipient_flying is None):
             grounded: Optional[Unit] = swap.recipient
             if (grounded is not None):
-                grounded(AbilityId.STOP)
-                grounded(LIFT_ABILITY[swap.recipient_type], queue=True)
+                grounded(LIFT_ABILITY[swap.recipient_type])
             return
 
         # Recipient is airborne — position it above its future landing spot.
@@ -170,8 +136,7 @@ class AddonSwapManager:
             return
 
         print(f"[AddonSwapManager] Addon ready (Path B) — lifting donor {swap.donor_type.name} (tag={donor.tag}).")
-        donor(AbilityId.STOP)
-        donor(LIFT_ABILITY[swap.donor_type], queue=True)
+        donor(LIFT_ABILITY[swap.donor_type])
         swap.state = SwapState.DONOR_LIFTING
 
     def donor_lifting(self, swap: SwapPlan) -> None:
@@ -184,8 +149,7 @@ class AddonSwapManager:
         if (swap.donor_flying is None):
             grounded: Optional[Unit] = swap.donor
             if (grounded is not None):
-                grounded(AbilityId.STOP)
-                grounded(LIFT_ABILITY[swap.donor_type], queue=True)
+                grounded(LIFT_ABILITY[swap.donor_type])
             return
 
         if (not swap.donor_flying.is_moving):
@@ -265,9 +229,6 @@ class AddonSwapManager:
             return
 
         if (swap.donor_flying.is_moving):
-            return
-        
-        if (not swap.donor_flying.is_idle and swap.donor_flying.orders[0].ability.id == AbilityId.LAND):
             return
 
         top_position: Point2 = swap.donor_original_position + Point2((0, -2.5))

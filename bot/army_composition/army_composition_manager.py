@@ -44,6 +44,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.MARINE: [UnitTypeId.BARRACKS],
             UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS, UpgradeId.STIMPACK],
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
+            UnitTypeId.HELLION: [UnitTypeId.FACTORY],
             UnitTypeId.CYCLONE: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],

@@ -85,6 +85,7 @@ class OrdersManager:
             UnitTypeId.MARINE,
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST,
+            UnitTypeId.HELLION,
             UnitTypeId.CYCLONE,
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
@@ -162,7 +163,7 @@ class OrdersManager:
         for army in self.armies:
             army.orders = self.get_army_orders(army)
 
-    def reapers_orders(self, army: Army) -> Orders:
+    def scouting_units_orders(self, army: Army) -> Orders:
         situation: Situation = self.bot.scouting.situation
         # Enemy units
         ghost_enemy_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
@@ -219,14 +220,15 @@ class OrdersManager:
             return Orders.HARASS
         
         # if we have few life, heal up
-        if (army.bio_health_percentage <= 0.3):
+        if (0 < army.bio_health_percentage <= 0.3):
             return Orders.HEAL_UP
         return Orders.SCOUT
     
     def get_army_orders(self, army: Army) -> Orders:
         # -- Specific orders for reapers
-        if (army.units(UnitTypeId.REAPER).amount == army.units.amount):
-            return self.reapers_orders(army)
+        scouting_units: List[UnitTypeId] = [UnitTypeId.REAPER, UnitTypeId.HELLION]
+        if (army.units(scouting_units).amount == army.units.amount):
+            return self.scouting_units_orders(army)
         
         # -- Define local enemies
         ghost_enemy_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units

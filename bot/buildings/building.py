@@ -27,6 +27,10 @@ class Building:
         self.builder = build
     
     @property
+    def in_build_order(self) -> bool:
+        return self.unitId in self.bot.build_order.build.pending_ids
+    
+    @property
     def force_position(self) -> bool:
         return False
     

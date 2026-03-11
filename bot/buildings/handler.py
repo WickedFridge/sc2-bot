@@ -500,9 +500,16 @@ class BuildingsHandler:
             )
         )
         free_addons: Units = self.bot.structures([UnitTypeId.TECHLAB, UnitTypeId.REACTOR]).filter(
-            lambda building: flying_buildings.filter(
-                lambda f_building: len(f_building.orders) >= 1 and f_building.orders[0].target == building.add_on_land_position
-            ).amount == 0
+            lambda building: (
+                building.tag not in swap_managed_tags  # ← ajout
+                and flying_buildings.filter(
+                    lambda f_building: len(f_building.orders) >= 1 and f_building.orders[0].target == building.add_on_land_position
+                ).amount == 0
+                and (
+                    production_buildings_without_addon.amount == 0
+                    or production_buildings_without_addon.closest_distance_to(building) > 1
+                )
+            )
         )
         free_addons_count: int = free_addons.amount
 

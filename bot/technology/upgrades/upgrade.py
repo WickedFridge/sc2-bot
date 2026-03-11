@@ -29,21 +29,28 @@ class Upgrade:
         self.bot = search_manager.bot
     
     @property
+    def in_build_order(self) -> bool:
+        return self.upgrade in self.bot.build_order.build.pending_ids
+        
+    
+    @property
     def custom_conditions(self) -> bool:
         return True
 
     @property
     def conditions(self) -> bool:
         return (
-            self.custom_conditions
-            and self.bot.already_pending_upgrade(self.upgrade) == 0
+            self.bot.already_pending_upgrade(self.upgrade) == 0
             and self.bot.structures(self.building).ready.idle.amount >= 1
             and self.bot.tech_requirement_progress(self.upgrade) == 1
-            and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
-            and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
             and (
                 self.upgrade in self.bot.build_order.build.pending_ids
-                or self.bot.build_order.build.is_completed
+                or (
+                    self.bot.build_order.build.is_completed
+                    and self.custom_conditions
+                    and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
+                    and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
+                )
             )
         )
     

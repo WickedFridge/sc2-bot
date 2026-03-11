@@ -60,7 +60,7 @@ class CommandCenter(Building):
         in_base_builds: List[BuildOrderName] = [
             BuildOrderName.DEFENSIVE_TWO_RAX.value,
             BuildOrderName.CONSERVATIVE_EXPAND.value,
-            BuildOrderName.DEFENSIVE_CYCLONE.value
+            BuildOrderName.DEFENSIVE_CYCLONE.value,
         ]
         safe_expansions: Expansions = self.bot.expansions.taken.safe
         match (townhall_amount):
@@ -84,7 +84,12 @@ class CommandCenter(Building):
         # move SCV for first expand
         if (self.bot.time >= 100 or self.bot.townhalls.amount >= 2):
             return
-        if (self.bot.build_order.build.name in [BuildOrderName.KOKA_BUILD.value, BuildOrderName.MACRO_CYCLONE.value]):
+        reaper_expand_builds: List[BuildOrderName] = [
+            BuildOrderName.KOKA_BUILD.value,
+            BuildOrderName.MACRO_CYCLONE.value,
+            BuildOrderName.GREEDY_2_2_TIMING.value,
+        ]
+        if (self.bot.build_order.build.name in reaper_expand_builds):
             rax_builder: Units = self.bot.workers.filter(
                 lambda unit: (
                     len(unit.orders) == 1

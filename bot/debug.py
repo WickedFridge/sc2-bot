@@ -630,7 +630,7 @@ class Debug:
             position: Point2 = Point2((0, screen_y))
             color: tuple = (
                 GREEN if swap.state == SwapState.DONE else
-                RED if swap.state == SwapState.ABORTED else
+                RED if swap.state in [SwapState.ABORTED, SwapState.CONDITION_NOT_MET] else
                 YELLOW
             )
             self.draw_text_on_screen(f'{swap.name} : {swap.state}', position, color, font_size=14)

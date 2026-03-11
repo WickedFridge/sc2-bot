@@ -215,6 +215,8 @@ class Execute(CachedClass):
                     await self.micro.bio_fight(unit, army.units, chase)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
+                case UnitTypeId.HELLION:
+                    await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -241,6 +243,8 @@ class Execute(CachedClass):
                     await self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost_defense(unit, army.units)
+                case UnitTypeId.HELLION:
+                    await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -585,5 +589,5 @@ class Execute(CachedClass):
         if (scout_target is None):
             scout_target = self.bot.expansions.enemy_main.mineral_line
         
-        for reaper in army.units:
-            reaper.move(scout_target)
+        for scout in army.units:
+            scout.move(scout_target)

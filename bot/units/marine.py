@@ -52,7 +52,7 @@ class Marine(Train):
     @override
     @property
     def building_group(self) -> Units:
-        return self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
+        return self.bot.structures(self.buildingIds).ready.filter(
             lambda rax: (
                 self.no_addon_conditions(rax)
                 or self.reactor_conditions(rax)

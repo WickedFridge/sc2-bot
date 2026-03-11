@@ -23,10 +23,12 @@ class Ebay(Building):
     @property
     def override_conditions(self) -> bool:
         need_detection: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
-        
+
         return (
-            self.ebays_count == 0
-            and need_detection
+            self.in_build_order or (
+                self.ebays_count == 0
+                and need_detection
+            )
         )
     
     @override
@@ -48,7 +50,11 @@ class Ebay(Building):
     @override
     @property
     def position(self) -> Point2:
-        expansion: Expansion = self.bot.expansions.taken.random
+        expansion: Expansion = (
+            self.bot.expansions.main
+            if self.bot.expansions.main.is_taken
+            else self.bot.expansions.taken.random
+        )
         if (not expansion):
             return self.bot.expansions.main.position
         units_pool: Units = expansion.mineral_fields + expansion.vespene_geysers

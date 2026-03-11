@@ -21,12 +21,15 @@ class Refinery(Building):
     def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
             return False
+        if (self.unitId in self.bot.build_order.build.pending_ids):
+            return True
         refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.filter(
             lambda refinery: self.bot.expansions.taken.vespene_geysers.closest_to(refinery.position).has_vespene
         ).amount + self.bot.already_pending(UnitTypeId.REFINERY)
 
         max_refineries: int = 8
         workers_amount: int = self.bot.supply_workers
+
         
         match(refinery_amount):
             # Build order handles first 2 gas
