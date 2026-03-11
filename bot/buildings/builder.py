@@ -86,7 +86,7 @@ class Builder:
                 )
                 and worker.is_attacking == False
                 and (
-                    len(worker.orders) == 0
+                    worker.is_idle
                     or not worker.is_constructing_scv
                     or (
                         worker.is_constructing_scv

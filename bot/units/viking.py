@@ -22,7 +22,7 @@ class Viking(Train):
     def no_addon_conditions(self, starport: Unit) -> bool:
         return (
             not starport.has_add_on
-            and len(starport.orders) == 0
+            and starport.is_idle
         )
     
     def reactor_conditions(self, starport: Unit) -> bool:
