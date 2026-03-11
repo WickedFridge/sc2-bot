@@ -92,7 +92,7 @@ class Building:
     
     @property
     def precarious(self) -> int:
-        return self.bot.scouting.situation.is_cheese
+        return self.bot.scouting.situation.is_cheese or self.bot.scouting.situation.is_precarious
     
     def on_complete(self):
         print(f'Build {self.name}')

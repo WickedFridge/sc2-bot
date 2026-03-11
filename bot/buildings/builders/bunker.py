@@ -76,5 +76,11 @@ class Bunker(Building):
     @override
     @property
     def position(self) -> Point2:
+        # if there's already a bunker finished at the natural and we're on b2, additional bunkers should go on the natural 
+        if (
+            self.bot.expansions.taken.amount == 2
+            and self.bot.expansions.b2.is_defended
+        ):
+            return self.bot.expansions.b2.bunker_position
         expansion_not_defended: Expansion = self.expansions_without_defense.first
         return expansion_not_defended.bunker_position

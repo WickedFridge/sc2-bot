@@ -167,6 +167,17 @@ production: List[UnitTypeId] = [
     UnitTypeId.FACTORY,
     UnitTypeId.STARPORT,
 ]
+enemy_production: List [UnitTypeId] = [
+    # Terran
+    UnitTypeId.BARRACKS,
+    UnitTypeId.FACTORY,
+    UnitTypeId.STARPORT,
+    # Protoss
+    UnitTypeId.GATEWAY,
+    UnitTypeId.WARPGATE,
+    UnitTypeId.ROBOTICSFACILITY,
+    UnitTypeId.STARGATE,
+]
 production_flying: List[UnitTypeId] = [
     UnitTypeId.BARRACKSFLYING,
     UnitTypeId.FACTORYFLYING,

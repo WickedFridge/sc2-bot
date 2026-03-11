@@ -12,6 +12,7 @@ from bot.utils.point2_functions.utils import center, points_to_build_addon
 from bot.utils.unit_functions import is_being_constructed
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -361,7 +362,25 @@ class BuildingsHandler:
                 production_building(AbilityId.RALLY_BUILDING, rally_point)
             
     async def lift_townhalls(self):
-        townhalls_not_on_slot = self.bot.expansions.townhalls_not_on_slot.ready.idle
+        townhalls_lifted: Units = self.bot.structures([UnitTypeId.COMMANDCENTERFLYING, UnitTypeId.ORBITALCOMMANDFLYING])
+        # never lift more than 2 CCs at once
+        if (townhalls_lifted.amount >= 2):
+            return
+        
+        # if every mineral field is depleted and every geyser is depleted, we return an empty list
+        if (self.bot.mineral_field.amount == 0 and self.bot.vespene_geyser.filter(lambda vespene: vespene.has_vespene).amount == 0):
+            return
+        
+        townhalls_not_on_slot: Units = self.bot.expansions.townhalls_not_on_slot.ready.idle.not_flying
+        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying
+        townhalls_to_move: Units = (
+            townhalls_not_on_slot
+            if townhalls_not_on_slot.amount >= 1
+            else townhalls_depleted
+        )
+        if (townhalls_to_move.amount == 0):
+            return
+
         # calculate the optimal worker count based on mineral field left in bases
         optimal_worker_count: int = (
             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
@@ -369,7 +388,7 @@ class BuildingsHandler:
         )
         is_mining_optimal: bool = self.bot.supply_workers < optimal_worker_count - 5
 
-        for townhall in townhalls_not_on_slot:
+        for townhall in townhalls_to_move:
             # don't lift Orbitals after the third CC
             if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
                 if (self.bot.townhalls.ready.amount >= 4):
@@ -404,15 +423,15 @@ class BuildingsHandler:
     async def land_townhalls(self):
         flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready
         for townhall in flying_townhall:
+            expansions_with_resources: Expansions = self.bot.expansions.with_resources
             landing_spot: Point2 = (
                 townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
-                else self.bot.expansions.next.position if flying_townhall.amount == 1
-                else self.bot.expansions.free.closest_to(townhall.position).position if self.bot.expansions.free.amount >= 1
+                else expansions_with_resources.next.position if flying_townhall.amount == 1
+                else expansions_with_resources.free.closest_to(townhall.position).position if expansions_with_resources.free.amount >= 1
                 else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
                 else self.bot.expansions.main.position
             )
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
-            # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < 10)
             if (danger_around < self.DANGER_THRESHOLD):
                 if (not townhall.is_idle):
                     continue
@@ -525,11 +544,16 @@ class BuildingsHandler:
         if (self.bot.scouting.situation != Situation.STABLE or self.bot.expansions.taken.amount < 3):
             return
 
-        # Salvage main bunker once we're stable
+        # Salvage main bunker and second bunkers at bases once we're stable
         main_ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.main_base_ramp.top_center)
         if (main_ramp_bunkers.amount >= 1):
             main_ramp_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
-
+        natural_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.expansions.b2.position).filter(
+            lambda bunker: not bunker.is_using_ability(AbilityId.SALVAGEEFFECT_SALVAGE)
+        )
+        if (natural_bunkers.amount >= 2):
+            natural_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
+        
         planetaries: Units = self.bot.structures(UnitTypeId.PLANETARYFORTRESS)
         if (planetaries.amount == 0):
             return

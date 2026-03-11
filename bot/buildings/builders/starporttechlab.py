@@ -21,6 +21,7 @@ class StarportTechlab(StarportAddon):
             and self.starports_without_addon.idle.amount >= 1
             and (
                 self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
-                or self.bot.composition_manager.composition[UnitTypeId.LIBERATOR] >= 1
+                or self.bot.composition_manager.composition[UnitTypeId.BANSHEE] >= 1
+                or self.bot.composition_manager.composition[UnitTypeId.BATTLECRUISER] >= 1
             )
         )

@@ -1,5 +1,7 @@
+import random
 from typing import List, override
 from bot.buildings.building import Building
+from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -45,6 +47,13 @@ class Barracks(Building):
         if (self.amount == 0):
             return self.bot.main_base_ramp.barracks_correct_placement
         
+        selected_expansion: Expansion = self.bot.expansions.main
+        # If we have less than 5 raxes, always build them in the main
+
+        if (self.bot.structures(UnitTypeId.BARRACKS).amount < 5):
+            random_distance: int = random.randrange(4, 12)
+            return self.bot.expansions.main.position.towards_with_random_angle(self.bot.game_info.map_center, random_distance)
+
         # select only expansions that have less than 5 raxes around them
         expansions: Expansions = self.bot.expansions.ready.filter(
             lambda expansion: (
@@ -52,5 +61,5 @@ class Barracks(Building):
             )
         )
         if (expansions.amount >= 1):    
-            return expansions.random.position.towards(self.bot.game_info.map_center, 4)
-        return self.bot.expansions.main.position.towards(self.bot.game_info.map_center, 8)
+            random_distance: int = random.randrange(4, 8)
+            return expansions.random.position.towards_with_random_angle(self.bot.game_info.map_center, random_distance)

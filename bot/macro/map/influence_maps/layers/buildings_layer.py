@@ -301,8 +301,11 @@ class BuildingLayer:
             (-1, 0),
             (-1, 1),
             (-1, 2),
+            (3, 2),
+            (4, 2),
             (5, 0),
-            (5, 1)
+            (5, 1),
+            (5, 2),
         ]
         
         # reserve space between production buildings
@@ -314,8 +317,11 @@ class BuildingLayer:
             (-1, 0),
             (-1, 1),
             (-1, 2),
+            (3, 2),
+            (4, 2),
             (5, 0),
-            (5, 1)
+            (5, 1),
+            (5, 2),
         ]
         
         # unreserve space between production buildings

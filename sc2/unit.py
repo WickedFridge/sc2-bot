@@ -1049,7 +1049,7 @@ class Unit:
         # TODO: add examples on how to use unit orders
         return [UnitOrder.from_proto(order, self._bot_object) for order in self._proto.orders]
 
-    @cached_property
+    @property
     def order_target(self) -> Optional[Union[int, Point2]]:
         """Returns the target tag (if it is a Unit) or Point2 (if it is a Position)
         from the first order, returns None if the unit is idle"""
@@ -1063,7 +1063,7 @@ class Unit:
     @property
     def is_idle(self) -> bool:
         """ Checks if unit is idle. """
-        return not self._proto.orders
+        return not self.orders
 
     def is_using_ability(self, abilities: Union[AbilityId, Set[AbilityId]]) -> bool:
         """Check if the unit is using one of the given abilities.

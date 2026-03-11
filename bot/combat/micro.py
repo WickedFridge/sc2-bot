@@ -909,7 +909,7 @@ class Micro(CachedClass):
         )
         enemy_units_in_range: Units = enemy_units.filter(lambda enemy_unit: unit.target_in_range(enemy_unit))
             
-        if (unit.weapon_ready and enemy_units_in_range.amount >= 1):
+        if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
             unit.attack(enemy_units_in_range.first)
         else:
             # if no enemy units are menacing something else than the bunker
@@ -932,7 +932,7 @@ class Micro(CachedClass):
                     unit.move(safest_spot)
                     # Micro.move_away(unit, enemy_units.closest_to(unit))
             else:
-                if (unit.weapon_ready):
+                if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
                     unit.attack(enemy_units.closest_to(unit))
                 else:
                     safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(bunker)
@@ -966,7 +966,7 @@ class Micro(CachedClass):
             )
         )
         target: Unit = enemy_to_fight.first
-        if (unit.weapon_ready):
+        if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
             unit.attack(target)
         else:
             best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
@@ -975,7 +975,7 @@ class Micro(CachedClass):
     def hit_n_run(self, unit: Unit, enemy_units_in_range: Units):
         if (enemy_units_in_range.amount == 0):
             return
-        if (unit.weapon_ready):
+        if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
             enemy_light_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_light)
             enemy_armored_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_armored)
             enemy_to_fight: Units = enemy_units_in_range
@@ -1040,6 +1040,17 @@ class Micro(CachedClass):
         target: Point2 = selected_position.__add__(offset)
         selected.move(selected_position.towards(target, distance))
 
+    def worker_attack(bot: Superbot, worker: Unit, target: Unit):
+        if (worker.weapon_cooldown < 4):
+            print("worker attack !")
+            worker.attack(target)
+        else:
+            if (bot.mineral_field.amount == 0):
+                return
+            closest_mineral_field: Unit = bot.mineral_field.closest_to(worker)
+            print("worker back !")
+            worker.gather(closest_mineral_field)
+    
     def is_valid_enemy(self, unit: Unit) -> bool:
         # if (not unit.can_be_attacked):
         #     return False

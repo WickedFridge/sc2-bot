@@ -14,7 +14,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types
+from ..utils.unit_tags import tower_types, worker_types, production, enemy_production
 
 class StrategyHandler:
     bot: Superbot
@@ -69,7 +69,7 @@ class StrategyHandler:
         
         return Situation.STABLE
     
-    def detect_early_cheese(self):
+    def detect_early_cheese(self) -> Optional[Situation]:
         if (self.bot.townhalls.amount > 3):
             return None
         
@@ -131,9 +131,14 @@ class StrategyHandler:
         # TODO add last scouting time of the b2
         # TODO they might have taken it by now
         # enemy has no b2 while our b3 is started
+        # or enemy has way more production than us
         if (
             self.bot.expansions.enemy_b2.is_free
             and self.bot.townhalls.amount == 3
+            or (
+                self.bot.enemy_structures(enemy_production).amount >= 3
+                and self.bot.enemy_structures(enemy_production).amount >= 2 * self.bot.structures(production).amount
+            )
         ):
             return Situation.CHEESE_UNKNOWN
         

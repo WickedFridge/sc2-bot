@@ -155,16 +155,18 @@ class AddonSwapManager:
                 grounded(LIFT_ABILITY[swap.recipient_type], queue=True)
             return
 
-        # Recipient is airborne — nudge donor toward recipient's original position.
+        # Recipient is airborne — position it above its future landing spot.
         donor: Optional[Unit] = swap.donor
-        if (donor is not None and not donor.is_moving):
-            assert swap.recipient_original_position is not None
-            donor.move(swap.recipient_original_position)
-
-        if (swap.addon is None or not swap.addon.is_ready):
+        if (donor is None):
             return
 
-        if (donor is None):
+        recipient_flying: Optional[Unit] = swap.recipient_flying
+        if (recipient_flying is not None and not recipient_flying.is_moving):
+            assert swap.donor_original_position is not None
+            if (recipient_flying.distance_to(swap.donor_original_position) > 1):
+                recipient_flying.move(swap.donor_original_position)
+
+        if (swap.addon is None or not swap.addon.is_ready):
             return
 
         print(f"[AddonSwapManager] Addon ready (Path B) — lifting donor {swap.donor_type.name} (tag={donor.tag}).")
@@ -224,8 +226,7 @@ class AddonSwapManager:
                 grounded(LIFT_ABILITY[swap.recipient_type])
             return
 
-        if (swap.addon is not None):
-            swap.recipient_flying.move(swap.addon.add_on_land_position)
+        swap.recipient_flying.move(swap.addon.add_on_land_position)
 
         print(f"[AddonSwapManager] Recipient airborne — proceeding to RECIPIENT_LANDING.")
         swap.state = SwapState.RECIPIENT_LANDING
@@ -264,6 +265,9 @@ class AddonSwapManager:
             return
 
         if (swap.donor_flying.is_moving):
+            return
+        
+        if (not swap.donor_flying.is_idle and swap.donor_flying.orders[0].ability.id == AbilityId.LAND):
             return
 
         top_position: Point2 = swap.donor_original_position + Point2((0, -2.5))

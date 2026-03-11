@@ -133,6 +133,14 @@ class Expansions(CachedClass):
     def without_main(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_main == False)
     
+    @custom_cache_once_per_frame
+    def depleted(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_depleted == True)
+
+    @custom_cache_once_per_frame
+    def with_resources(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_depleted == False)
+    
     @property
     def random(self) -> Optional[Expansion]:
         if (len(self.expansions) == 0):
@@ -245,26 +253,7 @@ class Expansions(CachedClass):
     
     @custom_cache_once_per_frame
     def townhalls_not_on_slot(self) -> Units:
-        townhalls: Units = self.bot.townhalls([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND])
-        
-        # it is supposed to check if a base is depleated
-
-        # if every mineral field is depleted and every geyser is depleted, we return an empty list
-        if (self.mineral_fields.amount == 0 and self.vespene_geysers.filter(lambda vespene: vespene.has_vespene).amount == 0):
-            return Units([], self.bot)
-
-        # Return townhalls that are either not on an expansion slot, or a depleted expansion
-        return townhalls.filter(
-            lambda townhall: (
-                townhall.tag not in self.townhalls.tags
-                or (
-                    (self.mineral_fields.amount == 0 or self.mineral_fields.closest_distance_to(townhall.position) > 10)
-                    and self.vespene_geysers.in_distance_between(townhall.position, 0, 10).filter(
-                        lambda vespene: vespene.has_vespene
-                    ).amount == 0
-                )
-            )
-        )
+        return self.bot.townhalls.filter(lambda townhall: townhall.position not in self.positions)
 
     def closest_to(self, unit: Unit | Point2) -> Expansion:
         expansions: List[Expansion] = self.expansions.copy()

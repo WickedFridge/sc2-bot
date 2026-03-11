@@ -241,6 +241,11 @@ class Debug:
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
 
+    def weapon_cooldown(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'cooldown: {unit.weapon_cooldown}')
+
     def range(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         if (selected_units.amount == 0):

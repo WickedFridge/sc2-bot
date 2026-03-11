@@ -290,7 +290,8 @@ class Base:
         max_worker_to_pull: int = self.get_worker_amount_to_pull(local_enemy_units, attackable_enemy_units, defensive_structures)
         workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)
         workers_to_pullback: Units = workers_pulled.filter(lambda unit: (unit.health < SCV_HEALTH_THRESHOLD))
-
+        workers_still_pulled: Units = workers_pulled.filter(lambda unit: unit.tag not in workers_to_pullback.tags)
+        
         # pull workers back to mining if not needed
         if (workers_to_pullback.amount >= 1):
             print(f'pulling {workers_to_pullback.amount} workers back to mining')
@@ -313,6 +314,15 @@ class Base:
         ).take(additional_workers_needed)
         
 
+        for worker in workers_still_pulled:
+            # attack enemy units in range if we can (choose the weakest one)
+            enemy_in_range: Units = attackable_enemy_units.filter(
+                lambda unit: unit.distance_to(worker) <= 1
+            )
+            if (worker.type_id != UnitTypeId.MULE):
+                target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
+                Micro.worker_attack(self.bot, worker, target)
+        
         for worker in workers_to_pull:
             enemy_units_not_on_main_ramp: Units = attackable_enemy_units.filter(
                 lambda unit: (
@@ -341,7 +351,7 @@ class Base:
                 if (closest_enemy.target_in_range(worker)):
                     Micro.move_away(worker, closest_enemy.position, 1)
             else:
-                # attack enemy units in range if we can (choose the weakest one)
+                # # attack enemy units in range if we can (choose the weakest one)
                 enemy_in_range: Units = attackable_enemy_units.filter(
                     lambda unit: unit.distance_to(worker) <= 1
                 )
@@ -356,9 +366,10 @@ class Base:
                 ):
                     defensive_structure: Unit = defensive_structures.closest_to(worker)
                     worker.move(defensive_structure.position.towards(worker))
-                elif (worker.type_id != UnitTypeId.MULE):
+                else:
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
-                    worker.attack(target)
+                    Micro.worker_attack(self.bot, worker, target)
+                    # worker.attack(target)
                 
     def workers_attack(self, workers: Units) -> List[int]:
         """
