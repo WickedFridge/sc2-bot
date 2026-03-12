@@ -143,7 +143,11 @@ class BuildOrder:
     
     @property
     def is_completed(self) -> bool:
-        return all(step.is_satisfied for step in self.steps)
+        # Default that 4 bases = BO completed (to avoid weird bugs)
+        return (
+            self.bot.townhalls.amount >= 4
+            or all(step.is_satisfied for step in self.steps)
+        )
     
     def modify_composition(self, composition: Composition) -> None:
         pass

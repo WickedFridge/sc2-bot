@@ -501,7 +501,8 @@ class BuildingsHandler:
         )
         free_addons: Units = self.bot.structures([UnitTypeId.TECHLAB, UnitTypeId.REACTOR]).filter(
             lambda building: (
-                building.tag not in swap_managed_tags  # ← ajout
+                building.tag not in swap_managed_tags
+                and self.bot.map.influence_maps.buildings.can_build(building.add_on_land_position, UnitTypeId.BARRACKS)
                 and flying_buildings.filter(
                     lambda f_building: len(f_building.orders) >= 1 and f_building.orders[0].target == building.add_on_land_position
                 ).amount == 0
@@ -518,10 +519,9 @@ class BuildingsHandler:
             if (free_addons_count >= 1):
                 addon_to_land: Unit = free_addons.pop()
                 free_addons_count -= 1
-                if (self.bot.map.influence_maps.buildings.can_build(addon_to_land.add_on_land_position, land_type)):
-                    print(f"[reposition_buildings] Landing {flying_building.name} (stealing add-on {addon_to_land.type_id})")
-                    flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
-                    continue
+                print(f"[reposition_buildings] Landing {flying_building.name} (stealing add-on {addon_to_land.type_id})")
+                flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
+                continue
 
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
