@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "11.4.0"
+VERSION: str = "11.8.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -164,7 +164,7 @@ class WickedBot(Superbot):
         self.scouting.detect_enemy_buildings()
         await self.scouting.detect_enemy_upgrades()
         await self.macro.update_threat_level()
-        # await self.strategy.update_situation()
+        await self.strategy.update_situation()
         self.composition_manager.update_composition()
         
         # Specific Worker Management & Strategy updates

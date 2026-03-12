@@ -185,7 +185,7 @@ class Execute(CachedClass):
             if (unit.type_id == UnitTypeId.MEDIVAC):
                 await self.micro.medivac_unload(unit)
                 await self.micro.medivac_heal(unit, army.units)
-            if (unit.type_id == UnitTypeId.REAPER):
+            if (unit.type_id in [UnitTypeId.REAPER, UnitTypeId.HELLION]):
                 await self.micro.retreat(unit)
             # group units that aren't near the center
             else:

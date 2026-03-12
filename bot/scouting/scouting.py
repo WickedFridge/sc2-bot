@@ -114,6 +114,7 @@ class Scouting:
     
     async def detect_enemy_upgrades(self):
         await self.detect_burrow()
+        await self.detect_speeding()
 
     async def detect_burrow(self):
         if (UpgradeId.BURROW in self.known_enemy_upgrades):
@@ -131,7 +132,18 @@ class Scouting:
             await self.bot.client.chat_send("Tag:Detection", False)
             self.known_enemy_upgrades.append(UpgradeId.BURROW)
 
-    
+    async def detect_speeding(self):
+        if (UpgradeId.ZERGLINGMOVEMENTSPEED in self.known_enemy_upgrades):
+            return
+        enemy_zerglings: Units = self.bot.enemy_units(UnitTypeId.ZERGLING)
+        if (
+            enemy_zerglings.amount >= 1
+            and enemy_zerglings.first.real_speed >= 6.5
+        ):
+            print("Speedling detected !")
+            await self.bot.client.chat_send("Tag:Speedling", False)
+            self.known_enemy_upgrades.append(UpgradeId.ZERGLINGMOVEMENTSPEED)
+
     def unit_died(self, unit_tag: int):
         if (unit_tag in self.known_enemy_army.units.tags):
             self.known_enemy_army.remove_by_tag(unit_tag)

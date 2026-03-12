@@ -15,19 +15,23 @@ class Armory(Building):
         self.unitId = UnitTypeId.ARMORY
         self.name = "Armory"
 
+    # @override
+    # @property
+    # def override_conditions(self):
+    #     return self.amount == 0 and UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
+    
     @override
     @property
     def custom_conditions(self) -> bool:
         # We never want more than 2 armories
-        armory_count: int = self.bot.structures(UnitTypeId.ARMORY).ready.amount + self.bot.already_pending(UnitTypeId.ARMORY)
-        if (armory_count == 2):
+        if (self.amount == 2):
             return False
         
         # We want 1 armory once we have a +1 60% complete
         armory_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ARMORY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
         ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount
-        if (armory_count == 0):
+        if (self.amount == 0):
             return (
                 armory_tech_requirement == 1
                 and upgrades_tech_requirement >= 0.6
@@ -45,7 +49,7 @@ class Armory(Building):
             + composition[UnitTypeId.SIEGETANK]
             + composition[UnitTypeId.THOR]
         )
-        if (armory_count == 1):
+        if (self.amount == 1):
             return (
                 self.bot.expansions.amount_taken >= 4
                 and mechanical_units_amount >= 8
