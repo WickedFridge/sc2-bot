@@ -219,6 +219,8 @@ class Execute(CachedClass):
                     await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.THOR | UnitTypeId.THORAP:
+                    await self.micro.thor(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
                 case UnitTypeId.RAVEN:
@@ -247,6 +249,8 @@ class Execute(CachedClass):
                     await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.THOR | UnitTypeId.THORAP:
+                    await self.micro.thor(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
                 case UnitTypeId.RAVEN:
@@ -268,6 +272,8 @@ class Execute(CachedClass):
                     await self.micro.ghost(unit, army.units)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.THOR | UnitTypeId.THORAP:
+                    await self.micro.thor(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
                     await self.micro.viking(unit, army.units)
                 case UnitTypeId.RAVEN:
@@ -292,6 +298,8 @@ class Execute(CachedClass):
                     await self.micro.bio_disengage(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.THOR | UnitTypeId.THORAP:
+                    await self.micro.thor(unit, army.units)
                 case _:
                     await self.micro.retreat(unit)
 

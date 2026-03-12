@@ -29,7 +29,7 @@ class AirAttackLevel1(AirAttackUpgrade):
 class AirAttackLevel2(AirAttackUpgrade):
     upgrade = UpgradeId.TERRANSHIPWEAPONSLEVEL2
     ability = AbilityId.ARMORYRESEARCH_TERRANSHIPWEAPONSLEVEL2
-    requirements_ups = AirAttackUpgrade.requirements_ups + [
+    requirements_ups_completed = [
         UpgradeId.TERRANSHIPWEAPONSLEVEL1
     ]
     name = "Air +2 Attack"
@@ -37,7 +37,7 @@ class AirAttackLevel2(AirAttackUpgrade):
 class AirAttackLevel3(AirAttackUpgrade):
     upgrade = UpgradeId.TERRANSHIPWEAPONSLEVEL3
     ability = AbilityId.ARMORYRESEARCH_TERRANSHIPWEAPONSLEVEL3
-    requirements_ups = AirAttackUpgrade.requirements_ups + [
+    requirements_ups_completed = [
         UpgradeId.TERRANSHIPWEAPONSLEVEL2
     ]
     name = "Air +3 Attack"
@@ -72,7 +72,7 @@ class AirArmorLevel1(AirArmorUpgrade):
 class AirArmorLevel2(AirArmorUpgrade):
     upgrade = UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL2
     ability = AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL2
-    requirements_ups = AirArmorUpgrade.requirements_ups + [
+    requirements_ups_completed = [
         UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL1
     ]
     name = "Air +2 Armor"
@@ -81,7 +81,7 @@ class AirArmorLevel2(AirArmorUpgrade):
 class AirArmorLevel3(AirArmorUpgrade):
     upgrade = UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL3
     ability = AbilityId.ARMORYRESEARCH_TERRANVEHICLEANDSHIPPLATINGLEVEL3
-    requirements_ups = AirArmorUpgrade.requirements_ups + [
+    requirements_ups_completed = [
         UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL2
     ]
     name = "Air +3 Armor"

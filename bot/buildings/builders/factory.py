@@ -15,11 +15,14 @@ class Factory(Building):
     @override
     @property
     def custom_conditions(self) -> bool:
-        max_factories: int = 1
+        max_factories: int = 2
 
-        # We want 1 factory so far
+        # We want up to 2 factories so far
         return (
-            self.amount < max_factories
+            self.amount == 0 or (
+                self.amount < max_factories
+                and self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
+            )
         )
     
     @override

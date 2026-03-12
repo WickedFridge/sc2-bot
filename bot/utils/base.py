@@ -28,6 +28,7 @@ class Base:
     enemy_structures: Units
     BASE_SIZE: int = 20
     REPAIR_THRESHOLD: float = 0.6
+    REPAIR_THRESHOLD_FLAT: int = 50
     MAX_INDIVIDUAL_REPAIRERS: int = 3
     RANGE_THRESHOLD: float = 1.5
     position: Point2
@@ -470,7 +471,12 @@ class Base:
             attacking_worker.stop()
         
         damaged_mechanical_units = self.units.filter(
-            lambda unit: (unit.is_mechanical and unit.health_percentage < self.REPAIR_THRESHOLD)
+            lambda unit: (
+                unit.is_mechanical and (
+                    unit.health_percentage < self.REPAIR_THRESHOLD
+                    or unit.health_max - unit.health >= self.REPAIR_THRESHOLD_FLAT
+                )
+            )
         ).sorted(lambda unit: unit.health_percentage)
 
         max_workers_repairing: int = max(5, self.workers.amount / 3)

@@ -20,6 +20,7 @@ class Upgrade:
     building: UnitTypeId
     ability: AbilityId
     requirements_ups: List[UpgradeId] = []
+    requirements_ups_completed: List[UpgradeId] = []
     requirements_buildings: List[UnitTypeId] = []
     name: str
     is_ability: bool = False
@@ -49,6 +50,7 @@ class Upgrade:
                     self.bot.build_order.build.is_completed
                     and self.custom_conditions
                     and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
+                    and all(self.bot.already_pending_upgrade(requirement) == 1 for requirement in self.requirements_ups_completed)
                     and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
                 )
             )

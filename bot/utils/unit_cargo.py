@@ -20,6 +20,7 @@ transport_cargo: dict[UnitTypeId, int] = {
     UnitTypeId.HELLIONTANK: 4,
     UnitTypeId.SIEGETANK: 4,
     UnitTypeId.THOR: 8,
+    UnitTypeId.THORAP: 8,
 }
 
 

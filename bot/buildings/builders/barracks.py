@@ -29,12 +29,14 @@ class Barracks(Building):
     @property
     def custom_conditions(self) -> bool:
         townhall_amount: int = self.bot.townhalls.ready.amount
+        factory_amount: int = self.bot.structures([UnitTypeId.FACTORY, UnitTypeId.FACTORYFLYING]).amount
+        starport_amount: int = self.bot.structures([UnitTypeId.STARPORT, UnitTypeId.STARPORTFLYING]).amount
 
         if (self.bot.build_order.build.is_completed):
             return (
                 townhall_amount >= 1
                 and self.pending_amount < self.base_amount
-                and self.amount < self.max_barracks
+                and self.amount < self.max_barracks + 2 - (factory_amount + starport_amount)
             )    
 
         return (

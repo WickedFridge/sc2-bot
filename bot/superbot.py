@@ -1,3 +1,5 @@
+from typing import List
+
 from attr import dataclass
 from bot.army_composition.army_composition_manager import ArmyCompositionManager
 from bot.strategy.build_order.addon_swap import AddonSwapManager
@@ -60,5 +62,21 @@ class Superbot(BotAI):
                     units.append(passenger)
         return units
     
+    def equivalences(self, unit_type: UnitTypeId) -> List[UnitTypeId]:
+        match (unit_type):
+            case UnitTypeId.THOR | UnitTypeId.THORAP:
+                return [UnitTypeId.THOR, UnitTypeId.THORAP]
+            case UnitTypeId.HELLION | UnitTypeId.HELLIONTANK:
+                return [UnitTypeId.HELLION, UnitTypeId.HELLIONTANK]
+            case UnitTypeId.VIKINGFIGHTER | UnitTypeId.VIKINGASSAULT:
+                return [UnitTypeId.VIKINGFIGHTER, UnitTypeId.VIKINGASSAULT]
+            case _:
+                return [unit_type]
+
     def total_unit_amount(self, unit_type: UnitTypeId) -> int:
-        return self.units_with_passengers(unit_type).amount + self.already_pending(unit_type)
+        unit_types: List[UnitTypeId] = self.equivalences(unit_type)
+        # return sum(self.units_with_passengers(u_type).amount + self.already_pending(u_type) for u_type in unit_types)
+        total_amount: int = self.units_with_passengers(unit_types).amount
+        for u_type in unit_types:
+            total_amount += self.already_pending(u_type)
+        return total_amount

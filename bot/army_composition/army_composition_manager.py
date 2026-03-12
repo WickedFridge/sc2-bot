@@ -10,7 +10,7 @@ from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
-from bot.utils.unit_tags import cloaked_units, burrowed_units, flying_units
+from bot.utils.unit_tags import cloaked_units, burrowed_units, flying_units, massive_flyers
 from bot.strategy.situations import precarious_situations
 
 if TYPE_CHECKING:
@@ -46,6 +46,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.HELLION: [UnitTypeId.FACTORY],
             UnitTypeId.CYCLONE: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY],
+            UnitTypeId.THOR: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY, UnitTypeId.ARMORY],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
             UnitTypeId.RAVEN: [UnitTypeId.STARPORTTECHLAB, UnitTypeId.STARPORT],
@@ -66,7 +67,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
             UnitTypeId.BATTLECRUISER: 4,
-            UnitTypeId.TEMPEST: 3,
+            UnitTypeId.TEMPEST: 1,
             UnitTypeId.BROODLORD: 3,
             UnitTypeId.MOTHERSHIP: 5,
             UnitTypeId.WARPPRISM: 0.33,
@@ -87,6 +88,26 @@ class ArmyCompositionManager(CachedClass):
 
         # round, because 2.3 vikings = 2 vikings in practice
         return min(max_viking_amount, round(viking_amount))
+    
+    @property
+    def thor_amount(self) -> int:
+        # so far we max our thor amount at 8
+        max_thor_amount: int = 8
+        
+        # we want pretty much matching air supply
+        thor_amount: float = 0
+        for unit_type in self.wicked.scouting.possible_enemy_composition:
+            if (unit_type not in massive_flyers and unit_type != UnitTypeId.MUTALISK):
+                continue
+            enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
+            thor_response_amount: float = get_unit_supply(unit_type) / 4
+            if (enemy_units.amount > 0):
+                thor_amount += thor_response_amount * enemy_units.amount
+            else:
+                thor_amount += thor_response_amount / 2
+
+        # round, because 2.3 vikings = 2 vikings in practice
+        return min(max_thor_amount, round(thor_amount))
     
     @property
     def marauders_ratio(self) -> float:
@@ -145,6 +166,9 @@ class ArmyCompositionManager(CachedClass):
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
+        if (UnitTypeId.THOR in available_units):
+            composition.add(UnitTypeId.THOR, self.thor_amount)
+
         # only start making marauders once we have at least 8 marines unless we're in danger
         if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ratio >= 0.7)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)

@@ -87,6 +87,8 @@ class OrdersManager:
             UnitTypeId.GHOST,
             UnitTypeId.HELLION,
             UnitTypeId.CYCLONE,
+            UnitTypeId.THOR,
+            UnitTypeId.THORAP,
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
             UnitTypeId.RAVEN,

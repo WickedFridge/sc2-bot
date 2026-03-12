@@ -15,10 +15,13 @@ class Armory(Building):
         self.unitId = UnitTypeId.ARMORY
         self.name = "Armory"
 
-    # @override
-    # @property
-    # def override_conditions(self):
-    #     return self.amount == 0 and UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
+    @override
+    @property
+    def override_conditions(self):
+        return self.amount == 0 and (
+            UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
+            or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition
+        )
     
     @override
     @property

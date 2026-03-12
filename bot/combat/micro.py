@@ -106,7 +106,9 @@ class Micro(CachedClass):
     async def retreat(self, unit: Unit):
         if (self.bot.townhalls.amount == 0):
             return
-        
+        if (unit.type_id in [UnitTypeId.THOR, UnitTypeId.THORAP]):
+            await self.thor_switch_mode(unit)
+
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         enemy_units_in_sight: Units = self.bot.enemy_units.filter(lambda enemy_unit: enemy_unit.distance_to(unit) <= 10)
         
@@ -588,7 +590,7 @@ class Micro(CachedClass):
                 if (target.is_facing(cyclone, math.pi / 3) and target.distance_to(cyclone) < LOCKON_KEEP_RANGE + cyclone.radius + target.radius - 2):
                     self.hit_n_run(cyclone, Units([target], self.bot))
                 else:
-                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(cyclone, target, risk=0.75 * cyclone.health_percentage)
+                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(cyclone, target, risk=0.3 * cyclone.health_percentage)
                     cyclone.move(best_position)
                 return
         
@@ -612,6 +614,51 @@ class Micro(CachedClass):
                 cyclone(AbilityId.LOCKON_LOCKON, target)
                 self.cyclone_locks[cyclone.tag] = target.tag
                 return
+    
+    async def thor_switch_mode(self, thor: Unit):
+        available_abilities = (await self.bot.get_available_abilities([thor]))[0]
+        enemy_flying_units: Units = self.bot.scouting.known_enemy_army.units.filter(lambda unit: unit.is_flying)
+        air_supply: int = 0
+        massive_air_supply: int = 0
+        for flyer in enemy_flying_units:
+            supply: int = get_unit_supply(flyer.type_id)
+            air_supply += supply
+            if (flyer.is_massive):
+                massive_air_supply += supply
+
+        if (massive_air_supply >= 0.5 * air_supply):
+            if (AbilityId.MORPH_THORHIGHIMPACTMODE in available_abilities):
+                thor(AbilityId.MORPH_THORHIGHIMPACTMODE)
+                return
+        else:
+            if (AbilityId.MORPH_THOREXPLOSIVEMODE in available_abilities):
+                thor(AbilityId.MORPH_THOREXPLOSIVEMODE)
+                return
+    
+    async def thor(self, thor: Unit, local_units: Units):
+        # Switch to super air mode if opponent has mostly massive aerial stuff
+        await self.thor_switch_mode(thor)
+        
+        local_enemies: Units = self.get_local_enemy_units(thor.position, only_menacing=True).sorted(
+            lambda unit: (not unit.is_massive, unit.health + unit.shield)
+        )
+        if (local_enemies.amount == 0):
+            thor.move(local_units.center)
+            return
+
+        # find a target if our weapon isn't on cooldown
+        if (thor.weapon_ready):
+            enemy_in_range: Units = local_enemies.filter(
+                lambda unit: thor.target_in_range(unit)
+            )
+            if (enemy_in_range.amount >= 1):
+                thor.attack(enemy_in_range.first)
+            else:
+                best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(thor, local_enemies.closest_to(thor), risk=0.3 * thor.health_percentage)
+                thor.move(best_position)
+        else:
+            best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(thor, local_enemies.closest_to(thor), risk=0.3 * thor.health_percentage)
+            thor.move(best_position)
     
     async def viking(self, viking: Unit, local_units: Units):
         # find a target if our weapon isn't on cooldown

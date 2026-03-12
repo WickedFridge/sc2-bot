@@ -241,6 +241,11 @@ class Debug:
             self.draw_box_on_world(unit.position, 0.5, color)
             selected_positions.append(unit.position)
 
+    def type_id(self):
+        selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+        for unit in selected_units:
+            self.draw_text_on_world(unit.position, f'type_id: {unit.type_id}')
+    
     def weapon_cooldown(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         for unit in selected_units:

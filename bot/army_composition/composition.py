@@ -1,15 +1,23 @@
-from typing import Dict, Iterator, List
+from __future__ import annotations
+from typing import Dict, Iterator, List, TYPE_CHECKING
 from bot.utils.colors import GREEN, RED, WHITE
 from bot.utils.unit_supply import get_unit_supply
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
-    
+
+if TYPE_CHECKING:
+    from bot import WickedBot
+
 class  Composition:
     bot: BotAI
     supply_cap: int
     units: Dict[UnitTypeId, int]
 
+    @property
+    def wicked(self) -> WickedBot:
+        return self.bot  # type: ignore
+    
     def __init__(self, bot: BotAI, supply_cap: int) -> None:
         self.bot = bot
         self.supply_cap = supply_cap
@@ -75,7 +83,7 @@ class  Composition:
                     all_units.append(passenger)
         
         for unit_type, count in self.units.items():
-            current_count: int = all_units(unit_type).amount + self.bot.already_pending(unit_type)
+            current_count: int = self.wicked.total_unit_amount(unit_type)
             color = WHITE
             if (current_count == count):
                 color = GREEN
