@@ -6,22 +6,19 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
 
-class Cyclone(Train):
+class SiegeTank(Train):
     def __init__(self, trainer):
         super().__init__(trainer)
-        self.unitId = UnitTypeId.CYCLONE
+        self.unitId = UnitTypeId.SIEGETANK
         self.buildingIds = [UnitTypeId.FACTORY]
-        self.name = 'Cyclone'
-        self.order_id = AbilityId.TRAIN_CYCLONE
+        self.name = 'Siege Tank'
+        self.order_id = AbilityId.FACTORYTRAIN_SIEGETANK
 
     @override
     @property
     def custom_conditions(self):
-        return (
-            not self.bot.composition_manager.should_train(UnitTypeId.THOR)
-            and not self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK)
-        )
-
+        return not self.bot.composition_manager.should_train(UnitTypeId.THOR)
+    
     @override
     @property
     def building_group(self) -> Units:

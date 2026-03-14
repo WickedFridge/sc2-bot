@@ -25,6 +25,7 @@ class Upgrade:
     name: str
     is_ability: bool = False
     block_gas_only: bool = False
+    ignore_build_order: bool = False
     
     def __init__(self, search_manager: Search):
         self.bot = search_manager.bot
@@ -47,8 +48,11 @@ class Upgrade:
             and (
                 self.upgrade in self.bot.build_order.build.pending_ids
                 or (
-                    self.bot.build_order.build.is_completed
-                    and self.custom_conditions
+                    self.custom_conditions
+                    and (
+                        self.bot.build_order.build.is_completed
+                        or self.ignore_build_order
+                    ) 
                     and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
                     and all(self.bot.already_pending_upgrade(requirement) == 1 for requirement in self.requirements_ups_completed)
                     and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)

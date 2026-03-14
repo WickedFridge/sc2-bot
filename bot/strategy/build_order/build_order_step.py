@@ -97,7 +97,3 @@ class BuildOrderStep:
             if (self.bot.already_pending_upgrade(upgrade) == 0):
                 return False
         return True
-    
-    # def print_check(self) -> None:
-    #     checked_character: str = 'X' if self.checked else ' '
-    #     print(f'[{checked_character}] BO -- {self.name}')

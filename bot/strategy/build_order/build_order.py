@@ -37,6 +37,14 @@ class BuildOrder:
             UnitTypeId.ORBITALCOMMANDFLYING,
             UnitTypeId.PLANETARYFORTRESS,
         ],
+        UnitTypeId.TECHLAB:[UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYTECHLAB, UnitTypeId.STARPORTTECHLAB],
+        UnitTypeId.REACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.STARPORTREACTOR],
+        UnitTypeId.BARRACKSTECHLAB: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.STARPORTTECHLAB, UnitTypeId.TECHLAB],
+        UnitTypeId.BARRACKSREACTOR: [UnitTypeId.FACTORYREACTOR, UnitTypeId.STARPORTREACTOR, UnitTypeId.REACTOR],
+        UnitTypeId.FACTORYTECHLAB: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.STARPORTTECHLAB, UnitTypeId.TECHLAB],
+        UnitTypeId.FACTORYREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.STARPORTREACTOR, UnitTypeId.REACTOR],
+        UnitTypeId.STARPORTTECHLAB: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYTECHLAB, UnitTypeId.TECHLAB],
+        UnitTypeId.STARPORTREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.REACTOR],
     }
 
     def __init__(self, bot: Superbot):
@@ -71,14 +79,14 @@ class BuildOrder:
         # - its real in-game type may already be counted under unit_ids → subtract 1
         # - if its desired_addon_type matches unit_id → add 1 back
         # Net effect: +1 if desired matches and real doesn't, -1 if real matches and desired doesn't, 0 if both or neither match.
-        for tag, desired_type in self.addon_transfer_map.items():
-            addon: Optional[Unit] = self.bot.structures.find_by_tag(tag)
-            if (addon is None):
-                continue
-            if (addon.type_id in unit_ids):
-                count -= 1
-            if (desired_type == unit_id):
-                count += 1
+        # for tag, desired_type in self.addon_transfer_map.items():
+        #     addon: Optional[Unit] = self.bot.structures.find_by_tag(tag)
+        #     if (addon is None):
+        #         continue
+        #     if (addon.type_id in unit_ids):
+        #         count -= 1
+        #     if (desired_type == unit_id):
+        #         count += 1
 
         if (include_pending):
             count += max(self.bot.already_pending(unit_id), self.bot.structures(unit_ids).not_ready.amount)
@@ -132,6 +140,10 @@ class BuildOrder:
     def steps_remaining(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if not step.is_satisfied]
     
+    @property
+    def pending_steps(self) -> List[BuildOrderStep]:
+        return [step for step in self.steps if not step.is_satisfied and step.is_available]
+    
     # next step to execute
     @property
     def next(self) -> BuildOrderStep | None:
@@ -139,7 +151,7 @@ class BuildOrder:
     
     @property
     def pending_ids(self) -> List[UnitTypeId | UpgradeId]:
-        return [step.step_id for step in self.steps if not step.is_satisfied and step.is_available]
+        return [step.step_id for step in self.pending_steps]
     
     @property
     def is_completed(self) -> bool:
@@ -148,6 +160,10 @@ class BuildOrder:
             self.bot.townhalls.amount >= 4
             or all(step.is_satisfied for step in self.steps)
         )
+    
+    @property
+    def buildings_cut(self) -> List[UnitTypeId]:
+        return []
     
     def modify_composition(self, composition: Composition) -> None:
         pass

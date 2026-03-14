@@ -10,6 +10,7 @@ class BuildOrderName(enum.Enum):
     DEFENSIVE_CYCLONE = 'Defensive Cyclone'
     DUMMY_BUILD = 'Dummy Build'
     GREEDY_2_2_TIMING = 'Greedy 3CC 2/2 Timing'
+    CYCLONE_3_RAVEN = 'Cyclone 3 Ravens'
 
 for item in BuildOrderName:
     globals()[item.name] = item

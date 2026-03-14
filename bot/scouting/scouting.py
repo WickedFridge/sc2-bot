@@ -7,7 +7,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import burrowed_units, cloaked_units, tower_types
+from bot.utils.unit_tags import burrowed_units, cloaked_units, tower_types, worker_types
 
 scouting: Scouting | None = None
 
@@ -30,7 +30,7 @@ tech_unlocked: dict[UnitTypeId, List[UnitTypeId]] = {
     UnitTypeId.BARRACKSTECHLAB: [UnitTypeId.MARAUDER],
     UnitTypeId.GHOSTACADEMY: [UnitTypeId.GHOST],
     UnitTypeId.FACTORY: [UnitTypeId.HELLION, UnitTypeId.WIDOWMINE],
-    UnitTypeId.FACTORYTECHLAB: [UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK],
+    UnitTypeId.FACTORYTECHLAB: [UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED],
     UnitTypeId.ARMORY: [UnitTypeId.HELLIONTANK, UnitTypeId.THOR, UnitTypeId.THORAP, UnitTypeId.WIDOWMINEBURROWED],
     UnitTypeId.STARPORT: [UnitTypeId.VIKING, UnitTypeId.MEDIVAC, UnitTypeId.LIBERATOR],
     UnitTypeId.STARPORTTECHLAB: [UnitTypeId.RAVEN, UnitTypeId.BANSHEE],
@@ -50,6 +50,7 @@ tech_unlocked: dict[UnitTypeId, List[UnitTypeId]] = {
 class Scouting:
     bot: BotAI
     known_enemy_army: Army
+    known_enemy_workers: Army
     known_enemy_buildings: Units
     known_enemy_tech: List[UnitTypeId] = []
     possible_enemy_composition: List[UnitTypeId] = []
@@ -60,6 +61,7 @@ class Scouting:
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
         self.known_enemy_army = Army(Units([], bot), bot)
+        self.known_enemy_workers = Army(Units([], bot), bot)
         self.known_enemy_buildings = Units([], bot)
 
     @property
@@ -71,7 +73,7 @@ class Scouting:
             enemy_composition[unit_type] = army_composition[unit_type] / total_units
         return enemy_composition
     
-    def detect_enemy_unit(self, unit_type: UnitTypeId):
+    def detect_enemy_composition(self, unit_type: UnitTypeId):
         if (unit_type not in self.known_enemy_composition):
             self.known_enemy_composition.append(unit_type)
         if (unit_type not in self.possible_enemy_composition):
@@ -87,11 +89,17 @@ class Scouting:
                 self.possible_enemy_composition.append(unit_type)
     
     def detect_enemy_army(self):
-        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.type_id not in tower_types)
+        enemy_units: Units = self.bot.enemy_units.filter(lambda unit: (
+            unit.type_id not in tower_types
+            and unit.type_id not in worker_types
+        ))
         self.known_enemy_army.detect_units(enemy_units)
         for enemy in enemy_units:
-            self.detect_enemy_unit(enemy.type_id)
+            self.detect_enemy_composition(enemy.type_id)
 
+    def detect_enemy_workers(self):
+        enemy_workers: Units = self.bot.enemy_units(worker_types)
+        self.known_enemy_workers.detect_units(enemy_workers)
             
     def detect_enemy_buildings(self):
         enemy_buildings: Units = self.bot.enemy_structures
@@ -149,6 +157,9 @@ class Scouting:
             self.known_enemy_army.remove_by_tag(unit_tag)
             enemy_army: dict = self.known_enemy_army.recap
             print("remaining enemy units :", enemy_army)
+        elif (unit_tag in self.known_enemy_workers.units.tags):
+            self.known_enemy_workers.remove_by_tag(unit_tag)
+            print(f"remaining enemy workers : {self.known_enemy_workers.units.amount}")
         elif (unit_tag in self.known_enemy_buildings.tags):
             destroyed_building: Unit = self.known_enemy_buildings.by_tag(unit_tag)
             self.known_enemy_buildings.remove(destroyed_building)

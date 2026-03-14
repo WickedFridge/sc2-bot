@@ -89,6 +89,13 @@ class Army(CachedClass):
         return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
     
     @property
+    def is_technical(self) -> bool:
+        gas_cost: int = 0
+        for unit in self.units:
+            gas_cost += self.bot.calculate_cost(unit.type_id).vespene
+        return gas_cost >= 500
+    
+    @property
     def can_drop_medivacs(self) -> Units:
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.health_percentage >= 0.4

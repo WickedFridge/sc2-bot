@@ -12,7 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import building_priorities, creep
+from ..utils.unit_tags import building_priorities, creep, droppable_units
 
 PICKUP_RANGE: int = 3
 WEAPON_READY_THRESHOLD: float = 6.0
@@ -91,7 +91,7 @@ class Execute(CachedClass):
         maximum_cargo_left: int = max(medivac.cargo_left for medivac in medivacs_to_use)
         pickable_ground_units: Units = ground_units.filter(
             lambda unit: (
-                unit.type_id != UnitTypeId.GHOST
+                unit.type_id in droppable_units
                 and get_transport_cargo(unit.type_id) <= maximum_cargo_left
             )
         )
@@ -158,14 +158,14 @@ class Execute(CachedClass):
 
     async def pickup_leave(self, army: Army):
         # If there's ground units, pick them up
-        ground_units: Units = army.units.not_flying
+        ground_units_to_pickup: Units = army.units.not_flying.filter(lambda unit: unit.type_id != UnitTypeId.SIEGETANKSIEGED)
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         retreating_medivacs: Units = medivacs
-        if (ground_units.amount >= 1):
+        if (ground_units_to_pickup.amount >= 1):
             # pickup units
-            minimum_cargo_slot: int = 1 if ground_units(UnitTypeId.MARINE).amount >= 1 else 2
+            minimum_cargo_slot: int = 1 if ground_units_to_pickup(UnitTypeId.MARINE).amount >= 1 else 2
             usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
-            await self.pickup(usable_medivacs, ground_units)
+            await self.pickup(usable_medivacs, ground_units_to_pickup)
             retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
         
         for medivac in retreating_medivacs:
@@ -205,20 +205,18 @@ class Execute(CachedClass):
     async def fight(self, army: Army, chase: bool = False):
         for unit in army.units:
             match unit.type_id:
-                case UnitTypeId.REAPER:
-                    await self.micro.reaper(unit)
+                case UnitTypeId.REAPER | UnitTypeId.HELLION:
+                    await self.micro.scouting_unit(unit)
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
-                case UnitTypeId.MARINE:
-                    await self.micro.bio_fight(unit, army.units, chase)
-                case UnitTypeId.MARAUDER:
+                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
                     await self.micro.bio_fight(unit, army.units, chase)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
-                case UnitTypeId.HELLION:
-                    await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.SIEGETANK | UnitTypeId.SIEGETANKSIEGED:
+                    self.micro.siege_tank.fight(unit, army.units)
                 case UnitTypeId.THOR | UnitTypeId.THORAP:
                     await self.micro.thor(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -237,18 +235,16 @@ class Execute(CachedClass):
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight(unit, army.units)
-                case UnitTypeId.REAPER:
-                    await self.micro.reaper(unit)
-                case UnitTypeId.MARINE:
-                    await self.micro.bio_defense(unit, army.units)
-                case UnitTypeId.MARAUDER:
+                case UnitTypeId.REAPER | UnitTypeId.HELLION:
+                    await self.micro.scouting_unit(unit)
+                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
                     await self.micro.bio_defense(unit, army.units)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost_defense(unit, army.units)
-                case UnitTypeId.HELLION:
-                    await self.micro.hellion(unit)
                 case UnitTypeId.CYCLONE:
                     await self.micro.cyclone(unit, army.units)
+                case UnitTypeId.SIEGETANK | UnitTypeId.SIEGETANKSIEGED:
+                    self.micro.siege_tank.fight(unit, army.units)
                 case UnitTypeId.THOR | UnitTypeId.THORAP:
                     await self.micro.thor(unit, army.units)
                 case UnitTypeId.VIKINGFIGHTER:
@@ -264,9 +260,7 @@ class Execute(CachedClass):
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_fight_unload(unit, self.drop_target)
-                case UnitTypeId.MARINE:
-                    await self.micro.bio_fight(unit, army.units)
-                case UnitTypeId.MARAUDER:
+                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
                     await self.micro.bio_fight(unit, army.units)
                 case UnitTypeId.GHOST:
                     await self.micro.ghost(unit, army.units)
@@ -290,6 +284,8 @@ class Execute(CachedClass):
             match unit.type_id:
                 case UnitTypeId.MEDIVAC:
                     await self.micro.medivac_disengage(unit, army.units)
+                case UnitTypeId.REAPER | UnitTypeId.HELLION:
+                    await self.micro.scouting_unit(unit)
                 case UnitTypeId.MARINE:
                     await self.micro.bio_disengage(unit)
                 case UnitTypeId.MARAUDER:
@@ -456,6 +452,8 @@ class Execute(CachedClass):
                 case UnitTypeId.REAPER:
                     if (not await self.micro.reaper_grenade(unit)):
                         await self.micro.harass(unit, enemy_workers)
+                case UnitTypeId.HELLION:
+                    await self.micro.harass(unit, enemy_workers)
                 case _:
                     await self.micro.harass(unit, enemy_workers)
     
@@ -466,15 +464,19 @@ class Execute(CachedClass):
             lambda building: (building.type_id not in building_priorities, building.health + building.shield)
         )
         for unit in army.units:
-            if (unit.type_id == UnitTypeId.RAVEN):
-                await self.micro.raven(unit, army.units)
-                continue
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                if (unit.cargo_used >= 4):
-                    await self.micro.medivac_fight_unload(unit, local_enemy_buildings.first.position)
-                else:
-                    await self.micro.medivac_fight(unit, army.units)
-                continue
+            match(unit.type_id):
+                case UnitTypeId.RAVEN:
+                    await self.micro.raven(unit, army.units)
+                    continue
+                case UnitTypeId.MEDIVAC:
+                    if (unit.cargo_used >= 4):
+                        await self.micro.medivac_fight_unload(unit, local_enemy_buildings.first.position)
+                    else:
+                        await self.micro.medivac_fight(unit, army.units)
+                    continue
+                case UnitTypeId.SIEGETANK:
+                    self.micro.siege_tank.fight(unit, army.units)
+                    continue
             
             target: Unit = local_enemy_buildings.first
             if (

@@ -161,7 +161,11 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def is_depleted(self) -> bool:
-        return self.is_scouted and (self.minerals + self.vespene) == 0
+        return (
+            self.is_scouted
+            and self.mineral_fields.amount == 0
+            and self.vespene == 0
+        )
     
     @custom_cache_once_per_frame
     def mineral_workers(self) -> Units:

@@ -311,22 +311,6 @@ class BuildingLayer:
         # reserve space between production buildings
         for point in points:
             self.reserve_area(origin + Point2(point), 1, set(important_buildings))
-
-    def unreserve_around_production(self, origin: Point2) -> None:
-        points: List[tuple[int, int]] = [
-            (-1, 0),
-            (-1, 1),
-            (-1, 2),
-            (3, 2),
-            (4, 2),
-            (5, 0),
-            (5, 1),
-            (5, 2),
-        ]
-        
-        # unreserve space between production buildings
-        for point in points:
-            self.unreserve_area(origin + Point2(point), 1)
     
     def reserve_production(self, pos: Point2) -> None:
         size = PRODUCTION_RADIUS * 2
@@ -391,8 +375,3 @@ class BuildingLayer:
     def on_building_destroyed(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)
         self.unblock_area(origin, size)
-
-        if (unit.type_id in production + production_flying):
-            addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
-            self.unreserve_area(addon_origin, 2 * ADDON_RADIUS)
-            self.unreserve_around_production(origin)

@@ -54,6 +54,8 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.BANELINGBURROWED,
     UnitTypeId.ZERGLINGBURROWED,
     UnitTypeId.ROACHBURROWED,
+    UnitTypeId.RAVAGERCOCOON,
+    UnitTypeId.LURKERMPEGG,
     UnitTypeId.INFESTOR,
     UnitTypeId.INFESTORBURROWED,
     UnitTypeId.SWARMHOSTMP,
@@ -101,6 +103,14 @@ bio: List[UnitTypeId] = [
 bio_stimmable: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER
+]
+droppable_units: List[UnitTypeId] = [
+    UnitTypeId.MARINE,
+    UnitTypeId.MARAUDER,
+    UnitTypeId.HELLION,
+    UnitTypeId.HELLIONTANK,
+    UnitTypeId.CYCLONE,
+    UnitTypeId.WIDOWMINE,
 ]
 building_priorities: List[UnitTypeId] = [
     UnitTypeId.COMMANDCENTER,

@@ -12,6 +12,7 @@ from bot.units.medivac import Medivac
 from bot.units.raven import Raven
 from bot.units.reaper import Reaper
 from bot.units.scv import Scv
+from bot.units.siegetank import SiegeTank
 from bot.units.thor import Thor
 from bot.units.train import Train
 from bot.units.viking import Viking
@@ -36,6 +37,7 @@ class Trainer:
     ghost: Ghost
     hellion: Hellion
     cyclone: Cyclone
+    siegetank: SiegeTank
     thor: Thor
     viking: Viking
     raven: Raven
@@ -52,6 +54,7 @@ class Trainer:
         self.hellion = Hellion(self)
         self.ghost = Ghost(self)
         self.cyclone = Cyclone(self)
+        self.siegetank = SiegeTank(self)
         self.thor = Thor(self)
         self.viking = Viking(self)
         self.raven = Raven(self)
@@ -64,6 +67,7 @@ class Trainer:
             UnitTypeId.GHOST: self.ghost,
             UnitTypeId.HELLION: self.hellion,
             UnitTypeId.CYCLONE: self.cyclone,
+            UnitTypeId.SIEGETANK: self.siegetank,
             UnitTypeId.THOR: self.thor,
             UnitTypeId.VIKINGFIGHTER: self.viking,
             UnitTypeId.RAVEN: self.raven,

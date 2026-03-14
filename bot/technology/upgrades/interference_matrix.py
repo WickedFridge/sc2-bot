@@ -13,6 +13,7 @@ class InterferenceMatrix(Upgrade):
     name = "Raven Matrix"
     is_ability = True
     completed: bool = False
+    ignore_build_order = True
 
     @override
     def on_complete(self):

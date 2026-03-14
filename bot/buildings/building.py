@@ -52,9 +52,12 @@ class Building:
                 or (
                     self.custom_conditions
                     and (
-                        self.ignore_build_order
-                        or self.unitId in self.bot.build_order.build.pending_ids
+                        self.unitId in self.bot.build_order.build.pending_ids
                         or self.bot.build_order.build.is_completed
+                        or (
+                            self.ignore_build_order
+                            and self.unitId not in self.bot.build_order.build.buildings_cut
+                        )
                     )
                 )
             )

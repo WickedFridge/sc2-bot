@@ -46,6 +46,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.HELLION: [UnitTypeId.FACTORY],
             UnitTypeId.CYCLONE: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY],
+            UnitTypeId.SIEGETANK: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY],
             UnitTypeId.THOR: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY, UnitTypeId.ARMORY],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
@@ -100,13 +101,13 @@ class ArmyCompositionManager(CachedClass):
             if (unit_type not in massive_flyers and unit_type != UnitTypeId.MUTALISK):
                 continue
             enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
-            thor_response_amount: float = get_unit_supply(unit_type) / 4
+            thor_response_amount: float = get_unit_supply(unit_type) / 3
             if (enemy_units.amount > 0):
                 thor_amount += thor_response_amount * enemy_units.amount
             else:
                 thor_amount += thor_response_amount / 2
 
-        # round, because 2.3 vikings = 2 vikings in practice
+        # round, because 2.3 thors = 2 thors in practice
         return min(max_thor_amount, round(thor_amount))
     
     @property
@@ -135,7 +136,17 @@ class ArmyCompositionManager(CachedClass):
             case UnitTypeId.MARINE:
                 return 20
             case UnitTypeId.CYCLONE:
-                return 2
+                if (self.bot.townhalls.amount <= 3):
+                    return 1
+            case UnitTypeId.SIEGETANK:
+                if (
+                    self.bot.matchup == Matchup.TvT
+                    or (
+                        self.bot.matchup == Matchup.TvZ
+                        and self.bot.townhalls.amount >= 4
+                    )
+                ):
+                    return 5
             case UnitTypeId.RAVEN:
                 return 1
             case _:

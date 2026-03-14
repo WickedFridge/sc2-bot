@@ -10,6 +10,10 @@ from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
+# Build origin
+# Clem vs Reynor
+# Big gabe XperionCraft 3 Finals, game 4
+# https://youtu.be/xwjKSOqq10s?si=R7U2CDLfLFwbONGY&t=2759
 
 class Greedy22Timing(BuildOrder):
     name: BuildOrderName = BuildOrderName.GREEDY_2_2_TIMING.value
@@ -33,7 +37,7 @@ class Greedy22Timing(BuildOrder):
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)], workers=15),
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
             BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, army_supply=2, townhalls=2),
-            BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, target_count=1, requirements=[(UnitTypeId.FACTORY, 1, False)]),
+            BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, requirements=[(UnitTypeId.HELLION, 2, False)]),
             BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
@@ -72,6 +76,17 @@ class Greedy22Timing(BuildOrder):
                 condition=lambda: (
                     self.bot.structures(UnitTypeId.BARRACKS).amount >= 2
                     and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                ),
+            ),
+            AddonSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.FACTORYFLYING,
+                UnitTypeId.BARRACKS,
+                UnitTypeId.BARRACKSFLYING,
+                UnitTypeId.FACTORYREACTOR,
+                condition=lambda: (
+                    self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 ),
             ),
             AddonSwap(

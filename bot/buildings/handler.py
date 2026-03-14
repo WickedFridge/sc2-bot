@@ -19,7 +19,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep, cloaked_units, burrowed_units
+from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep, cloaked_units, burrowed_units, production_flying
 
 class BuildingsHandler:
     bot: Superbot
@@ -493,17 +493,15 @@ class BuildingsHandler:
             UnitTypeId.STARPORTFLYING: UnitTypeId.STARPORT,
         }
         
-        flying_buildings: Units = self.bot.structures.idle.filter(
-            lambda building: (
-                building.type_id in flying_building_ids.keys()
-                and building.tag not in swap_managed_tags
-            )
+        flying_production: Units = self.bot.structures(production_flying)
+        add_on_steal_candidates: Units = flying_production.idle.filter(
+            lambda building: building.tag not in swap_managed_tags
         )
         free_addons: Units = self.bot.structures([UnitTypeId.TECHLAB, UnitTypeId.REACTOR]).filter(
             lambda building: (
                 building.tag not in swap_managed_tags
                 and self.bot.map.influence_maps.buildings.can_build(building.add_on_land_position, UnitTypeId.BARRACKS)
-                and flying_buildings.filter(
+                and flying_production.filter(
                     lambda f_building: len(f_building.orders) >= 1 and f_building.orders[0].target == building.add_on_land_position
                 ).amount == 0
                 and (
@@ -514,7 +512,7 @@ class BuildingsHandler:
         )
         free_addons_count: int = free_addons.amount
 
-        for flying_building in flying_buildings:
+        for flying_building in add_on_steal_candidates:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
             if (free_addons_count >= 1):
                 addon_to_land: Unit = free_addons.pop()

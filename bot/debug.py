@@ -611,10 +611,13 @@ class Debug:
 
     async def build_order(self):
         build_order: BuildOrder = self.bot.build_order.build
-        screen_y: float = 0.3
+        screen_y: float = 0.25
         position: Point2 = Point2((0, screen_y))
         build_color = GREEN if build_order.is_completed else ORANGE
-        self.draw_text_on_screen(f'{build_order.name.capitalize()}', position, build_color, font_size=16)
+        title: str = build_order.name.capitalize()
+        for unit_id in self.bot.build_order.build.buildings_cut:
+            title += f' (cut {unit_id.name})'
+        self.draw_text_on_screen(title, position, build_color, font_size=16)
         if (build_order.is_completed):
             return
         
@@ -630,6 +633,8 @@ class Debug:
             if (step.is_satisfied):
                 color = GREEN
             self.draw_text_on_screen(f'{step.name} {why}', position, color, font_size=14)
+        # linebreak
+        screen_y += 0.015
         for swap in build_order.swap_plans:
             screen_y += 0.015
             position: Point2 = Point2((0, screen_y))

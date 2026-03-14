@@ -1,5 +1,6 @@
 import math
 from typing import Any, List, Optional, Union
+from bot.combat.micro_units.siege_tank import MicroSiegeTank
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
@@ -28,10 +29,11 @@ class Micro(CachedClass):
     snipe_targets: dict[int, int] = {}
     emp_targets: dict[int, int] = {}
     cyclone_locks: dict[int, int] = {}
-    
-    def __init__(self, bot: Superbot) -> None:
-        super().__init__(bot)
+    siege_tank: MicroSiegeTank
 
+    def __init__(self, bot):
+        super().__init__(bot)
+        self.siege_tank = MicroSiegeTank(self.bot)
     
     @custom_cache_once_per_frame
     def retreat_position(self) -> Point2:
@@ -352,103 +354,50 @@ class Micro(CachedClass):
         reaper(AbilityId.KD8CHARGE_KD8CHARGE, best_target)
         return True
     
-    async def hellion(self, hellion: Unit):
-        # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
-        if (self.enemy_all.amount == 0):
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(hellion)
-            hellion.move(safest_spot)
-            return
-
-        # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
-        SAFETY: int = 2
-        LIFE_THRESHOLD: int = 15
-        enemy_units_in_range: Units = self.get_enemy_units_in_range(hellion)
-        threats: Units = self.enemies_threatening_ground_in_range(hellion, safety_distance=SAFETY, range_override=20)
-        enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
-
-        # --- CASE 1: Weapon Ready ---
-        if (hellion.weapon_ready):
-            # if we can safely shoot, just shoot
-            local_danger: float = self.bot.map.influence_maps.danger.ground[hellion.position]
-            if (threats.amount == 0 or (hellion.health >= LIFE_THRESHOLD and hellion.health > local_danger)):
-                if (enemy_units_in_range.amount >= 1):
-                    # shoot weakest enemy in range
-                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(hellion))).first
-                    hellion.attack(target)
-                else:
-                    # move toward closest enemy to chase
-                    hellion.attack(enemy_ground.closest_to(hellion))
-
-            
-            # if we can't safely shoot, move away
-            else:
-                # safest_spot is preferably away from threats
-                kite_target = threats.closest_to(hellion)
-                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(hellion, kite_target)
-                hellion.move(safest_spot)
-        
-        # --- CASE 2: Short Cooldown (stutter step micro) ---
-        elif (hellion.weapon_cooldown <= WEAPON_READY_THRESHOLD):
-            best_target: Unit = enemy_ground.closest_to(hellion)
-            best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(hellion, best_target)
-            hellion.move(best_attack_spot)
-       
-        # --- CASE 3: Long cooldown → retreat & wait ---
-        else:
-            closest_enemy: Unit = enemy_ground.closest_to(hellion)
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(hellion, closest_enemy)
-            hellion.move(safest_spot)
-    
-    async def reaper(self, reaper: Unit):
+    async def scouting_unit(self, unit: Unit):
         # Try grenade first
-        if (await self.reaper_grenade(reaper)):
+        if (unit.type_id == UnitTypeId.REAPER and await self.reaper_grenade(unit)):
             return
         
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
-        if (self.enemy_all.amount == 0):
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(reaper)
-            reaper.move(safest_spot)
+        enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
+        if (enemy_ground.amount == 0):
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
+            unit.move(safest_spot)
             return
 
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
         SAFETY: int = 2
         LIFE_THRESHOLD: int = 15
-        enemy_units_in_range: Units = self.get_enemy_units_in_range(reaper)
-        threats: Units = self.enemies_threatening_ground_in_range(reaper, safety_distance=SAFETY, range_override=20)
-        enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
+        enemy_units_in_range: Units = self.get_enemy_units_in_range(unit)
+        threats: Units = self.enemies_threatening_ground_in_range(unit, safety_distance=SAFETY, range_override=20)
 
         # --- CASE 1: Weapon Ready ---
-        if (reaper.weapon_ready):
+        if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
             # if we can safely shoot, just shoot
-            local_danger: float = self.bot.map.influence_maps.danger.ground[reaper.position]
-            if (threats.amount == 0 or (reaper.health >= LIFE_THRESHOLD and reaper.health > local_danger)):
+            local_danger: float = self.bot.map.influence_maps.danger.ground[unit.position]
+            if (threats.amount == 0 or (unit.health >= LIFE_THRESHOLD and unit.health > local_danger)):
                 if (enemy_units_in_range.amount >= 1):
                     # shoot weakest enemy in range
-                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(reaper))).first
-                    reaper.attack(target)
+                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(unit))).first
+                    unit.attack(target)
                 else:
                     # move toward closest enemy to chase
-                    reaper.attack(enemy_ground.closest_to(reaper))
+                    unit.attack(enemy_ground.closest_to(unit))
 
             
             # if we can't safely shoot, move away
             else:
                 # safest_spot is preferably away from threats
-                kite_target = threats.closest_to(reaper)
-                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, kite_target)
-                reaper.move(safest_spot)
+                kite_target = threats.closest_to(unit)
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, kite_target)
+                unit.move(safest_spot)
         
-        # --- CASE 2: Short Cooldown (stutter step micro) ---
-        elif (reaper.weapon_cooldown <= WEAPON_READY_THRESHOLD):
-            best_target: Unit = enemy_ground.closest_to(reaper)
-            best_attack_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(reaper, best_target)
-            reaper.move(best_attack_spot)
-       
-        # --- CASE 3: Long cooldown → retreat & wait ---
+       # --- CASE 2: Long cooldown → retreat & wait ---
         else:
-            closest_enemy: Unit = enemy_ground.closest_to(reaper)
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(reaper, closest_enemy)
-            reaper.move(safest_spot)
+            closest_enemy: Unit = enemy_ground.closest_to(unit)
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, closest_enemy)
+            unit.move(safest_spot)
 
 
     async def bio_fight(self, unit: Unit, local_army: Units, chase: bool = False):
@@ -884,8 +833,10 @@ class Micro(CachedClass):
             return True
         return False
     
+
     async def raven_autoturret(self, raven: Unit) -> bool:
-        potential_targets: Units = self.get_local_enemy_units(raven.position, 5)
+        AUTOTURRET_RANGE: int = 2
+        potential_targets: Units = self.get_local_enemy_units(raven.position, AUTOTURRET_RANGE + 4)
         if (potential_targets.amount == 0):
             return False
         # find a position to cast auto turret
@@ -904,6 +855,7 @@ class Micro(CachedClass):
             print("No valid location found for auto turret")
             return False
     
+
     async def raven(self, raven: Unit, local_army: Units):
         # if we have enough energy, cast anti armor missile on the closest group of enemy units
         ANTI_ARMOR_MISSILE_ENERGY_COST: int = 75
@@ -1176,18 +1128,7 @@ class Micro(CachedClass):
     @custom_cache_once_per_frame
     def enemy_fighting(self) -> Units:
         return self.enemy_all.filter(self.is_fighting_unit)
-        
-    # @custom_cache_once_per_frame
-    # def enemy_towers(self) -> Units:
-    #     enemy_towers: Units = self.bot.enemy_structures.filter(lambda unit: unit.type_id in tower_types)
-    #     return enemy_towers
-    
-    # @custom_cache_once_per_frame
-    # def enemy_units(self) -> Units:
-    #     enemy_units: Units = self.bot.enemy_units.filter(lambda unit: unit.can_be_attacked and unit.type_id not in dont_attack)
-    #     enemy_tumors: Units = self.bot.enemy_structures(creep)
-    #     return enemy_units + self.enemy_towers + enemy_tumors
-    
+           
     def enemies_threatening_air_in_range(self, unit: Unit, safety_distance: float = 0) -> Units:
         return self.enemy_all.filter(
             lambda enemy: (

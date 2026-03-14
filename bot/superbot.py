@@ -70,6 +70,8 @@ class Superbot(BotAI):
                 return [UnitTypeId.HELLION, UnitTypeId.HELLIONTANK]
             case UnitTypeId.VIKINGFIGHTER | UnitTypeId.VIKINGASSAULT:
                 return [UnitTypeId.VIKINGFIGHTER, UnitTypeId.VIKINGASSAULT]
+            case UnitTypeId.SIEGETANK | UnitTypeId.SIEGETANKSIEGED:
+                return [UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]            
             case _:
                 return [unit_type]
 

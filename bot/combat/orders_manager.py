@@ -87,6 +87,8 @@ class OrdersManager:
             UnitTypeId.GHOST,
             UnitTypeId.HELLION,
             UnitTypeId.CYCLONE,
+            UnitTypeId.SIEGETANK,
+            UnitTypeId.SIEGETANKSIEGED,
             UnitTypeId.THOR,
             UnitTypeId.THORAP,
             UnitTypeId.MEDIVAC,
@@ -341,7 +343,11 @@ class OrdersManager:
         # If enemy near → follow the normal fighting logic
         if (local_enemy_supply > 0):
             # If winning with stim
-            if (self.stim_completed and army.potential_supply >= local_enemy_supply * 1.2):
+            if (
+                army.potential_supply >= local_enemy_supply * 1.2 and (
+                    self.stim_completed or army.is_technical
+                )
+            ):
                 # if army is mostly in medivacs, we drop if we have enough hp on medivacs, otherwise we retreat
                 if (army.weak_medivacs.amount >= 1 and army.is_full_drop):
                     return Orders.PICKUP_LEAVE
@@ -395,7 +401,8 @@ class OrdersManager:
         
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (
-            self.stim_completed and (
+            (self.stim_completed or army.is_technical)
+            and (
                 weighted_army_supply >= local_enemy_supply
                 or army.potential_supply >= local_enemy_supply * 1.5
             )
@@ -509,18 +516,21 @@ class OrdersManager:
         situation: Situation
     ) -> bool:
         return (
-            army.potential_supply >= 8
+            situation != Situation.UNDER_ATTACK
+            and army.potential_supply >= 8
             and army.bio_health_percentage >= 0.75
             and (
                 army.potential_supply >= 50
                 or (
                     army.can_drop_medivacs.amount >= 2
                     and army.can_heal_medivacs.amount >= 2
+                    and army.potential_bio_supply >= 12
+                    and self.stim_almost_completed
+                ) or (
+                    army.potential_supply >= 12
+                    and army.is_technical
                 )
             )
-            and army.potential_bio_supply >= 12
-            and self.stim_almost_completed
-            and situation != Situation.UNDER_ATTACK
         )
 
     def get_attack_orders(
@@ -535,7 +545,6 @@ class OrdersManager:
         # the amount of medivacs allowed to drop is 2 by default, going up to 4 once we hit 8 medivacs
         # maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
         maximal_medivacs_dropping: int = 10
-        
         # if we would lose a fight
         if (
             army.potential_supply < potential_enemy_supply
