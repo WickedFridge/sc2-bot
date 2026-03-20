@@ -1,3 +1,5 @@
+from typing import override
+
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.superbot import Superbot
 from sc2.ids.ability_id import AbilityId
@@ -7,29 +9,51 @@ from sc2.units import Units
 
 
 class MicroSiegeTank(MicroUnit):
-    bot: Superbot
     SIEGE_RANGE: int = 13
     THRESHOLD: int = 1
+    bonus_against_ground_armored: bool = True
 
-    def fight(self, tank: Unit, local_army: Units):
+    def get_enemies_close_siege_range(self, tank: Unit):
         local_enemies: Units = self.get_local_enemy_units(tank.position)
-        enemies_close_siege_range: Units = self.bot.enemy_structures.filter(
+        return self.bot.enemy_structures.filter(
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
         ) + local_enemies.filter(
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
         )
 
-        if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close_siege_range.amount >= 1):
+    
+    def switch_mode(self, tank: Unit, enemies_close: Units) -> bool:
+        if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
+            return True
+        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
+            if (enemies_close.amount == 0):
+                tank(AbilityId.UNSIEGE_UNSIEGE)
+                return True
+        return False
+
+    
+    @override
+    async def fight(self, tank: Unit, local_units: Units, chase: bool = False):
+        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
+        if (self.switch_mode(tank, enemies_close_siege_range)):
             return
         if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
-            if (enemies_close_siege_range.amount == 0):
-                tank(AbilityId.UNSIEGE_UNSIEGE)
-                return
             enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
                 lambda unit: (unit.is_armored == False, unit.health + unit.shield)
             )
             if (enemies_in_range.amount >= 1):
                 tank.attack(enemies_in_range.first)
-        tank.move(local_army.center)
+        tank.move(local_units.center)
 
+    @override
+    async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):
+        await self.fight(unit, local_units)
+
+    @override
+    async def retreat(self, unit: Unit, local_units: Units):
+        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
+        if (self.switch_mode(unit, enemies_close_siege_range)):
+            return
+        await super().retreat(unit, local_units)
+        

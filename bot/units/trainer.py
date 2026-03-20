@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Awaitable, Dict, List
-from bot.combat.orders_manager import OrdersManager
+from bot.combat.select_orders import SelectOrders
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.units.cyclone import Cyclone
@@ -28,7 +28,7 @@ class TrainerFunction:
 
 class Trainer:
     bot: Superbot
-    combat: OrdersManager
+    combat: SelectOrders
     scv: Scv
     reaper: Reaper
     marine: Marine
@@ -43,7 +43,7 @@ class Trainer:
     raven: Raven
     army_trainers: Dict[UnitTypeId, Train]
     
-    def __init__(self, bot: Superbot, combat: OrdersManager) -> None:
+    def __init__(self, bot: Superbot, combat: SelectOrders) -> None:
         self.bot = bot
         self.combat = combat
         self.scv = Scv(self)

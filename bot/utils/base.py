@@ -177,7 +177,7 @@ class Base:
     def avoid_harass(self) -> None:
         # we don't move away if we're repairing or full life
         for worker in self.workers.filter(lambda unit: not unit.is_repairing and unit.health_percentage < 1):
-            enemies_facing_almost_in_range: Units = self.enemy_structures + self.enemy_units.filter(
+            enemies_facing_almost_in_range: Units = self.enemy_units.filter(
                 lambda enemy: (
                     enemy.is_facing(worker, math.pi / 2)
                     and enemy.distance_to(worker) < enemy.ground_range + enemy.radius + worker.radius + self.RANGE_THRESHOLD
@@ -186,7 +186,7 @@ class Base:
             # we don't move away from unit not dangerous to us
             if (enemies_facing_almost_in_range.amount == 0):
                 return
-            Micro.move_away(worker, enemies_facing_almost_in_range.center, self.RANGE_THRESHOLD / 2)
+            worker.move(worker.position.towards(enemies_facing_almost_in_range.center, -2))
 
     def track_enemy_scout(self, max_scv_attacking: int = 1, chase_scout: bool = False) -> None:
         # First stop tracking out of range enemy scouts to avoid chasing them across the map
@@ -350,7 +350,7 @@ class Base:
             if (attackable_enemy_units.amount == 0):
                 closest_enemy: Unit = local_enemy_units.closest_to(worker)
                 if (closest_enemy.target_in_range(worker)):
-                    Micro.move_away(worker, closest_enemy.position, 1)
+                    worker.move(worker.position.towards(closest_enemy, -2))
             else:
                 # # attack enemy units in range if we can (choose the weakest one)
                 enemy_in_range: Units = attackable_enemy_units.filter(

@@ -30,7 +30,7 @@ from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menac
 
 WEAPON_READY_THRESHOLD: float = 6.0
 
-class OrdersManager:
+class SelectOrders:
     bot: Superbot
     execute: Execute
     armies: List[Army] = []
@@ -75,7 +75,7 @@ class OrdersManager:
     
     def get_army_clusters(self, iteration: int, radius: float = 15) -> List[Army]:
         # calculate the army cluster only every 4 frames
-        if (iteration % 4 != 0 and len(self.armies) >= 0):
+        if (iteration % 4 != 0 and len(self.armies) >= 1):
             clusters: List[Army] = self.load_clusters()
             if (len(clusters) >= 1):
                 return clusters
@@ -250,14 +250,6 @@ class OrdersManager:
             lambda ghost: ghost.position.distance_to(army.units.center) <= army.radius + 10
         )
         
-        
-        self.bot.enemy_units.filter(
-            lambda unit: (
-                unit.distance_to(army.units.center) <= 25
-                and unit.can_be_attacked
-                and unit.type_id in worker_types
-            )
-        )
         global_enemy_buildings: Units = self.bot.enemy_structures
         
         # -- Useful in case of canon/bunker rush

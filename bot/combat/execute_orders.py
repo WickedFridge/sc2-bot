@@ -83,8 +83,8 @@ class Execute(CachedClass):
         # Step 3: Unload and retreat extras
         for medivac in medivacs_to_retreat + flyers_to_retreat:
             if (medivac.passengers):
-                await self.micro.medivac_unload(medivac)
-            await self.micro.retreat(medivac)
+                await self.micro.medivac.unload(medivac)
+            await self.micro.medivac.retreat(medivac, army.units)
         
         # Step 4: Check if the best two are full or need more units (don't drop ghosts)
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
@@ -102,7 +102,7 @@ class Execute(CachedClass):
             return
 
         for unit in ground_units:
-            await self.micro.retreat(unit)
+            await self.micro.handlers[unit.type_id].retreat(unit, ground_units)
     
     async def drop_move(self, army: Army):
         # get the 2 closest edge of the map to the drop target
@@ -131,7 +131,7 @@ class Execute(CachedClass):
             if (distance_edge_to_target < distance_medivac_to_target):
                 # Optional: Only go to edge if not already very close to it
                 if medivac.position.distance_to(self.best_edge) > 5:
-                    await self.micro.medivac_boost(medivac)
+                    await self.micro.medivac.boost(medivac)
                     medivac.move(self.best_edge)
                 else:
                     medivac.move(self.drop_target)
@@ -141,19 +141,19 @@ class Execute(CachedClass):
         
         ground_units: Units = army.units.filter(lambda unit: unit.is_flying == False)
         for unit in ground_units:
-            await self.micro.retreat(unit)
+            await self.micro.handlers[unit.type_id].retreat(unit, ground_units)
 
     async def pickup(self, medivacs: Units, ground_units: Units):
         # units get closer to medivacs
         for unit in ground_units:
             if (medivacs.amount == 0):
-                await self.micro.retreat(unit)
+                await self.micro.handlers[unit.type_id].retreat(unit, ground_units)
                 break
             unit.move(medivacs.filter(lambda m: m.cargo_left >= 1).closest_to(unit))
         
         # medivacs boost and pickup
         for medivac in medivacs:
-            await self.micro.medivac_pickup(medivac, ground_units)
+            await self.micro.medivac.pickup(medivac, ground_units)
 
 
     async def pickup_leave(self, army: Army):
@@ -169,12 +169,12 @@ class Execute(CachedClass):
             retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)
         
         for medivac in retreating_medivacs:
-            should_disengage: bool = await self.micro.medivac_safety_disengage(medivac)
+            should_disengage: bool = await self.micro.medivac.safety_disengage(medivac)
             if (not should_disengage):
-                await self.micro.retreat(medivac)
+                await self.micro.medivac.retreat(medivac, army.units)
 
         for viking in army.units(UnitTypeId.VIKINGFIGHTER):
-            await self.micro.viking_retreat(viking)
+            await self.micro.viking.retreat(viking, army.units)
         
         other_flying_units: Units = army.units.flying.filter(lambda unit: unit.type_id not in [UnitTypeId.MEDIVAC, UnitTypeId.VIKINGFIGHTER])
         await self.retreat_army(Army(other_flying_units, self.bot))
@@ -182,123 +182,27 @@ class Execute(CachedClass):
     async def heal_up(self, army: Army):
         # drop units
         for unit in army.units:
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_unload(unit)
-                await self.micro.medivac_heal(unit, army.units)
-            if (unit.type_id in [UnitTypeId.REAPER, UnitTypeId.HELLION]):
-                await self.micro.retreat(unit)
-            # group units that aren't near the center
-            else:
-                if (unit.distance_to(army.center) > 5):
-                    unit.move(army.center)
+            await self.micro.handlers[unit.type_id].heal_up(unit, army.units)
     
     async def retreat_army(self, army: Army):
         for unit in army.units:
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_unload(unit)
-                await self.micro.medivac_heal(unit, army.units)
-            elif(unit.type_id == UnitTypeId.VIKINGFIGHTER):
-                await self.micro.viking_retreat(unit)
-            else:
-                await self.micro.retreat(unit)
+            await self.micro.handlers[unit.type_id].retreat(unit, army.units)
 
     async def fight(self, army: Army, chase: bool = False):
         for unit in army.units:
-            match unit.type_id:
-                case UnitTypeId.REAPER | UnitTypeId.HELLION:
-                    await self.micro.scouting_unit(unit)
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight(unit, army.units)
-                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
-                    await self.micro.bio_fight(unit, army.units, chase)
-                case UnitTypeId.GHOST:
-                    await self.micro.ghost(unit, army.units)
-                case UnitTypeId.CYCLONE:
-                    await self.micro.cyclone(unit, army.units)
-                case UnitTypeId.SIEGETANK | UnitTypeId.SIEGETANKSIEGED:
-                    self.micro.siege_tank.fight(unit, army.units)
-                case UnitTypeId.THOR | UnitTypeId.THORAP:
-                    await self.micro.thor(unit, army.units)
-                case UnitTypeId.VIKINGFIGHTER:
-                    await self.micro.viking(unit, army.units)
-                case UnitTypeId.RAVEN:
-                    await self.micro.raven(unit, army.units)
-                case _:
-                    if (self.bot.enemy_units.amount >= 1):
-                        closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
-                        unit.attack(closest_enemy_unit)
-                    else:
-                        unit.move(army.center)
-    
+            await self.micro.handlers[unit.type_id].fight(unit, army.units, chase)
+                
     async def fight_defense(self, army: Army):
         for unit in army.units:
-            match unit.type_id:
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight(unit, army.units)
-                case UnitTypeId.REAPER | UnitTypeId.HELLION:
-                    await self.micro.scouting_unit(unit)
-                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
-                    await self.micro.bio_defense(unit, army.units)
-                case UnitTypeId.GHOST:
-                    await self.micro.ghost_defense(unit, army.units)
-                case UnitTypeId.CYCLONE:
-                    await self.micro.cyclone(unit, army.units)
-                case UnitTypeId.SIEGETANK | UnitTypeId.SIEGETANKSIEGED:
-                    self.micro.siege_tank.fight(unit, army.units)
-                case UnitTypeId.THOR | UnitTypeId.THORAP:
-                    await self.micro.thor(unit, army.units)
-                case UnitTypeId.VIKINGFIGHTER:
-                    await self.micro.viking(unit, army.units)
-                case UnitTypeId.RAVEN:
-                    await self.micro.raven(unit, army.units)
-                case _:
-                    closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
-                    unit.attack(closest_enemy_unit)
-
+            await self.micro.handlers[unit.type_id].fight_defense(unit, army.units)
+            
     async def drop_unload(self, army: Army):
         for unit in army.units:
-            match unit.type_id:
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight_unload(unit, self.drop_target)
-                case UnitTypeId.MARINE | UnitTypeId.MARAUDER:
-                    await self.micro.bio_fight(unit, army.units)
-                case UnitTypeId.GHOST:
-                    await self.micro.ghost(unit, army.units)
-                case UnitTypeId.CYCLONE:
-                    await self.micro.cyclone(unit, army.units)
-                case UnitTypeId.THOR | UnitTypeId.THORAP:
-                    await self.micro.thor(unit, army.units)
-                case UnitTypeId.VIKINGFIGHTER:
-                    await self.micro.viking(unit, army.units)
-                case UnitTypeId.RAVEN:
-                    await self.micro.raven(unit, army.units)
-                case _:
-                    if (self.bot.enemy_units.amount >= 1):
-                        closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
-                        unit.attack(closest_enemy_unit)
-                    else:
-                        unit.move(army.center)
+            await self.micro.handlers[unit.type_id].fight_unload(unit, army.units, self.drop_target)
     
     async def disengage(self, army: Army):
         for unit in army.units:
-            match unit.type_id:
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_disengage(unit, army.units)
-                case UnitTypeId.REAPER | UnitTypeId.HELLION:
-                    await self.micro.scouting_unit(unit)
-                case UnitTypeId.MARINE:
-                    await self.micro.bio_disengage(unit)
-                case UnitTypeId.MARAUDER:
-                    await self.micro.bio_disengage(unit)
-                case UnitTypeId.GHOST:
-                    await self.micro.bio_disengage(unit)
-                case UnitTypeId.CYCLONE:
-                    await self.micro.cyclone(unit, army.units)
-                case UnitTypeId.THOR | UnitTypeId.THORAP:
-                    await self.micro.thor(unit, army.units)
-                case _:
-                    await self.micro.retreat(unit)
-
+            await self.micro.handlers[unit.type_id].disengage(unit, army.units)
     
     async def defend(self, army: Army):
         expansions_under_attack: Expansions = self.bot.expansions.taken.under_attack
@@ -308,7 +212,7 @@ class Execute(CachedClass):
             return
         closest_expansion: Expansion = expansions_under_attack.closest_to(army.center)
         for unit in army.units:
-            unit.attack(closest_expansion.position)
+            await self.micro.handlers[unit.type_id].defend(unit, army.units, closest_expansion)
     
     def defend_bunker_rush(self, army: Army) -> None:
         main: Point2 = self.bot.expansions.main.position
@@ -391,37 +295,6 @@ class Execute(CachedClass):
 
         return None
             
-    def handle_enemy_bunkers(self, unit: Unit, bunkers: Units, menacing_bunkers: Units) -> bool:
-        if (menacing_bunkers.amount >= 1):
-            if (bunkers.amount >= 1):
-                closest_ally_bunker: Unit = bunkers.closest_to(menacing_bunkers)
-                if (menacing_bunkers.closest_distance_to(closest_ally_bunker) <= 7):
-                    unit.move(closest_ally_bunker)
-                    closest_ally_bunker(AbilityId.LOAD_BUNKER, unit)
-                    return True
-            menacing_bunkers_in_range: Units = menacing_bunkers.in_attack_range_of(unit)
-            if (menacing_bunkers_in_range.amount == 0):
-                unit.attack(menacing_bunkers.closest_to(unit))
-                return True
-            unit.attack(menacing_bunkers_in_range.sorted(lambda bunker: bunker.health).first)
-            return True
-        return False
-
-    def find_bunker_rush_target(self, unit: Unit, closest_scv_building: Unit, closest_enemy_bunker_in_progress: Unit, enemy_marines: Units, enemy_reapers: Units) -> Optional[Unit]:
-        if (unit.target_in_range(closest_scv_building)):
-            return closest_scv_building
-        if (unit.target_in_range(closest_enemy_bunker_in_progress)):
-            return closest_enemy_bunker_in_progress
-        marines_in_range: Units = enemy_marines.filter(lambda enemy: unit.target_in_range(enemy))
-        marines_in_range.sorted(lambda unit: unit.health)
-        if (marines_in_range.amount):
-            return marines_in_range.first
-        reapers_in_range: Units = enemy_reapers.filter(lambda enemy: unit.target_in_range(enemy))
-        reapers_in_range.sorted(lambda unit: unit.health)
-        if (reapers_in_range.amount):
-            return reapers_in_range.first
-        return None
-
     def defend_canon_rush(self, army: Army):
         enemies: Units = self.bot.enemy_structures([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]).sorted(
             lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position))
@@ -442,20 +315,7 @@ class Execute(CachedClass):
             return
         
         for unit in army.units:
-            match(unit.type_id):
-                case UnitTypeId.MEDIVAC:
-                    await self.micro.medivac_fight(unit, army.units)
-                case UnitTypeId.RAVEN:
-                    await self.micro.raven(unit, army.units)
-                case UnitTypeId.VIKINGFIGHTER:
-                    unit.move(army.center)
-                case UnitTypeId.REAPER:
-                    if (not await self.micro.reaper_grenade(unit)):
-                        await self.micro.harass(unit, enemy_workers)
-                case UnitTypeId.HELLION:
-                    await self.micro.harass(unit, enemy_workers)
-                case _:
-                    await self.micro.harass(unit, enemy_workers)
+            await self.micro.handlers[unit.type_id].harass(unit, army.units, enemy_workers)
     
     async def kill_buildings(self, army: Army):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
@@ -464,66 +324,25 @@ class Execute(CachedClass):
             lambda building: (building.type_id not in building_priorities, building.health + building.shield)
         )
         for unit in army.units:
-            match(unit.type_id):
-                case UnitTypeId.RAVEN:
-                    await self.micro.raven(unit, army.units)
-                    continue
-                case UnitTypeId.MEDIVAC:
-                    if (unit.cargo_used >= 4):
-                        await self.micro.medivac_fight_unload(unit, local_enemy_buildings.first.position)
-                    else:
-                        await self.micro.medivac_fight(unit, army.units)
-                    continue
-                case UnitTypeId.SIEGETANK:
-                    self.micro.siege_tank.fight(unit, army.units)
-                    continue
+            await self.micro.handlers[unit.type_id].kill_buildings(unit, army.units, local_enemy_buildings)
             
-            target: Unit = local_enemy_buildings.first
-            if (
-                unit.health_percentage >= 0.85 and (
-                    target.health > 100
-                    or local_enemy_buildings.amount >= 2
-                )
-            ):
-                self.micro.stim_bio(unit, force=True)
-            if (unit.weapon_cooldown <= WEAPON_READY_THRESHOLD):
-                in_range_enemy_buildings: Units = local_enemy_buildings.filter(lambda building: unit.target_in_range(building))
-                if (in_range_enemy_buildings.amount >= 1):
-                    target = in_range_enemy_buildings.first
-            unit.attack(target)
-
     async def attack_nearest_base(self, army: Army):
         # if army is purely air
         if (not army.leader):
             return
         nearest_base_target: Point2 = self.micro.get_nearest_base_target(army.leader)
-        self.micro.attack_a_position(army.leader, nearest_base_target)
+        await self.micro.handlers[army.leader.type_id].a_move(army.leader, nearest_base_target)
         for unit in army.followers:
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_fight(unit, army.units)
-                continue
-            if (unit.position.distance_to(army.leader.position) >= 3):
-                unit.move(army.leader.position)
-            else:
-                unit.move(center([unit.position, army.leader.position, nearest_base_target]))
+            await self.micro.handlers[unit.type_id].attack_nearest_base(unit, army, nearest_base_target)
         
     async def chase_buildings(self, army: Army):
         # if army is purely air
         if (not army.leader):
             return
         attack_position: Point2 = self.bot.enemy_structures.closest_to(army.leader).position
-        self.micro.attack_a_position(army.leader, attack_position)
+        await self.micro.handlers[army.leader.type_id].a_move(army.leader, attack_position)
         for unit in army.followers:
-            if (unit.type_id == UnitTypeId.MEDIVAC):
-                await self.micro.medivac_fight(unit, army.units)
-                continue
-            enemy_units_in_range = self.micro.get_enemy_units_in_range(unit)
-            if (unit.weapon_cooldown == WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
-                unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
-            elif (unit.distance_to(army.leader) >= 3):
-                unit.move(army.leader.position)
-            else:
-                unit.move(center([unit.position, army.leader.position, attack_position]))
+            await self.micro.handlers[unit.type_id].chase_buildings(unit, army, attack_position)
 
     def clean_creep(self, army: Army):
         target: Point2 | Unit = None

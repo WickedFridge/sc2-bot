@@ -3,14 +3,14 @@ from typing import Awaitable, Callable, List, override
 from bot.army_composition.army_composition_manager import ArmyCompositionManager, get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
-from bot.combat.orders_manager import OrdersManager
+from bot.combat.select_orders import SelectOrders
 from bot.debug import Debug
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
 from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
 from bot.scout import Scout
-from bot.scouting.ghost_units.manager import GhostUnitsManager
+from bot.scouting.ghost_units.manager import GhostUnitsManager, get_ghost_units
 from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
 from bot.strategy.handler import StrategyHandler
@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "11.9.0"
+VERSION: str = "11.10.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -34,7 +34,7 @@ class WickedBot(Superbot):
     builder: Builder
     buildings: BuildingsHandler
     search: Search
-    combat: OrdersManager
+    combat: SelectOrders
     trainer: Trainer
     macro: Macro
     strategy: StrategyHandler
@@ -51,7 +51,7 @@ class WickedBot(Superbot):
         self.buildings = BuildingsHandler(self)
         self.addon_swap = AddonSwapManager(self)
         self.search = Search(self)
-        self.combat = OrdersManager(self)
+        self.combat = SelectOrders(self)
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
         self.strategy = StrategyHandler(self)
@@ -98,7 +98,7 @@ class WickedBot(Superbot):
     @override
     @property
     def ghost_units(self) -> GhostUnitsManager:
-        return GhostUnitsManager(self)
+        return get_ghost_units(self)
 
     @override
     async def on_start(self):

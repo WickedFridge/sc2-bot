@@ -1,8 +1,10 @@
+from __future__ import annotations
 from typing import List
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 
+ghost_units_manager: GhostUnitsManager | None = None
 
 class GhostUnitsManager:
     bot: BotAI
@@ -85,3 +87,9 @@ class GhostUnitsManager:
                 assumed.append(ghost)
 
         return GhostUnits(self.bot, assumed)
+    
+def get_ghost_units(bot: BotAI) -> GhostUnitsManager:
+    global ghost_units_manager
+    if (ghost_units_manager is None):
+        ghost_units_manager = GhostUnitsManager(bot)
+    return ghost_units_manager

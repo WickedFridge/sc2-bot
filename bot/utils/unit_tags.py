@@ -11,18 +11,21 @@ hq_types: List[UnitTypeId] = [
     UnitTypeId.HIVE,
     UnitTypeId.NEXUS
 ]
-
 zerg_townhalls: List[UnitTypeId] = [
     UnitTypeId.HATCHERY,
     UnitTypeId.LAIR,
     UnitTypeId.HIVE,
 ]
-
 must_repair: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.MISSILETURRET,
     UnitTypeId.BUNKER,
     UnitTypeId.SUPPLYDEPOT
+]
+defensive_structures: List[UnitTypeId] = [
+    UnitTypeId.PLANETARYFORTRESS,
+    UnitTypeId.MISSILETURRET,
+    UnitTypeId.BUNKER,
 ]
 worker_types: List[UnitTypeId] = [
     UnitTypeId.SCV,
