@@ -94,6 +94,8 @@ class MicroMedivac(MicroUnit):
         # Unload if we're very low on life
         if (medivac.cargo_used >= 1 and medivac.health_percentage <= 0.25):
             await self.unload(medivac)
+        # boost if we can
+        await self.boost(medivac)
         return True
     
     async def heal(self, medivac: Unit, local_units: Units):
@@ -123,9 +125,6 @@ class MicroMedivac(MicroUnit):
 
     @override
     async def disengage(self, medivac: Unit, local_units: Units):
-        # boost if we can
-        await self.boost(medivac)
-        
         if (await self.safety_disengage(medivac)):
             return
         

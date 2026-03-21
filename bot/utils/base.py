@@ -286,7 +286,10 @@ class Base:
         attackable_enemy_units: Units = local_enemy_units.filter(
             lambda unit: unit.is_flying == False and unit.can_be_attacked
         ).sorted(lambda unit: unit.health + unit.shield)
-
+        if (attackable_enemy_units.amount == 0):
+            print("Error no attackable enemy unit to pull worker against")
+            return
+        
         defensive_structures: Units = self.buildings([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS])
         max_worker_to_pull: int = self.get_worker_amount_to_pull(local_enemy_units, attackable_enemy_units, defensive_structures)
         workers_pulled: Units = self.workers.filter(lambda unit: unit.is_attacking)

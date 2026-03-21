@@ -92,8 +92,8 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def thor_amount(self) -> int:
-        # so far we max our thor amount at 8
-        max_thor_amount: int = 8
+        # so far we max our thor amount at 6
+        max_thor_amount: int = 6
         
         # we want pretty much matching air supply
         thor_amount: float = 0
