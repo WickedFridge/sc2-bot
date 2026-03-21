@@ -52,6 +52,8 @@ class Execute(CachedClass):
             self.bot.scouting.known_enemy_army.center
             if self.bot.scouting.known_enemy_army.units.amount >= 1
             else self.bot.expansions.taken.last.position
+            if self.bot.expansions.taken.amount >= 1
+            else self.bot.expansions.main.position
         )
         
         sorted_enemy_bases: Expansions = self.bot.expansions.potential_enemy_bases.sorted(
