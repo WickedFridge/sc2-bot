@@ -126,6 +126,7 @@ class StrategyHandler:
                 )
             )
         ):
+        # if (self.bot.time >= 145):
             return Situation.CHEESE_ROACH_RUSH
         
         # TODO add last scouting time of the b2

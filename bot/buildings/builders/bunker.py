@@ -48,7 +48,7 @@ class Bunker(Building):
         useless_bunker_count: int = (
             0 if expansions_count == 0
             else self.bot.structures(UnitTypeId.BUNKER).filter(
-                lambda bunker: self.bot.expansions.taken.closest_to(bunker).position.distance_to(bunker) > 10
+                lambda bunker: not self.bot.expansions.closest_to(bunker).is_taken
             ).amount
         )
         
@@ -69,7 +69,7 @@ class Bunker(Building):
                 self.expansions_without_defense.amount >= 1
                 or self.precarious
             )
-            and defense_count < bunker_amount_target - useless_bunker_count
+            and defense_count - useless_bunker_count < bunker_amount_target
             and bunker_to_construct_amount == 0
         )
     

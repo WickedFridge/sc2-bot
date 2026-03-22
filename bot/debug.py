@@ -3,6 +3,7 @@ from typing import List, Optional, Set
 
 import numpy as np
 from bot.army_composition.composition import Composition
+from bot.macro.expansion_manager import Expansions
 from bot.strategy.build_order.addon_swap import SwapState
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
@@ -594,6 +595,60 @@ class Debug:
         print(f'No command recognized')
 
 
+    def bunker_data(self):
+        if (self.bot.time % 10 != 0):
+            return
+        bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
+        reaper_amount: int = self.bot.units(UnitTypeId.REAPER).amount + self.bot.already_pending(UnitTypeId.REAPER)
+        marine_amount: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
+        defense_count: float = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.amount + max(
+            self.bot.already_pending(UnitTypeId.BUNKER),
+            self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
+        )
+        bunker_to_construct_amount: int = self.bot.already_pending(UnitTypeId.BUNKER) - self.bot.structures(UnitTypeId.BUNKER).not_ready.amount
+        expansions_count: int = self.bot.expansions.amount_taken
+        bunker_amount_target: int = expansions_count - 1
+        useless_bunker_count: int = (
+            0 if expansions_count == 0
+            else self.bot.structures(UnitTypeId.BUNKER).filter(
+                lambda bunker: not self.bot.expansions.closest_to(bunker).is_taken
+            ).amount
+        )
+        precarious: bool = self.bot.scouting.situation.is_cheese or self.bot.scouting.situation.is_precarious
+        
+        # place a bunker in the main if we're under attack on b2
+        ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(self.bot.main_base_ramp.top_center) < 8)
+        if (
+            ramp_bunkers.amount >= 1 or (
+                precarious and self.bot.expansions.taken.amount < 3
+            )
+        ):
+            bunker_amount_target += 1
+
+        expansions: Expansions = self.bot.expansions.taken.without_main
+        
+        # build a bunker in the main if we're getting proxy'd
+        if (
+            precarious
+            and self.bot.expansions.taken.amount < 3
+        ):
+            expansions.add(self.bot.expansions.main)
+
+        expansions_without_defense: Expansions = expansions.filter(
+            lambda expansion: (
+                self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).amount == 0
+                or self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).closest_distance_to(expansion.position) > 12
+            )
+        )
+
+        print(f'### Bunker data ###')
+        print(f'bunker_tech_requirements: {bunker_tech_requirements}')
+        print(f'reaper_amount >= 1 ({reaper_amount}) or marine_amount >= 2 ({marine_amount})')
+        print(f'self.expansions_without_defense.amount >= 1 ({expansions_without_defense.amount}) or self.precarious ({precarious})')
+        print(f'defense_count ({defense_count}) - useless_bunker_count ({useless_bunker_count}) < bunker_amount_target ({bunker_amount_target})')
+        print(f'bunker_to_construct_amount == 0 ({bunker_to_construct_amount})')
+        print(f'### Bunker data ###')
+    
     async def zerg_rush(self):
         time: int = 4*60 + 20  # 4:20
         zerglings_count: int = 58
