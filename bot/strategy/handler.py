@@ -129,6 +129,32 @@ class StrategyHandler:
         # if (self.bot.time >= 145):
             return Situation.CHEESE_ROACH_RUSH
         
+        skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
+        if (
+            skytoss_tech
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                or (
+                    self.bot.expansions.enemy_b2.is_unknown
+                    and self.bot.time <= 210
+                )
+            )
+        ):
+            return Situation.CHEESE_SKYTOSS
+        
+        bc_tech: bool = UnitTypeId.BATTLECRUISER in self.bot.scouting.possible_enemy_composition
+        if (
+            bc_tech
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                or (
+                    self.bot.expansions.enemy_b2.is_unknown
+                    and self.bot.time <= 210
+                )
+            )
+        ):
+            return Situation.CHEESE_BATTLECRUISER
+
         # TODO add last scouting time of the b2
         # TODO they might have taken it by now
         # enemy has no b2 while our b3 is started

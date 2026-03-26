@@ -116,15 +116,12 @@ class BuildingsHandler:
             workers_repairing_building.append(repairer)
     
     async def cancel_buildings(self):
+        main_base_wall_positions: List[Point2] = list(self.bot.main_base_ramp.corner_depots).append(self.bot.main_base_ramp.barracks_correct_placement)
         incomplete_buildings: Units = self.bot.structures.filter(
             lambda structure: (
-                structure.health_percentage < structure.build_progress < 1
+                structure.health_percentage < structure.build_progress < 0.95
+                and structure.position not in main_base_wall_positions
                 and structure.type_id not in add_ons
-                # and (
-                #     self.bot.workers.amount == 0
-                #     or self.bot.workers.closest_to(structure).is_constructing_scv == False
-                #     or self.bot.workers.closest_distance_to(structure) >= structure.radius * math.sqrt(2)
-                # )
                 and (
                     (structure.health < 100 and structure.health_percentage < 0.1)
                     or (

@@ -32,7 +32,9 @@ class Situation(enum.Enum):
     CHEESE_LING_DRONE = 7
     CHEESE_WORKER_RUSH = 8
     CHEESE_ROACH_RUSH = 9
-    CHEESE_UNKNOWN = 10
+    CHEESE_SKYTOSS = 10
+    CHEESE_BATTLECRUISER = 11
+    CHEESE_UNKNOWN = 12
 
     @property
     def is_cheese(self) -> bool:
@@ -42,15 +44,26 @@ class Situation(enum.Enum):
             Situation.CHEESE_LING_DRONE,
             Situation.CHEESE_WORKER_RUSH,
             Situation.CHEESE_ROACH_RUSH,
+            Situation.CHEESE_SKYTOSS,
+            Situation.CHEESE_BATTLECRUISER,
             Situation.CHEESE_UNKNOWN,
         ]
     
     @property
     def is_precarious(self) -> bool:
-        return self.is_cheese or self in [
-            Situation.UNDER_ATTACK,
-            Situation.PROXY_BUILDINGS,
-        ]
+        return (
+            self in [
+                Situation.UNDER_ATTACK,
+                Situation.PROXY_BUILDINGS,
+            ]
+            or (
+                self.is_cheese
+                and self not in [
+                    Situation.CHEESE_SKYTOSS,
+                    Situation.CHEESE_BATTLECRUISER,
+                ]
+            ) 
+        )
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"

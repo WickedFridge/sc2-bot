@@ -14,7 +14,7 @@ class MicroSiegeTank(MicroUnit):
     bonus_against_ground_armored: bool = True
 
     def get_enemies_close_siege_range(self, tank: Unit):
-        local_enemies: Units = self.get_local_enemy_units(tank.position)
+        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False)
         return self.bot.enemy_structures.filter(
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
         ) + local_enemies.filter(
