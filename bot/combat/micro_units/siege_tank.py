@@ -18,7 +18,9 @@ class MicroSiegeTank(MicroUnit):
         return self.bot.enemy_structures.filter(
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
         ) + local_enemies.filter(
-            lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
+            lambda enemy: (
+                enemy.is_flying == False and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
+            )
         )
 
     
