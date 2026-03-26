@@ -15,7 +15,7 @@ class MicroRaven(MicroUnit):
     async def raven_interference_matrix(self, raven: Unit) -> bool:
         INTERFERENCE_MATRIX_RANGE: int = 9
         
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 2, only_menacing=True)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 2, only_menacing=True, include_structures=False)
         # TODO improve this, so far we consider that every unit that costs 3 or more supply is a good potential target
         potential_targets: Units = close_enemy_units.filter(
             lambda enemy_unit: (
@@ -39,7 +39,7 @@ class MicroRaven(MicroUnit):
         return True
     
     async def raven_antiarmor_missile(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10, only_menacing=True)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10, only_menacing=True, include_structures=False)
         if (close_enemy_units.amount < 3):
             return False
         # find the best position to cast anti armor missile

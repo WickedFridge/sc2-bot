@@ -130,10 +130,13 @@ class MicroUnit(CachedClass):
             lambda enemy: unit.target_in_range(enemy)
         )
     
-    def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False) -> Units:
+    def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False, include_structures: bool = True) -> Units:
         enemies = self.enemy_all
         if (only_menacing):
             enemies = enemies.filter(self.is_fighting_unit)
+
+        if (not include_structures):
+            enemies = enemies.filter(lambda unit: unit.is_structure == False)
 
         return enemies.filter(
             lambda enemy: enemy.distance_to(position) <= radius + enemy.radius
