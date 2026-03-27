@@ -197,6 +197,12 @@ class Debug:
             progress: float = scv_build_progress(self.bot, self.bot.workers.closest_to(structure))
             self.draw_text_on_world(structure.position, f'Constructing: {constructing}, Progress: {progress:.2f}')
 
+    def wall(self):
+        main_base_wall_positions: List[Point2] = list(self.bot.main_base_ramp.corner_depots)
+        main_base_wall_positions.append(self.bot.main_base_ramp.barracks_correct_placement)
+        for position in main_base_wall_positions:
+            self.draw_text_on_world(position, 'wall', font_size=10)
+    
     def buffs(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected + self.bot.enemy_units.selected
         for unit in selected_units:
