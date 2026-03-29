@@ -14,7 +14,6 @@ import lzma
 import math
 import pickle
 import random
-import sys
 import unittest
 from contextlib import suppress
 from pathlib import Path
