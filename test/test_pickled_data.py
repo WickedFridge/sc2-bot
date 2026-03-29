@@ -72,10 +72,8 @@ def get_map_specific_bot(map_path: Path) -> BotAI:
 
 
 def test_protobuf_implementation():
-    """Make sure that cpp is used as implementation"""
-    # Doesn't seem to be implemented in newer python versions
-    if sys.version_info < (3, 10) and sys.platform != "darwin":
-        assert api_implementation.Type() == "cpp"
+    """Make sure that upb is used as implementation"""
+    assert api_implementation.Type() == "upb"
 
 
 def test_bot_ai():
