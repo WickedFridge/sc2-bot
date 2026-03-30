@@ -93,7 +93,7 @@ class Client(Protocol):
             request = sc_pb.RequestJoinGame(observed_player_id=observed_player_id, options=ifopts)
         else:
             assert isinstance(race, Race)
-            request = sc_pb.RequestJoinGame(race=race.value, options=ifopts)
+            request = sc_pb.RequestJoinGame(race=race.value, options=ifopts)  # pyrefly: ignore[bad-argument-type]
 
         if portconfig:
             request.server_ports.game_port = portconfig.server[0]
@@ -357,7 +357,11 @@ class Client(Protocol):
         ch = ChatChannel.Team if team_only else ChatChannel.Broadcast
         await self._execute(
             action=sc_pb.RequestAction(
-                actions=[sc_pb.Action(action_chat=sc_pb.ActionChat(channel=ch.value, message=message))]
+                actions=[
+                    sc_pb.Action(
+                        action_chat=sc_pb.ActionChat(channel=ch.value, message=message)  # type: ignore[bad-argument-type]
+                    )
+                ]
             )
         )
 
@@ -710,11 +714,12 @@ class Client(Protocol):
         assert value >= 0, "Value can't be negative"
         await self._execute(
             debug=sc_pb.RequestDebug(
-                # pyrefly: ignore
                 debug=(
                     debug_pb.DebugCommand(
                         unit_value=debug_pb.DebugSetUnitValue(
-                            unit_value=unit_value, value=float(value), unit_tag=unit_tag
+                            unit_value=unit_value,  # pyrefly: ignore[bad-argument-type]
+                            value=float(value),
+                            unit_tag=unit_tag,
                         )
                     )
                     for unit_tag in unit_tags
@@ -727,57 +732,88 @@ class Client(Protocol):
         delay_in_ms = int(round(delay_in_seconds * 1000))
         await self._execute(
             debug=sc_pb.RequestDebug(
-                debug=[debug_pb.DebugCommand(test_process=debug_pb.DebugTestProcess(test=1, delay_ms=delay_in_ms))]
+                debug=[
+                    debug_pb.DebugCommand(
+                        test_process=debug_pb.DebugTestProcess(
+                            test=1,  # pyrefly: ignore
+                            delay_ms=delay_in_ms,
+                        )
+                    )
+                ]
             )
         )
 
     async def debug_show_map(self) -> None:
         """Reveals the whole map for the bot. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=1)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=1)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_control_enemy(self) -> None:
         """Allows control over enemy units and structures similar to team games control - does not allow the bot to spend the opponent's ressources. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=2)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=2)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_food(self) -> None:
         """Should disable food usage (does not seem to work?). Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=3)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=3)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_free(self) -> None:
         """Units, structures and upgrades are free of mineral and gas cost. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=4)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=4)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_all_resources(self) -> None:
         """Gives 5000 minerals and 5000 vespene to the bot."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=5)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=5)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_god(self) -> None:
         """Your units and structures no longer take any damage. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=6)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=6)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_minerals(self) -> None:
         """Gives 5000 minerals to the bot."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=7)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=7)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_gas(self) -> None:
         """Gives 5000 vespene to the bot. This does not seem to be working."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=8)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=8)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_cooldown(self) -> None:
         """Disables cooldowns of unit abilities for the bot. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=9)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=9)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_tech_tree(self) -> None:
         """Removes all tech requirements (e.g. can build a factory without having a barracks). Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=10)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=10)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_upgrade(self) -> None:
         """Researches all currently available upgrades. E.g. using it once unlocks combat shield, stimpack and 1-1. Using it a second time unlocks 2-2 and all other upgrades stay researched."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=11)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=11)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def debug_fast_build(self) -> None:
         """Sets the build time of units and structures and upgrades to zero. Using it a second time disables it again."""
-        await self._execute(debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=12)]))
+        await self._execute(
+            debug=sc_pb.RequestDebug(debug=[debug_pb.DebugCommand(game_state=12)])  # pyrefly: ignore[bad-argument-type]
+        )
 
     async def quick_save(self) -> None:
         """Saves the current game state to an in-memory bookmark.

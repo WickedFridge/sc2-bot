@@ -54,7 +54,7 @@ dev = [
     "pyglet>=2.0.20",
     "pylint>=3.3.2",
     # Type checker
-    "pyrefly>=0.46.3",
+    "pyrefly>=0.58.0",
     "pytest>=8.3.4",
     "pytest-asyncio>=0.25.0",
     "pytest-benchmark>=5.1.0",
@@ -70,7 +70,7 @@ dev = [
 ]
 
 [tool.setuptools]
-package-dir = { sc2 = "sc2", s2clientprotocol = "s2clientprotocol" }
+package-dir = { sc2 = "sc2" }
 
 [tool.setuptools.package-data]
 sc2 = ["py.typed", "*.pyi"]

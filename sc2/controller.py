@@ -39,9 +39,12 @@ class Controller(Protocol):
             p = req.player_setup.add()
             p.type = player.type.value
             if isinstance(player, Computer):
+                # pyrefly: ignore[bad-assignment]
                 p.race = player.race.value
+                # pyrefly: ignore[bad-assignment]
                 p.difficulty = player.difficulty.value
                 if player.ai_build is not None:
+                    # pyrefly: ignore[bad-assignment]
                     p.ai_build = player.ai_build.value
 
         logger.info("Creating new game")
