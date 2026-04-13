@@ -5,6 +5,7 @@ from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap, SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 # from sc2.bot_ai import BotAI
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
@@ -21,8 +22,7 @@ def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
         return techlabs
     return [addon_type]
 
-class BuildOrder:
-    bot: Superbot
+class BuildOrder(CachedClass):
     steps: List[BuildOrderStep]
     name: str
     swap_plans: List[SwapPlan]
@@ -49,7 +49,7 @@ class BuildOrder:
     in_base_cc: bool = False
 
     def __init__(self, bot: Superbot):
-        self.bot = bot
+        super().__init__(bot)
         self.swap_plans = []
 
     @property
@@ -137,24 +137,24 @@ class BuildOrder:
         self.swap_plans = plans_to_prepend + self.swap_plans
     
     # steps not yet completed
-    @property
+    @custom_cache_once_per_frame
     def steps_remaining(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if not step.is_satisfied]
     
-    @property
+    @custom_cache_once_per_frame
     def pending_steps(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if not step.is_satisfied and step.is_available]
     
     # next step to execute
-    @property
+    @custom_cache_once_per_frame
     def next(self) -> BuildOrderStep | None:
         return next((step for step in self.steps if not step.is_satisfied), None)
     
-    @property
+    @custom_cache_once_per_frame
     def pending_ids(self) -> List[UnitTypeId | UpgradeId]:
         return [step.step_id for step in self.pending_steps]
     
-    @property
+    @custom_cache_once_per_frame
     def is_completed(self) -> bool:
         # Default that 4 bases = BO completed (to avoid weird bugs)
         return (

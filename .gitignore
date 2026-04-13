@@ -5,7 +5,7 @@ publish/
 cython_extensions
 
 # time analysis output
-output.out
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

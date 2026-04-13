@@ -2,14 +2,14 @@ from __future__ import annotations
 from typing import List, TYPE_CHECKING
 
 from sc2.bot_ai import BotAI
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 if TYPE_CHECKING:
     from bot.strategy.build_order.build_order import BuildOrder
 
-class BuildOrderStep:
-    bot: BotAI
+class BuildOrderStep(CachedClass):
     build_order: BuildOrder
     name: str
     step_id: UnitTypeId | UpgradeId
@@ -35,7 +35,7 @@ class BuildOrderStep:
         requirements: List[tuple[UnitTypeId, int, bool]] = None,
         upgrades_required: List[UpgradeId] = None,
     ) -> None:
-        self.bot = bot
+        super().__init__(bot)
         self.build_order = build_order
         self.name = name
         self.step_id = step_id
@@ -53,7 +53,7 @@ class BuildOrderStep:
             return self.bot.already_pending_upgrade(self.step_id) > 0
         return self.build_order.unit_amount(self.step_id)
 
-    @property
+    @custom_cache_once_per_frame
     def is_satisfied(self) -> bool:
         return self.current_amount >= self.target_count
     

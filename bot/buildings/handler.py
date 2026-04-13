@@ -574,7 +574,7 @@ class BuildingsHandler:
     
     def reserve_bunkers(self):
         buildings_layer: BuildingLayer = self.bot.map.influence_maps.buildings
-        for expansion in self.bot.expansions:
+        for expansion in self.bot.expansions.taken:
             bunkers: Units = self.bot.structures(UnitTypeId.BUNKER)
             if (bunkers.closer_than(12, expansion.position).amount >= 1):
                 continue

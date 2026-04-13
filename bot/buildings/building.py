@@ -2,8 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from bot.macro.resources import Resources
-from bot.superbot import Superbot
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -12,8 +12,7 @@ from sc2.position import Point2
 if TYPE_CHECKING:
     from .builder import Builder
 
-class Building:
-    bot: Superbot
+class Building(CachedClass):
     builder: Builder
     unitId: UnitTypeId
     unitIdFlying: Optional[UnitTypeId] = None
@@ -23,7 +22,7 @@ class Building:
     ignore_build_order: bool = False
 
     def __init__(self, build: Builder):
-        self.bot = build.bot
+        super().__init__(build.bot)
         self.builder = build
     
     @property
@@ -42,7 +41,7 @@ class Building:
     def custom_conditions(self) -> bool:
         return True
     
-    @property
+    @custom_cache_once_per_frame
     def conditions(self) -> bool:
         return (
             self.bot.workers.amount >= 1
