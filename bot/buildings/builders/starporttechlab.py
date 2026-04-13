@@ -17,11 +17,13 @@ class StarportTechlab(StarportAddon):
         # if we have 2 starports, and one of them doesn't have an addon
         # and we have raven / liberator in our composition
         return (
-            starports.amount >= 2
-            and self.starports_without_addon.idle.amount >= 1
-            and (
-                self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
-                or self.bot.composition_manager.composition[UnitTypeId.BANSHEE] >= 1
-                or self.bot.composition_manager.composition[UnitTypeId.BATTLECRUISER] >= 1
+            not self.bot.build_order.build.is_completed or (
+                starports.amount >= 2
+                and self.starports_without_addon.idle.amount >= 1
+                and (
+                    self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
+                    or self.bot.composition_manager.composition[UnitTypeId.BANSHEE] >= 1
+                    or self.bot.composition_manager.composition[UnitTypeId.BATTLECRUISER] >= 1
+                )
             )
         )
