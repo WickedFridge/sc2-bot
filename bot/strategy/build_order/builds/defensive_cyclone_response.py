@@ -24,6 +24,7 @@ class DefensiveCycloneTank(BuildOrder):
             return True
         if (not self.bot.composition_manager.should_train(UnitTypeId.CYCLONE)):
             composition.set(UnitTypeId.SIEGETANK, 2)
+            return True
         return False
 
     def __init__(self, bot: BotAI):

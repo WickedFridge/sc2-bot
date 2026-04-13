@@ -80,7 +80,7 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def is_free(self) -> bool:
         return (
-            not self.is_scouted
+            self.is_scouted
             and not self.is_taken
             and not self.is_enemy
             and not self.bot.has_creep(self.position)
