@@ -203,6 +203,7 @@ class SelectOrders:
         )
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
+        creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center)
 
         # if there are units, fight or retreat
         if (situation == Situation.CHEESE_BUNKER_RUSH):
@@ -210,7 +211,7 @@ class SelectOrders:
         if (situation == Situation.CHEESE_CANON_RUSH):
             return Orders.DEFEND_CANON_RUSH
             
-        if (local_enemy_supply > 0):        
+        if (local_enemy_supply > 0):
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
             return Orders.FIGHT_OFFENSE
@@ -222,6 +223,9 @@ class SelectOrders:
         # if enemy is a workers, focus them
         if (local_enemy_workers.amount >= 1):
             return Orders.HARASS
+        
+        if (creep_tumors.amount >= 1):
+            return Orders.CLEAN_CREEP
         
         # if we have few life, heal up
         if (army.health_percentage <= 0.3):

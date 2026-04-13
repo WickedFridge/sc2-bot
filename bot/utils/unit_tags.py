@@ -112,7 +112,7 @@ droppable_units: List[UnitTypeId] = [
     UnitTypeId.MARAUDER,
     UnitTypeId.HELLION,
     UnitTypeId.HELLIONTANK,
-    UnitTypeId.CYCLONE,
+    # UnitTypeId.CYCLONE,
     UnitTypeId.WIDOWMINE,
 ]
 building_priorities: List[UnitTypeId] = [
