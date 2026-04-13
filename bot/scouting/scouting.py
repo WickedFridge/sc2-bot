@@ -1,13 +1,17 @@
 from __future__ import annotations
-from typing import List
+from typing import List, TYPE_CHECKING
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from bot.utils.unit_tags import burrowed_units, cloaked_units, tower_types, worker_types
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 scouting: Scouting | None = None
 
@@ -48,7 +52,7 @@ tech_unlocked: dict[UnitTypeId, List[UnitTypeId]] = {
 }
 
 class Scouting:
-    bot: BotAI
+    bot: Superbot
     known_enemy_army: Army
     known_enemy_workers: Army
     known_enemy_buildings: Units
@@ -58,12 +62,12 @@ class Scouting:
     known_enemy_upgrades: List[UpgradeId] = []
     situation: Situation = Situation.STABLE
     
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.known_enemy_army = Army(Units([], bot), bot)
         self.known_enemy_workers = Army(Units([], bot), bot)
         self.known_enemy_buildings = Units([], bot)
-
+    
     @property
     def enemy_composition(self) -> dict[UnitTypeId, float]:
         enemy_composition: dict[UnitTypeId, float] = {}
@@ -78,6 +82,7 @@ class Scouting:
             self.known_enemy_composition.append(unit_type)
         if (unit_type not in self.possible_enemy_composition):
             self.possible_enemy_composition.append(unit_type)
+            print(f"{unit_type} detected !")
             deduced_tech: List[UnitTypeId] = self.detect_deduced_tech(unit_type)
             for tech in deduced_tech:
                 self.conclude_compo_from_tech(tech)
@@ -87,13 +92,21 @@ class Scouting:
         for unit_type in unlocked:
             if (unit_type not in self.possible_enemy_composition):
                 self.possible_enemy_composition.append(unit_type)
+                print(f"{unit_type} potentially detected !")
     
     def detect_enemy_army(self):
+        main: Point2 = self.bot.expansions.main.position
+        enemy_main: Point2 = self.bot.expansions.enemy_main.position
         enemy_units: Units = self.bot.enemy_units.filter(lambda unit: (
             unit.type_id not in tower_types
             and unit.type_id not in worker_types
         ))
-        self.known_enemy_army.detect_units(enemy_units)
+        agressive_enemy_units: Units = enemy_units.filter(lambda unit: (
+            unit.type_id != UnitTypeId.QUEEN
+            or unit.distance_to_squared(main) < unit.distance_to_squared(enemy_main)
+        ))
+
+        self.known_enemy_army.detect_units(agressive_enemy_units)
         for enemy in enemy_units:
             self.detect_enemy_composition(enemy.type_id)
 
@@ -108,10 +121,12 @@ class Scouting:
                 self.known_enemy_buildings.append(building)
             if (building.type_id not in self.known_enemy_tech):
                 self.known_enemy_tech.append(building.type_id)
+                print(f"{building.type_id} detected !")
                 unlocked: List[UnitTypeId] = tech_unlocked.get(building.type_id, [])
                 for tech in unlocked:
                     if (tech not in self.possible_enemy_composition):
                         self.possible_enemy_composition.append(tech)
+                        print(f"{tech} potentially detected !")
 
     def detect_deduced_tech(self, unit_type: UnitTypeId) -> List[UnitTypeId]:
         deduced_tech: List[UnitTypeId] = []

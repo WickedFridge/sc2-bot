@@ -53,6 +53,10 @@ class Expansion(CachedClass):
         return self.bot.state.visibility[self.position.rounded] == 0
     
     @custom_cache_once_per_frame
+    def is_scouted(self) -> bool:
+        return self.bot.state.visibility[self.position.rounded] == 1
+    
+    @custom_cache_once_per_frame
     def is_visible(self) -> bool:
         return self.bot.state.visibility[self.position.rounded] == 2
     
@@ -162,7 +166,7 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def is_depleted(self) -> bool:
         return (
-            self.is_scouted
+            self.is_fully_scouted
             and self.mineral_fields.amount == 0
             and self.vespene == 0
         )
@@ -346,7 +350,7 @@ class Expansion(CachedClass):
         return self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.closest_to(self.position)
     
     @custom_cache_once_per_frame
-    def is_scouted(self) -> bool:
+    def is_fully_scouted(self) -> bool:
         return len(self.unscouted_points) == 0
     
     @custom_cache_once_per_frame

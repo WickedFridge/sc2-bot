@@ -31,8 +31,8 @@ class Scout:
             barracks_amount == 1
             and self.bot.expansions.b2.is_taken == False
             and (
-                self.bot.expansions.b2.is_scouted == False
-                or self.bot.expansions.main.is_scouted == False
+                self.bot.expansions.b2.is_fully_scouted == False
+                or self.bot.expansions.main.is_fully_scouted == False
             )
         ):
             # if we don't already have a scout assigned, we assign one
