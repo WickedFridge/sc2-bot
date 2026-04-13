@@ -121,8 +121,11 @@ class StrategyHandler:
             and (
                 self.bot.expansions.enemy_b2.is_free
                 or (
-                    self.bot.expansions.enemy_b2.is_unknown
-                    and self.bot.time <= 210
+                    self.bot.time <= 210
+                    and (
+                        self.bot.expansions.enemy_b2.is_unknown
+                        or self.bot.enemy_units(UnitTypeId.ROACH).amount >= 4
+                    )
                 )
             )
         ):
