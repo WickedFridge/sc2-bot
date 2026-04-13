@@ -46,6 +46,7 @@ class BuildOrder:
         UnitTypeId.STARPORTTECHLAB: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.FACTORYTECHLAB, UnitTypeId.TECHLAB],
         UnitTypeId.STARPORTREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.REACTOR],
     }
+    in_base_cc: bool = False
 
     def __init__(self, bot: Superbot):
         self.bot = bot

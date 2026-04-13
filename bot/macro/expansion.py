@@ -54,7 +54,7 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def is_scouted(self) -> bool:
-        return self.bot.state.visibility[self.position.rounded] == 1
+        return self.bot.state.visibility[self.position.rounded] >= 1
     
     @custom_cache_once_per_frame
     def is_visible(self) -> bool:
@@ -80,7 +80,7 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def is_free(self) -> bool:
         return (
-            self.is_scouted
+            not self.is_scouted
             and not self.is_taken
             and not self.is_enemy
             and not self.bot.has_creep(self.position)

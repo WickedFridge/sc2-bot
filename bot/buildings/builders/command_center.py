@@ -57,18 +57,13 @@ class CommandCenter(Building):
         cc_position: Point2 = self.bot.expansions.next.position
         next_expansion: Expansion = self.bot.expansions.next
         near_cc_position: Point2 = self.bot.expansions.main.position.towards(cc_position, 2)
-        in_base_builds: List[BuildOrderName] = [
-            BuildOrderName.DEFENSIVE_TWO_RAX.value,
-            BuildOrderName.CONSERVATIVE_EXPAND.value,
-            BuildOrderName.DEFENSIVE_CYCLONE.value,
-        ]
         safe_expansions: Expansions = self.bot.expansions.taken.safe
         match (townhall_amount):
             case 0:
                 return self.bot.expansions.main.position
             case 1:
                 if (
-                    self.bot.build_order.build.name in in_base_builds
+                    self.bot.build_order.build.in_base_cc
                     or not next_expansion.is_safe
                 ):
                     return near_cc_position

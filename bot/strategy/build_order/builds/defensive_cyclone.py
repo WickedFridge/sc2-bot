@@ -14,6 +14,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 class DefensiveCyclone(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE.value
+    in_base_cc: bool = True
 
     @override
     def modify_composition(self, composition: Composition) -> None:

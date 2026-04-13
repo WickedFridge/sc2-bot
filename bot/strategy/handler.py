@@ -3,7 +3,7 @@ from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
-from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.defensive_cyclone_response import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
@@ -178,7 +178,7 @@ class StrategyHandler:
         
         if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
             if (situation in [Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_BUNKER_RUSH]):
-                self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
+                self.bot.build_order.switch_build(DefensiveCycloneTank(self.bot))
             else:
                 self.bot.build_order.switch_build(ConservativeExpand(self.bot))
         
