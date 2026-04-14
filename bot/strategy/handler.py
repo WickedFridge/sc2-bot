@@ -70,7 +70,7 @@ class StrategyHandler:
         return Situation.STABLE
     
     def detect_early_cheese(self) -> Optional[Situation]:
-        if (self.bot.townhalls.amount > 3):
+        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount >= 2):
             return None
         
         main: Point2 = self.bot.expansions.main.position
@@ -119,7 +119,8 @@ class StrategyHandler:
         if (
             roach_tech
             and (
-                self.bot.expansions.enemy_b2.is_free
+                self.bot.time <= 180
+                or self.bot.expansions.enemy_b2.is_free                    
                 or (
                     self.bot.time <= 210
                     and (
@@ -129,7 +130,6 @@ class StrategyHandler:
                 )
             )
         ):
-        # if (self.bot.time >= 145):
             return Situation.CHEESE_ROACH_RUSH
         
         skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
