@@ -166,5 +166,10 @@ class BuildOrder(CachedClass):
     def buildings_cut(self) -> List[UnitTypeId]:
         return []
     
-    def modify_composition(self, composition: Composition) -> None:
-        pass
+    def modify_composition(self, composition: Composition) -> bool:
+        if (self.is_completed):
+            return False
+        return self._modify_composition(composition)
+    
+    def _modify_composition(self, composition: Composition) -> bool:
+        return False

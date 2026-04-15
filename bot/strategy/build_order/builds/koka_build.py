@@ -12,7 +12,7 @@ class KokaBuild(BuildOrder):
     name: BuildOrderName = BuildOrderName.KOKA_BUILD.value
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> None:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)

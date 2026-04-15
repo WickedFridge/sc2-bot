@@ -19,9 +19,7 @@ class Cyclone3Raven(BuildOrder):
     cyclone_built: bool = False
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
-        if (self.is_completed):
-            return False
+    def _modify_composition(self, composition: Composition) -> bool:
         if (self.bot.structures(UnitTypeId.STARPORTREACTOR).amount == 0):
             composition.set(UnitTypeId.MEDIVAC, 0)
         if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):

@@ -19,7 +19,7 @@ class Greedy22Timing(BuildOrder):
     name: BuildOrderName = BuildOrderName.GREEDY_2_2_TIMING.value
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> None:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)

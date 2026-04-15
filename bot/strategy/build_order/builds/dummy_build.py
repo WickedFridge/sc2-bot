@@ -11,11 +11,6 @@ from sc2.ids.upgrade_id import UpgradeId
 class Dummybuild(BuildOrder):
     name: BuildOrderName = BuildOrderName.DUMMY_BUILD.value
 
-    @override
-    def modify_composition(self, composition):
-        pass
-        # composition.set(UnitTypeId.MEDIVAC, 0)
-
     def __init__(self, bot: BotAI):
         super().__init__(bot)
         self.steps = [

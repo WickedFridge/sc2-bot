@@ -19,7 +19,7 @@ class DefensiveCycloneTank(BuildOrder):
     in_base_cc: bool = True
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> None:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)

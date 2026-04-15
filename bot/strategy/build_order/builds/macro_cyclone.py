@@ -17,9 +17,7 @@ class MacroCyclone(BuildOrder):
     cyclone_built: bool = False
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
-        if (self.is_completed):
-            return False
+    def _modify_composition(self, composition: Composition) -> None:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)

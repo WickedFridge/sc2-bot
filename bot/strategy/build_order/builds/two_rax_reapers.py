@@ -12,7 +12,7 @@ class TwoRaxReapers(BuildOrder):
     name: BuildOrderName = BuildOrderName.TWO_RAX_REAPERS.value
 
     @override
-    def modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> None:
         if (self.bot.time <= 150):
             composition.set(UnitTypeId.REAPER, 3)
             composition.set(UnitTypeId.MARINE, 0)
