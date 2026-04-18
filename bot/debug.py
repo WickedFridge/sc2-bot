@@ -11,9 +11,9 @@ from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
-from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
-from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
-from bot.strategy.build_order.builds.koka_build import KokaBuild
+from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
+from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
@@ -573,8 +573,8 @@ class Debug:
                 self.bot.build_order.switch_build(KokaBuild(self.bot))
             case BuildOrderName.DEFENSIVE_CYCLONE:
                 self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
-            case BuildOrderName.CONSERVATIVE_EXPAND:
-                self.bot.build_order.switch_build(ConservativeExpand(self.bot))
+            case BuildOrderName.CONSERVATIVE_RAX_EXPAND:
+                self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
             case _:
                 print(f'switch to {build_order_name} not implemented')
     

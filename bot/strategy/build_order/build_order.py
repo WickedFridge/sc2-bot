@@ -5,6 +5,7 @@ from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap, SwapPlan, SwapState
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 # from sc2.bot_ai import BotAI
+from bot.strategy.strategy_types import Situation
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -47,6 +48,8 @@ class BuildOrder(CachedClass):
         UnitTypeId.STARPORTREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.REACTOR],
     }
     in_base_cc: bool = False
+    default_defensive_response: BuildOrder = None
+    defensive_responses: dict[Situation, BuildOrder] = {}
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -79,16 +82,6 @@ class BuildOrder(CachedClass):
         # For each transferring addon, adjust the count:
         # - its real in-game type may already be counted under unit_ids → subtract 1
         # - if its desired_addon_type matches unit_id → add 1 back
-        # Net effect: +1 if desired matches and real doesn't, -1 if real matches and desired doesn't, 0 if both or neither match.
-        # for tag, desired_type in self.addon_transfer_map.items():
-        #     addon: Optional[Unit] = self.bot.structures.find_by_tag(tag)
-        #     if (addon is None):
-        #         continue
-        #     if (addon.type_id in unit_ids):
-        #         count -= 1
-        #     if (desired_type == unit_id):
-        #         count += 1
-
         if (include_pending):
             count += max(self.bot.already_pending(unit_id), self.bot.structures(unit_ids).not_ready.amount)
 
@@ -136,7 +129,6 @@ class BuildOrder(CachedClass):
 
         self.swap_plans = plans_to_prepend + self.swap_plans
     
-    # steps not yet completed
     @custom_cache_once_per_frame
     def steps_remaining(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if not step.is_satisfied]
@@ -145,7 +137,6 @@ class BuildOrder(CachedClass):
     def pending_steps(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if not step.is_satisfied and step.is_available]
     
-    # next step to execute
     @custom_cache_once_per_frame
     def next(self) -> BuildOrderStep | None:
         return next((step for step in self.steps if not step.is_satisfied), None)
@@ -173,3 +164,13 @@ class BuildOrder(CachedClass):
     
     def _modify_composition(self, composition: Composition) -> bool:
         return False
+    
+    def get_defensive_response(self, situation: Situation) -> BuildOrder | None:
+        specific_response: BuildOrder = self.defensive_responses.get(situation, None)
+        if (specific_response is not None):
+            return specific_response
+        
+        if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
+            return self.default_defensive_response
+        
+        return None

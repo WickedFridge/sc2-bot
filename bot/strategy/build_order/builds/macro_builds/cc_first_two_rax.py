@@ -1,12 +1,13 @@
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.strategy.build_order.builds.macro_build import MacroBuild
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
-class CCFirstTwoRax(BuildOrder):
+class CCFirstTwoRax(MacroBuild):
     name: BuildOrderName = BuildOrderName.CC_FIRST_TWO_RAX.value
 
     def __init__(self, bot: BotAI):

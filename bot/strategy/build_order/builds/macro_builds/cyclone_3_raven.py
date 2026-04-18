@@ -5,6 +5,9 @@ from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.addon_swap.detach_swap import AddonDetachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
+from bot.strategy.build_order.builds.macro_build import MacroBuild
+from bot.strategy.strategy_types import Situation
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -14,7 +17,7 @@ from sc2.ids.upgrade_id import UpgradeId
 # Wardi Team League Day 2, game 5
 # https://www.twitch.tv/videos/2720329129?t=02h42m37s
 
-class Cyclone3Raven(BuildOrder):
+class Cyclone3Raven(MacroBuild):
     name: BuildOrderName = BuildOrderName.CYCLONE_3_RAVEN.value
     cyclone_built: bool = False
 
@@ -25,8 +28,8 @@ class Cyclone3Raven(BuildOrder):
         if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
             composition.set(UnitTypeId.RAVEN, 3)
         if (self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount == 0):
-            composition.set(UnitTypeId.MARINE, 0)        
-        composition.set(UnitTypeId.REAPER, 2)
+            composition.set(UnitTypeId.MARINE, 0)
+            composition.set(UnitTypeId.REAPER, 2)
         composition.set(UnitTypeId.HELLION, 2)
         if (self.bot.units(UnitTypeId.CYCLONE).amount >= 1):
             self.cyclone_built = True
@@ -86,4 +89,4 @@ class Cyclone3Raven(BuildOrder):
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )
             ),
-        ]
+        ],

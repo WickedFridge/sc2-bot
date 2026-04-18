@@ -6,8 +6,8 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
-class ConservativeExpand(BuildOrder):
-    name: BuildOrderName = BuildOrderName.CONSERVATIVE_EXPAND.value
+class ConservativeRaxExpand(BuildOrder):
+    name: BuildOrderName = BuildOrderName.CONSERVATIVE_RAX_EXPAND.value
     in_base_cc: bool = True
 
     def __init__(self, bot: BotAI):

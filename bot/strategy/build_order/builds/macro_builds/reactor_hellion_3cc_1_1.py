@@ -6,6 +6,7 @@ from bot.strategy.build_order.addon_swap.detach_swap import AddonDetachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.build_order_step import BuildOrderStep
+from bot.strategy.build_order.builds.macro_build import MacroBuild
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -15,7 +16,7 @@ from sc2.ids.upgrade_id import UpgradeId
 # Big gabe XperionCraft 3 Finals, game 4
 # https://youtu.be/xwjKSOqq10s?si=R7U2CDLfLFwbONGY&t=2759
 
-class Greedy22Timing(BuildOrder):
+class Greedy22Timing(MacroBuild):
     name: BuildOrderName = BuildOrderName.GREEDY_2_2_TIMING.value
 
     @override

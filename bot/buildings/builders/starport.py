@@ -41,7 +41,7 @@ class Starport(Building):
                     and flying_units_amount >= 2
                     and (
                         self.bot.composition_manager.vikings_amount >= 4 * self.amount
-                        or self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= self.amount
+                        or self.bot.composition_manager.composition[UnitTypeId.RAVEN] > self.amount
                     )
                 )
             case _:

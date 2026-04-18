@@ -4,6 +4,9 @@ from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
+from bot.strategy.build_order.builds.macro_build import MacroBuild
+from bot.strategy.strategy_types import Situation
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 
@@ -12,7 +15,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 # HSC Finals game 2
 # https://youtu.be/qYmkoMnToA0?si=czwrxVSwsK4yBo0F&t=828
 
-class MacroCyclone(BuildOrder):
+class MacroCyclone(MacroBuild):
     name: BuildOrderName = BuildOrderName.MACRO_CYCLONE.value
     cyclone_built: bool = False
 
@@ -85,4 +88,4 @@ class MacroCyclone(BuildOrder):
                     and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 )
             ),
-        ]
+        ],

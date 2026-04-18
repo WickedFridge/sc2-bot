@@ -3,15 +3,16 @@ from typing import List, TYPE_CHECKING
 import random
 from bot.strategy.build_order.addon_swap import SwapState
 from bot.strategy.build_order.build_order import BuildOrder
-from bot.strategy.build_order.builds.cc_first_two_rax import CCFirstTwoRax
-from bot.strategy.build_order.builds.cyclone_3_raven import Cyclone3Raven
-from bot.strategy.build_order.builds.defensive_cyclone import DefensiveCyclone
-from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
-from bot.strategy.build_order.builds.dummy_build import Dummybuild
-from bot.strategy.build_order.builds.koka_build import KokaBuild
-from bot.strategy.build_order.builds.reactor_hellion_3cc_1_1 import Greedy22Timing
-from bot.strategy.build_order.builds.two_rax_reaper_defensive import DefensiveTwoRax
-from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral_211 import DefensiveMistral211
+from bot.strategy.build_order.builds.macro_builds.cc_first_two_rax import CCFirstTwoRax
+from bot.strategy.build_order.builds.macro_builds.cyclone_3_raven import Cyclone3Raven
+from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
+from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
+from bot.strategy.build_order.builds.unused.dummy_build import Dummybuild
+from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
+from bot.strategy.build_order.builds.macro_builds.reactor_hellion_3cc_1_1 import Greedy22Timing
+from bot.strategy.build_order.builds.unused.two_rax_reaper_defensive import DefensiveTwoRax
+from bot.strategy.build_order.builds.macro_builds.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 
@@ -33,7 +34,9 @@ class BuildOrderManager:
         return self.bot  # type: ignore
     
     def select_build(self, matchup: Matchup):
-        # self.build = Dummybuild(self.bot)
+        # self.build = DefensiveMistral211(self.bot)
+        # return
+    
         match(matchup):
             case Matchup.TvT:
                 self.build = random.choice([

@@ -2,10 +2,11 @@ from typing import List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.build_order.bo_names import BuildOrderName
-from bot.strategy.build_order.builds.conservative_expand import ConservativeExpand
-from bot.strategy.build_order.builds.defensive_cyclone_response import DefensiveCycloneTank
-from bot.strategy.build_order.builds.macro_cyclone import MacroCyclone
-from bot.strategy.build_order.builds.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.build_order import BuildOrder
+from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
+from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
+from bot.strategy.build_order.builds.macro_builds.two_rax_reapers import TwoRaxReapers
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -111,6 +112,10 @@ class StrategyHandler:
         ):
             return Situation.CHEESE_LING_DRONE
         
+        # detect ling flood
+        if (zerglings.amount >= 6):
+            return Situation.CHEESE_LING_FLOOD
+
         # detect roach rush
         # enemy has roach tech and has either no B2
         # or we're not sure they have a b2 and it's before 3"30
@@ -176,14 +181,12 @@ class StrategyHandler:
     
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_EXPAND.value):
+        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_RAX_EXPAND.value):
             return
         
-        if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
-            if (situation in [Situation.CHEESE_ROACH_RUSH, Situation.CHEESE_BUNKER_RUSH]):
-                self.bot.build_order.switch_build(DefensiveCycloneTank(self.bot))
-            else:
-                self.bot.build_order.switch_build(ConservativeExpand(self.bot))
+        defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)
+        if (defensive_response is not None):
+            self.bot.build_order.switch_build(defensive_response)
         
         if (not situation.is_cheese):
             return
