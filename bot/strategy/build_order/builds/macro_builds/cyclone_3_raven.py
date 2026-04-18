@@ -89,4 +89,4 @@ class Cyclone3Raven(MacroBuild):
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )
             ),
-        ],
+        ]

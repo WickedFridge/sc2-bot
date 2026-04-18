@@ -87,5 +87,5 @@ class MacroCyclone(MacroBuild):
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
                     and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 )
-            ),
-        ],
+            )
+        ]
