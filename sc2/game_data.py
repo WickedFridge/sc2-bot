@@ -325,15 +325,11 @@ class Cost:
         return self.minerals != 0 or self.vespene != 0
 
     def __add__(self, other: Cost) -> Cost:
-        if not other:
-            return self
-        if not self:
-            return other
         time = (self.time or 0) + (other.time or 0)
         return Cost(self.minerals + other.minerals, self.vespene + other.vespene, time=time)
 
     def __sub__(self, other: Cost) -> Cost:
-        time = (self.time or 0) + (other.time or 0)
+        time = (self.time or 0) - (other.time or 0)
         return Cost(self.minerals - other.minerals, self.vespene - other.vespene, time=time)
 
     def __mul__(self, other: int) -> Cost:
