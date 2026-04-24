@@ -382,7 +382,6 @@ class Client(Protocol):
                         action_raw=raw_pb.ActionRaw(
                             toggle_autocast=raw_pb.ActionRawToggleAutocast(
                                 ability_id=ability.value,
-                                # pyrefly: ignore
                                 unit_tags=(u.tag for u in units),
                             )
                         )

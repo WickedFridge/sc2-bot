@@ -34,7 +34,6 @@ def combine_actions(action_iter: list[UnitCommand]):
             # Combine actions with no target, e.g. lift, burrowup, burrowdown, siege, unsiege, uproot spines
             cmd = raw_pb.ActionRawUnitCommand(
                 ability_id=ability.value,
-                # pyrefly: ignore
                 unit_tags={u.unit.tag for u in items},
                 queue_command=queue,
             )
@@ -62,7 +61,6 @@ def combine_actions(action_iter: list[UnitCommand]):
                 for u in items:
                     cmd = raw_pb.ActionRawUnitCommand(
                         ability_id=ability.value,
-                        # pyrefly: ignore
                         unit_tags={u.unit.tag},
                         queue_command=queue,
                     )
@@ -71,7 +69,6 @@ def combine_actions(action_iter: list[UnitCommand]):
                 for u in items:
                     cmd = raw_pb.ActionRawUnitCommand(
                         ability_id=ability.value,
-                        # pyrefly: ignore
                         unit_tags={u.unit.tag},
                         queue_command=queue,
                         target_world_space_pos=target.as_Point2D,
@@ -81,7 +78,6 @@ def combine_actions(action_iter: list[UnitCommand]):
                 for u in items:
                     cmd = raw_pb.ActionRawUnitCommand(
                         ability_id=ability.value,
-                        # pyrefly: ignore
                         unit_tags={u.unit.tag},
                         queue_command=queue,
                         target_unit_tag=target.tag,

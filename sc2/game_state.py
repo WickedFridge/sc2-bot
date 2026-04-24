@@ -280,23 +280,23 @@ class GameState:
                     # Actions that have a point as target
                     actions.append(
                         ActionRawUnitCommand(
-                            game_loop,
-                            raw_unit_command.ability_id,
-                            list(raw_unit_command.unit_tags),
-                            raw_unit_command.queue_command,
-                            Point2.from_proto(raw_unit_command.target_world_space_pos),
+                            ability_id=raw_unit_command.ability_id,
+                            game_loop=game_loop,
+                            unit_tags=list(raw_unit_command.unit_tags),
+                            queue_command=raw_unit_command.queue_command,
+                            target_world_space_pos=Point2.from_proto(raw_unit_command.target_world_space_pos),
                         )
                     )
                 else:
                     # Actions that have a unit as target
                     actions.append(
                         ActionRawUnitCommand(
-                            game_loop,
-                            raw_unit_command.ability_id,
-                            list(raw_unit_command.unit_tags),
-                            raw_unit_command.queue_command,
-                            None,
-                            raw_unit_command.target_unit_tag,
+                            ability_id=raw_unit_command.ability_id,
+                            game_loop=game_loop,
+                            unit_tags=list(raw_unit_command.unit_tags),
+                            queue_command=raw_unit_command.queue_command,
+                            target_world_space_pos=None,
+                            target_unit_tag=raw_unit_command.target_unit_tag,
                         )
                     )
             elif action_raw.HasField("toggle_autocast"):
@@ -304,9 +304,9 @@ class GameState:
                 raw_toggle_autocast_action = action_raw.toggle_autocast
                 actions.append(
                     ActionRawToggleAutocast(
-                        game_loop,
-                        raw_toggle_autocast_action.ability_id,
-                        list(raw_toggle_autocast_action.unit_tags),
+                        ability_id=raw_toggle_autocast_action.ability_id,
+                        game_loop=game_loop,
+                        unit_tags=list(raw_toggle_autocast_action.unit_tags),
                     )
                 )
             else:
@@ -340,6 +340,6 @@ class GameState:
         """
         previous_frame_errors = self.previous_observation.action_errors if self.previous_observation else []
         return [
-            ActionError(error.ability_id, error.unit_tag, error.result)
+            ActionError(ability_id=error.ability_id, unit_tag=error.unit_tag, result=error.result)
             for error in chain(self.response_observation.action_errors, previous_frame_errors)
         ]
