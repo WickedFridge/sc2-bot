@@ -202,9 +202,10 @@ class ArmyCompositionManager(CachedClass):
         ):
             composition.set(UnitTypeId.RAVEN, 1)
             # also if there's creep covering a lot of the map, we want more Ravens for the anti-creep coverage
-            if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.b3.position] > 0):
-                composition.add(UnitTypeId.RAVEN, 1)
-            if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.b4.position] > 0):
+            for base in self.wicked.expansions.taken:
+                if (self.wicked.map.influence_maps.creep.density[base.position] > 0):
+                    composition.add(UnitTypeId.RAVEN, 1)
+            if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.next.position] > 0):
                 composition.add(UnitTypeId.RAVEN, 1)
             
         # if we're playing late game TvT, we want Ravens, depending on the amount of powerful enemy units

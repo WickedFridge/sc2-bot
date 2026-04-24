@@ -31,6 +31,8 @@ class Starport(Building):
             flying_units_amount += self.bot.already_pending(unit_type)
 
         # We want 2nd/3rd starport after we have a 3rd base and 2 Ebays if our composition is mostly air units
+        amount_excluding_reactors: int = self.amount - self.bot.structures(UnitTypeId.STARPORTREACTOR).amount
+        
         match self.amount:
             case 0:
                 return True
@@ -41,7 +43,7 @@ class Starport(Building):
                     and flying_units_amount >= 2
                     and (
                         self.bot.composition_manager.vikings_amount >= 4 * self.amount
-                        or self.bot.composition_manager.amount_to_train(UnitTypeId.RAVEN) >= self.amount
+                        or self.bot.composition_manager.amount_to_train(UnitTypeId.RAVEN) > amount_excluding_reactors
                     )
                 )
             case _:
