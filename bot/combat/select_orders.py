@@ -86,6 +86,7 @@ class SelectOrders:
             UnitTypeId.MARAUDER,
             UnitTypeId.GHOST,
             UnitTypeId.HELLION,
+            UnitTypeId.HELLIONTANK,
             UnitTypeId.CYCLONE,
             UnitTypeId.SIEGETANK,
             UnitTypeId.SIEGETANKSIEGED,
@@ -201,6 +202,8 @@ class SelectOrders:
         ) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
+        global_unarmed_enemies: Units = self.global_enemy_units.filter(lambda u: not u.can_attack and u.type_id not in menacing)
+
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center)
@@ -214,7 +217,9 @@ class SelectOrders:
         if (local_enemy_supply > 0):
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
-            return Orders.FIGHT_OFFENSE
+            if (army.health_percentage > 0.3):
+                return Orders.FIGHT_OFFENSE
+            return Orders.RETREAT
         
         # if we should defend
         if (distance_building_to_enemies <= 10 and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT):
@@ -227,6 +232,10 @@ class SelectOrders:
         if (creep_tumors.amount >= 1):
             return Orders.CLEAN_CREEP
         
+        # -- Clean slow unharmed enemy units
+        if (self.should_clean_unharmed_units(army, global_unarmed_enemies)):
+            return Orders.FIGHT_CHASE
+
         # if we have few life, heal up
         if (army.health_percentage <= 0.3):
             return Orders.HEAL_UP
@@ -262,6 +271,7 @@ class SelectOrders:
             self.global_enemy_units.filter(lambda u: u.can_attack or u.type_id in menacing)
             + global_enemy_buildings.filter(lambda u: u.type_id in tower_types)
         )
+        global_unarmed_enemies: Units = self.global_enemy_units.filter(lambda u: not u.can_attack and u.type_id not in menacing)
                 
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
@@ -299,6 +309,10 @@ class SelectOrders:
                 global_enemy_menacing=global_enemy_menacing
             )
         
+        # -- Clean slow unharmed enemy units
+        if (self.should_clean_unharmed_units(army, global_unarmed_enemies)):
+            return Orders.FIGHT_CHASE
+
         # -- Defend buildings under threat
         if (self.should_defend_buildings(army, global_enemy_menacing)):
             return Orders.DEFEND
@@ -432,6 +446,20 @@ class SelectOrders:
         if (safe_from_anti_air and (too_few_ground_units or should_pickup)):
             return Orders.PICKUP_LEAVE
         return Orders.FIGHT_DISENGAGE
+    
+    def should_clean_unharmed_units(self, army: Army, unharmed_enemies: Units) -> bool:
+        CLEEN_UNHARMED_UNITS: int = 30
+        close_unharmed_enemies: Units = unharmed_enemies.closer_than(CLEEN_UNHARMED_UNITS, army.center)
+        if (close_unharmed_enemies.amount == 0):
+            return False
+        
+        unharmed_enemy_army: Army = Army(close_unharmed_enemies, self.bot)
+        if (
+            army.speed >= unharmed_enemy_army.speed
+            and army.can_attack_any(unharmed_enemy_army.units)
+        ):
+            return True
+        return False
     
     def should_defend_buildings(self, army: Army, global_enemy_menacing: Units) -> bool:
         closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)

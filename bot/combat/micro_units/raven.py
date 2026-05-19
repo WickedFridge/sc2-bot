@@ -1,4 +1,4 @@
-from typing import Optional, override
+from typing import Optional, Set, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.utils.unit_supply import get_unit_supply
@@ -11,11 +11,12 @@ from sc2.units import Units
 
 
 class MicroRaven(MicroUnit):
+    anti_armor_missile_targets: dict[int, int] = {}
     
     async def raven_interference_matrix(self, raven: Unit) -> bool:
         INTERFERENCE_MATRIX_RANGE: int = 9
         
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 2, only_menacing=True, include_structures=False)
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 3, only_menacing=True, include_structures=False)
         # TODO improve this, so far we consider that every unit that costs 3 or more supply is a good potential target
         potential_targets: Units = close_enemy_units.filter(
             lambda enemy_unit: (
@@ -39,7 +40,15 @@ class MicroRaven(MicroUnit):
         return True
     
     async def raven_antiarmor_missile(self, raven: Unit) -> bool:
-        close_enemy_units: Units = self.get_local_enemy_units(raven.position, 10, only_menacing=True, include_structures=False)
+        ANTIARMOR_MISSILE_RANGE: int = 10
+
+        close_enemy_units: Units = self.get_local_enemy_units(raven.position, ANTIARMOR_MISSILE_RANGE, only_menacing=True, include_structures=False).filter(
+            lambda enemy_unit: (
+                not enemy_unit.has_buff(BuffId.RAVENSHREDDERMISSILEARMORREDUCTION)
+                and not enemy_unit.has_buff(BuffId.RAVENSHREDDERMISSILETINT)
+                and enemy_unit.tag not in self.anti_armor_missile_targets
+            )
+        )
         if (close_enemy_units.amount < 3):
             return False
         # find the best position to cast anti armor missile
@@ -57,6 +66,10 @@ class MicroRaven(MicroUnit):
         if (best_hit_count >= HEALTH_THRESHOLD and best_target):
             print("Casting anti armor missile")
             raven(AbilityId.EFFECT_ANTIARMORMISSILE, best_target)
+            if (best_target.tag in self.anti_armor_missile_targets):
+                self.anti_armor_missile_targets[best_target.tag] += 1
+            else:
+                self.anti_armor_missile_targets[best_target.tag] = 1
             return True
         return False
 
@@ -88,6 +101,14 @@ class MicroRaven(MicroUnit):
         INTERFERENCE_MATRIX_ENERGY_COST: int = 75
         AUTO_TURRET_ENERGY_COST: int = 50
 
+        raven_abilities: Set[AbilityId] = {
+            AbilityId.EFFECT_INTERFERENCEMATRIX,
+            AbilityId.EFFECT_ANTIARMORMISSILE,
+            AbilityId.BUILDAUTOTURRET_AUTOTURRET,
+        }
+        
+        if (raven.is_using_ability(raven_abilities)):
+            return
         available_abilities = (await self.bot.get_available_abilities([raven]))[0]
         if (AbilityId.EFFECT_INTERFERENCEMATRIX in available_abilities and raven.energy >= INTERFERENCE_MATRIX_ENERGY_COST):
             if (await self.raven_interference_matrix(raven)):

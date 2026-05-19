@@ -380,6 +380,14 @@ class Execute(CachedClass):
 
     def chase_creep(self, army: Army):
         target: Point2 | Unit = None
+        
+        # if any unit is already chasing creep somewhere we can't see, don't cancel the order and keep going
+        for unit in army.units:
+            if (unit.is_attacking and unit.order_target is Point2):
+                attack_target: Point2 = unit.order_target
+                if (not self.bot.is_visible(attack_target)):
+                    return
+
         if (self.bot.map.influence_maps.creep.density[army.center] >= 0.5):
             pos = army.center.position
             target = army.center.position.towards(self.bot.map.influence_maps.creep.direction_to_tumor(pos), 2)

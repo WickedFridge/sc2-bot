@@ -184,6 +184,9 @@ class ArmyCompositionManager(CachedClass):
         if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ratio >= 0.7)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
+            if (UnitTypeId.GHOST in self.available_units):
+                MAX_MARAUDER_COUNT: int = 10
+                marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
         # always add a minimum of the Ghost we own so far

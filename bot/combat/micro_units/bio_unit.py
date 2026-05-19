@@ -110,17 +110,19 @@ class MicroBioUnit(MicroUnit):
             lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
         )
 
-        # First, if we're chasing and only have a building in range, shoot at it
-        if (chase and potential_targets.amount == 0 and buildings_in_range.amount >= 1):
+        # First, handle all chase-specific fallbacks (no unit targets in range)
+        if (chase and potential_targets.amount == 0):
             self.stim(bio_unit)
-            if (bio_unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
+            if (buildings_in_range.amount >= 1 and bio_unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
                 bio_unit.attack(buildings_in_range.first)
-            elif (other_enemies.amount == 0):
-                print("Error, no enemy to chase !")
             else:
-                target: Unit = other_enemies.first
-                best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
-                bio_unit.move(best_position)
+                all_enemies: Units = self.enemy_all.sorted(lambda e: e.distance_to(bio_unit))
+                if (all_enemies.amount >= 1):
+                    target: Unit = all_enemies.first
+                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
+                    bio_unit.move(best_position)
+                else:
+                    print("Error, no enemy to chase !")
             return
 
         if (
@@ -160,7 +162,6 @@ class MicroBioUnit(MicroUnit):
 
         self.stim(bio_unit)
         if (other_enemies.amount == 0):
-            # No valid targets regroup
             bio_unit.move(local_units.center)
             return
         target: Unit = other_enemies.first

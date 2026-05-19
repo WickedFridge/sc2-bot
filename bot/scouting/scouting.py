@@ -20,7 +20,7 @@ tech_unlocked: dict[UnitTypeId, List[UnitTypeId]] = {
     UnitTypeId.SPAWNINGPOOL: [UnitTypeId.ZERGLING, UnitTypeId.QUEEN],
     UnitTypeId.ROACHWARREN: [UnitTypeId.ROACH, UnitTypeId.RAVAGER],
     UnitTypeId.BANELINGNEST: [UnitTypeId.BANELING],
-    UnitTypeId.LAIR: [UnitTypeId.OVERSEER],
+    UnitTypeId.LAIR: [UnitTypeId.OVERSEER, UnitTypeId.CHANGELING, UnitTypeId.CHANGELINGMARINE, UnitTypeId.CHANGELINGMARINESHIELD],
     UnitTypeId.HYDRALISKDEN: [UnitTypeId.HYDRALISK],
     UnitTypeId.INFESTATIONPIT: [UnitTypeId.INFESTOR, UnitTypeId.SWARMHOSTMP],
     UnitTypeId.SPIRE: [UnitTypeId.MUTALISK, UnitTypeId.CORRUPTOR],

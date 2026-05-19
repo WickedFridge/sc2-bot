@@ -253,6 +253,7 @@ class Army(CachedClass):
         self.units.remove(destroyed_unit)
         # print("enemy unit destroyed :", destroyed_unit.name)
     
+    @staticmethod
     def get_composition(_units: Units) -> dict[UnitTypeId, int]:
         army: dict[UnitTypeId, int] = {}
         for unit in _units:
@@ -261,4 +262,18 @@ class Army(CachedClass):
             else:
                 army[unit.type_id] = 1
         return army
+    
+    def can_attack(self, enemy: Unit) -> bool:
+        if (enemy.is_flying):
+            return any(unit.can_attack_air for unit in self.units)
+        return any(unit.can_attack_ground for unit in self.units)
+    
+    def can_attack_any(self, enemies: Units) -> bool:
+        has_ground: bool = any(unit.can_attack_ground for unit in self.units)
+        has_air: bool = any(unit.can_attack_air for unit in self.units)
+        return any(
+            (enemy.is_flying and has_air)
+            or (not enemy.is_flying and has_ground)
+            for enemy in enemies
+        )
     

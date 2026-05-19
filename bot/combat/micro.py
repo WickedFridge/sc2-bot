@@ -3,6 +3,7 @@ import math
 from typing import Any, List, Optional, Union
 from bot.combat.micro_units.cyclone import MicroCyclone
 from bot.combat.micro_units.ghost import MicroGhost
+from bot.combat.micro_units.hellbat import MicroHellbat
 from bot.combat.micro_units.hellion import MicroHellion
 from bot.combat.micro_units.marauder import MicroMarauder
 from bot.combat.micro_units.marine import MicroMarine
@@ -42,6 +43,7 @@ class Micro(CachedClass):
     reaper: MicroReaper
     ghost: MicroGhost
     hellion: MicroHellion
+    hellbat: MicroHellbat
     cyclone: MicroCyclone
     siege_tank: MicroSiegeTank
     thor: MicroThor
@@ -57,6 +59,7 @@ class Micro(CachedClass):
         self.reaper = MicroReaper(self.bot)
         self.ghost = MicroGhost(self.bot)
         self.hellion = MicroHellion(self.bot)
+        self.hellbat = MicroHellbat(self.bot)
         self.cyclone = MicroCyclone(self.bot)
         self.siege_tank = MicroSiegeTank(self.bot)
         self.thor = MicroThor(self.bot)
@@ -70,6 +73,7 @@ class Micro(CachedClass):
             UnitTypeId.REAPER: self.reaper,
             UnitTypeId.GHOST: self.ghost,
             UnitTypeId.HELLION: self.hellion,
+            UnitTypeId.HELLIONTANK: self.hellbat,
             UnitTypeId.CYCLONE: self.cyclone,
             UnitTypeId.SIEGETANK: self.siege_tank,
             UnitTypeId.SIEGETANKSIEGED: self.siege_tank,

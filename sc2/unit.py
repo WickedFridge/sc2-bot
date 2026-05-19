@@ -220,6 +220,8 @@ class Unit:
     def can_attack(self) -> bool:
         """ Checks if the unit can attack at all. """
         # TODO BATTLECRUISER doesnt have weapons in proto?!
+        if (self.type_id in [UnitTypeId.CHANGELINGMARINE, UnitTypeId.CHANGELINGMARINESHIELD]):
+            return False
         return bool(self._weapons) or self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY}
 
     @property

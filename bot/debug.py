@@ -733,6 +733,13 @@ class Debug:
             color = GREEN if unit_type in self.bot.scouting.known_enemy_composition else YELLOW
             self.draw_text_on_screen(unit_type.name, position, color)
 
+    def changelings(self):
+        changelings_enemy: Units = self.bot.enemy_units([UnitTypeId.CHANGELING, UnitTypeId.CHANGELINGMARINE])
+        for unit in changelings_enemy:
+            color: tuple = RED if unit.can_attack else YELLOW
+            self.draw_box_on_world(unit.position, size=1, draw_color = color)
+            self.draw_text_on_world(unit.position, f'{unit.type_id}', color)
+    
     def ghost_units(self):
         ghost_units: Units = self.bot.ghost_units.assumed_enemy_units
         for unit in ghost_units:

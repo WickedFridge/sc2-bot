@@ -38,7 +38,7 @@ class MicroSiegeTank(MicroUnit):
     @override
     async def fight(self, tank: Unit, local_units: Units, chase: bool = False):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
-        if (self.switch_mode(tank, enemies_close_siege_range)):
+        if (not chase and self.switch_mode(tank, enemies_close_siege_range)):
             return
         if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
             enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
