@@ -31,9 +31,7 @@ class CCFirstTwoRax(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
-                UnitTypeId.FACTORYREACTOR
+                UnitTypeId.REACTOR,
             )
         ]

@@ -4,6 +4,7 @@ import random
 from bot.strategy.build_order.addon_swap import SwapState
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral_211 import DefensiveMistral211
+from bot.strategy.build_order.builds.macro_builds.bansheesburger import BansheesBurger
 from bot.strategy.build_order.builds.macro_builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.macro_builds.cyclone_3_raven import Cyclone3Raven
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
@@ -49,7 +50,8 @@ class BuildOrderManager:
             case Matchup.TvZ:
                 self.build = random.choice([
                     # TwoRaxReapers(self.bot),
-                    Greedy22Timing(self.bot),
+                    # Greedy22Timing(self.bot),
+                    BansheesBurger(self.bot),
                     # DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)

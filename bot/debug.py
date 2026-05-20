@@ -672,7 +672,7 @@ class Debug:
 
     async def build_order(self):
         build_order: BuildOrder = self.bot.build_order.build
-        screen_y: float = 0.25
+        screen_y: float = 0.15
         position: Point2 = Point2((0, screen_y))
         build_color = GREEN if build_order.is_completed else ORANGE
         title: str = build_order.name.capitalize()

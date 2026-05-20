@@ -76,15 +76,12 @@ class Cyclone3Raven(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
-                UnitTypeId.BARRACKSTECHLAB
+                UnitTypeId.TECHLAB,
             ),
             AddonDetachSwap(
                 bot,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )

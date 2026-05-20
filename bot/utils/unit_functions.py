@@ -1,3 +1,5 @@
+from idna.compat import Optional
+
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -56,3 +58,21 @@ def calculate_bunker_range(bot: BotAI, bunker: Unit) -> tuple[float, float]:
         bunker_air_range = max(bunker_air_range, passenger.air_range + bunker_bonus_range)
 
     return bunker_ground_range, bunker_air_range
+
+def get_addon_id(addon_type: UnitTypeId, building_type: UnitTypeId) -> Optional[UnitTypeId]:
+    if (building_type == UnitTypeId.BARRACKS):
+        if (addon_type == UnitTypeId.REACTOR):
+            return UnitTypeId.BARRACKSREACTOR
+        elif (addon_type == UnitTypeId.TECHLAB):
+            return UnitTypeId.BARRACKSTECHLAB
+    elif (building_type == UnitTypeId.FACTORY):
+        if (addon_type == UnitTypeId.REACTOR):
+            return UnitTypeId.FACTORYREACTOR
+        elif (addon_type == UnitTypeId.TECHLAB):
+            return UnitTypeId.FACTORYTECHLAB
+    elif (building_type == UnitTypeId.STARPORT):
+        if (addon_type == UnitTypeId.REACTOR):
+            return UnitTypeId.STARPORTREACTOR
+        elif (addon_type == UnitTypeId.TECHLAB):
+            return UnitTypeId.STARPORTTECHLAB
+    return None

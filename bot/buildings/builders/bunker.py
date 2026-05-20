@@ -67,7 +67,7 @@ class Bunker(Building):
             and (reaper_amount >= 1 or marine_amount >= 2)
             and (
                 self.expansions_without_defense.amount >= 1
-                or self.precarious
+                or (self.precarious and marine_amount >= 4)
             )
             and defense_count - useless_bunker_count < bunker_amount_target
             and bunker_to_construct_amount == 0

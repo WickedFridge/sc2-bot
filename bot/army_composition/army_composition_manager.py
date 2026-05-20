@@ -50,6 +50,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.THOR: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY, UnitTypeId.ARMORY],
             UnitTypeId.MEDIVAC: [UnitTypeId.STARPORT],
             UnitTypeId.VIKINGFIGHTER: [UnitTypeId.STARPORT],
+            UnitTypeId.BANSHEE: [UnitTypeId.STARPORTTECHLAB, UnitTypeId.STARPORT],
             UnitTypeId.RAVEN: [UnitTypeId.STARPORTTECHLAB, UnitTypeId.STARPORT],
         }
 

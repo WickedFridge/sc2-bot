@@ -30,16 +30,13 @@ class AddonDetachSwap(SwapPlan):
         self,
         bot: BotAI,
         donor_type: UnitTypeId,
-        donor_flying_type: UnitTypeId,
         condition: Optional[callable[[], bool]] = None,
     ) -> None:
         super().__init__(
             bot=bot,
             donor_type=donor_type,
-            donor_flying_type=donor_flying_type,
-            recipient_type=donor_type,               # unused — no recipient
-            recipient_flying_type=donor_flying_type,  # unused — no recipient
-            desired_addon_type=UnitTypeId.TECHLAB,    # unused — any addon qualifies
+            recipient_type=donor_type,             # unused — no recipient
+            desired_addon_type=UnitTypeId.TECHLAB, # unused — any addon qualifies
             condition=condition,
         )
 

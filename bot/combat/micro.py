@@ -1,6 +1,7 @@
 from collections.abc import Callable
 import math
 from typing import Any, List, Optional, Union
+from bot.combat.micro_units.banshee import MicroBanshee
 from bot.combat.micro_units.cyclone import MicroCyclone
 from bot.combat.micro_units.ghost import MicroGhost
 from bot.combat.micro_units.hellbat import MicroHellbat
@@ -49,6 +50,7 @@ class Micro(CachedClass):
     thor: MicroThor
     medivac: MicroMedivac
     viking: MicroViking
+    banshee: MicroBanshee
     raven: MicroRaven
     handlers: dict[UnitTypeId, MicroUnit]
 
@@ -65,6 +67,7 @@ class Micro(CachedClass):
         self.thor = MicroThor(self.bot)
         self.medivac = MicroMedivac(self.bot)
         self.viking = MicroViking(self.bot)
+        self.banshee = MicroBanshee(self.bot)
         self.raven = MicroRaven(self.bot)
 
         self.handlers = {
@@ -81,6 +84,7 @@ class Micro(CachedClass):
             UnitTypeId.THORAP: self.thor,
             UnitTypeId.MEDIVAC: self.medivac,
             UnitTypeId.VIKINGFIGHTER: self.viking,
+            UnitTypeId.BANSHEE: self.banshee,
             UnitTypeId.RAVEN: self.raven
         }
 

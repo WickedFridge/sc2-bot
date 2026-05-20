@@ -59,10 +59,8 @@ class Greedy22Timing(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
-                UnitTypeId.BARRACKSREACTOR,
+                UnitTypeId.REACTOR,
                 condition=lambda: (
                     self.bot.structures(UnitTypeId.FACTORY).amount >= 1
                 ),
@@ -70,10 +68,8 @@ class Greedy22Timing(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYREACTOR,
+                UnitTypeId.REACTOR,
                 condition=lambda: (
                     self.bot.structures(UnitTypeId.BARRACKS).amount >= 2
                     and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
@@ -82,10 +78,8 @@ class Greedy22Timing(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYREACTOR,
+                UnitTypeId.REACTOR,
                 condition=lambda: (
                     self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 ),
@@ -93,10 +87,8 @@ class Greedy22Timing(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
-                UnitTypeId.FACTORYREACTOR,
+                UnitTypeId.REACTOR,
                 condition=lambda: (
                     self.bot.structures(UnitTypeId.STARPORT).amount >= 1
                 ),

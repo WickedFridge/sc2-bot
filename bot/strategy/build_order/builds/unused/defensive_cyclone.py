@@ -45,18 +45,14 @@ class DefensiveCyclone(BuildOrder):
             AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
-                UnitTypeId.BARRACKSTECHLAB
+                UnitTypeId.TECHLAB
             ),
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYTECHLAB,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                 )
@@ -64,10 +60,8 @@ class DefensiveCyclone(BuildOrder):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYTECHLAB,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3

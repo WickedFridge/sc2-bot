@@ -50,26 +50,20 @@ class DefensiveMistral211(BuildOrder):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
-                UnitTypeId.FACTORYTECHLAB,
+                UnitTypeId.TECHLAB,
             ),
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
-                UnitTypeId.FACTORYREACTOR,
+                UnitTypeId.REACTOR,
             ),
             AddonSwap(
                 bot,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.STARPORTTECHLAB,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                     and self.bot.structures([

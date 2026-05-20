@@ -137,6 +137,19 @@ class Army(CachedClass):
         return Army.get_composition(self.units)
 
     @property
+    def scout_units_health_percentage(self) -> float:
+        scouting_units: Units = self.units.filter(lambda unit: unit.type_id in [UnitTypeId.REAPER, UnitTypeId.HELLION, UnitTypeId.BANSHEE])
+        if (scouting_units.amount == 0):
+            return 0
+        health: float = 0
+        total_health: float = 0
+        for unit in scouting_units:
+            health += unit.health + unit.shield
+            total_health += unit.health_max + unit.shield_max
+
+        return health / total_health
+    
+    @property
     def health_percentage(self) -> float:
         health: float = 0
         total_health: float = 0

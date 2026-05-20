@@ -1,5 +1,5 @@
-from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.combat.micro_units.bio_unit import MicroBioUnit
 
-class MicroHellbat(MicroUnit):
-    WEAPON_READY_THRESHOLD: int = 6
+class MicroHellbat(MicroBioUnit):
+    WEAPON_READY_THRESHOLD: int = 8
     bonus_against_ground_light: bool = True

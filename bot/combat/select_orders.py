@@ -94,6 +94,7 @@ class SelectOrders:
             UnitTypeId.THORAP,
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
+            UnitTypeId.BANSHEE,
             UnitTypeId.RAVEN,
         ])
 
@@ -217,7 +218,7 @@ class SelectOrders:
         if (local_enemy_supply > 0):
             if (distance_building_to_enemies <= BASE_SIZE):
                 return Orders.FIGHT_DEFENSE
-            if (army.health_percentage > 0.3):
+            if (army.scout_units_health_percentage > 0.3):
                 return Orders.FIGHT_OFFENSE
             return Orders.RETREAT
         
@@ -237,7 +238,7 @@ class SelectOrders:
             return Orders.FIGHT_CHASE
 
         # if we have few life, heal up
-        if (army.health_percentage <= 0.3):
+        if (army.scout_units_health_percentage <= 0.3):
             return Orders.HEAL_UP
         
         # if Oppo doesn't have speed yet, keep scouting
@@ -247,10 +248,15 @@ class SelectOrders:
     
     def get_army_orders(self, army: Army) -> Orders:
         # -- Specific orders for reapers
-        scouting_units: List[UnitTypeId] = [UnitTypeId.REAPER, UnitTypeId.HELLION]
+        scouting_units: List[UnitTypeId] = [
+            UnitTypeId.REAPER,
+            UnitTypeId.HELLION,
+            UnitTypeId.BANSHEE,
+        ]
         if (
             army.units(scouting_units).amount == army.units.amount
             or army.units(scouting_units).amount >= 4 and army.units.amount < 8
+            or army.units(UnitTypeId.BANSHEE).amount >= 1
         ):
             return self.scouting_units_orders(army)
         

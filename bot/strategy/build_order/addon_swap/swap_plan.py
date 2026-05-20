@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Set
 
 from bot.strategy.build_order.addon_swap.state import SwapState
+from bot.utils.unit_functions import get_addon_id
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -21,14 +22,20 @@ class SwapPlan(ABC):
     Subclasses implement process() to drive their own state machine,
     and may delegate individual state handlers back to AddonSwapManager.
     """
+    flying_correspondances: dict[UnitTypeId, UnitTypeId] = {
+        UnitTypeId.BARRACKS: UnitTypeId.BARRACKSFLYING,
+        UnitTypeId.FACTORY: UnitTypeId.FACTORYFLYING,
+        UnitTypeId.STARPORT: UnitTypeId.STARPORTFLYING,
+    }
+    donor_flying_type: UnitTypeId
+    recipient_flying_type: UnitTypeId
+    desired_addon_type: UnitTypeId
 
     def __init__(
         self,
         bot: BotAI,
         donor_type: UnitTypeId,
-        donor_flying_type: UnitTypeId,
         recipient_type: UnitTypeId,
-        recipient_flying_type: UnitTypeId,
         desired_addon_type: UnitTypeId,
         condition: Optional[callable[[], bool]] = None,
     ) -> None:
@@ -36,10 +43,10 @@ class SwapPlan(ABC):
 
         # Static parameters
         self.donor_type: UnitTypeId = donor_type
-        self.donor_flying_type: UnitTypeId = donor_flying_type
+        self.donor_flying_type: UnitTypeId = self.flying_correspondances.get(donor_type)
         self.recipient_type: UnitTypeId = recipient_type
-        self.recipient_flying_type: UnitTypeId = recipient_flying_type
-        self.desired_addon_type: UnitTypeId = desired_addon_type
+        self.recipient_flying_type: UnitTypeId = self.flying_correspondances.get(recipient_type)
+        self.desired_addon_type: UnitTypeId = get_addon_id(desired_addon_type, donor_type)
 
         # Runtime state — set via commit(), cleared via reset()
         self.donor_tag: Optional[int] = None

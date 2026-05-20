@@ -3,6 +3,7 @@ from typing import Awaitable, Dict, List
 from bot.combat.select_orders import SelectOrders
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
+from bot.units.banshee import Banshee
 from bot.units.cyclone import Cyclone
 from bot.units.ghost import Ghost
 from bot.units.hellion import Hellion
@@ -40,6 +41,7 @@ class Trainer:
     siegetank: SiegeTank
     thor: Thor
     viking: Viking
+    banshee: Banshee
     raven: Raven
     army_trainers: Dict[UnitTypeId, Train]
     
@@ -57,6 +59,7 @@ class Trainer:
         self.siegetank = SiegeTank(self)
         self.thor = Thor(self)
         self.viking = Viking(self)
+        self.banshee = Banshee(self)
         self.raven = Raven(self)
         
         self.army_trainers = {
@@ -70,6 +73,7 @@ class Trainer:
             UnitTypeId.SIEGETANK: self.siegetank,
             UnitTypeId.THOR: self.thor,
             UnitTypeId.VIKINGFIGHTER: self.viking,
+            UnitTypeId.BANSHEE: self.banshee,
             UnitTypeId.RAVEN: self.raven,
         }
     

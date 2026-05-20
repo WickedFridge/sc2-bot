@@ -64,7 +64,6 @@ class DefensiveCycloneTank(BuildOrder):
             AddonDetachSwap(
                 bot,
                 UnitTypeId.STARPORT,
-                UnitTypeId.STARPORTFLYING,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )

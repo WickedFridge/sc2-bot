@@ -58,18 +58,14 @@ class MacroCyclone(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
-                UnitTypeId.BARRACKSTECHLAB
+                UnitTypeId.TECHLAB,
             ),
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYTECHLAB,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
@@ -78,10 +74,8 @@ class MacroCyclone(MacroBuild):
             AddonSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.FACTORYFLYING,
                 UnitTypeId.BARRACKS,
-                UnitTypeId.BARRACKSFLYING,
-                UnitTypeId.FACTORYTECHLAB,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False

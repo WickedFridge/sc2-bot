@@ -83,6 +83,7 @@ class CommandCenter(Building):
             BuildOrderName.KOKA_BUILD.value,
             BuildOrderName.MACRO_CYCLONE.value,
             BuildOrderName.GREEDY_2_2_TIMING.value,
+            BuildOrderName.BANSHEES_BURGER.value,
             BuildOrderName.CYCLONE_3_RAVEN.value,
         ]
         if (self.bot.build_order.build.name in reaper_expand_builds):
