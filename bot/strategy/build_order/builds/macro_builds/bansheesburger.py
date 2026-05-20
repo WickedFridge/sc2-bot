@@ -12,9 +12,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 # Build origin
-# Cure vs Rogue
-# RSL S4 LB SemiFinals, game 3
-# https://www.youtube.com/watch?v=We1BrpoLUu8
+# Maru vs Rogue
+# RSL S4 LB Finals, game 2
+# https://youtu.be/We1BrpoLUu8?si=W0TcQlQs94GcZMVO&t=3539
 
 class BansheesBurger(MacroBuild):
     name: BuildOrderName = BuildOrderName.BANSHEES_BURGER.value
