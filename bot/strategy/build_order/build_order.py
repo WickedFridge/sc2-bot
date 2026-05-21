@@ -150,7 +150,10 @@ class BuildOrder(CachedClass):
         # Default that 4 bases = BO completed (to avoid weird bugs)
         return (
             self.bot.townhalls.amount >= 4
-            or all(step.is_satisfied for step in self.steps)
+            or (
+                all(step.is_satisfied for step in self.steps)
+                and all(plan.is_finished for plan in self.swap_plans)
+            )
         )
     
     @property

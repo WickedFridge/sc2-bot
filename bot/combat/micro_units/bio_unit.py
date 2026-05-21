@@ -50,7 +50,10 @@ class MicroBioUnit(MicroUnit):
             and (
                 # only stimming if there's enough danger or a target in range
                 targets_in_range.amount >= 1
-                or self.bot.map.influence_maps.danger.ground[bio_unit.position] >= DANGER_THRESHOLD
+                or (
+                    self.bot.map.influence_maps.danger.ground[bio_unit.position] >= DANGER_THRESHOLD
+                    and not bio_unit.weapon_ready
+                )
             )
         ):
             bio_unit(AbilityId.EFFECT_STIM)

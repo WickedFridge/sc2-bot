@@ -26,7 +26,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air, scouting_units
 
 WEAPON_READY_THRESHOLD: float = 6.0
 
@@ -248,11 +248,6 @@ class SelectOrders:
     
     def get_army_orders(self, army: Army) -> Orders:
         # -- Specific orders for reapers
-        scouting_units: List[UnitTypeId] = [
-            UnitTypeId.REAPER,
-            UnitTypeId.HELLION,
-            UnitTypeId.BANSHEE,
-        ]
         if (
             army.units(scouting_units).amount == army.units.amount
             or army.units(scouting_units).amount >= 4 and army.units.amount < 8
@@ -917,7 +912,7 @@ class SelectOrders:
         return round(closest_distance_to_other, 1)
                 
     def get_local_enemy_units(self, position: Point2, radius: int = 15) -> Units:
-        local_enemy_units: Units = self.global_enemy_units.filter(
+        local_enemy_units: Units = self.global_enemy_units.filtqer(
             lambda unit: (
                 unit.distance_to(position) <= (10 + radius)
                 and unit.type_id not in worker_types

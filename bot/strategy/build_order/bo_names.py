@@ -13,7 +13,7 @@ class BuildOrderName(enum.Enum):
     DUMMY_BUILD = 'Dummy Build'
     GREEDY_2_2_TIMING = 'Greedy 3CC 2/2 Timing'
     CYCLONE_3_RAVEN = 'Cyclone 3 Ravens'
-    BANSHEES_BURGER = 'Banshee\'s Burger'
+    BANSHEESEBURGER = 'Bansheeseburger'
 
 for item in BuildOrderName:
     globals()[item.name] = item

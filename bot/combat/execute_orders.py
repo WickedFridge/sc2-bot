@@ -12,7 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import building_priorities, creep, droppable_units
+from ..utils.unit_tags import building_priorities, creep, droppable_units, scouting_units
 
 PICKUP_RANGE: int = 3
 WEAPON_READY_THRESHOLD: float = 6.0
@@ -428,5 +428,5 @@ class Execute(CachedClass):
         if (scout_target is None):
             scout_target = self.bot.expansions.enemy_main.mineral_line
         
-        for scout in army.units:
+        for scout in army.units.filter(lambda unit: unit.type_id in scouting_units):
             scout.move(scout_target)

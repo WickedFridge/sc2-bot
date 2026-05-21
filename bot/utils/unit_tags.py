@@ -107,6 +107,11 @@ bio_stimmable: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER
 ]
+scouting_units: List[UnitTypeId] = [
+    UnitTypeId.REAPER,
+    UnitTypeId.HELLION,
+    UnitTypeId.BANSHEE,
+]
 droppable_units: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER,
