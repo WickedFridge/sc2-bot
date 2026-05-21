@@ -912,7 +912,7 @@ class SelectOrders:
         return round(closest_distance_to_other, 1)
                 
     def get_local_enemy_units(self, position: Point2, radius: int = 15) -> Units:
-        local_enemy_units: Units = self.global_enemy_units.filtqer(
+        local_enemy_units: Units = self.global_enemy_units.filter(
             lambda unit: (
                 unit.distance_to(position) <= (10 + radius)
                 and unit.type_id not in worker_types
