@@ -120,7 +120,6 @@ class BuildOrder(CachedClass):
                 plans_to_prepend.append(AddonDetachSwap(
                     self.bot,
                     donor_type=plan.donor_type,
-                    donor_flying_type=plan.donor_flying_type,
                 ))
                 continue
 
