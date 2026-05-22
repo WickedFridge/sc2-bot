@@ -393,18 +393,9 @@ class BuildingsHandler:
                     continue
             
             # don't lift CCs before the 4th CC unless every base is already saturated
-            if (townhall.type_id == UnitTypeId.COMMANDCENTER):
-                if (
-                    self.bot.townhalls.ready.amount < 4
-                    and not is_mining_optimal
-                ):
-                    continue
-            
-            # check if we should lift the command center or upgrade it to orbital command
-            if (is_mining_optimal and self.bot.townhalls.ready.amount != 4):
-                # don't lift this command center because mining is already optimal
-                # unless it's to plant the 4th PF
+            if (townhall.type_id == UnitTypeId.COMMANDCENTER and not is_mining_optimal):
                 continue
+            
             landing_spot: Point2 = self.bot.expansions.next.position
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
             # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)

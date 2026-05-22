@@ -312,7 +312,7 @@ class Macro:
             if w.order_target in gas_bldg_tags and not w.is_carrying_vespene
         )
 
-        if (total_gas_workers <= target_gas_workers - gas_hysteresis):
+        if (0 < total_gas_workers <= target_gas_workers - gas_hysteresis):
             # Find refineries below ideal saturation, grouped by priority tier.
             # 0–1 worker refineries are preferred over 2-worker ones (both are equally efficient
             # per worker, but lower counts indicate higher need). Within the chosen tier, pick the

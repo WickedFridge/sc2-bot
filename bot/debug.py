@@ -12,6 +12,7 @@ from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.superbot import Superbot
@@ -560,7 +561,7 @@ class Debug:
             return
         await self._create_units(amount, unit_type, player)
 
-    def switch_build_order(self, message: str):
+    async def switch_build_order(self, message: str):
         parts = message.split(" ", 1)  # split into at most 2 parts
         build: str = parts[1]
         build_order_name: BuildOrderName | None = self.parse_build_order(build)
@@ -570,11 +571,13 @@ class Debug:
         print(f'Switching to {build_order_name} !')
         match (build_order_name):
             case BuildOrderName.KOKA_BUILD:
-                self.bot.build_order.switch_build(KokaBuild(self.bot))
+                await self.bot.build_order.switch_build(KokaBuild(self.bot))
             case BuildOrderName.DEFENSIVE_CYCLONE:
-                self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
+                await self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
+            case BuildOrderName.DEFENSIVE_CYCLONE_TANK:
+                await self.bot.build_order.switch_build(DefensiveCycloneTank(self.bot))
             case BuildOrderName.CONSERVATIVE_RAX_EXPAND:
-                self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
+                await self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
             case _:
                 print(f'switch to {build_order_name} not implemented')
     
@@ -586,7 +589,7 @@ class Debug:
 
         if (message.startswith("BO")):
             print(f'Build Order Switch')
-            self.switch_build_order(message)
+            await self.switch_build_order(message)
             return
         
         if (message[0].isdigit()):
