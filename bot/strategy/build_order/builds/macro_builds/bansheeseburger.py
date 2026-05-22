@@ -85,7 +85,8 @@ class Bansheeseburger(MacroBuild):
                 bot,
                 UnitTypeId.STARPORT,
                 condition=lambda: (
-                    self.bot.composition_manager.should_train(UnitTypeId.BANSHEE) == False
+                    self.bot.structures(UnitTypeId.STARPORTTECHLAB).ready.amount >= 1
+                    and self.bot.composition_manager.should_train(UnitTypeId.BANSHEE) == False
                 ),
             ),
             AddonSwap(

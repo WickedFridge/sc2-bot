@@ -1,4 +1,3 @@
-import math
 from typing import List
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
@@ -18,6 +17,10 @@ from ..utils.unit_tags import worker_types, add_ons, tower_types
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8
 REPAIR_THRESHOLD: float = 0.6
+RALLY_LOCAL_SATURATION_THRESHOLD: float = 0.5
+MAX_GAS_RATIO: float = 0.30
+GAS_MINERAL_GATE_ENABLE: float = 0.50   # global mineral ratio above which gas workers are added
+GAS_MINERAL_GATE_DISABLE: float = 0.40  # global mineral ratio below which gas workers are pulled
 
 class Macro:
     bot: Superbot
@@ -144,21 +147,6 @@ class Macro:
         for base in self.bases:
             base.workers_response_to_threat()
 
-    async def saturate_gas(self):
-        # Saturate refineries
-        for refinery in self.bot.gas_buildings:
-            if (
-                refinery.assigned_harvesters < refinery.ideal_harvesters
-                and self.bot.vespene <= self.bot.minerals + 300
-                and self.bot.workers.amount >= 5 * self.bot.townhalls.amount
-            ):
-                workers: Units = self.bot.workers.gathering.closer_than(10, refinery).filter(
-                    lambda unit: self.bot.gas_buildings.find_by_tag(unit.orders[0].target) is None
-                )
-                if workers:
-                    closest_worker = workers.closest_to(refinery)
-                    closest_worker.gather(refinery)
-
     async def split_workers(self):
         cc: Unit = self.bot.townhalls.first
         mineral_fields: Units = self.bot.mineral_field.filter(lambda unit: unit.distance_to(cc) <= 10)
@@ -184,96 +172,238 @@ class Macro:
             mule.gather(closest_mineral_field)
 
     async def distribute_workers(self, iteration: int):
-        worker_count = self.bot.workers.amount
-        frequency = min(40 + worker_count * 2, 200)  # Scale up to a max of 200 iterations
-
-        # Check if one gas is oversaturated
-        oversaturated_ref: Units = self.bot.gas_buildings.filter(lambda unit: unit.assigned_harvesters >= 4)
-
-        if (iteration % frequency != 0 and self.bot.workers.idle.amount == 0 and oversaturated_ref.amount == 0):
-            return
-        if (not self.bot.mineral_field or not self.bot.workers or self.bot.expansions.ready.amount == 0):
-            return
-        if (self.bot.expansions.ready.safe.amount == 0):
+        if (not self.bot.mineral_field or not self.bot.workers):
             return
 
-        expansions_sorted_by_deficit_in_mining: Expansions = self.bot.expansions.ready.safe.sorted(
-            key = lambda expansion: expansion.mineral_worker_count - expansion.optimal_mineral_workers,
+        ready_safe_expansions: Expansions = self.bot.expansions.ready.safe
+        if (ready_safe_expansions.amount == 0):
+            return
+
+        worker_count: int = self.bot.supply_workers - self.bot.already_pending(UnitTypeId.SCV)
+        has_idle_workers: bool = self.bot.workers.idle.amount > 0
+        has_oversaturated_refinery: bool = self.bot.gas_buildings.filter(
+            lambda refinery: refinery.assigned_harvesters >= 4
+        ).amount > 0
+        # frequency: int = min(20 + worker_count, 100)
+        frequency: int = 4
+        if (not has_idle_workers and not has_oversaturated_refinery and iteration % frequency != 0):
+            return
+
+        # Single pass over all expansions to collect global statistics
+        expansions_list: List[Expansion] = ready_safe_expansions.expansions
+        total_gas_workers: int = 0
+        total_actual_mineral_workers: int = 0
+        total_ideal_mineral_workers: float = 0.0
+
+        least_saturated_mineral_expansion: Expansion = None
+        least_saturated_mineral_deficit: float = float('inf')   # (current - optimal), most negative = most under-saturated
+        most_saturated_mineral_expansion: Expansion = None
+        most_saturated_mineral_surplus: float = float('-inf')
+
+        expansion_by_position: dict[Point2, Expansion] = {}
+
+        for expansion in expansions_list:
+            expansion_by_position[expansion.position] = expansion
+            workers_on_minerals: int = expansion.mineral_worker_count
+            optimal_workers_on_minerals: float = expansion.optimal_mineral_workers
+            total_gas_workers += expansion.vespene_worker_count
+
+            if (optimal_workers_on_minerals > 0):
+                total_actual_mineral_workers += workers_on_minerals
+                total_ideal_mineral_workers += optimal_workers_on_minerals
+                mineral_deficit: float = workers_on_minerals - optimal_workers_on_minerals
+                if (mineral_deficit < least_saturated_mineral_deficit):
+                    least_saturated_mineral_deficit = mineral_deficit
+                    least_saturated_mineral_expansion = expansion
+                if (mineral_deficit > most_saturated_mineral_surplus):
+                    most_saturated_mineral_surplus = mineral_deficit
+                    most_saturated_mineral_expansion = expansion
+
+        if (least_saturated_mineral_expansion is None or least_saturated_mineral_expansion.mineral_fields.amount == 0):
+            return
+
+        # Count MULE equivalents: 1 Orbital Command = 1 active MULE = 4 SCV equivalent mining power.
+        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        mule_equivalent_workers: int = orbital_count * 4
+        effective_worker_count: int = worker_count + mule_equivalent_workers
+
+        # Total harvesting capacity of all ready refineries across safe expansions.
+        total_refinery_capacity: int = sum(
+            refinery.ideal_harvesters
+            for expansion in expansions_list
+            for refinery in expansion.refineries
+            if refinery.is_ready
         )
 
+        # Three-zone gas gate to prevent oscillation when mineral count sits near the threshold:
+        # - Below DISABLE: pull all gas workers back to minerals.
+        # - Between DISABLE and ENABLE (gray zone): freeze current allocation — no add, no pull.
+        # - Above ENABLE: fill gas normally.
+        if (total_ideal_mineral_workers) == 0:
+            target_gas_workers: int = 0
+            gas_hysteresis: int = 0
+        else:
+            mineral_ratio: float = total_actual_mineral_workers / total_ideal_mineral_workers
+            if (mineral_ratio < GAS_MINERAL_GATE_DISABLE):
+                target_gas_workers: int = 0
+                gas_hysteresis: int = 0
+            elif (mineral_ratio < GAS_MINERAL_GATE_ENABLE):
+                target_gas_workers: int = total_gas_workers  # freeze: neither add nor pull
+                gas_hysteresis: int = 1
+            else:
+                target_gas_workers: int = min(total_refinery_capacity, round(effective_worker_count * MAX_GAS_RATIO))
+                gas_hysteresis: int = 1
 
-        most_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.last
-        least_saturated_expansion: Expansion = expansions_sorted_by_deficit_in_mining.first
-        for th in self.bot.townhalls.ready:
+        # Rally each townhall to its own mineral line while locally under-saturated,
+        # then redirect to the globally least saturated line once the local base is covered.
+        for expansion in expansions_list:
+            local_townhall: Unit = expansion.cc
+            if (local_townhall is None):
+                continue
+            rally_target_expansion: Expansion = (
+                expansion
+                if expansion.mineral_saturation < RALLY_LOCAL_SATURATION_THRESHOLD
+                else least_saturated_mineral_expansion
+            )
+            if (rally_target_expansion.mineral_fields.amount == 0):
+                continue
+            target_mineral_field: Unit = rally_target_expansion.mineral_fields.random
             if (
-                len(th.rally_targets) >= 1
-                and th.rally_targets[0].tag not in least_saturated_expansion.mineral_fields.tags
-                and least_saturated_expansion.mineral_fields.amount >= 1
+                len(local_townhall.rally_targets) == 0
+                or local_townhall.rally_targets[0].tag not in rally_target_expansion.mineral_fields.tags
             ):
-                th(AbilityId.RALLY_COMMANDCENTER, least_saturated_expansion.mineral_fields.random)
-        
-        for worker in self.bot.workers.idle:
-            if (least_saturated_expansion.mineral_fields.amount == 0):
+                local_townhall(AbilityId.RALLY_COMMANDCENTER, target_mineral_field)
+
+        # Idle workers → most under-saturated expansion. Virtual capacity tracks how many more
+        # workers each base can absorb in this call, preventing all idle SCVs from piling onto
+        # one base. Negative values mean over-saturated; workers still go there rather than
+        # stay idle (over-saturating minerals is better than idling or over-saturating gas).
+        expansion_virtual_capacity: dict[Point2, int] = {
+            expansion.position: round(expansion.optimal_mineral_workers) - expansion.mineral_worker_count
+            for expansion in expansions_list
+            if (expansion.optimal_mineral_workers > 0 and expansion.mineral_fields.amount > 0)
+        }
+        for idle_worker in self.bot.workers.idle:
+            if (not expansion_virtual_capacity):
                 break
-            mineral_field_target: Unit = least_saturated_expansion.mineral_fields.random
-            worker.gather(mineral_field_target)
+            best_position: Point2 = max(
+                expansion_virtual_capacity,
+                key=lambda position: expansion_virtual_capacity[position]
+            )
+            target_expansion: Expansion = expansion_by_position[best_position]
+            if (target_expansion.mineral_fields.amount == 0):
+                del expansion_virtual_capacity[best_position]
+                continue
+            idle_worker.gather(target_expansion.mineral_fields.random)
+            expansion_virtual_capacity[best_position] -= 1
 
-        # make some movements with SCVs on oversaturated lines
-        if (
-            most_saturated_expansion.mineral_worker_count > most_saturated_expansion.optimal_mineral_workers + 2
-            and least_saturated_expansion.mineral_worker_count < least_saturated_expansion.optimal_mineral_workers - 2
-        ):
-            most_saturated_expansion.mineral_workers.random.stop()
-        
-        #v0
-        expansion_sorted_by_vespene_mining: Expansions = self.bot.expansions.ready.filter(
-            lambda expansion: expansion.refineries.amount >= 1
-        ).sorted(
-            key = lambda expansion: expansion.vespene_saturation,
-            reverse = True
+        # Fix oversaturated refineries (≥4 workers) — redirect excess to the least saturated minerals
+        for refinery in self.bot.gas_buildings.filter(lambda refinery: refinery.assigned_harvesters >= 4):
+            excess_harvesters: Units = self.bot.workers.filter(
+                lambda worker: worker.order_target == refinery.tag and not worker.is_carrying_vespene
+            )
+            if (excess_harvesters.amount >= 1 and least_saturated_mineral_expansion.mineral_fields.amount >= 1):
+                excess_harvesters.random.gather(least_saturated_mineral_expansion.mineral_fields.random)
+
+        # Gas adjustment — one move per call; hysteresis band prevents flickering.
+        gas_bldg_tags: set[int] = {r.tag for r in self.bot.gas_buildings}
+        workers_heading_to_gas: int = sum(
+            1 for w in self.bot.workers
+            if w.order_target in gas_bldg_tags and not w.is_carrying_vespene
         )
-        
-        # we want 0 gas if saturation of any base is under 2/3 and we have 200 or more gas in bank while we have under 44 scvs
-        if (
-            expansion_sorted_by_vespene_mining.amount >= 1 and 
-            least_saturated_expansion.mineral_saturation <= 2/3 and
-            worker_count <= 44 and
-            self.bot.vespene >= 200
-        ):
-            # find a vespene worker and ask it to stop
-            vespene_workers: Units = expansion_sorted_by_vespene_mining.first.vespene_workers
-            if (vespene_workers.amount >= 1):
-                vespene_workers.random.stop()
-                return
-        
-        # we want to avoid oversaturation
-        oversaturated_refineries: Units = self.bot.structures(UnitTypeId.REFINERY).filter(lambda unit: unit.assigned_harvesters >= 4)
-        for oversaturated_ref in oversaturated_refineries:
-            harvesters: Units = self.bot.workers.filter(
-                lambda worker: worker.order_target == oversaturated_ref.tag and not worker.is_carrying_vespene
-            )
-            if (harvesters.amount >= 1):
-                harvesters.random.stop()
 
-        # we want saturation in gas if every mineral line is over 2/3rd saturation
-        if (least_saturated_expansion.mineral_saturation <= 0.6):
-            return
-        
-        # expansions_not_saturated_in_vespene: Expansions = self.bot.expansions.filter(
-        #     lambda expansion: expansion.refineries.amount >= 1 and math.floor(expansion.vespene_saturation * 3) < expansion.desired_vespene_saturation * 3
-        # ).sorted(lambda expansion: expansion.vespene_saturation)
-        
-        for expansion in expansion_sorted_by_vespene_mining:
-            if (expansion.refineries.amount == 0 or math.floor(expansion.vespene_saturation * 3) >= expansion.desired_vespene_saturation * 3):
-                continue
-            least_saturated_refinery: Unit = expansion.refineries.sorted(lambda unit: unit.assigned_harvesters).first
-            mineral_workers: Units = expansion.mineral_workers.filter(
-                lambda unit: unit.is_carrying_minerals == False
+        if (total_gas_workers <= target_gas_workers - gas_hysteresis):
+            # Find refineries below ideal saturation, grouped by priority tier.
+            # 0–1 worker refineries are preferred over 2-worker ones (both are equally efficient
+            # per worker, but lower counts indicate higher need). Within the chosen tier, pick the
+            # refinery closest to any sufficiently saturated mineral line to minimize travel.
+            print(f"[GAS] need more | assigned={total_gas_workers} heading={workers_heading_to_gas} target={target_gas_workers} cap={total_refinery_capacity}")
+            for _exp in expansions_list:
+                for _ref in _exp.refineries:
+                    print(f"  ref {_ref.tag}: assigned={_ref.assigned_harvesters}/{_ref.ideal_harvesters}")
+            needing_gas_fill: List[Unit] = [
+                refinery
+                for expansion in expansions_list
+                for refinery in expansion.refineries
+                if (refinery.assigned_harvesters < refinery.ideal_harvesters)
+            ]
+            if (needing_gas_fill):
+                sufficiently_saturated_expansions: List[Expansion] = [
+                    expansion for expansion in expansions_list
+                    if (expansion.mineral_saturation >= RALLY_LOCAL_SATURATION_THRESHOLD)
+                ]
+                if (sufficiently_saturated_expansions):
+                    priority_refineries: List[Unit] = [
+                        refinery for refinery in needing_gas_fill if (refinery.assigned_harvesters <= 1)
+                    ]
+                    candidate_refineries: List[Unit] = (
+                        priority_refineries if priority_refineries else needing_gas_fill
+                    )
+                    target_refinery: Unit = min(
+                        candidate_refineries,
+                        key=lambda refinery: min(
+                            expansion.position.distance_to(refinery.position)
+                            for expansion in sufficiently_saturated_expansions
+                        )
+                    )
+                    nearest_saturated_expansion: Expansion = min(
+                        sufficiently_saturated_expansions,
+                        key=lambda expansion: expansion.position.distance_to(target_refinery.position)
+                    )
+                    free_mineral_workers: Units = nearest_saturated_expansion.mineral_workers.filter(
+                        lambda worker: not worker.is_carrying_minerals
+                    )
+                    if (free_mineral_workers.amount >= 1):
+                        worker_to_redirect: Unit = free_mineral_workers.closest_to(target_refinery)
+                        print(f"  -> redirect #{worker_to_redirect.tag} (order_target={worker_to_redirect.order_target}, orders={len(worker_to_redirect.orders)}) -> ref {target_refinery.tag}")
+                        worker_to_redirect.gather(target_refinery)
+                    else:
+                        print(f"  -> no free mineral workers (mineral_workers={nearest_saturated_expansion.mineral_workers.amount} non-carrying={nearest_saturated_expansion.mineral_workers.filter(lambda w: not w.is_carrying_minerals).amount})")
+                else:
+                    print(f"  -> no saturated expansions (threshold={RALLY_LOCAL_SATURATION_THRESHOLD})")
+                    for _exp in expansions_list:
+                        print(f"    {_exp.position}: sat={_exp.mineral_saturation:.2f}")
+
+        elif (total_gas_workers > target_gas_workers + gas_hysteresis):
+            # Pull a gas worker back to minerals. Return to the local base if it needs minerals
+            # (avoids long travel); otherwise send to the globally least saturated line.
+            print(f'pull worker out of gas [{total_gas_workers}/{target_gas_workers}] (+- {gas_hysteresis})')
+            most_gas_saturated_expansion: Expansion = max(
+                (expansion for expansion in expansions_list if expansion.vespene_worker_count > 0),
+                key=lambda expansion: expansion.vespene_saturation,
+                default=None,
             )
-            if (mineral_workers.amount == 0):
-                continue
-            mineral_workers.closest_to(least_saturated_refinery).gather(least_saturated_refinery)
-            break
+            if (most_gas_saturated_expansion is not None):
+                mineral_destination: Expansion = (
+                    most_gas_saturated_expansion
+                    if most_gas_saturated_expansion.mineral_saturation < RALLY_LOCAL_SATURATION_THRESHOLD
+                    else least_saturated_mineral_expansion
+                )
+                if (mineral_destination.mineral_fields.amount >= 1):
+                    all_gas_workers: Units = most_gas_saturated_expansion.vespene_workers
+                    non_carrying_gas_workers: Units = all_gas_workers.filter(
+                        lambda worker: not worker.is_carrying_vespene
+                    )
+                    worker_to_redirect: Unit = (
+                        non_carrying_gas_workers.random
+                        if non_carrying_gas_workers.amount > 0
+                        else (all_gas_workers.random if all_gas_workers.amount > 0 else None)
+                    )
+                    if (worker_to_redirect is not None):
+                        worker_to_redirect.gather(mineral_destination.mineral_fields.random)
+
+        # Mineral rebalancing between bases — one move per call, only when imbalance exceeds ±2
+        if (
+            most_saturated_mineral_surplus > 2
+            and least_saturated_mineral_deficit < -2
+            and most_saturated_mineral_expansion is not least_saturated_mineral_expansion
+            and least_saturated_mineral_expansion.mineral_fields.amount >= 1
+        ):
+            free_workers_for_rebalance: Units = most_saturated_mineral_expansion.mineral_workers.filter(
+                lambda worker: not worker.is_carrying_minerals
+            )
+            if (free_workers_for_rebalance.amount >= 1):
+                free_workers_for_rebalance.random.gather(least_saturated_mineral_expansion.mineral_fields.random)
 
     def supply_block_update(self):
         if (self.bot.supply_left <= 1 and self.bot.supply_cap < 200):

@@ -228,9 +228,9 @@ class StrategyHandler:
         if (enemy_towers.amount >= 1):
             match(enemy_towers.first.type_id):
                 case UnitTypeId.PYLON:
-                    return Situation.CHEESE_CANON_RUSH
+                    return Situation.CHEESE_CANNON_RUSH
                 case UnitTypeId.PHOTONCANNON:
-                    return Situation.CHEESE_CANON_RUSH
+                    return Situation.CHEESE_CANNON_RUSH
                 case UnitTypeId.BUNKER:
                     return Situation.CHEESE_BUNKER_RUSH
                 case _:

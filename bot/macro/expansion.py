@@ -177,9 +177,14 @@ class Expansion(CachedClass):
             return Units([], self.bot)
         return self.bot.workers.filter(
             lambda worker: (
-                worker.order_target in self.mineral_fields.tags
-                or (worker.is_returning and worker.distance_to(self.position) <= 8)
-                or (
+                (
+                    worker.is_gathering
+                    and worker.order_target in self.mineral_fields.tags
+                ) or (
+                    worker.is_returning
+                    and worker.is_carrying_minerals
+                    and worker.distance_to(self.position) <= 8
+                ) or (
                     worker.is_moving
                     and isinstance(worker.order_target, Point2)
                     and worker.order_target.distance_to(self.mineral_line) <= 5

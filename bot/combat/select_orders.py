@@ -212,7 +212,7 @@ class SelectOrders:
         # if there are units, fight or retreat
         if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
-        if (situation == Situation.CHEESE_CANON_RUSH):
+        if (situation == Situation.CHEESE_CANNON_RUSH):
             return Orders.DEFEND_CANON_RUSH
             
         if (local_enemy_supply > 0):
@@ -289,7 +289,7 @@ class SelectOrders:
         # -- High-priority hardcoded situations
         if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
-        if (situation == Situation.CHEESE_CANON_RUSH):
+        if (situation == Situation.CHEESE_CANNON_RUSH):
             return Orders.DEFEND_CANON_RUSH
         
         # -- Drop logic
