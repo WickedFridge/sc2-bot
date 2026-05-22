@@ -61,8 +61,8 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def vikings_amount(self) -> int:
-        # so far we max our viking amount at 36
-        max_viking_amount: int = 36
+        # so far we max our viking amount at 20
+        max_viking_amount: int = 20
 
         # we want pretty much matching air supply
         viking_response: dict[UnitTypeId, int] = {
@@ -93,16 +93,17 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def thor_amount(self) -> int:
-        # so far we max our thor amount at 6
-        max_thor_amount: int = 6
+        # so far we max our thor amount at 4
+        max_thor_amount: int = 4
         
         # we want pretty much matching air supply
         thor_amount: float = 0
+        light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKINGS, UnitTypeId.LIBERATOR]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
-            if (unit_type not in massive_flyers and unit_type != UnitTypeId.MUTALISK):
+            if (unit_type not in massive_flyers and unit_type not in light_units):
                 continue
             enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
-            thor_response_amount: float = get_unit_supply(unit_type) / 3
+            thor_response_amount: float = get_unit_supply(unit_type) / 4
             if (enemy_units.amount > 0):
                 thor_amount += thor_response_amount * enemy_units.amount
             else:
@@ -220,7 +221,7 @@ class ArmyCompositionManager(CachedClass):
         ):
             powerful_unit_amount: int = self.wicked.scouting.known_enemy_army.units.filter(lambda unit: get_unit_supply(unit.type_id) >= 3).amount
             raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
-            composition.set(UnitTypeId.RAVEN, min(max([3, raven_amount, powerful_unit_amount]), 15))
+            composition.set(UnitTypeId.RAVEN, min(max([3, raven_amount, powerful_unit_amount]), 10))
 
 
         # if we have medivacs and a lot of bio, get the medivac count up to 10
