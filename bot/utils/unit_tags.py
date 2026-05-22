@@ -205,7 +205,6 @@ production_flying: List[UnitTypeId] = [
 important_buildings: List[UnitTypeId] = [
     UnitTypeId.COMMANDCENTER,
     UnitTypeId.BUNKER,
-    UnitTypeId.MISSILETURRET,
     UnitTypeId.SUPPLYDEPOT,
 ]
 flying_units: list[UnitTypeId] = [

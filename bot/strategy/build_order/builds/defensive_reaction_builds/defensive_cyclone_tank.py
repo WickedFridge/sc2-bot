@@ -57,7 +57,7 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'Starport', UnitTypeId.STARPORT, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, True)]),
             BuildOrderStep(bot, self, 'Starport techlab', UnitTypeId.STARPORTTECHLAB, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, True)]),
             BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
-            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)]),
+            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORT, 1, False), (UnitTypeId.STARPORTREACTOR, 2, False)]),
             BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
             BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
         ]

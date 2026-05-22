@@ -306,6 +306,16 @@ class BuildingLayer:
             (5, 0),
             (5, 1),
             (5, 2),
+            # extra layer of safety for factories (tanks and Thors are big)
+            (-2, 0),
+            (-2, 1),
+            (-2, 2),
+            (6, 0),
+            (6, 1),
+            (6, 2),
+        ]
+
+        factory_points: List[tuple[int, int]] = [
         ]
         
         # reserve space between production buildings

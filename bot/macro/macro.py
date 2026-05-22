@@ -19,8 +19,6 @@ THREAT_DISTANCE: int = 8
 REPAIR_THRESHOLD: float = 0.6
 RALLY_LOCAL_SATURATION_THRESHOLD: float = 0.5
 MAX_GAS_RATIO: float = 0.30
-GAS_MINERAL_GATE_ENABLE: float = 0.50   # global mineral ratio above which gas workers are added
-GAS_MINERAL_GATE_DISABLE: float = 0.40  # global mineral ratio below which gas workers are pulled
 
 class Macro:
     bot: Superbot
@@ -192,7 +190,6 @@ class Macro:
         # Single pass over all expansions to collect global statistics
         expansions_list: List[Expansion] = ready_safe_expansions.expansions
         total_gas_workers: int = 0
-        total_actual_mineral_workers: int = 0
         total_ideal_mineral_workers: float = 0.0
 
         least_saturated_mineral_expansion: Expansion = None
@@ -209,7 +206,6 @@ class Macro:
             total_gas_workers += expansion.vespene_worker_count
 
             if (optimal_workers_on_minerals > 0):
-                total_actual_mineral_workers += workers_on_minerals
                 total_ideal_mineral_workers += optimal_workers_on_minerals
                 mineral_deficit: float = workers_on_minerals - optimal_workers_on_minerals
                 if (mineral_deficit < least_saturated_mineral_deficit):
@@ -235,24 +231,17 @@ class Macro:
             if refinery.is_ready
         )
 
-        # Three-zone gas gate to prevent oscillation when mineral count sits near the threshold:
-        # - Below DISABLE: pull all gas workers back to minerals.
-        # - Between DISABLE and ENABLE (gray zone): freeze current allocation — no add, no pull.
-        # - Above ENABLE: fill gas normally.
-        if (total_ideal_mineral_workers) == 0:
+        # Use worker_count (total alive workers) rather than mineral_worker_count for the gate.
+        # This prevents two failure modes:
+        # - Oscillation: adding a gas worker doesn't lower worker_count, so the ratio stays stable.
+        # - Post-fight recovery: workers transitioning out of combat aren't in mineral_workers
+        #   yet but are still counted in worker_count, so gas resumes immediately.
+        if (total_ideal_mineral_workers == 0 or worker_count < total_ideal_mineral_workers * RALLY_LOCAL_SATURATION_THRESHOLD):
             target_gas_workers: int = 0
             gas_hysteresis: int = 0
         else:
-            mineral_ratio: float = total_actual_mineral_workers / total_ideal_mineral_workers
-            if (mineral_ratio < GAS_MINERAL_GATE_DISABLE):
-                target_gas_workers: int = 0
-                gas_hysteresis: int = 0
-            elif (mineral_ratio < GAS_MINERAL_GATE_ENABLE):
-                target_gas_workers: int = total_gas_workers  # freeze: neither add nor pull
-                gas_hysteresis: int = 1
-            else:
-                target_gas_workers: int = min(total_refinery_capacity, round(effective_worker_count * MAX_GAS_RATIO))
-                gas_hysteresis: int = 1
+            target_gas_workers: int = min(total_refinery_capacity, round(effective_worker_count * MAX_GAS_RATIO))
+            gas_hysteresis: int = 1
 
         # Rally each townhall to its own mineral line while locally under-saturated,
         # then redirect to the globally least saturated line once the local base is covered.
