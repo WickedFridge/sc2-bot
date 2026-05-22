@@ -59,7 +59,7 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
-            BuildOrderStep(bot, self, 'facto techlab #2', UnitTypeId.FACTORYTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
         ]
     
         self.swap_plans = [
@@ -76,8 +76,10 @@ class DefensiveCycloneTank(BuildOrder):
                 UnitTypeId.BARRACKS,
                 UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
+                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
+                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 2
                 )
             ),
             AddonSwap(
@@ -86,7 +88,8 @@ class DefensiveCycloneTank(BuildOrder):
                 UnitTypeId.BARRACKS,
                 UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
+                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
                     and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 )
