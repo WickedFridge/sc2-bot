@@ -297,17 +297,27 @@ class Execute(CachedClass):
 
         return None
             
-    def defend_canon_rush(self, army: Army):
+    def defend_cannon_rush(self, army: Army):
+        enemy_probes: Units = self.bot.enemy_units(UnitTypeId.PROBE).sorted(
+            lambda probe: probe.distance_to(self.bot.expansions.b2.position)
+        )
         enemies: Units = self.bot.enemy_structures([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]).sorted(
             lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position))
         )
         
         # if there are canons, destroy them
         for unit in army.units:
+            # if there's a probe in range, shoot it
+            if (enemy_probes.amount >= 1):
+                closest_probe: Unit = enemy_probes.closest_to(unit)
+                if (unit.target_in_range(closest_probe)):
+                    unit.attack(closest_probe)
+                    continue
+            # otherwise shoot the closest canon
             if (enemies(UnitTypeId.PHOTONCANNON).amount >= 1):
                 unit.attack(enemies(UnitTypeId.PHOTONCANNON).first)
             else:
-                unit.attack(enemies.first)
+                unit.attack((enemies + enemy_probes).first)
             
 
 

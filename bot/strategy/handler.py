@@ -186,7 +186,7 @@ class StrategyHandler:
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)
         if (defensive_response is not None):
-            self.bot.build_order.switch_build(defensive_response)
+            await self.bot.build_order.switch_build(defensive_response)
         
         if (not situation.is_cheese):
             return

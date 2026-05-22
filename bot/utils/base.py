@@ -71,9 +71,9 @@ class Base:
         if (enemy_towers.amount >= 1):
             match(enemy_towers.random.type_id):
                 case UnitTypeId.PYLON:
-                    return Threat.CANON_RUSH
+                    return Threat.CANNON_RUSH
                 case UnitTypeId.PHOTONCANNON:
-                    return Threat.CANON_RUSH
+                    return Threat.CANNON_RUSH
                 case UnitTypeId.BUNKER:
                     return Threat.BUNKER_RUSH
                 case _:
@@ -129,7 +129,7 @@ class Base:
             case Threat.HARASS:
                 self.avoid_harass()
 
-            case Threat.CANON_RUSH:
+            case Threat.CANNON_RUSH:
                 self.defend_cannon_rush()
 
             case Threat.BUNKER_RUSH:

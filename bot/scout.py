@@ -1,4 +1,5 @@
 from typing import List, Optional
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import closest_point
@@ -21,7 +22,7 @@ class Scout:
         return self.bot.units.find_by_tag(self.scout_tag)
 
     async def b2_against_proxy(self):
-        if (self.bot.matchup != Matchup.TvP):
+        if (self.bot.matchup != Matchup.TvP or self.bot.scouting.situation != Situation.STABLE):
             return
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")

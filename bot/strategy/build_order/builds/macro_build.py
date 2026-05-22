@@ -13,6 +13,7 @@ class MacroBuild(BuildOrder):
         self.default_defensive_response = ConservativeRaxExpand(bot)
         self.defensive_responses = {
             Situation.CHEESE_ROACH_RUSH: DefensiveCycloneTank(self.bot),
+            Situation.CHEESE_CANNON_RUSH: DefensiveCycloneTank(self.bot),
             Situation.CHEESE_BUNKER_RUSH: DefensiveCycloneTank(self.bot),
-            Situation.CHEESE_LING_FLOOD: DefensiveMistral211(self.bot), 
+            Situation.CHEESE_LING_FLOOD: DefensiveMistral211(self.bot),
         }

@@ -5,7 +5,7 @@ class Threat(enum.Enum):
     ATTACK = 1
     WORKER_SCOUT = 2
     HARASS = 3
-    CANON_RUSH = 4
+    CANNON_RUSH = 4
     BUNKER_RUSH = 5
     UNKNOWN = 6
     OVERWHELMED = 7

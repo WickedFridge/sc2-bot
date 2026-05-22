@@ -392,9 +392,12 @@ class BuildingsHandler:
                 if (self.bot.townhalls.ready.amount >= 4):
                     continue
             
-            # don't lift CCs before the 4th CC
+            # don't lift CCs before the 4th CC unless every base is already saturated
             if (townhall.type_id == UnitTypeId.COMMANDCENTER):
-                if (self.bot.townhalls.ready.amount < 4):
+                if (
+                    self.bot.townhalls.ready.amount < 4
+                    and not is_mining_optimal
+                ):
                     continue
             
             # check if we should lift the command center or upgrade it to orbital command

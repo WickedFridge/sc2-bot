@@ -213,7 +213,7 @@ class SelectOrders:
         if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
         if (situation == Situation.CHEESE_CANNON_RUSH):
-            return Orders.DEFEND_CANON_RUSH
+            return Orders.DEFEND_CANNON_RUSH
             
         if (local_enemy_supply > 0):
             if (distance_building_to_enemies <= BASE_SIZE):
@@ -290,7 +290,7 @@ class SelectOrders:
         if (situation == Situation.CHEESE_BUNKER_RUSH):
             return Orders.DEFEND_BUNKER_RUSH
         if (situation == Situation.CHEESE_CANNON_RUSH):
-            return Orders.DEFEND_CANON_RUSH
+            return Orders.DEFEND_CANNON_RUSH
         
         # -- Drop logic
         if (army.is_drop):
@@ -632,8 +632,8 @@ class SelectOrders:
                 case Orders.DEFEND_BUNKER_RUSH:
                     self.execute.defend_bunker_rush(army)
 
-                case Orders.DEFEND_CANON_RUSH:
-                    self.execute.defend_canon_rush(army)
+                case Orders.DEFEND_CANNON_RUSH:
+                    self.execute.defend_cannon_rush(army)
 
                 case Orders.DROP_LOAD | Orders.DROP_RELOAD:
                     await self.execute.drop_load(army)

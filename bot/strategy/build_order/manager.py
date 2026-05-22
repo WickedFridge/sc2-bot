@@ -66,7 +66,7 @@ class BuildOrderManager:
             case _:
                 self.build = KokaBuild(self.bot)
 
-    def switch_build(self, new_build_order: BuildOrder) -> None:
+    async def switch_build(self, new_build_order: BuildOrder) -> None:
     # Abort any in-progress swaps from the old build order
         for plan in self.build.swap_plans:
             if (not plan.is_finished and plan.state != SwapState.PENDING):
@@ -74,7 +74,11 @@ class BuildOrderManager:
                 plan.state = SwapState.ABORTED
 
         self.build = new_build_order
+        await self.announce_build()
         self.build.reconcile()
+
+    async def announce_build(self):
+        await self.bot.client.chat_send(f'Build : {self.build.name}', False)
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager

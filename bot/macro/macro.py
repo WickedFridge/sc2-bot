@@ -439,7 +439,7 @@ class Macro:
                     color = YELLOW
                 case Threat.HARASS:
                     color = BLUE
-                case Threat.CANON_RUSH:
+                case Threat.CANNON_RUSH:
                     color = PURPLE
                 case _:
                     color = WHITE

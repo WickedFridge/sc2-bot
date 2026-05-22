@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.2.0"
+VERSION: str = "12.2.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -345,7 +345,7 @@ class WickedBot(Superbot):
     async def tag_game(self):
         await self.client.chat_send(f'Tag:{self.matchup}', False)
         print(f'Matchup : {self.matchup}')
-        await self.client.chat_send(f'Build : {self.build_order.build.name}', False)
+        await self.build_order.announce_build()
         self.tag_to_update = False
 
     @override
