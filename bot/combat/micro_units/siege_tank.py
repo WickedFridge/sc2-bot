@@ -55,9 +55,9 @@ class MicroSiegeTank(MicroUnit):
         await self.fight(unit, local_units)
 
     @override
-    async def a_move(self, unit: Unit, local_units: Units, target: Point2):
+    async def a_move(self, unit: Unit, target: Point2):
         self.switch_mode(unit, Units([], self.bot))
-        await super().a_move(unit, local_units, target)
+        await super().a_move(unit, target)
     
     @override
     async def attack_nearest_base(self, unit: Unit, army: Army, target: Point2):

@@ -73,9 +73,11 @@ class MicroRaven(MicroUnit):
             return True
         return False
 
-    async def raven_autoturret(self, raven: Unit) -> bool:
-        AUTOTURRET_RANGE: int = 2
-        potential_targets: Units = self.get_local_enemy_units(raven.position, AUTOTURRET_RANGE + 4)
+    async def raven_autoturret(self, raven: Unit, defending: bool = False) -> bool:
+        CASTING_RANGE: int = 2
+        AUTOTURRET_RANGE: int = 6
+        enemy_range: float = AUTOTURRET_RANGE + CASTING_RANGE if defending else CASTING_RANGE
+        potential_targets: Units = self.get_local_enemy_units(raven.position, enemy_range, only_menacing=defending)
         if (potential_targets.amount == 0):
             return False
         # find a position to cast auto turret
@@ -95,7 +97,7 @@ class MicroRaven(MicroUnit):
             return False
     
     @override
-    async def fight(self, raven: Unit, local_units: Units, chase: bool = False):
+    async def fight(self, raven: Unit, local_units: Units, chase: bool = False, defending: bool = False):
         # if we have enough energy, cast anti armor missile on the closest group of enemy units
         ANTI_ARMOR_MISSILE_ENERGY_COST: int = 75
         INTERFERENCE_MATRIX_ENERGY_COST: int = 75
@@ -119,12 +121,16 @@ class MicroRaven(MicroUnit):
                 return
         
         if (AbilityId.BUILDAUTOTURRET_AUTOTURRET in available_abilities and raven.energy >= AUTO_TURRET_ENERGY_COST):
-            if (await self.raven_autoturret(raven)):
+            if (await self.raven_autoturret(raven, defending=defending)):
                 return
         
         if (not self.safety_disengage(raven)):
             raven.move(local_units.center)
 
+    @override
+    async def fight_defense(self, unit: Unit, local_units: Units):
+        await self.fight(unit, local_units, defending=True)
+    
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):
         await self.fight(unit, local_units)
