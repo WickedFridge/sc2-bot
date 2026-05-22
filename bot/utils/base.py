@@ -160,8 +160,10 @@ class Base:
     def defend_cannon_rush(self) -> None:
         canons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)
         pylons: Units = self.enemy_structures(UnitTypeId.PYLON)
-        enemy_probe_amount: int = self.bot.enemy_units(UnitTypeId.PROBE).closer_than(self.position, self.BASE_SIZE * 1.5).amount
-        
+        enemy_probe_amount: int = self.bot.enemy_units(UnitTypeId.PROBE).filter(
+            lambda unit: unit.distance_to(self.position) < self.BASE_SIZE * 1.5
+        ).amount
+
         # track the probes with 3 workers each
         self.track_enemy_scout(3)
         # respond to canon rush

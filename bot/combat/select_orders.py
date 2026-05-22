@@ -356,7 +356,10 @@ class SelectOrders:
             # If winning with stim
             if (
                 army.potential_supply >= local_enemy_supply * 1.2 and (
-                    self.stim_completed or army.is_technical
+                    self.stim_completed
+                    or (
+                        army.is_technical and self.bot.matchup == Matchup.TvT
+                    )
                 )
             ):
                 # if army is mostly in medivacs, we drop if we have enough hp on medivacs, otherwise we retreat
