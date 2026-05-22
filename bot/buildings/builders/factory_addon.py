@@ -1,6 +1,7 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.resources import Resources
+from bot.utils.matchup import Matchup
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -72,6 +73,7 @@ class FactoryTechlab(FactoryAddon):
     def custom_conditions(self):
         return (
             not self.bot.build_order.build.is_completed
+            or self.bot.matchup in [Matchup.TvT, Matchup.TvZ]
             or (
                 UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
                 or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition

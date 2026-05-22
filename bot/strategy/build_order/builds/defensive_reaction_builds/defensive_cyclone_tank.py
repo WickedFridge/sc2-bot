@@ -3,6 +3,7 @@ from typing import override
 from bot.army_composition import composition
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap
+from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from sc2.bot_ai import BotAI
@@ -56,8 +57,9 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'Starport', UnitTypeId.STARPORT, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, True)]),
             BuildOrderStep(bot, self, 'Starport techlab', UnitTypeId.STARPORTTECHLAB, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, True)]),
             BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
-            # BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, townhalls=2, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, True)]),
-            # BuildOrderStep(bot, self, 'rax techlab 1', UnitTypeId.BARRACKSTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
+            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)]),
+            BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
+            BuildOrderStep(bot, self, 'facto techlab #2', UnitTypeId.FACTORYTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
         ]
     
         self.swap_plans = [
@@ -68,5 +70,26 @@ class DefensiveCycloneTank(BuildOrder):
                     self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )
             ),
+            AddonSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.BARRACKS,
+                UnitTypeId.TECHLAB,
+                condition=lambda: (
+                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
+                )
+            ),
+            AddonSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.BARRACKS,
+                UnitTypeId.TECHLAB,
+                condition=lambda: (
+                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
+                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
+                )
+            )
         ]
 
