@@ -89,6 +89,12 @@ class Army(CachedClass):
         return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
     
     @property
+    def has_isolated_ghosts(self) -> bool:
+        if (self.units(UnitTypeId.GHOST).amount == 0):
+            return False
+        return self.units(UnitTypeId.MEDIVAC).amount >= 1
+    
+    @property
     def is_technical(self) -> bool:
         gas_cost: int = 0
         for unit in self.units:

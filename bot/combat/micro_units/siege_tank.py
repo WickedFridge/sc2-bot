@@ -2,8 +2,10 @@ from typing import override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.superbot import Superbot
+from bot.utils.army import Army
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 
@@ -51,6 +53,21 @@ class MicroSiegeTank(MicroUnit):
     @override
     async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):
         await self.fight(unit, local_units)
+
+    @override
+    async def a_move(self, unit: Unit, local_units: Units, target: Point2):
+        self.switch_mode(unit, Units([], self.bot))
+        await super().a_move(unit, local_units, target)
+    
+    @override
+    async def attack_nearest_base(self, unit: Unit, army: Army, target: Point2):
+        self.switch_mode(unit, Units([], self.bot))
+        await super().attack_nearest_base(unit, army, target)
+
+    @override
+    async def chase_buildings(self, unit: Unit, army: Army, target: Point2):
+        self.switch_mode(unit, Units([], self.bot))
+        await super().chase_buildings(unit, army, target)
 
     @override
     async def retreat(self, unit: Unit, local_units: Units):

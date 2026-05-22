@@ -554,6 +554,7 @@ class SelectOrders:
                 ) or (
                     army.potential_supply >= 12
                     and army.is_technical
+                    and not army.has_isolated_ghosts
                 )
             )
         )
