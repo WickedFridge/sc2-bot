@@ -252,6 +252,7 @@ class SelectOrders:
             army.units(scouting_units).amount == army.units.amount
             or army.units(scouting_units).amount >= 4 and army.units.amount < 8
             or army.units(UnitTypeId.BANSHEE).amount >= 1
+            or army.units(UnitTypeId.REAPER).amount >= 1 and army.units.amount <= 2
         ):
             return self.scouting_units_orders(army)
         

@@ -12,6 +12,7 @@ from bot.macro.map.influence_maps.layers.buildings_layer import BuildingTile
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
+from bot.strategy.build_order.builds.defensive_reaction_builds.cyclone_tank_3_rax import CycloneTank3Rax
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
@@ -576,6 +577,8 @@ class Debug:
                 await self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
             case BuildOrderName.DEFENSIVE_CYCLONE_TANK:
                 await self.bot.build_order.switch_build(DefensiveCycloneTank(self.bot))
+            case BuildOrderName.CYCLONE_TANK_3RAX:
+                await self.bot.build_order.switch_build(CycloneTank3Rax(self.bot))
             case BuildOrderName.CONSERVATIVE_RAX_EXPAND:
                 await self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
             case _:
