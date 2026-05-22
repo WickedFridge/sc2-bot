@@ -384,7 +384,11 @@ class BuildingsHandler:
             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
             + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
         )
-        is_mining_optimal: bool = self.bot.supply_workers < optimal_worker_count - 5
+        current_worker_count: int = (
+            sum(expansion.mineral_worker_count for expansion in self.bot.expansions.taken)
+            + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
+        )
+        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
 
         for townhall in townhalls_to_move:
             # don't lift Orbitals after the third CC
@@ -393,7 +397,8 @@ class BuildingsHandler:
                     continue
             
             # don't lift CCs before the 4th CC unless every base is already saturated
-            if (townhall.type_id == UnitTypeId.COMMANDCENTER and not is_mining_optimal):
+            if (not are_bases_saturated):
+                print(f"bases not saturated yet, {current_worker_count} / {optimal_worker_count}")
                 continue
             
             landing_spot: Point2 = self.bot.expansions.next.position

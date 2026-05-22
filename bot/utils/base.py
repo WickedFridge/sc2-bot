@@ -170,7 +170,7 @@ class Base:
         # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
         if (canons.amount == 0):
             for pylon in pylons:
-                self.pull_workers(pylon, 4 if enemy_probe_amount >= 1 else 1)
+                self.pull_workers(pylon, 4 if enemy_probe_amount >= 1 else 2)
 
         for canon in canons:
             if (canon.build_progress <= 0.5):

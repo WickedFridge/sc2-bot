@@ -56,6 +56,11 @@ class FactoryReactor(FactoryAddon):
         self.unitId = UnitTypeId.FACTORYREACTOR
         self.name = "Factory Reactor"
 
+    @override
+    @property
+    def custom_conditions(self):
+        return not self.bot.build_order.build.is_completed
+
 class FactoryTechlab(FactoryAddon):
     def __init__(self, build):
         super().__init__(build)
@@ -66,6 +71,9 @@ class FactoryTechlab(FactoryAddon):
     @property
     def custom_conditions(self):
         return (
-            UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
-            or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition
+            not self.bot.build_order.build.is_completed
+            or (
+                UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
+                or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition
+            )
         )
