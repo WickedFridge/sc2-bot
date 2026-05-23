@@ -98,7 +98,7 @@ class ArmyCompositionManager(CachedClass):
         
         # we want pretty much matching air supply
         thor_amount: float = 0
-        light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKINGS, UnitTypeId.LIBERATOR]
+        light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (unit_type not in massive_flyers and unit_type not in light_units):
                 continue
