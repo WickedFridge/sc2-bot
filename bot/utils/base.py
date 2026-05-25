@@ -152,7 +152,7 @@ class Base:
 
         for worker in self.workers:
             best_target: Unit = best_targets.closest_to(worker)
-            if (worker.weapon_cooldown < 4):
+            if (worker.weapon_cooldown < 6):
                 distance: float = worker.distance_to(best_target)
                 if (worker.target_in_range(best_target)):
                     worker.attack(best_target)
