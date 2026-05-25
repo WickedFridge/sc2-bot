@@ -172,8 +172,11 @@ class MicroUnit(CachedClass):
     def retreat_position(self) -> Point2:
         if (self.bot.expansions.taken.amount <= 1):
             return self.bot.expansions.main.retreat_position
-        # if (self.bot.scouting.known_enemy_army.supply == 0):
-        #     return self.bot.expansions.last_taken.retreat_position
+        if (self.bot.scouting.known_enemy_army.supply == 0):
+            if (self.bot.expansions.taken.amount < 3):
+                return self.bot.expansions.last_taken.retreat_position
+            second_to_last_taken_expansion: Expansion = self.bot.expansions.taken[-2]
+            return center([self.bot.expansions.last_taken.position, second_to_last_taken_expansion.position])
         # if one of our expand is getting harassed, choose this one
         if (self.bot.enemy_units.amount >= 1):
             # select enemy harassing

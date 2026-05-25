@@ -27,9 +27,11 @@ class Scout:
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")
             return
-        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).amount 
+        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).amount
+        townhall_amount: int = self.bot.townhalls.amount 
         if (
-            barracks_amount == 1
+            (self.bot.matchup == Matchup.TvP and barracks_amount == 1)
+            or (self.bot.matchup == Matchup.TvT and townhall_amount == 2)
             and self.bot.expansions.b2.is_taken == False
             and (
                 self.bot.expansions.b2.is_fully_scouted == False
