@@ -20,8 +20,12 @@ class MicroScoutingUnit(MicroUnit):
         SAFETY: int = 2
         LIFE_THRESHOLD: int = 15
         enemy_units_in_range: Units = self.get_enemy_units_in_range(unit)
-        threats: Units = self.enemies_threatening_ground_in_range(unit, safety_distance=SAFETY, range_override=20)
-
+        threats: Units = (
+            self.enemies_threatening_ground_in_range(unit, safety_distance=SAFETY, range_override=20)
+            if unit.is_flying == False
+            else self.enemies_threatening_air_in_range(unit, safety_distance=SAFETY, range_override=20)
+        )
+        
         # --- CASE 1: Weapon Ready ---
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
             # if we can safely shoot, just shoot

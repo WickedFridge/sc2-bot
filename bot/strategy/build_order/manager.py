@@ -46,11 +46,11 @@ class BuildOrderManager:
                     # TwoRaxReapers(self.bot),
                     # MacroCyclone(self.bot),
                     Cyclone3Raven(self.bot),
-                    # DefensiveTwoRax(self.bot),
+                    DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    # TwoRaxReapers(self.bot),
+                    TwoRaxReapers(self.bot),
                     # Greedy22Timing(self.bot),
                     Bansheeseburger(self.bot),
                     # DefensiveCyclone(self.bot),

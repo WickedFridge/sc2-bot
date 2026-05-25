@@ -2,6 +2,7 @@ from typing import List, Optional
 from bot.combat.micro import Micro
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center

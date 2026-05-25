@@ -98,6 +98,16 @@ class StrategyHandler:
         )
         
         if (proxy_buildings.amount >= 1):
+            for building in proxy_buildings:
+                match (building.type_id):
+                    case UnitTypeId.PYLON | UnitTypeId.PHOTONCANNON:
+                        return Situation.CHEESE_CANNON_RUSH
+                    case UnitTypeId.BUNKER:
+                        return Situation.CHEESE_BUNKER_RUSH
+                    case UnitTypeId.BARRACKS:
+                        return Situation.CHEESE_PROXY_RAX
+                    case _:
+                        pass
             return Situation.PROXY_BUILDINGS
         
         if (close_workers.amount >= 6):

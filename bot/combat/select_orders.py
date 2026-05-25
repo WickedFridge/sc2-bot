@@ -226,6 +226,9 @@ class SelectOrders:
         if (distance_building_to_enemies <= 10 and closest_building_to_enemies.distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT):
             return Orders.DEFEND
 
+        if (self.bot.scouting.situation.is_precarious):
+            return Orders.RETREAT
+
         # if enemy is a workers, focus them
         if (local_enemy_workers.amount >= 1):
             return Orders.HARASS
@@ -454,6 +457,9 @@ class SelectOrders:
     
     def should_clean_unharmed_units(self, army: Army, unharmed_enemies: Units) -> bool:
         CLEEN_UNHARMED_UNITS: int = 30
+        if (army.supply > 12):
+            return False
+        
         close_unharmed_enemies: Units = unharmed_enemies.closer_than(CLEEN_UNHARMED_UNITS, army.center)
         if (close_unharmed_enemies.amount == 0):
             return False
@@ -544,26 +550,28 @@ class SelectOrders:
         army: Army,
         situation: Situation
     ) -> bool:
-        return (
+        if (
             situation != Situation.UNDER_ATTACK
-            and army.potential_supply >= 8
-            and army.bio_health_percentage >= 0.75
-            and (
-                army.potential_supply >= 50
-                or (
-                    army.can_drop_medivacs.amount >= 2
-                    and army.can_heal_medivacs.amount >= 2
-                    and army.potential_bio_supply >= 12
-                    and self.stim_almost_completed
-                ) or (
-                    army.potential_supply >= 12
-                    and army.is_technical
-                    and self.bot.matchup == Matchup.TvT
-                    and not army.has_isolated_ghosts
-                )
+            or army.potential_supply < 12
+            or army.bio_health_percentage >= 0.75
+        ):
+            return False
+        
+        if (army.potential_supply >= 50):
+            return True
+        
+        return (
+            (
+                army.can_drop_medivacs.amount >= 2
+                and army.can_heal_medivacs.amount >= 2
+                and self.stim_almost_completed
+            ) or (
+                self.bot.matchup == Matchup.TvT
+                and army.is_technical
+                and not army.has_isolated_ghosts
             )
         )
-
+        
     def get_attack_orders(
         self,
         army: Army,
@@ -793,7 +801,7 @@ class SelectOrders:
                         break
     
     async def micro_planetary_fortresses(self):
-        for pf in self.bot.units(UnitTypeId.PLANETARYFORTRESS):
+        for pf in self.bot.structures(UnitTypeId.PLANETARYFORTRESS):
             enemy_units_in_range: Units = (self.bot.enemy_units + self.bot.enemy_structures).filter(
                 lambda unit: pf.target_in_range(unit)
             )

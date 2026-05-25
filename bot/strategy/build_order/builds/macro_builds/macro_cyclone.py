@@ -18,6 +18,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 class MacroCyclone(MacroBuild):
     name: BuildOrderName = BuildOrderName.MACRO_CYCLONE.value
     cyclone_built: bool = False
+    defensive_build: BuildOrder = DefensiveCycloneTank
 
     @override
     def _modify_composition(self, composition: Composition) -> None:

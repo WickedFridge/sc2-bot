@@ -22,7 +22,7 @@ class Scout:
         return self.bot.units.find_by_tag(self.scout_tag)
 
     async def b2_against_proxy(self):
-        if (self.bot.matchup != Matchup.TvP or self.bot.scouting.situation != Situation.STABLE):
+        if (self.bot.matchup not in [Matchup.TvP, Matchup.TvT] or self.bot.scouting.situation != Situation.STABLE):
             return
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")

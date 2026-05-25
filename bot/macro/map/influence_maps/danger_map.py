@@ -83,6 +83,9 @@ class DangerMap:
                 ground_dps = 25
                 ground_range = 12
                 air_range = 12
+            case UnitTypeId.CHANGELING | UnitTypeId.CHANGELINGMARINE | UnitTypeId.CHANGELINGMARINESHIELD:
+                ground_dps = 0
+                air_dps = 0
             case _:
                 pass
 

@@ -56,6 +56,18 @@ class Scv(Train):
                     and unit.orders[0].ability.id == AbilityId.COMMANDCENTERTRAIN_SCV
                     and unit.orders[0].progress >= 0.95
                 )
+                or (
+                    unit.type_id == UnitTypeId.PLANETARYFORTRESS
+                    and unit.is_attacking
+                    and (
+                        len(unit.orders) == 1
+                        or (
+                            len(unit.orders) == 2
+                            and unit.orders[0].ability.id == AbilityId.COMMANDCENTERTRAIN_SCV
+                            and unit.orders[0].progress >= 0.95
+                        )
+                    )
+                )
             )
         )
     
