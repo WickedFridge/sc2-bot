@@ -56,6 +56,9 @@ class Base:
         return self.buildings.closest_distance_to(position.position)
     
     def threat_detection(self) -> Threat:
+        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
+            return Threat.WORKER_RUSH
+        
         # we only detect towers in the main and b2 as canon rush
         enemy_towers: Units = self.bot.enemy_structures.filter(
             lambda unit: (
@@ -134,6 +137,37 @@ class Base:
 
             case Threat.BUNKER_RUSH:
                 self.defend_bunker_rush()
+
+            case Threat.WORKER_RUSH:
+                self.defend_worker_rush()
+    
+    def defend_worker_rush(self) -> None:
+        enemy_units: Units = self.bot.enemy_units.sorted(lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.main.position)))
+        best_targets: Units = enemy_units.take(3)
+
+        main_position: Point2 = self.bot.expansions.main.position
+        b2_position: Point2 = self.bot.expansions.b2.position
+        mineral_field_main: Unit = self.bot.expansions.main.mineral_fields.closest_to(b2_position)
+        mineral_field_enemy: Unit = self.bot.expansions.enemy_main.mineral_fields.closest_to(main_position)
+
+        for worker in self.workers:
+            best_target: Unit = best_targets.closest_to(worker)
+            if (worker.weapon_cooldown < 4):
+                distance: float = worker.distance_to(best_target)
+                if (worker.target_in_range(best_target)):
+                    worker.attack(best_target)
+                elif (distance > 3):
+                    worker.move(best_target.position.towards(worker, -1))
+                else:
+                    if (worker.distance_to(mineral_field_enemy) > best_target.distance_to(mineral_field_enemy)):
+                        worker.gather(mineral_field_enemy)
+                    elif (worker.distance_to(mineral_field_main) > best_target.distance_to(mineral_field_main)):
+                        worker.gather(mineral_field_main)
+                    else:
+                        worker.move(worker.position.towards(best_target, -1))
+            else:
+                worker.gather(mineral_field_main)
+             
     
     def defend_bunker_rush(self) -> None:
         bunkers: Units = self.enemy_structures(UnitTypeId.BUNKER)

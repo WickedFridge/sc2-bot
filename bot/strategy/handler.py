@@ -110,7 +110,7 @@ class StrategyHandler:
                         pass
             return Situation.PROXY_BUILDINGS
         
-        if (close_workers.amount >= 6):
+        if (close_workers.amount >= 3):
             return Situation.CHEESE_WORKER_RUSH
 
         # detect ling drone rush
