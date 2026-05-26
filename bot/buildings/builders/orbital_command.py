@@ -37,6 +37,10 @@ class OrbitalCommand(UpgradeBuilding):
         if (self.bot.townhalls.ready.amount <= 3):
             return True
 
+        # 4th CC is never an Orbital, always a Planetary Fortress
+        if (self.bot.townhalls.ready.amount == 4):
+            return False
+
         # if each expansion we have has less workers than the optimal amount, we can upgrade to Orbital Command
         # otherwise we float and build a PF
         optimal_worker_count: int = (

@@ -132,7 +132,7 @@ class MicroBioUnit(MicroUnit):
             enemy_units_in_range.amount >= 1
             or potential_targets.amount >= 1
         ):
-            self.stim(bio_unit)
+            self.stim(bio_unit, force=not shorter_range)
 
         # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
         if (shorter_range and self.handle_engagement(

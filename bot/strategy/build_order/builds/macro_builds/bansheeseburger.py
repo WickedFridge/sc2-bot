@@ -30,6 +30,8 @@ class Bansheeseburger(MacroBuild):
             composition.set(UnitTypeId.HELLION, 6)
             composition.set(UnitTypeId.BANSHEE, 2)
             composition.set(UnitTypeId.RAVEN, 0)
+            if (self.bot.structures(UnitTypeId.STARPORTREACTOR).amount == 0):
+                composition.set(UnitTypeId.MEDIVAC, 0)
         return True
 
     def __init__(self, bot: BotAI):
