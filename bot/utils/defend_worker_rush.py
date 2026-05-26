@@ -39,10 +39,14 @@ def defend_worker_rush(bot: BotAI) -> None:
     enemy_units: Units = bot.enemy_units.sorted(
         lambda unit: (unit.health + unit.shield, unit.distance_to(main_position))
     )
-    best_targets: Units = enemy_units.take(3)
+    best_potential_targets: Units = enemy_units.take(3)
 
     for worker in bot.workers:
-        best_target: Unit = best_targets.closest_to(worker)
+        enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
+        best_target: Unit = (
+            enemies_in_range.first if enemies_in_range else
+            best_potential_targets.closest_to(worker)
+        )
 
         if worker.weapon_cooldown < 6:
             distance: float = worker.distance_to(best_target)
