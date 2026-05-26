@@ -12,7 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import dont_attack, menacing, tower_types, creep, building_priorities, hq_types
+from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, hq_types
 
 class MicroUnit(CachedClass):
     bot: Superbot
@@ -39,7 +39,7 @@ class MicroUnit(CachedClass):
         return unit.can_attack or unit.type_id in menacing
     
     def can_threaten_air(self, unit: Unit) -> bool:
-        return unit.can_attack_air or unit.type_id in menacing
+        return unit.can_attack_air or unit.type_id in menacing_air
 
     def is_tower(self, unit: Unit) -> bool:
         return unit.type_id in tower_types
@@ -73,8 +73,17 @@ class MicroUnit(CachedClass):
     def enemy_fighting(self) -> Units:
         return self.enemy_all.filter(self.is_fighting_unit)
            
-    def enemies_threatening_air_in_range(self, unit: Unit, safety_distance: float = 0) -> Units:
-        return self.enemy_all.filter(
+    def enemies_threatening_air_in_range(
+            self, unit: Unit, safety_distance: float = 0, range_override: float | None = None
+        ) -> Units:
+        # Step 1: get globally valid combat enemies
+        threats = self.enemy_all.filter(self.is_fighting_unit)
+
+        # Step 2: optional proximity filter
+        if (range_override):
+            threats = threats.closer_than(range_override, unit)
+        
+        return threats.filter(
             lambda enemy: (
                 self.can_threaten_air(enemy) and
                 enemy.distance_to(unit) <= unit.radius + enemy.radius + enemy.air_range + safety_distance

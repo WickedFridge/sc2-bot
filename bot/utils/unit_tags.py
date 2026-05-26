@@ -49,8 +49,6 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.MEDIVAC,
     UnitTypeId.RAVEN,
-    # TODO fix this
-    # UnitTypeId.OVERLORD,
     UnitTypeId.OVERLORDTRANSPORT,
     UnitTypeId.BANELING,
     UnitTypeId.BANELINGCOCOON,
@@ -68,6 +66,14 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.CARRIER,
     UnitTypeId.DISRUPTORPHASED,
     UnitTypeId.WARPPRISM,
+]
+menacing_air: List[UnitTypeId] = [
+    UnitTypeId.WIDOWMINE,
+    UnitTypeId.WIDOWMINEBURROWED,
+    UnitTypeId.RAVEN,
+    UnitTypeId.INFESTOR,
+    UnitTypeId.INFESTORBURROWED,
+    UnitTypeId.CARRIER,
 ]
 dont_attack: List[UnitTypeId] = [
     UnitTypeId.EGG,
