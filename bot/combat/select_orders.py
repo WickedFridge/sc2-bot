@@ -551,9 +551,9 @@ class SelectOrders:
         situation: Situation
     ) -> bool:
         if (
-            situation != Situation.UNDER_ATTACK
+            situation == Situation.UNDER_ATTACK
             or army.potential_supply < 12
-            or army.bio_health_percentage >= 0.75
+            or army.bio_health_percentage < 0.75
         ):
             return False
         
