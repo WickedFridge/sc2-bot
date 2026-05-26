@@ -29,33 +29,31 @@ class Scout:
             return
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).amount
         townhall_amount: int = self.bot.townhalls.amount 
-        if (
+        matchup_condition: bool = (
             (self.bot.matchup == Matchup.TvP and barracks_amount == 1)
             or (self.bot.matchup == Matchup.TvT and max(townhall_amount, barracks_amount) == 2)
-            and self.bot.expansions.b2.is_taken == False
-            and (
-                self.bot.expansions.b2.is_fully_scouted == False
-                or self.bot.expansions.main.is_fully_scouted == False
-            )
+        )
+        if (
+            not matchup_condition
+            or self.bot.expansions.b2.is_taken
+            or (self.bot.expansions.b2.is_fully_scouted and self.bot.expansions.main.is_fully_scouted)
         ):
-            # if we don't already have a scout assigned, we assign one
-            if (self.scout_tag is None):
-                self.scout_tag = self.bot.workers.gathering.closest_to(self.bot.expansions.b2.position).tag
-            if (self.scout is None):
-                print("ERROR CAN'T FIND SCOUT !")
-                return
-            
-            # scout b2 first, then the interior of the main
-            unscouted_b2: List[Point2] = self.bot.expansions.b2.unscouted_points
-            unscouted_main: List[Point2] = self.bot.expansions.main.unscouted_points
-            target: Point2
-            if (len(unscouted_b2) > 0):
-                # tell our scout to walk to the closest unscouted tile
-                target: Point2 = closest_point(self.scout.position, unscouted_b2)
-            else:
-                target: Point2 = closest_point(self.scout.position, unscouted_main)
-            self.scout.move(target)
-            print(f'[{self.bot.time.__round__(1)}] Scouting, {len(unscouted_b2) + len(unscouted_main)} unscouted points left')
+            self.scout_tag = None
+            return
+
+        # if we don't already have a scout assigned, we assign one
+        if (self.scout_tag is None):
+            self.scout_tag = self.bot.workers.gathering.closest_to(self.bot.expansions.b2.position).tag
+        if (self.scout is None):
+            print("ERROR CAN'T FIND SCOUT !")
+            return
+
+        # scout b2 first, then the interior of the main
+        unscouted_b2: List[Point2] = self.bot.expansions.b2.unscouted_points
+        unscouted_main: List[Point2] = self.bot.expansions.main.unscouted_points
+        if (len(unscouted_b2) > 0):
+            target: Point2 = closest_point(self.scout.position, unscouted_b2)
         else:
-            if (self.scout_tag):
-                self.scout_tag = None
+            target: Point2 = closest_point(self.scout.position, unscouted_main)
+        self.scout.move(target)
+        print(f'[{self.bot.time.__round__(1)}] Scouting, {len(unscouted_b2) + len(unscouted_main)} unscouted points left')
