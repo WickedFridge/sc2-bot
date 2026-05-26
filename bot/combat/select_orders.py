@@ -518,9 +518,9 @@ class SelectOrders:
             ):
                 return Orders.CLEAN_CREEP
             
-        # Only clean close creep if we have detectors
+        # Only clean close creep if we have detectors and with small squads
         detectors: Units = army.units.filter(lambda unit: unit.is_detector)
-        if (detectors.amount == 0):
+        if (detectors.amount == 0 or army.supply > 12):
             return None
         
         CLEEN_CREEP_CLOSE: int = 15
