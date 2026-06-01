@@ -191,7 +191,7 @@ class StrategyHandler:
     
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_RAX_EXPAND.value):
+        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_RAX_EXPAND):
             return
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)

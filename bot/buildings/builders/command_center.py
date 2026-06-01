@@ -80,11 +80,11 @@ class CommandCenter(Building):
         if (self.bot.time >= 100 or self.bot.townhalls.amount >= 2):
             return
         reaper_expand_builds: List[BuildOrderName] = [
-            BuildOrderName.KOKA_BUILD.value,
-            BuildOrderName.MACRO_CYCLONE.value,
-            BuildOrderName.GREEDY_2_2_TIMING.value,
-            BuildOrderName.BANSHEESEBURGER.value,
-            BuildOrderName.CYCLONE_3_RAVEN.value,
+            BuildOrderName.KOKA_BUILD,
+            BuildOrderName.MACRO_CYCLONE,
+            BuildOrderName.GREEDY_2_2_TIMING,
+            BuildOrderName.BANSHEESEBURGER,
+            BuildOrderName.CYCLONE_3_RAVEN,
         ]
         if (self.bot.build_order.build.name in reaper_expand_builds):
             rax_builder: Units = self.bot.workers.filter(
@@ -98,7 +98,7 @@ class CommandCenter(Building):
             print("queue gather command for expand")
             mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
             rax_builder.first.gather(mineral_field, True)
-        elif (self.bot.build_order.build.name == BuildOrderName.CC_FIRST_TWO_RAX.value):
+        elif (self.bot.build_order.build.name == BuildOrderName.CC_FIRST_TWO_RAX):
             b2: Point2 = self.bot.expansions.b2.position
             supply_builder: Units = self.bot.workers.filter(
                 lambda unit: (

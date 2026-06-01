@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap, SwapPlan, SwapState
+from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 # from sc2.bot_ai import BotAI
 from bot.strategy.strategy_types import Situation
@@ -25,7 +26,7 @@ def _addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
 
 class BuildOrder(CachedClass):
     steps: List[BuildOrderStep]
-    name: str
+    name: BuildOrderName
     swap_plans: List[SwapPlan]
     equivalences: dict[UnitTypeId, List[UnitTypeId]] = {
         UnitTypeId.SUPPLYDEPOT: [UnitTypeId.SUPPLYDEPOTLOWERED],
@@ -48,7 +49,7 @@ class BuildOrder(CachedClass):
         UnitTypeId.STARPORTREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.REACTOR],
     }
     in_base_cc: bool = False
-    default_defensive_response: BuildOrder = None
+    default_defensive_response: Optional[BuildOrder] = None
     defensive_responses: dict[Situation, BuildOrder] = {}
 
     def __init__(self, bot: Superbot):
@@ -83,7 +84,7 @@ class BuildOrder(CachedClass):
         # - its real in-game type may already be counted under unit_ids → subtract 1
         # - if its desired_addon_type matches unit_id → add 1 back
         if (include_pending):
-            count += max(self.bot.already_pending(unit_id), self.bot.structures(unit_ids).not_ready.amount)
+            count += int(max(self.bot.already_pending(unit_id), self.bot.structures(unit_ids).not_ready.amount))
 
         return count
 
@@ -168,7 +169,7 @@ class BuildOrder(CachedClass):
         return False
     
     def get_defensive_response(self, situation: Situation) -> BuildOrder | None:
-        specific_response: BuildOrder = self.defensive_responses.get(situation, None)
+        specific_response: BuildOrder | None = self.defensive_responses.get(situation, None)
         if (specific_response is not None):
             return specific_response
         

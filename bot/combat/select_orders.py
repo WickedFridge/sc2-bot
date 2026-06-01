@@ -152,12 +152,12 @@ class SelectOrders:
     def enemy_anti_air(self) -> Units:
         return self.bot.scouting.known_enemy_army.units(anti_air)
     
-    def debug_cluster(self) -> None:
-        clusters: List[Units] = self.get_army_clusters()
-        for i, cluster in enumerate(clusters):
-            army = Army(cluster, self.bot)
-            print("army", i)
-            print(army.recap)
+    # def debug_cluster(self) -> None:
+    #     clusters: List[Units] = self.get_army_clusters()
+    #     for i, cluster in enumerate(clusters):
+    #         army = Army(cluster, self.bot)
+    #         print("army", i)
+    #         print(army.recap)
 
     async def select_orders(self, iteration: int):
         # update local armies
@@ -905,7 +905,7 @@ class SelectOrders:
     
     def get_closest_army(self, army: Army) -> Army:
         if (self.armies.__len__() < 2):
-            return -1
+            return self.armies[0]
         other_armies: List[Army] = list(filter(lambda other_army: other_army.center != army.center, self.armies))
         closest_army: Army = other_armies[0]
         closest_distance_to_other: float = army.center.distance_to(other_armies[0].center)
@@ -925,7 +925,7 @@ class SelectOrders:
                 closest_distance_to_other = army.center.distance_to(other_army.center)
         return round(closest_distance_to_other, 1)
                 
-    def get_local_enemy_units(self, position: Point2, radius: int = 15) -> Units:
+    def get_local_enemy_units(self, position: Point2, radius: float = 15) -> Units:
         local_enemy_units: Units = self.global_enemy_units.filter(
             lambda unit: (
                 unit.distance_to(position) <= (10 + radius)
@@ -937,14 +937,14 @@ class SelectOrders:
         )
         return local_enemy_units + local_enemy_towers
 
-    def get_local_enemy_buildings(self, position: Point2, radius: int = 10) -> Units:
+    def get_local_enemy_buildings(self, position: Point2, radius: float = 10) -> Units:
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
             lambda unit: unit.distance_to(position) <= radius and unit.can_be_attacked
         )
         local_enemy_buildings.sort(key=lambda building: building.health)
         return local_enemy_buildings
     
-    def get_local_enemy_workers(self, position: Point2, radius: int = 15) -> Units:
+    def get_local_enemy_workers(self, position: Point2, radius: float = 15) -> Units:
         local_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.distance_to(position) <= (10 + radius)

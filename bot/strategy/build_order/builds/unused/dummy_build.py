@@ -9,7 +9,7 @@ from sc2.ids.upgrade_id import UpgradeId
 
 
 class Dummybuild(BuildOrder):
-    name: BuildOrderName = BuildOrderName.DUMMY_BUILD.value
+    name: BuildOrderName = BuildOrderName.DUMMY_BUILD
 
     def __init__(self, bot: BotAI):
         super().__init__(bot)

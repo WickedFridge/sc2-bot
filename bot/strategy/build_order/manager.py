@@ -80,7 +80,7 @@ class BuildOrderManager:
         self.build.reconcile()
 
     async def announce_build(self):
-        await self.bot.client.chat_send(f'Build : {self.build.name}', False)
+        await self.bot.client.chat_send(f'Build : {self.build.name.value}', False)
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager

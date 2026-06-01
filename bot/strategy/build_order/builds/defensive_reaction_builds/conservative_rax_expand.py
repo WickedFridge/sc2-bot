@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
-from sc2.bot_ai import BotAI
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
 class ConservativeRaxExpand(BuildOrder):
-    name: BuildOrderName = BuildOrderName.CONSERVATIVE_RAX_EXPAND.value
+    name: BuildOrderName = BuildOrderName.CONSERVATIVE_RAX_EXPAND
     in_base_cc: bool = True
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),

@@ -26,11 +26,11 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.2.24"
+VERSION: str = "12.2.25"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
-    RACE: Race = Race.Terran
+    RACE: Race = Race.Terran # type: ignore
     builder: Builder
     buildings: BuildingsHandler
     search: Search

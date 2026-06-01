@@ -45,7 +45,7 @@ class GhostUnitsManager:
                 can_attack_ground=unit.can_attack_ground,
                 can_attack_air=unit.can_attack_air,
                 last_seen_frame=frame,
-                expiry_frame=frame + lifetime,
+                expiry_frame=round(frame + lifetime),
             )
 
         # 2- Remove expired ghost units
@@ -73,7 +73,7 @@ class GhostUnitsManager:
             del self.ghost_units[tag]
 
     @property
-    def assumed_enemy_units(self) -> List[GhostUnit]:
+    def assumed_enemy_units(self) -> GhostUnits:
         frame = self.bot.state.game_loop
 
         assumed = []

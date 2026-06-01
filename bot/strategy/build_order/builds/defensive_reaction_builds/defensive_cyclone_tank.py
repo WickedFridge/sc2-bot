@@ -1,4 +1,6 @@
-from typing import override
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, override
 
 from bot.army_composition import composition
 from bot.army_composition.composition import Composition
@@ -6,6 +8,8 @@ from bot.strategy.build_order.addon_swap import AddonDetachSwap
 from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -16,11 +20,11 @@ from sc2.units import Units
 # https://youtu.be/qYmkoMnToA0?si=czwrxVSwsK4yBo0F&t=828
 
 class DefensiveCycloneTank(BuildOrder):
-    name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE_TANK.value
+    name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE_TANK
     in_base_cc: bool = True
 
     @override
-    def _modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> bool:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)
@@ -44,7 +48,7 @@ class DefensiveCycloneTank(BuildOrder):
                 modified = True
         return modified
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),

@@ -1,26 +1,29 @@
-from typing import override
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, override
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from bot.strategy.build_order.builds.macro_build import MacroBuild
-from sc2.bot_ai import BotAI
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
 class KokaBuild(MacroBuild):
-    name: BuildOrderName = BuildOrderName.KOKA_BUILD.value
+    name: BuildOrderName = BuildOrderName.KOKA_BUILD
 
     @override
-    def _modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> bool:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)
             return True
         return False
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS),

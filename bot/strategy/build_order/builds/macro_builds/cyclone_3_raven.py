@@ -1,16 +1,18 @@
-from typing import List, override
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, override
 
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.addon_swap.detach_swap import AddonDetachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
-from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.strategy.build_order.build_order import BuildOrderStep
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral_211 import DefensiveMistral211
 from bot.strategy.build_order.builds.macro_build import MacroBuild
-from bot.strategy.strategy_types import Situation
-from sc2.bot_ai import BotAI
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 
 # build origin
 # Byun vs Ryung
@@ -18,7 +20,7 @@ from sc2.ids.upgrade_id import UpgradeId
 # https://www.twitch.tv/videos/2720329129?t=02h42m37s
 
 class Cyclone3Raven(MacroBuild):
-    name: BuildOrderName = BuildOrderName.CYCLONE_3_RAVEN.value
+    name: BuildOrderName = BuildOrderName.CYCLONE_3_RAVEN
     cyclone_built: bool = False
 
     @override
@@ -52,8 +54,10 @@ class Cyclone3Raven(MacroBuild):
             return [UnitTypeId.BUNKER]
         return []
     
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
+        self.default_defensive_response = DefensiveMistral211(bot)
+        
         self.steps = [
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, False)]),
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),

@@ -12,6 +12,8 @@ from sc2.units import Units
 
 class MicroSiegeTank(MicroUnit):
     SIEGE_RANGE: int = 13
+    MIN_RANGE_SIEGED: int = 2
+    MIN_SIEGE_SPACE: int = 2
     THRESHOLD: int = 1
     bonus_against_ground_armored: bool = True
 
@@ -21,12 +23,30 @@ class MicroSiegeTank(MicroUnit):
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
         ) + local_enemies.filter(
             lambda enemy: (
-                enemy.is_flying == False and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
+                enemy.is_flying == False
+                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
             )
         )
 
     
     def switch_mode(self, tank: Unit, enemies_close: Units) -> bool:
+        # don't siege too close to another tank
+        other_tank_sieged_close: Units = self.bot.units.filter(
+            lambda other: (
+                other.tag != tank.tag
+                and tank.distance_to(other) <= self.MIN_SIEGE_SPACE + tank.radius + other.radius
+                and (
+                    other.type_id == UnitTypeId.SIEGETANKSIEGED
+                    or (
+                        other.type_id == UnitTypeId.SIEGETANK
+                        and len(other.orders) >= 1
+                        and other.orders[0].ability.id == AbilityId.SIEGEMODE_SIEGEMODE
+                    ) 
+                )
+            )
+        )
+        if (other_tank_sieged_close.amount >= 1):
+            return False
         if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
             return True
@@ -42,12 +62,12 @@ class MicroSiegeTank(MicroUnit):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
         if (not chase and self.switch_mode(tank, enemies_close_siege_range)):
             return
-        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
-            enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
+        enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
                 lambda unit: (unit.is_armored == False, unit.health + unit.shield)
-            )
-            if (enemies_in_range.amount >= 1):
-                tank.attack(enemies_in_range.first)
+        )
+        if (enemies_in_range.amount >= 1):
+            tank.attack(enemies_in_range.first)
+        enemies_in_range: Units = self.get_enemy_units_in_range(tank)
         tank.move(local_units.center)
 
     @override

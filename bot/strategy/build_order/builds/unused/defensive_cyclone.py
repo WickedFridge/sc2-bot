@@ -13,7 +13,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 # https://youtu.be/qYmkoMnToA0?si=czwrxVSwsK4yBo0F&t=828
 
 class DefensiveCyclone(BuildOrder):
-    name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE.value
+    name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE
     in_base_cc: bool = True
 
     @override

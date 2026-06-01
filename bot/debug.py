@@ -681,7 +681,7 @@ class Debug:
         screen_y: float = 0.15
         position: Point2 = Point2((0, screen_y))
         build_color = GREEN if build_order.is_completed else ORANGE
-        title: str = build_order.name.capitalize()
+        title: str = build_order.name.value.capitalize()
         for unit_id in self.bot.build_order.build.buildings_cut:
             title += f' (cut {unit_id.name})'
         self.draw_text_on_screen(title, position, build_color, font_size=16)

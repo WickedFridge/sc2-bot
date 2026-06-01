@@ -1,4 +1,6 @@
-from typing import override
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, override
 
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonSwap
@@ -6,8 +8,10 @@ from bot.strategy.build_order.addon_swap.detach_swap import AddonDetachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.build_order_step import BuildOrderStep
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_build import MacroBuild
-from sc2.bot_ai import BotAI
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
@@ -17,10 +21,10 @@ from sc2.ids.upgrade_id import UpgradeId
 # https://youtu.be/We1BrpoLUu8?si=W0TcQlQs94GcZMVO&t=3539
 
 class Bansheeseburger(MacroBuild):
-    name: BuildOrderName = BuildOrderName.BANSHEESEBURGER.value
+    name: BuildOrderName = BuildOrderName.BANSHEESEBURGER
 
     @override
-    def _modify_composition(self, composition: Composition) -> None:
+    def _modify_composition(self, composition: Composition) -> bool:
         if (self.bot.time <= 120):
             composition.set(UnitTypeId.REAPER, 1)
             composition.set(UnitTypeId.MARINE, 0)
@@ -34,8 +38,10 @@ class Bansheeseburger(MacroBuild):
                 composition.set(UnitTypeId.MEDIVAC, 0)
         return True
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
+        self.default_defensive_response = DefensiveCycloneTank(bot)
+        
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS),
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)], workers=15),

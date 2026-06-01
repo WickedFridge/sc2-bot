@@ -60,6 +60,7 @@ class MicroUnit(CachedClass):
             return True
         if (unit.is_massive and unit.is_flying and self.bonus_against_air_massive):
             return True
+        return False
 
     @custom_cache_once_per_frame
     def enemy_all(self) -> Units:

@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from bot.strategy.build_order.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from bot.strategy.build_order.builds.macro_build import MacroBuild
-from sc2.bot_ai import BotAI
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
 class CCFirstTwoRax(MacroBuild):
-    name: BuildOrderName = BuildOrderName.CC_FIRST_TWO_RAX.value
+    name: BuildOrderName = BuildOrderName.CC_FIRST_TWO_RAX
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.steps = [
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2),
@@ -23,7 +29,7 @@ class CCFirstTwoRax(MacroBuild):
             BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
             BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT),
-            BuildOrderStep(bot, self, 'facto reactor', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False)]),
+            BuildOrderStep(bot, self, 'facto reactor (2)', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
         ]
 

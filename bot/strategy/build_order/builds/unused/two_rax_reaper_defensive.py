@@ -9,7 +9,7 @@ from sc2.ids.upgrade_id import UpgradeId
 
 
 class DefensiveTwoRax(BuildOrder):
-    name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX.value
+    name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX
     in_base_cc: bool = True
 
     @override
