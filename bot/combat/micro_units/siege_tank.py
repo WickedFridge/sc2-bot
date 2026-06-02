@@ -1,4 +1,4 @@
-from typing import override
+from typing import List, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.superbot import Superbot
@@ -18,7 +18,9 @@ class MicroSiegeTank(MicroUnit):
     bonus_against_ground_armored: bool = True
 
     def get_enemies_close_siege_range(self, tank: Unit):
-        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False)
+        dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED]
+        
+        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(lambda enemy: enemy.type_id not in dont_siege_against)
         return self.bot.enemy_structures.filter(
             lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
         ) + local_enemies.filter(
@@ -45,9 +47,7 @@ class MicroSiegeTank(MicroUnit):
                 )
             )
         )
-        if (other_tank_sieged_close.amount >= 1):
-            return False
-        if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1):
+        if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1 and other_tank_sieged_close.amount == 0):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
             return True
         if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
