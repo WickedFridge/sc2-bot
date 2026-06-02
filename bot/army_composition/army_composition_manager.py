@@ -65,7 +65,7 @@ class ArmyCompositionManager(CachedClass):
         max_viking_amount: int = 20
 
         # we want pretty much matching air supply
-        viking_response: dict[UnitTypeId, int] = {
+        viking_response: dict[UnitTypeId, float] = {
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
             UnitTypeId.BATTLECRUISER: 4,
@@ -99,8 +99,13 @@ class ArmyCompositionManager(CachedClass):
         # we want pretty much matching air supply
         thor_amount: float = 0
         light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
+        no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
-            if (unit_type not in massive_flyers and unit_type not in light_units):
+            if (
+                unit_type in no_thors_units or (
+                    unit_type not in massive_flyers and unit_type not in light_units
+                )
+            ):
                 continue
             enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
             thor_response_amount: float = get_unit_supply(unit_type) / 4
@@ -138,8 +143,7 @@ class ArmyCompositionManager(CachedClass):
             case UnitTypeId.MARINE:
                 return 20
             case UnitTypeId.CYCLONE:
-                if (self.bot.townhalls.amount <= 3):
-                    return 1
+                return 1 if self.bot.townhalls.amount <= 3 else 0
             case UnitTypeId.SIEGETANK:
                 if (
                     self.bot.matchup == Matchup.TvT
@@ -149,6 +153,7 @@ class ArmyCompositionManager(CachedClass):
                     )
                 ):
                     return 5
+                return 0
             case UnitTypeId.RAVEN:
                 return 1
             case _:
@@ -250,7 +255,7 @@ class ArmyCompositionManager(CachedClass):
     def update_composition(self) -> None:
         self.composition = self.calculate_composition()
         
-    def get(self, unit_type: UnitTypeId) -> Composition:
+    def get(self, unit_type: UnitTypeId) -> int:
         return self.composition[unit_type]
 
     def should_train(self, unit_type: UnitTypeId) -> bool:

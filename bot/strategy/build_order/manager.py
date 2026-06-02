@@ -13,7 +13,7 @@ from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCycl
 from bot.strategy.build_order.builds.unused.dummy_build import Dummybuild
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.macro_builds.reactor_hellion_3cc_1_1 import Greedy22Timing
-from bot.strategy.build_order.builds.unused.two_rax_reaper_defensive import DefensiveTwoRax
+from bot.strategy.build_order.builds.defensive_reaction_builds.defense_2_rax_reapers import DefensiveTwoRax
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers import TwoRaxReapers
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
