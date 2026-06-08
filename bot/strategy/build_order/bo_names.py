@@ -2,7 +2,8 @@ import enum
 
 class BuildOrderName(enum.Enum):
     KOKA_BUILD = 'Reaper Expand 2/1/1 3cc'
-    TWO_RAX_REAPERS = '2 Rax Reapers Macro'
+    TWO_RAX_REAPERS_KOKABUILD = '2 Rax Reapers 3cc 2/1/1'
+    TWO_RAX_REAPERS_HELLBATS = '2 Rax Reapers 3cc Hellbat push'
     DEFENSIVE_TWO_RAX = 'Defensive 2 Rax Reapers'
     CONSERVATIVE_RAX_EXPAND = 'Conservative Rax Expand'
     DEFENSIVE_MISTRAL_211 = 'Defensive Mistral 2/1/1'

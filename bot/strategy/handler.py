@@ -6,7 +6,7 @@ from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
-from bot.strategy.build_order.builds.macro_builds.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_kokabuild import TwoRaxReapersKokabuild
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.superbot import Superbot
 from bot.utils.army import Army

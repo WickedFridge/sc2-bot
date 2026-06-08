@@ -8,13 +8,14 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral
 from bot.strategy.build_order.builds.macro_builds.bansheeseburger import Bansheeseburger
 from bot.strategy.build_order.builds.macro_builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.macro_builds.cyclone_3_raven import Cyclone3Raven
+from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_hellbat_push import TwoRaxReapersHellbatPush
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.unused.dummy_build import Dummybuild
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.macro_builds.reactor_hellion_3cc_1_1 import Greedy22Timing
 from bot.strategy.build_order.builds.defensive_reaction_builds.defense_2_rax_reapers import DefensiveTwoRax
-from bot.strategy.build_order.builds.macro_builds.two_rax_reapers import TwoRaxReapers
+from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_kokabuild import TwoRaxReapersKokabuild
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 
@@ -43,16 +44,16 @@ class BuildOrderManager:
             case Matchup.TvT:
                 self.build = random.choice([
                     # Dummybuild(self.bot)
-                    # TwoRaxReapers(self.bot),
                     # MacroCyclone(self.bot),
                     Cyclone3Raven(self.bot),
                     DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    TwoRaxReapers(self.bot),
+                    # TwoRaxReapersKokabuild(self.bot),
+                    TwoRaxReapersHellbatPush(self.bot),
                     # Greedy22Timing(self.bot),
-                    Bansheeseburger(self.bot),
+                    # Bansheeseburger(self.bot),
                     # DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)

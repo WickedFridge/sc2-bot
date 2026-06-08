@@ -38,6 +38,8 @@ class Bansheeseburger(MacroBuild):
                 composition.set(UnitTypeId.MEDIVAC, 0)
         return True
 
+    @override
+
     def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.default_defensive_response = DefensiveCycloneTank(bot)
