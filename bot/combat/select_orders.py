@@ -151,13 +151,6 @@ class SelectOrders:
     @property
     def enemy_anti_air(self) -> Units:
         return self.bot.scouting.known_enemy_army.units(anti_air)
-    
-    # def debug_cluster(self) -> None:
-    #     clusters: List[Units] = self.get_army_clusters()
-    #     for i, cluster in enumerate(clusters):
-    #         army = Army(cluster, self.bot)
-    #         print("army", i)
-    #         print(army.recap)
 
     async def select_orders(self, iteration: int):
         # update local armies
@@ -353,7 +346,7 @@ class SelectOrders:
         local_enemy_workers: Units,
         local_enemy_buildings: Units,
         global_enemy_menacing: Units,
-    ) -> Optional[Orders]:
+    ) -> Orders:
         
         # If enemy near → follow the normal fighting logic
         if (local_enemy_supply > 0):
@@ -403,7 +396,7 @@ class SelectOrders:
             and army.can_drop_medivacs.amount >= 2
             and army.potential_bio_supply >= 6
         ):
-            if (army.cargo_left >= 1 and army.ground_units.amount >= 1):
+            if (army.cargo_left >= 1 and army.ground_droppable_units.amount >= 1):
                 return Orders.DROP_RELOAD
             return Orders.DROP_MOVE
         return Orders.RETREAT
@@ -557,7 +550,10 @@ class SelectOrders:
         ):
             return False
         
-        if (army.potential_supply >= 50):
+        if (
+            army.potential_supply >= 50
+            and not army.has_isolated_ghosts
+        ):
             return True
         
         return (
@@ -568,7 +564,6 @@ class SelectOrders:
             ) or (
                 self.bot.matchup == Matchup.TvT
                 and army.is_technical
-                and not army.has_isolated_ghosts
             )
         )
         
@@ -599,6 +594,7 @@ class SelectOrders:
                 self.enemy_anti_air.amount < 2
                 and army.can_drop_medivacs.amount >= 2
                 and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
+                and army.potential_droppable_supply >= 12
             ):
                 return Orders.DROP_LOAD
             else:

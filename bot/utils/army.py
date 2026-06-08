@@ -8,7 +8,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, menacing, bio
+from ..utils.unit_tags import worker_types, menacing, bio, droppable_units
 from ..utils.unit_supply import get_units_supply, weighted_units_supply
 
 
@@ -22,7 +22,7 @@ class Army(CachedClass):
     
     @property
     def tags(self) -> List[int]:
-        return self.units.tags
+        return list(self.units.tags)
     
     @property
     def radius(self) -> float:
@@ -39,6 +39,10 @@ class Army(CachedClass):
     @property
     def ground_units(self) -> Units:
         return self.units.not_flying
+    
+    @property
+    def ground_droppable_units(self) -> Units:
+        return self.ground_units.filter(lambda unit: unit.type_id in droppable_units)
     
     @property
     def speed(self) -> float:
@@ -69,12 +73,16 @@ class Army(CachedClass):
         return get_units_supply(self.units)
 
     @property
-    def fighting_supply(self) -> int:
+    def fighting_supply(self) -> float:
         return get_units_supply(self.fighting_units)
 
     @property
     def potential_supply(self) -> float:
         return get_units_supply(self.potential_fighting_units)
+    
+    @property
+    def potential_droppable_supply(self) -> float:
+        return get_units_supply(self.potential_droppable_units)
     
     @property
     def weighted_supply(self) -> float:
@@ -204,7 +212,11 @@ class Army(CachedClass):
         if (self.fighting_units.amount >= 1):
             return self.fighting_units + self.passengers
         return medivacs_filled + self.passengers
-    
+
+    @property
+    def potential_droppable_units(self) -> Units:
+        return self.potential_fighting_units.filter(lambda unit: unit.type_id in droppable_units)
+
     @property
     def bio_units(self) -> Units:
         return self.units.filter(lambda unit: unit.type_id in bio)
@@ -250,7 +262,7 @@ class Army(CachedClass):
         return (
             self.units(UnitTypeId.MEDIVAC).amount >= 1
             and self.passengers.amount > 0
-            and self.ground_units.amount == 0
+            and self.ground_droppable_units.amount == 0
         )
 
     @property
