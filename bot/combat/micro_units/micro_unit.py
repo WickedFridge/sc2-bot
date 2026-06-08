@@ -47,6 +47,14 @@ class MicroUnit(CachedClass):
     def is_creep_tumor(self, unit: Unit) -> bool:
         return unit.type_id in creep
     
+    def can_be_attacked(self, enemy: Unit, unit: Unit) -> bool:
+        if (not enemy.can_be_attacked):
+            return False
+        return (
+            (enemy.is_flying == False and unit.can_attack_ground)
+            or (enemy.is_flying == True and unit.can_attack_air)
+        )
+    
     def filter_bonus_damage(self, unit: Unit) -> bool:
         if (unit.is_light and unit.is_flying and self.bonus_against_air_light):
             return True
@@ -308,8 +316,9 @@ class MicroUnit(CachedClass):
                     unit.move(safest_spot)
     
     async def fight(self, unit: Unit, local_units: Units, chase: bool = False):
-        if (self.bot.enemy_units.amount >= 1):
-            closest_enemy_unit: Unit = self.bot.enemy_units.closest_to(unit)
+        attackable_enemies: Units = self.bot.enemy_units.filter(lambda enemy: self.can_be_attacked(enemy, unit))
+        if (attackable_enemies.amount >= 1):
+            closest_enemy_unit: Unit = attackable_enemies.closest_to(unit)
             unit.attack(closest_enemy_unit)
         else:
             unit.move(local_units.center)

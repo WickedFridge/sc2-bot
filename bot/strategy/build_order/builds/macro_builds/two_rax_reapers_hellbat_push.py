@@ -13,9 +13,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 # Build origin
-# Maru vs Rogue
-# 2026 GSL S1 RO8 Group A, Match 2, game 3
-# https://www.youtube.com/watch?v=bZGOZIRCTU4
+# Maru vs Reynor
+# MOG2 Group A, Decider Match, game 3
+# https://www.twitch.tv/videos/2786886731?t=05h25m52s
 
 class TwoRaxReapersHellbatPush(MacroBuild):
     name: BuildOrderName = BuildOrderName.TWO_RAX_REAPERS_HELLBATS

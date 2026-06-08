@@ -120,12 +120,13 @@ class MicroBioUnit(MicroUnit):
                 bio_unit.attack(buildings_in_range.first)
             else:
                 all_enemies: Units = self.enemy_all.sorted(lambda e: e.distance_to(bio_unit))
-                if (all_enemies.amount >= 1):
+                attackable_enemies: Units = self.bot.enemy_units.filter(lambda enemy: self.can_be_attacked(enemy, bio_unit))
+                if (attackable_enemies.amount >= 1):
                     target: Unit = all_enemies.first
                     best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
                     bio_unit.move(best_position)
                 else:
-                    print("Error, no enemy to chase !")
+                    bio_unit.move(local_units.center)
             return
 
         if (

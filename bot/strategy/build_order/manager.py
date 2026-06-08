@@ -50,10 +50,10 @@ class BuildOrderManager:
                 ])
             case Matchup.TvZ:
                 self.build = random.choice([
-                    # TwoRaxReapersKokabuild(self.bot),
+                    TwoRaxReapersKokabuild(self.bot),
                     TwoRaxReapersHellbatPush(self.bot),
-                    # Greedy22Timing(self.bot),
-                    # Bansheeseburger(self.bot),
+                    Greedy22Timing(self.bot),
+                    Bansheeseburger(self.bot),
                     # DefensiveCyclone(self.bot),
                     # KokaBuild(self.bot),
                     # CCFirstTwoRax(self.bot)
@@ -81,7 +81,7 @@ class BuildOrderManager:
         self.build.reconcile()
 
     async def announce_build(self):
-        await self.bot.client.chat_send(f'Build : {self.build.name.value}', False)
+        await self.bot.client.chat_send(f'Tag: {self.build.name.value}', False)
 
 def get_build_order(bot: BotAI) -> BuildOrderManager:
     global build_order_manager
