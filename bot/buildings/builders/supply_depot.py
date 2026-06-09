@@ -71,7 +71,6 @@ class SupplyDepot(Building):
         if (current_supply <= 15):
             return self.bot.supply_used >= 14
         if (current_supply <= 23):
-            # 21 if 1 rax, 20 if 2 rax
             return (
                 self.bot.scouting.situation.is_precarious
                 or self.bot.supply_used >= 22 - self.bot.structures(UnitTypeId.BARRACKS).amount
@@ -106,6 +105,13 @@ class SupplyDepot(Building):
 
         if (depots.amount == 1):
             return self.bot.map.wall_placement[2] if depots.first.position == self.bot.map.wall_placement[0] else self.bot.map.wall_placement[0]
+        
+        # rebuild depots in the wall if we lose some
+        existing_depots: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT)
+        for position in possible_supply_positions:
+            if (existing_depots.closer_than(1, position).amount == 0):
+                return position
+
         
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):

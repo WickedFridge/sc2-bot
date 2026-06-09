@@ -22,8 +22,9 @@ class MicroUnit(CachedClass):
     bonus_against_ground_armored: bool = False
     bonus_against_air_armored: bool = False
     bonus_against_ground_mechanical: bool = False
-    bonus_against_air_massive: bool = False
-    
+    bonus_against_air_massive: bool = False    
+    PICKUP_RANGE: int = 3
+
     def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.bot = bot

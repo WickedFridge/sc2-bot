@@ -79,10 +79,10 @@ class MicroMedivac(MicroUnit):
         # stop unloading if we are
         medivac.stop()
         await self.boost(medivac)
-        units_to_pickup: Units = local_units.in_distance_between(medivac, 0, 3).sorted(key = lambda unit: unit.cargo_size, reverse = True)
+        units_to_pickup: Units = local_units.in_distance_between(medivac, 0, self.PICKUP_RANGE).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         for unit in units_to_pickup:
             medivac(AbilityId.LOAD_MEDIVAC, unit)
-        units_next: Units = local_units.in_distance_between(medivac, 3, 10).sorted(key = lambda unit: unit.cargo_size, reverse = True)
+        units_next: Units = local_units.in_distance_between(medivac, self.PICKUP_RANGE, 10).sorted(key = lambda unit: unit.cargo_size, reverse = True)
         if (units_next.amount == 0):
             return
         medivac.move(units_next.center.towards(units_next.closest_to(medivac)))
@@ -181,6 +181,18 @@ class MicroMedivac(MicroUnit):
                 
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.boost(medivac)
+        
+        # if there's a unit on cooldown under a 50% health, pick it up
+        if (len(medivac.passengers) < 2):
+            damaged_units_on_cooldown: Units = local_units.filter(
+                lambda unit: (
+                    unit.health_percentage < 0.5
+                    and unit.weapon_ready == False
+                    and unit.distance_to(medivac) <= self.PICKUP_RANGE
+                )
+            ).sorted(key = lambda unit: unit.health_percentage)
+            if (damaged_units_on_cooldown.amount >= 1):
+                medivac(AbilityId.LOAD_MEDIVAC, damaged_units_on_cooldown.first)
         
         if (await self.safety_disengage(medivac)):
             return
