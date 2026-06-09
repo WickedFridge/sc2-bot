@@ -213,7 +213,7 @@ class StrategyHandler:
         )
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         fighting_army: Army = Army(fighting_units, self.bot)
-        if (b2_bunker_in_construction and fighting_army.supply < 10):
+        if (b2_bunker_in_construction and fighting_army.supply < 10 and self.bot.expansions.taken.amount < 2):
             b2_bunker_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
 
         worker_building_bunker: Units = self.bot.workers.filter(

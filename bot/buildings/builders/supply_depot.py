@@ -107,9 +107,8 @@ class SupplyDepot(Building):
             return self.bot.map.wall_placement[2] if depots.first.position == self.bot.map.wall_placement[0] else self.bot.map.wall_placement[0]
         
         # rebuild depots in the wall if we lose some
-        existing_depots: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT)
         for position in possible_supply_positions:
-            if (existing_depots.closer_than(1, position).amount == 0):
+            if (depots.closer_than(1, position).amount == 0):
                 return position
 
         

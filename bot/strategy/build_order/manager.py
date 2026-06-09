@@ -45,7 +45,7 @@ class BuildOrderManager:
                 self.build = random.choice([
                     # Dummybuild(self.bot)
                     # MacroCyclone(self.bot),
-                    Cyclone3Raven(self.bot),
+                    # Cyclone3Raven(self.bot),
                     DefensiveTwoRax(self.bot),
                 ])
             case Matchup.TvZ:
