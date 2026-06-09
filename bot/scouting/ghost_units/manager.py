@@ -1,21 +1,22 @@
 from __future__ import annotations
-from typing import List
+from typing import TYPE_CHECKING, List
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 ghost_units_manager: GhostUnitsManager | None = None
 
 class GhostUnitsManager:
-    bot: BotAI
+    bot: Superbot
     ghost_units: dict[int, GhostUnit] = {}
 
-    def __init__(self, bot: BotAI):
+    def __init__(self, bot: Superbot) -> None:
         self.bot = bot
 
     def update_ghost_units(self):
         frame = self.bot.state.game_loop
-        
         # 1- Add / refresh visible enemy units
         for unit in self.bot.enemy_units:
             lifetime = 300 - unit.real_speed * 60
@@ -56,7 +57,7 @@ class GhostUnitsManager:
         for tag in expired:
             del self.ghost_units[tag]
 
-        # 3- Remove ghosts that are disproven by vision
+        # 3- Remove ghosts that are disproven by vision + detection
         visible_enemy_tags = {u.tag for u in self.bot.enemy_units}
 
         to_remove = []
@@ -66,8 +67,12 @@ class GhostUnitsManager:
                 continue  # already refreshed above
 
             if (self.bot.is_visible(ghost.position)):
-                # We see the position but the unit is NOT there → ghost disproven
-                to_remove.append(tag)
+                if (self.bot.map.influence_maps.detection.detected[ghost.position] == 1):
+                    # Vision + detection → unit truly not present
+                    to_remove.append(tag)
+                else:
+                    # Vision but no detection → unit may be burrowed or cloaked
+                    ghost.is_possibly_hidden = True
 
         for tag in to_remove:
             del self.ghost_units[tag]

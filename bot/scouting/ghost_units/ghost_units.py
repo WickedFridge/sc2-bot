@@ -34,6 +34,7 @@ class GhostUnit:
     can_attack_air: bool
     last_seen_frame: int
     expiry_frame: int
+    is_possibly_hidden: bool = False
 
     def has_buff(self, buff_id: BuffId) -> bool:
         """ Checks if the ghost unit has a specific buff. """
