@@ -543,7 +543,11 @@ class BuildingsHandler:
         
 
     async def salvage_bunkers(self) -> None:
-        if (self.bot.scouting.situation != Situation.STABLE or self.bot.expansions.taken.amount < 3):
+        if (
+            self.bot.scouting.situation != Situation.STABLE
+            or self.bot.expansions.taken.amount < 3
+            or self.bot.expansions.enemy_b2.is_free
+        ):
             return
 
         # Salvage main bunker and second bunkers at bases once we're stable
@@ -551,7 +555,9 @@ class BuildingsHandler:
         if (main_ramp_bunkers.amount >= 1):
             main_ramp_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
         natural_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.expansions.b2.position).filter(
-            lambda bunker: not bunker.is_using_ability(AbilityId.SALVAGEEFFECT_SALVAGE)
+            lambda bunker: (
+                not bunker.is_using_ability(AbilityId.SALVAGEEFFECT_SALVAGE)
+            )
         )
         if (natural_bunkers.amount >= 2):
             natural_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
