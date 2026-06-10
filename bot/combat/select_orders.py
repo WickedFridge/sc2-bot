@@ -339,6 +339,13 @@ class SelectOrders:
         # Nothing else → retreat by default
         return Orders.RETREAT
         
+    def can_do_drop(self, army: Army) -> bool:
+        return (
+            self.enemy_anti_air.amount < 2
+            and army.can_drop_medivacs.amount >= 2
+            and army.potential_droppable_supply >= 12
+        )
+
     def get_drop_orders(
         self,
         army: Army,
@@ -391,11 +398,7 @@ class SelectOrders:
             return Orders.RETREAT
 
         # Otherwise continue drop if not too much AA
-        if (
-            self.enemy_anti_air.amount < 2
-            and army.can_drop_medivacs.amount >= 2
-            and army.potential_bio_supply >= 6
-        ):
+        if (self.can_do_drop(army)):
             if (army.cargo_left >= 1 and army.ground_droppable_units.amount >= 1):
                 return Orders.DROP_RELOAD
             return Orders.DROP_MOVE
@@ -575,7 +578,7 @@ class SelectOrders:
     ) -> Orders:
         global_full_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.tag not in army.tags and unit.cargo_left == 0
-        )
+        )        
         # the amount of medivacs allowed to drop is 2 by default, going up to 4 once we hit 8 medivacs
         # maximal_medivacs_dropping: int = max(2, self.bot.units(UnitTypeId.MEDIVAC).amount - 4)
         maximal_medivacs_dropping: int = 10
@@ -591,10 +594,8 @@ class SelectOrders:
                     return Orders.RETREAT
             # only drop if opponent doesn't have enough anti air
             elif (
-                self.enemy_anti_air.amount < 2
-                and army.can_drop_medivacs.amount >= 2
+                self.can_do_drop(army)
                 and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
-                and army.potential_droppable_supply >= 12
             ):
                 return Orders.DROP_LOAD
             else:

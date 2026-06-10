@@ -215,7 +215,10 @@ class Army(CachedClass):
 
     @property
     def potential_droppable_units(self) -> Units:
-        return self.potential_fighting_units.filter(lambda unit: unit.type_id in droppable_units)
+        return self.potential_fighting_units.filter(
+            lambda unit: unit.type_id == UnitTypeId.MEDIVAC
+            or unit.type_id in droppable_units
+        )
 
     @property
     def bio_units(self) -> Units:
