@@ -1,4 +1,5 @@
 from typing import List, override
+from bot.strategy.strategy_types import Situation
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -41,10 +42,16 @@ class Scv(Train):
     @override
     @property
     def building_group(self) -> Units:
+        build_with_cc: bool = (
+            not self.bot.orbital_tech_available
+            or self.bot.scouting.situation in [
+                Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_WORKER_RUSH
+            ]
+        )
         townhalls_type: List[UnitTypeId] = (
             [
                 UnitTypeId.PLANETARYFORTRESS,
-                UnitTypeId.ORBITALCOMMAND if self.bot.orbital_tech_available
+                UnitTypeId.ORBITALCOMMAND if build_with_cc
                 else UnitTypeId.COMMANDCENTER
             ]
         )

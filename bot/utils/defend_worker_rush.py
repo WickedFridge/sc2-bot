@@ -11,9 +11,15 @@ The algorithm:
   - Workers on cooldown gather to a safe mineral patch to keep mining and reset animation.
   - Workers off cooldown attack if in range, advance if far, or side-step to a mineral patch
     to stack up.
+
+Mineral anchor selection:
+  - d1: line through c1 (centre of our pulled workers) and c2 (centre of enemy workers).
+  - d2: perpendicular bisector of [c1, c2] — splits the map into our side and theirs.
+  - safe_mineral:      on c1's side of d2, closest to d1 (good retreat point).
+  - offensive_mineral: on c2's side of d2, closest to d1 (good advance/side-step point).
 """
 
-from typing import List
+from typing import List, Optional, Tuple
 
 from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
@@ -22,6 +28,53 @@ from sc2.unit import Unit
 from sc2.units import Units
 
 worker_pulled: List[int] = []
+
+def _get_mineral_anchors(
+    all_minerals: Units,
+    c1: Point2,
+    c2: Point2,
+) -> Tuple[Optional[Unit], Optional[Unit]]:
+    """
+    Returns (safe_mineral, offensive_mineral).
+
+    d1: line through c1 and c2.
+    d2: perpendicular bisector of [c1, c2] — separates c1's side from c2's side.
+      Side is determined by the sign of dot((p - midpoint), (c2 - c1)).
+
+    safe_mineral:      closest to d1 among minerals on c1's side of d2.
+    offensive_mineral: closest to d1 among minerals on c2's side of d2.
+
+    Distance to d1 uses the 2D cross-product magnitude, proportional to the true
+    distance (the constant |c1-c2| denominator cancels out when comparing).
+    """
+    midpoint_x: float = (c1.x + c2.x) / 2
+    midpoint_y: float = (c1.y + c2.y) / 2
+    direction_x: float = c2.x - c1.x
+    direction_y: float = c2.y - c1.y
+
+    safe_mineral: Optional[Unit] = None
+    offensive_mineral: Optional[Unit] = None
+    safe_mineral_dist_to_d1: float = float("inf")
+    offensive_mineral_dist_to_d1: float = float("inf")
+
+    for mineral in all_minerals:
+        mineral_x: float = mineral.position.x
+        mineral_y: float = mineral.position.y
+        # side > 0 → c2's side (offensive); side ≤ 0 → c1's side (safe)
+        side: float = (mineral_x - midpoint_x) * direction_x + (mineral_y - midpoint_y) * direction_y
+        # proportional distance to d1 via 2D cross product
+        dist_to_d1: float = abs((mineral_x - c1.x) * direction_y - (mineral_y - c1.y) * direction_x)
+
+        if (side <= 0):
+            if (dist_to_d1 < safe_mineral_dist_to_d1):
+                safe_mineral_dist_to_d1 = dist_to_d1
+                safe_mineral = mineral
+        else:
+            if (dist_to_d1 < offensive_mineral_dist_to_d1):
+                offensive_mineral_dist_to_d1 = dist_to_d1
+                offensive_mineral = mineral
+
+    return safe_mineral, offensive_mineral
 
 def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount: int) -> Units:
     return bot.workers.filter(
@@ -54,22 +107,14 @@ def wall_is_up(bot: BotAI) -> bool:
 def defend_worker_rush(bot: BotAI) -> None:
     if (not bot.workers or not bot.enemy_units):
         return
-    
+
     if (wall_is_up(bot)):
         return
 
-    main_position: Point2 = bot.start_location
-    enemy_main_position: Point2 = bot.enemy_start_locations[0]
-
-    main_minerals: Units = bot.mineral_field.closer_than(12, main_position)
-    enemy_minerals: Units = bot.mineral_field.closer_than(12, enemy_main_position)
-    if (not main_minerals or not enemy_minerals):
+    if (not bot.mineral_field):
         return
 
-    # Mineral at main closest to the enemy base — used as a safe kiting gather point
-    mineral_field_main: Unit = main_minerals.closest_to(enemy_main_position)
-    # Mineral at enemy main closest to our base — used to kite enemy workers away
-    mineral_field_enemy: Unit = enemy_minerals.closest_to(main_position)
+    main_position: Point2 = bot.start_location
 
     enemy_units: Units = bot.enemy_units.sorted(
         lambda unit: (unit.health + unit.shield, unit.distance_to(main_position))
@@ -86,7 +131,7 @@ def defend_worker_rush(bot: BotAI) -> None:
     # filter workers to pull and pull back based on the current pull list
     workers_to_pull: Units = bot.workers.filter(lambda worker: worker.tag in worker_pulled)
     workers_to_pullback: Units = bot.workers.filter(lambda worker: worker.tag not in worker_pulled)
-    
+
     # if no workers are pulled yet, create the pull
     if (len(worker_pulled) == 0):
         workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
@@ -96,7 +141,16 @@ def defend_worker_rush(bot: BotAI) -> None:
     elif (len(worker_pulled) != workers_pulled_amount):
             workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
             workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
-    
+
+    c1: Point2 = workers_to_pull.center if workers_to_pull else bot.workers.center
+    c2: Point2 = enemy_units.center
+
+    safe_mineral: Optional[Unit]
+    offensive_mineral: Optional[Unit]
+    safe_mineral, offensive_mineral = _get_mineral_anchors(bot.mineral_field, c1, c2)
+    if (not safe_mineral or not offensive_mineral):
+        return
+
     for worker in workers_to_pull:
         enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
         best_target: Unit = (
@@ -112,20 +166,14 @@ def defend_worker_rush(bot: BotAI) -> None:
             elif (distance > 3):
                 worker.move(best_target.position.towards(worker, -1))
             else:
-                # Side-step to a mineral patch to reset weapon animation safely
-                if (worker.distance_to(mineral_field_enemy) > best_target.distance_to(mineral_field_enemy)):
-                    worker.gather(mineral_field_enemy)
-                elif (worker.distance_to(mineral_field_main) > best_target.distance_to(mineral_field_main)):
-                    worker.gather(mineral_field_main)
-                else:
-                    worker.move(worker.position.towards(best_target, -1))
+                worker.gather(offensive_mineral)
         else:
             # On cooldown: gather to keep mining and avoid eating free hits
-            worker.gather(mineral_field_main)
-    
+            worker.gather(safe_mineral)
+
     for worker in workers_to_pullback:
         if (worker.distance_to(main_position) > 5 and worker.distance_to(mineral_field_main) > 5):
             if (worker.is_carrying_resource):
                 worker.return_resource()
             else:
-                worker.gather(mineral_field_main)
+                worker.stop()
