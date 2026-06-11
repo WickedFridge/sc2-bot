@@ -175,13 +175,18 @@ class Base:
             lambda unit: unit.distance_to(self.position) < self.BASE_SIZE * 1.5
         ).amount
 
-        # track the probes with 3 workers each
-        self.track_enemy_scout(3)
+        # track the probes with 2 workers each
+        self.track_enemy_scout(2, chase_b2=True)
         # respond to canon rush
         # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
         if (canons.amount == 0):
             for pylon in pylons:
-                self.pull_workers(pylon, 4 if enemy_probe_amount >= 1 else 2)
+                amount_to_pull: int = (
+                    4 if enemy_probe_amount >= 1
+                    else 2 if pylon.is_ready
+                    else 1
+                )
+                self.pull_workers(pylon, amount_to_pull)
 
         for canon in canons:
             if (canon.build_progress <= 0.5):
@@ -203,7 +208,7 @@ class Base:
                 return
             worker.move(worker.position.towards(enemies_facing_almost_in_range.center, -2))
 
-    def track_enemy_scout(self, max_scv_attacking: int = 1, chase_scout: bool = False) -> None:
+    def track_enemy_scout(self, max_scv_attacking: int = 1, chase_scout: bool = False, chase_b2: bool = False) -> None:
         # First stop tracking out of range enemy scouts to avoid chasing them across the map
         enemy_scouts: Units = self.enemy_units.filter(
             lambda unit: unit.type_id in worker_types
@@ -212,7 +217,13 @@ class Base:
             lambda unit: (
                 unit.type_id in worker_types
                 and unit.tag not in enemy_scouts.tags
-                and unit.distance_to(self.position) >= self.BASE_SIZE * 1.5
+                and (
+                    unit.distance_to(self.position) >= self.BASE_SIZE * 1.5
+                    and (
+                        unit.distance_to(self.bot.expansions.b2.position) >= self.BASE_SIZE * 1.5
+                        or not chase_b2
+                    )
+                )
             )
         )
         

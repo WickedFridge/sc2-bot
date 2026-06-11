@@ -35,7 +35,7 @@ class OrbitalCommand(UpgradeBuilding):
             return False
         
         # don't build orbital when we're getting worker rushed
-        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
+        if (self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]):
             return False
 
         # we only build Orbital until we have 4 CCs

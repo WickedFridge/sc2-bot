@@ -104,18 +104,18 @@ def defend_worker_rush(bot: BotAI) -> None:
             best_potential_targets.closest_to(worker)
         )
 
-        if worker.weapon_cooldown < 6:
+        if (worker.weapon_cooldown < 6):
             distance: float = worker.distance_to(best_target)
 
-            if worker.target_in_range(best_target):
+            if (worker.target_in_range(best_target)):
                 worker.attack(best_target)
-            elif distance > 3:
+            elif (distance > 3):
                 worker.move(best_target.position.towards(worker, -1))
             else:
                 # Side-step to a mineral patch to reset weapon animation safely
-                if worker.distance_to(mineral_field_enemy) > best_target.distance_to(mineral_field_enemy):
+                if (worker.distance_to(mineral_field_enemy) > best_target.distance_to(mineral_field_enemy)):
                     worker.gather(mineral_field_enemy)
-                elif worker.distance_to(mineral_field_main) > best_target.distance_to(mineral_field_main):
+                elif (worker.distance_to(mineral_field_main) > best_target.distance_to(mineral_field_main)):
                     worker.gather(mineral_field_main)
                 else:
                     worker.move(worker.position.towards(best_target, -1))

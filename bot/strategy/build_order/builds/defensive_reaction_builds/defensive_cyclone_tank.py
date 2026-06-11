@@ -53,7 +53,7 @@ class DefensiveCycloneTank(BuildOrder):
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
-            BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
+            BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, workers=19, target_count=2, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
             BuildOrderStep(bot, self, 'factory', UnitTypeId.FACTORY),
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.REFINERY, 2, False)]),
             BuildOrderStep(bot, self, 'barracks Reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.FACTORY, 1, False)]),

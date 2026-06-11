@@ -50,7 +50,7 @@ class BuildingsHandler:
             closest_worker.smart(incomplete_building)
             
     async def repair_buildings(self):
-        if (self.bot.minerals == 0):
+        if (self.bot.minerals == 0 or self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
             return
         workers = self.bot.workers + self.bot.units(UnitTypeId.MULE)
         available_workers: Units = workers.filter(

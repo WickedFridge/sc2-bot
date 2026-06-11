@@ -22,7 +22,7 @@ class Refinery(Building):
     def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
             return False
-        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
+        if (self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]):
             return False
         if (self.unitId in self.bot.build_order.build.pending_ids):
             return True
