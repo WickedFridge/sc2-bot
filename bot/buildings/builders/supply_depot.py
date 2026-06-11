@@ -72,7 +72,7 @@ class SupplyDepot(Building):
             return self.bot.supply_used >= 14
         if (current_supply <= 23):
             return (
-                self.bot.scouting.situation.is_precarious
+                (self.bot.scouting.situation.is_precarious and self.bot.structures(UnitTypeId.BARRACKS).amount >= 1)
                 or self.bot.supply_used >= 22 - self.bot.structures(UnitTypeId.BARRACKS).amount
             )
         

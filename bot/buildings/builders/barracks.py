@@ -3,6 +3,7 @@ from typing import List, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.strategy.strategy_types import Situation
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -47,7 +48,11 @@ class Barracks(Building):
     @property
     def position(self) -> Point2:
         if (self.amount == 0):
-            return self.bot.main_base_ramp.barracks_correct_placement
+            return (
+                self.bot.main_base_ramp.barracks_correct_placement
+                if self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
+                else self.bot.main_base_ramp.barracks_in_middle
+            )
         
         selected_expansion: Expansion = self.bot.expansions.main
         # If we have less than 5 raxes, always build them in the main

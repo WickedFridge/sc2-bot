@@ -144,31 +144,6 @@ class Base:
     
     def defend_worker_rush(self) -> None:
         defend_worker_rush(self.bot)
-        # enemy_units: Units = self.bot.enemy_units.sorted(lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.main.position)))
-        # best_targets: Units = enemy_units.take(3)
-
-        # main_position: Point2 = self.bot.expansions.main.position
-        # enemy_position: Point2 = self.bot.expansions.enemy_main.position
-        # mineral_field_main: Unit = self.bot.expansions.main.mineral_fields.closest_to(enemy_position)
-        # mineral_field_enemy: Unit = self.bot.expansions.enemy_main.mineral_fields.closest_to(main_position)
-
-        # for worker in self.workers:
-        #     best_target: Unit = best_targets.closest_to(worker)
-        #     if (worker.weapon_cooldown < 6):
-        #         distance: float = worker.distance_to(best_target)
-        #         if (worker.target_in_range(best_target)):
-        #             worker.attack(best_target)
-        #         elif (distance > 3):
-        #             worker.move(best_target.position.towards(worker, -1))
-        #         else:
-        #             if (worker.distance_to(mineral_field_enemy) > best_target.distance_to(mineral_field_enemy)):
-        #                 worker.gather(mineral_field_enemy)
-        #             elif (worker.distance_to(mineral_field_main) > best_target.distance_to(mineral_field_main)):
-        #                 worker.gather(mineral_field_main)
-        #             else:
-        #                 worker.move(worker.position.towards(best_target, -1))
-        #     else:
-        #         worker.gather(mineral_field_main)
              
     
     def defend_bunker_rush(self) -> None:
