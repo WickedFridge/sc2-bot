@@ -1,5 +1,6 @@
 from typing import override
 from bot.buildings.builders.upgrade_building import UpgradeBuilding
+from bot.strategy.strategy_types import Situation
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -33,6 +34,10 @@ class OrbitalCommand(UpgradeBuilding):
         if (not orbital_tech_available or ccs_amount == 0):
             return False
         
+        # don't build orbital when we're getting worker rushed
+        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
+            return False
+
         # we only build Orbital until we have 4 CCs
         if (self.bot.townhalls.ready.amount <= 3):
             return True

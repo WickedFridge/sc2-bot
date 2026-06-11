@@ -2,6 +2,7 @@ from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion_manager import Expansions
 from bot.macro.resources import Resources
+from bot.strategy.strategy_types import Situation
 from bot.utils.ability_tags import AbilityBuild
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
@@ -20,6 +21,8 @@ class Refinery(Building):
     @property
     def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
+            return False
+        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH):
             return False
         if (self.unitId in self.bot.build_order.build.pending_ids):
             return True

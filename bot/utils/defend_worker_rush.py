@@ -24,7 +24,9 @@ from sc2.units import Units
 worker_pulled: List[int] = []
 
 def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount: int) -> Units:
-    return bot.workers.sorted(
+    return bot.workers.filter(
+        lambda worker: worker.is_constructing_scv == False
+    ).sorted(
         lambda worker: (-worker.health, worker.distance_to_squared(enemy_units.center))
     ).take(workers_pulled_amount)
 
