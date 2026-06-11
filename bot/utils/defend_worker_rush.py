@@ -26,7 +26,7 @@ worker_pulled: List[int] = []
 def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount: int) -> Units:
     return bot.workers.filter(
         lambda worker: (
-            worker.is_collecting
+            worker.is_collecting or worker.is_moving or worker.is_idle
         )
     ).sorted(
         lambda worker: (-worker.health, worker.distance_to_squared(enemy_units.center))
@@ -96,8 +96,8 @@ def defend_worker_rush(bot: BotAI) -> None:
             worker_pulled.append(worker.tag)
     # else update the amount of workers pulled if needed
     elif (len(worker_pulled) != workers_pulled_amount):
-            workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
-            workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
+        workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
+        workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
 
     choke_center: Point2 = (bot.main_base_ramp.top_center + bot.main_base_ramp.bottom_center) / 2
     choke_height: float = (
