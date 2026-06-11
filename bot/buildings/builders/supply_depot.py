@@ -72,8 +72,12 @@ class SupplyDepot(Building):
             return self.bot.supply_used >= 14
         if (current_supply <= 23):
             return (
-                (self.bot.scouting.situation.is_precarious and self.bot.structures(UnitTypeId.BARRACKS).amount >= 1)
-                or self.bot.supply_used >= 22 - self.bot.structures(UnitTypeId.BARRACKS).amount
+                self.bot.supply_used >= 22 - self.bot.structures(UnitTypeId.BARRACKS).amount
+                or (
+                    self.bot.scouting.situation.is_precarious
+                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 1
+                    and self.bot.map.influence_maps.buildings.can_build(self.position, UnitTypeId.SUPPLYDEPOT)
+                ) 
             )
         
         # y = 2.5 + 0.22x + sqrt(0.5x)
