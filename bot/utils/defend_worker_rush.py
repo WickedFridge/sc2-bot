@@ -25,7 +25,9 @@ worker_pulled: List[int] = []
 
 def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount: int) -> Units:
     return bot.workers.filter(
-        lambda worker: worker.is_constructing_scv == False
+        lambda worker: (
+            worker.is_collecting
+        )
     ).sorted(
         lambda worker: (-worker.health, worker.distance_to_squared(enemy_units.center))
     ).take(workers_pulled_amount)
@@ -97,9 +99,13 @@ def defend_worker_rush(bot: BotAI) -> None:
             workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
             workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
 
-    main_height: int = bot.get_terrain_height(main_position)
     choke_center: Point2 = (bot.main_base_ramp.top_center + bot.main_base_ramp.bottom_center) / 2
-    choke_height: int = bot.get_terrain_height(choke_center)
+    choke_height: float = (
+        bot.get_terrain_height(bot.main_base_ramp.top_center)
+        + bot.get_terrain_height(bot.main_base_ramp.bottom_center)
+    ) / 2
+
+
     for worker in workers_to_pull:
         enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
         best_target: Unit = (

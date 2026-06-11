@@ -54,7 +54,6 @@ class Barracks(Building):
                 else self.bot.main_base_ramp.barracks_in_middle
             )
         
-        selected_expansion: Expansion = self.bot.expansions.main
         # If we have less than 5 raxes, always build them in the main
 
         if (self.bot.structures(UnitTypeId.BARRACKS).amount < 5):

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from ast import List
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
@@ -37,12 +36,17 @@ class Train:
             and (
                 self.unitId in worker_types
                 or self.bot.composition_manager.should_train(self.unitId)
+                or self.force_conditions
             )
         )
     
     @property
     def custom_conditions(self) -> bool:
         return True
+    
+    @property
+    def force_conditions(self) -> bool:
+        return False
 
     @property
     def conditions(self) -> bool:

@@ -1,4 +1,5 @@
 from typing import override
+from bot.strategy.strategy_types import Situation
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -49,8 +50,13 @@ class Marine(Train):
             and not self.bot.composition_manager.should_train(UnitTypeId.GHOST)
         )
     
-    @override
     @property
+    @override
+    def force_conditions(self) -> bool:
+        return self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]
+    
+    @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(self.buildingIds).ready.filter(
             lambda rax: (

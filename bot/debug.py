@@ -19,7 +19,7 @@ from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
-from bot.utils.point2_functions.utils import evaluate_path_debug, grid_offsets, sample_tile_path
+from bot.utils.point2_functions.utils import center, evaluate_path_debug, grid_offsets, sample_tile_path
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
 from sc2.game_state import EffectData
 from sc2.ids.unit_typeid import UnitTypeId
@@ -214,8 +214,23 @@ class Debug:
     def height(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected + self.bot.enemy_units.selected
         for unit in selected_units:
-            height: float = self.bot.get_terrain_height(unit.position)
-            self.draw_text_on_world(unit.position, f'{unit.name} height: {height:.2f}')
+            height: int = self.bot.get_terrain_height(unit.position)
+            self.draw_text_on_world(unit.position, f'{unit.name} height: {height}')
+
+        points: List[Point2] = [
+            self.bot.main_base_ramp.top_center,
+            self.bot.main_base_ramp.bottom_center,
+        ]
+        for point in points:
+            height: int = self.bot.get_terrain_height(point)
+            self.draw_text_on_world(point, f'height: {height}')
+        
+        choke_center: Point2 = (self.bot.main_base_ramp.top_center + self.bot.main_base_ramp.bottom_center) / 2
+        choke_height: float = (
+            self.bot.get_terrain_height(self.bot.main_base_ramp.top_center)
+            + self.bot.get_terrain_height(self.bot.main_base_ramp.bottom_center)
+        ) / 2
+        self.draw_text_on_world(choke_center, f'height: {choke_height}', WHITE)
 
     def orders(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
