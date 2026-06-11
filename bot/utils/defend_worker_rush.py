@@ -54,6 +54,8 @@ def wall_is_up(bot: BotAI) -> bool:
     return barracks_wall.has_add_on
 
 def defend_worker_rush(bot: BotAI) -> None:
+    global worker_pulled
+
     if (not bot.workers or not bot.enemy_units):
         return
 
@@ -90,14 +92,10 @@ def defend_worker_rush(bot: BotAI) -> None:
     workers_to_pullback: Units = bot.workers.filter(lambda worker: worker.tag not in worker_pulled)
 
     # if no workers are pulled yet, create the pull
-    if (len(worker_pulled) == 0):
-        workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
-        for worker in workers_to_pull:
-            worker_pulled.append(worker.tag)
-    # else update the amount of workers pulled if needed
-    elif (len(worker_pulled) != workers_pulled_amount):
+    if (len(worker_pulled) != workers_pulled_amount):
         workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
         workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
+        worker_pulled = list(workers_to_pull.tags)
 
     choke_center: Point2 = (bot.main_base_ramp.top_center + bot.main_base_ramp.bottom_center) / 2
     choke_height: float = (
