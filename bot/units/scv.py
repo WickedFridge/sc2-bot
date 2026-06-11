@@ -51,8 +51,8 @@ class Scv(Train):
         townhalls_type: List[UnitTypeId] = (
             [
                 UnitTypeId.PLANETARYFORTRESS,
-                UnitTypeId.ORBITALCOMMAND if build_with_cc
-                else UnitTypeId.COMMANDCENTER
+                UnitTypeId.COMMANDCENTER if build_with_cc
+                else UnitTypeId.ORBITALCOMMAND
             ]
         )
         return self.bot.townhalls(townhalls_type).ready.filter(
