@@ -4,6 +4,7 @@ from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.strategy.strategy_types import Situation
+from bot.utils.matchup import Matchup
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 
@@ -48,11 +49,14 @@ class Barracks(Building):
     @property
     def position(self) -> Point2:
         if (self.amount == 0):
-            return (
-                self.bot.main_base_ramp.barracks_correct_placement
-                if self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
-                else self.bot.main_base_ramp.barracks_in_middle
-            )
+            return self.bot.main_base_ramp.barracks_in_middle
+            # return (
+            #     self.bot.main_base_ramp.barracks_correct_placement
+            #     if self.bot.matchup == Matchup.TvT
+            #     else self.bot.main_base_ramp.barracks_in_middle
+            #     # if self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
+            #     # else self.bot.main_base_ramp.barracks_in_middle
+            # )
         
         # If we have less than 5 raxes, always build them in the main
 

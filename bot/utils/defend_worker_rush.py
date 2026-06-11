@@ -21,7 +21,7 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 
-worker_pulled: List[int] = []
+worker_pulled_tags: List[int] = []
 
 def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount: int) -> Units:
     return bot.workers.filter(
@@ -45,21 +45,28 @@ def wall_is_up(bot: BotAI) -> bool:
 
     barracks_wall: Unit = barracks.closest_to(bot.main_base_ramp.top_center)
 
-    if (bot.main_base_ramp.barracks_can_fit_addon):
-        return barracks_wall.position == bot.main_base_ramp.barracks_in_middle
+    if (barracks_wall.position == bot.main_base_ramp.barracks_in_middle):
+        return True
 
-    if (barracks_wall.position != bot.main_base_ramp.barracks_correct_placement):
-        return False
+    if (
+        barracks_wall.position == bot.main_base_ramp.barracks_correct_placement
+        and barracks_wall.has_add_on
+    ):
+        return True
+    return False
 
-    return barracks_wall.has_add_on
+def pullback_workers(workers: Units, main_position: Point2, mineral_field_main: Unit) -> None:
+    for worker in workers:
+        if (worker.distance_to(main_position) > 5 and worker.distance_to(mineral_field_main) > 5):
+            if (worker.is_carrying_resource):
+                worker.return_resource()
+            else:
+                worker.gather(mineral_field_main)
 
 def defend_worker_rush(bot: BotAI) -> None:
-    global worker_pulled
+    global worker_pulled_tags
 
     if (not bot.workers or not bot.enemy_units):
-        return
-
-    if (wall_is_up(bot)):
         return
 
     main_position: Point2 = bot.start_location
@@ -75,6 +82,22 @@ def defend_worker_rush(bot: BotAI) -> None:
     # Mineral at enemy main closest to our base — used to kite enemy workers away
     mineral_field_enemy: Unit = enemy_minerals.closest_to(main_position)
 
+    # clean worker_pulled of workers that are dead
+    for worker_tag in worker_pulled_tags:
+        if (not bot.workers.find_by_tag(worker_tag)):
+            worker_pulled_tags.remove(worker_tag)
+
+    # filter workers to pull and pull back based on the current pull list
+    workers_pulled: Units = bot.workers.filter(lambda worker: worker.tag in worker_pulled_tags)
+    workers_to_pullback: Units = bot.workers.filter(lambda worker: worker.tag not in worker_pulled_tags)
+    
+    # if the wall is up, skip this
+    if (wall_is_up(bot)):
+        print("wall is up, skip this")
+        pullback_workers(workers_pulled, main_position, mineral_field_main)
+        worker_pulled_tags = []
+        return
+
     enemy_units: Units = bot.enemy_units.sorted(
         lambda unit: (unit.health + unit.shield, unit.distance_to(main_position))
     )
@@ -82,20 +105,12 @@ def defend_worker_rush(bot: BotAI) -> None:
 
     workers_pulled_amount: int = enemy_units.amount + 1
 
-    # clean worker_pulled of workers that are dead
-    for worker_tag in worker_pulled:
-        if (not bot.workers.find_by_tag(worker_tag)):
-            worker_pulled.remove(worker_tag)
-
-    # filter workers to pull and pull back based on the current pull list
-    workers_to_pull: Units = bot.workers.filter(lambda worker: worker.tag in worker_pulled)
-    workers_to_pullback: Units = bot.workers.filter(lambda worker: worker.tag not in worker_pulled)
-
+    
     # if no workers are pulled yet, create the pull
-    if (len(worker_pulled) != workers_pulled_amount):
-        workers_to_pull = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
-        workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_to_pull.tags)
-        worker_pulled = list(workers_to_pull.tags)
+    if (len(worker_pulled_tags) != workers_pulled_amount):
+        workers_pulled = choose_workers_to_pull(bot, enemy_units, workers_pulled_amount)
+        workers_to_pullback = bot.workers.filter(lambda worker: worker.tag not in workers_pulled.tags)
+        worker_pulled_tags = list(workers_pulled.tags)
 
     choke_center: Point2 = (bot.main_base_ramp.top_center + bot.main_base_ramp.bottom_center) / 2
     choke_height: float = (
@@ -104,7 +119,7 @@ def defend_worker_rush(bot: BotAI) -> None:
     ) / 2
 
 
-    for worker in workers_to_pull:
+    for worker in workers_pulled:
         enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
         best_target: Unit = (
             enemies_in_range.first if enemies_in_range else
@@ -141,9 +156,4 @@ def defend_worker_rush(bot: BotAI) -> None:
             # On cooldown: gather to keep mining and avoid eating free hits
             worker.gather(mineral_field_main)
 
-    for worker in workers_to_pullback:
-        if (worker.distance_to(main_position) > 5 and worker.distance_to(mineral_field_main) > 5):
-            if (worker.is_carrying_resource):
-                worker.return_resource()
-            else:
-                worker.gather(mineral_field_main)
+    pullback_workers(workers_to_pullback, main_position, mineral_field_main)

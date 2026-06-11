@@ -119,7 +119,12 @@ class Building(CachedClass):
             print("Error, no valid position for {self.name}")
             return resources_updated
         
-        position: Point2 = dfs_in_pathing(self.bot, pos, self.unitId, self.bot.game_info.map_center, self.radius, self.has_addon)
+        position: Point2 = (
+            dfs_in_pathing(self.bot, pos, self.unitId, self.bot.game_info.map_center, self.radius, self.has_addon)
+            if not self.force_position
+            else pos
+        )
+        
         if (position != pos):
             print(f"position changed for {self.name} from {pos.round(2)} to {position}")
         await self.builder.build(self.unitId, position, self.radius, self.has_addon, self.force_position)

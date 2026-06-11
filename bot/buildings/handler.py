@@ -518,6 +518,12 @@ class BuildingsHandler:
                 flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
                 continue
 
+            wall_position: Point2 = self.bot.main_base_ramp.barracks_correct_placement
+            if (self.bot.map.influence_maps.buildings.is_free(wall_position)):
+                print(f"[reposition_buildings] finishing the wall with {flying_building.name}")
+                flying_building(AbilityId.LAND, wall_position)
+                continue
+
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
                 flying_building.position,
@@ -526,7 +532,7 @@ class BuildingsHandler:
                 1.5,
                 True,
             )
-            print(f"[reposition_buildings] Landing {flying_building.name} ")
+            print(f"[reposition_buildings] Landing {flying_building.name}")
             flying_building(AbilityId.LAND, land_position)
         
         
@@ -537,7 +543,15 @@ class BuildingsHandler:
                 production_building(AbilityId.LIFT)
                 continue
             addon_pos: Point2 = production_building.add_on_position
-            if (not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)):
+            if (
+                not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)
+                and (
+                    production_building.position != self.bot.main_base_ramp.barracks_in_middle
+                    or self.bot.scouting.situation not in [
+                        Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH
+                    ]
+                )
+            ):
                 print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
                 production_building(AbilityId.LIFT)
         

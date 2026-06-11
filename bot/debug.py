@@ -19,6 +19,7 @@ from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
+from bot.utils.defend_worker_rush import wall_is_up
 from bot.utils.point2_functions.utils import center, evaluate_path_debug, grid_offsets, sample_tile_path
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
 from sc2.game_state import EffectData
@@ -204,6 +205,8 @@ class Debug:
         main_base_wall_positions.append(self.bot.main_base_ramp.barracks_correct_placement)
         for position in main_base_wall_positions:
             self.draw_text_on_world(position, 'wall', font_size=10)
+        wall_status: str = "up" if wall_is_up(self.bot) else "down"
+        self.draw_text_on_screen(f"Wall : {wall_status}", Point2((0.5, 0.01)))
     
     def buffs(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected + self.bot.enemy_units.selected

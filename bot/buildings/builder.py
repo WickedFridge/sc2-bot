@@ -101,22 +101,19 @@ class Builder:
     
     async def build(self, unit_type: UnitTypeId, position: Point2, radius: float, has_addon: bool = False, force_position: bool = False):
         theorical_location: Point2 = dfs_in_pathing(self.bot, position, unit_type, self.bot._game_info.map_center, radius, has_addon)
-        location: Point2 = theorical_location
-        if (not force_position):
-            location: Point2 = await self.bot.find_placement(unit_type, near=theorical_location)
+        if (force_position):
+            location: Point2 = position
+        else:
+            location = await self.bot.find_placement(unit_type, near=theorical_location)
             if (location is None or not self.bot.map.influence_maps.buildings.can_build(location, unit_type)):
                 await self.bot.client.chat_send(f'Tag:Build_{unit_type.name}_incorrect', False)
+                return
         workers: Units = self.worker_builders
         if (workers.amount == 0 or location is None):
             print(f'Error: no available worker or no location found to build {unit_type}')
             return
         worker: Unit = workers.closest_to(location)
         worker.build(unit_type, location)
-        # Reserve the area in the influence map to prevent other buildings from getting built on top while it's being built
-        # if (unit_type in production):
-        #     self.bot.map.influence_maps.buildings.reserve_production(location)
-        # else:
-        #     self.bot.map.influence_maps.buildings.reserve_area(location, radius * 2, {unit_type})
         # TODO : replace with the correct building id
         worker.orders.append(FakeOrder(AbilityId.TERRANBUILD_COMMANDCENTER))
     
