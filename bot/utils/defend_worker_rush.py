@@ -151,6 +151,11 @@ def defend_worker_rush(bot: BotAI) -> None:
     if (not safe_mineral or not offensive_mineral):
         return
 
+    main_minerals: Units = bot.mineral_field.closer_than(12, main_position)
+    if (not main_minerals):
+        return
+    mineral_field_main: Unit = main_minerals.closest_to(bot.enemy_start_locations[0])
+
     for worker in workers_to_pull:
         enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
         best_target: Unit = (
@@ -176,4 +181,4 @@ def defend_worker_rush(bot: BotAI) -> None:
             if (worker.is_carrying_resource):
                 worker.return_resource()
             else:
-                worker.stop()
+                worker.gather(mineral_field_main)
