@@ -10,8 +10,8 @@ class StarportTechlab(StarportAddon):
         self.unitId = UnitTypeId.STARPORTTECHLAB
         self.name = "Starport Tech Lab"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         # if we have 2 starports, and one of them doesn't have an addon

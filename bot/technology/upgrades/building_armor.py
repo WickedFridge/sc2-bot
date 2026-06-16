@@ -15,8 +15,8 @@ class BuildingArmor(Upgrade):
     ]
     name = "Building Armor"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         planetary_fortress_amount: int = (
             self.bot.structures(UnitTypeId.PLANETARYFORTRESS).amount

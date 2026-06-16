@@ -13,8 +13,8 @@ class Ghost(Train):
         self.name = 'Ghost'
         self.order_id = AbilityId.BARRACKSTRAIN_GHOST
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
             lambda rax: (

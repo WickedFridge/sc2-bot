@@ -14,8 +14,8 @@ class GhostAcademy(Building):
         self.unitId = UnitTypeId.GHOSTACADEMY
         self.name = "Ghost Academy"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL2)
         ghost_academy_count: int = self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount + self.bot.already_pending(UnitTypeId.GHOSTACADEMY)
@@ -39,8 +39,8 @@ class GhostAcademy(Building):
             )
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):

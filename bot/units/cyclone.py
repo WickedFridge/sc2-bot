@@ -14,16 +14,16 @@ class Cyclone(Train):
         self.name = 'Cyclone'
         self.order_id = AbilityId.TRAIN_CYCLONE
 
-    @override
     @property
+    @override
     def custom_conditions(self):
         return (
             not self.bot.composition_manager.should_train(UnitTypeId.THOR)
             and not self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK)
         )
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.FACTORY).ready.filter(
             lambda factory: (

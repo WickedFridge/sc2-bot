@@ -15,16 +15,16 @@ class Armory(Building):
         self.unitId = UnitTypeId.ARMORY
         self.name = "Armory"
 
-    @override
     @property
+    @override
     def override_conditions(self):
         return self.amount == 0 and (
             UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
             or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition
         )
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         # We never want more than 2 armories
         if (self.amount == 2):
@@ -58,8 +58,8 @@ class Armory(Building):
                 and mechanical_units_amount >= 8
             )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):

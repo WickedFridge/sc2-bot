@@ -14,8 +14,8 @@ class Marauder(Train):
         self.name = 'Marauder'
         self.order_id = AbilityId.BARRACKSTRAIN_MARAUDER
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
             lambda rax: (

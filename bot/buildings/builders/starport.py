@@ -12,8 +12,8 @@ class Starport(Building):
         self.unitIdFlying = UnitTypeId.STARPORTFLYING
         self.name = "Starport"
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         if (self.bot.build_order.build.is_completed == False):
             return True
@@ -50,8 +50,8 @@ class Starport(Building):
             case _:
                 return False
             
-    @override
     @property
+    @override
     def position(self) -> Point2:
         factories: Units = self.bot.structures(UnitTypeId.FACTORY).ready + self.bot.structures(UnitTypeId.FACTORYFLYING)
         factory_position: Point2 = factories.first.position

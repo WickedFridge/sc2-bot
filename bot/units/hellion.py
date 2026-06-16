@@ -51,8 +51,8 @@ class Hellion(Train):
             and not self.bot.composition_manager.should_train(UnitTypeId.THOR)
         )
     
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(self.buildingIds).ready.filter(
             lambda rax: (

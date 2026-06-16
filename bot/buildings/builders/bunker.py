@@ -32,8 +32,8 @@ class Bunker(Building):
             )
         )
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:    
         bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
         reaper_amount: int = self.bot.units(UnitTypeId.REAPER).amount + self.bot.already_pending(UnitTypeId.REAPER)
@@ -73,8 +73,8 @@ class Bunker(Building):
             and bunker_to_construct_amount == 0
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         # if there's already a bunker finished at the natural and we're on b2, additional bunkers should go on the natural 
         if (

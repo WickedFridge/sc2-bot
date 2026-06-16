@@ -19,8 +19,8 @@ class Ebay(Building):
     def ebays_count(self) -> int:
         return self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount + self.bot.already_pending(UnitTypeId.ENGINEERINGBAY)
     
-    @override
     @property
+    @override
     def override_conditions(self) -> bool:
         need_detection: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
 
@@ -31,8 +31,8 @@ class Ebay(Building):
             )
         )
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         barracks_count: float = (
             self.bot.structures(UnitTypeId.BARRACKS).ready.amount
@@ -47,8 +47,8 @@ class Ebay(Building):
             and barracks_count >= 3
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         expansion: Expansion = (
             self.bot.expansions.main

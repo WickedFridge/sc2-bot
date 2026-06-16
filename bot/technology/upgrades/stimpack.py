@@ -11,8 +11,8 @@ class Stimpack(Upgrade):
     name = "Stimpack"
     block_gas_only = True
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         bio_count: int = (
             self.bot.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER]).amount

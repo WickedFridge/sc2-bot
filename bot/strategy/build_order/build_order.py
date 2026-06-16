@@ -173,7 +173,7 @@ class BuildOrder(CachedClass):
         if (specific_response is not None):
             return specific_response
         
-        if (situation in [Situation.PROXY_BUILDINGS] or situation.is_cheese):
+        if (situation.is_cheese):
             return self.default_defensive_response
         
         return None

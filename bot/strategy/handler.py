@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.build_order.bo_names import BuildOrderName
@@ -15,13 +15,14 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, production, enemy_production
+from ..utils.unit_tags import tower_types, worker_types, production, enemy_production, creep
 
 class StrategyHandler:
     bot: Superbot
     strategy: Strategy
     priorities: List[Priority]
     situation_history: List[Situation] = []
+    confirmed_cheese: Optional[Situation] = None
     BASE_SIZE: int = 20
 
     def __init__(self, bot: Superbot) -> None:
@@ -33,6 +34,13 @@ class StrategyHandler:
             Priority.TECH,
             Priority.BUILD_ARMY
         ]
+        self.cheese_exit_conditions: dict[Situation, Callable[[], bool]] = {
+            Situation.PROXY_BUILDINGS: self._proxy_buildings_cleared,
+            Situation.CHEESE_PROXY_RAX: self._proxy_buildings_cleared,
+            Situation.CHEESE_CANNON_RUSH: self._proxy_buildings_cleared,
+            Situation.CHEESE_BUNKER_RUSH: self._proxy_buildings_cleared,
+            Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
+        }
 
     async def update_situation(self):
         new_situation: Situation = self.assess_situation()
@@ -46,15 +54,57 @@ class StrategyHandler:
         self.bot.scouting.situation = new_situation
 
     def assess_situation(self) -> Situation:
+        # a confirmed cheese doesn't stop being true just because our production/army ratio changed later
+        if (self.confirmed_cheese is not None):
+            if (self._is_cheese_resolved(self.confirmed_cheese)):
+                self.confirmed_cheese = None
+            else:
+                return self.confirmed_cheese
+
+        situation: Situation = self.detect_situation()
+        if (situation.is_cheese):
+            self.confirmed_cheese = situation
+        return situation
+
+    def _is_cheese_resolved(self, situation: Situation) -> bool:
+        # 3 secured bases is always a valid exit, on top of any cheese-specific condition
+        if (self._default_cheese_exit()):
+            return True
+        specific_condition: Optional[Callable[[], bool]] = self.cheese_exit_conditions.get(situation)
+        if (specific_condition is not None):
+            return specific_condition()
+        return False
+
+    def _default_cheese_exit(self) -> bool:
+        return self.bot.expansions.taken.amount >= 3
+
+    @property
+    def _nearby_enemy_buildings(self) -> Units:
+        main: Point2 = self.bot.expansions.main.position
+        enemy_main: Point2 = self.bot.expansions.enemy_main.position
+        return self.bot.enemy_structures.filter(
+            lambda building: (
+                building.type_id not in creep
+                and building.distance_to(main) < building.distance_to(enemy_main)
+            )
+        )
+
+    def _proxy_buildings_cleared(self) -> bool:
+        return self._nearby_enemy_buildings.amount == 0
+
+    def _enemy_took_b2(self) -> bool:
+        return self.bot.expansions.enemy_b2.is_enemy
+
+    def detect_situation(self) -> Situation:
         # identify canon rush or bunker rush
         tower_rush_situation: Optional[Situation] = self.detect_tower_rush()
         if (tower_rush_situation):
             return tower_rush_situation
-        
+
         early_cheese_situation: Optional[Situation] = self.detect_early_cheese()
         if (early_cheese_situation):
             return early_cheese_situation
-        
+
         # enemy has more than twice our army supply
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         army: Army = Army(fighting_units, self.bot)
@@ -86,10 +136,8 @@ class StrategyHandler:
             )
         )
 
-        proxy_buildings: Units = self.bot.enemy_structures.filter(
-            lambda building: building.distance_to(main) < building.distance_to(enemy_main)
-        )
-        
+        proxy_buildings: Units = self._nearby_enemy_buildings
+
         close_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.type_id in worker_types

@@ -14,8 +14,8 @@ class Viking(Train):
         self.name = 'Viking'
         self.order_id = AbilityId.STARPORTTRAIN_VIKINGFIGHTER
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         return self.bot.units([UnitTypeId.MEDIVAC]).amount >= 2
     
@@ -55,8 +55,8 @@ class Viking(Train):
             and not self.bot.composition_manager.should_train(UnitTypeId.BATTLECRUISER)
         )
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         return starports.filter(

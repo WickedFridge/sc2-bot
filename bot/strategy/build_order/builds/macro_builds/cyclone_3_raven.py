@@ -42,8 +42,8 @@ class Cyclone3Raven(MacroBuild):
             composition.set(UnitTypeId.CYCLONE, 0)
         return True
 
-    @override
     @property
+    @override
     def buildings_cut(self) -> List[UnitTypeId]:
         if (
             self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount == 1

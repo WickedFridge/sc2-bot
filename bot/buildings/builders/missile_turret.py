@@ -25,8 +25,8 @@ class MissileTurret(Building):
             )
         )
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
         
@@ -36,7 +36,7 @@ class MissileTurret(Building):
             and self.pending_amount == 0
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         return self.expansions_without_turret.first.turret_wall_position

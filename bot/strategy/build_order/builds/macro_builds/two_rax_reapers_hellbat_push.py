@@ -32,8 +32,8 @@ class TwoRaxReapersHellbatPush(MacroBuild):
             return True
         return False
     
-    @override
     @property
+    @override
     def buildings_cut(self) -> List[UnitTypeId]:
         if (self.bot.townhalls.amount < 3):
             return [UnitTypeId.BUNKER]

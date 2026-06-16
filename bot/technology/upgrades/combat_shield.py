@@ -12,8 +12,8 @@ class CombatShield(Upgrade):
     requirements_ups = [UpgradeId.STIMPACK]
     name = "Combat Shield"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         marine_count: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
         return marine_count >= 10

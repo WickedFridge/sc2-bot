@@ -34,13 +34,13 @@ class Scv(Train):
             townhalls.ready.amount * 22 + townhalls.not_ready.amount * 11,
         ]))
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         return self.scv_amount < self.max_amount
     
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         build_with_cc: bool = (
             not self.bot.orbital_tech_available

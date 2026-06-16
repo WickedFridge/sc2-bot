@@ -17,8 +17,8 @@ class Refinery(Building):
         self.unitId = UnitTypeId.REFINERY
         self.name = "Refinery"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
             return False

@@ -13,8 +13,8 @@ class Raven(Train):
         self.name = 'Raven'
         self.order_id = AbilityId.STARPORTTRAIN_RAVEN
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.STARPORT).ready.filter(
             lambda starport: (

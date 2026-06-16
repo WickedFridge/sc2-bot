@@ -17,8 +17,8 @@ class SupplyDepot(Building):
         self.radius = 1
         self.ignore_build_order = True
     
-    @override
     @property
+    @override
     def force_position(self) -> bool:
         return self.bot.structures(UnitTypeId.SUPPLYDEPOT).amount < 2
     
@@ -35,8 +35,8 @@ class SupplyDepot(Building):
         return 2 + math.floor(excess_supply / 8)
     
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         SUPPLY_DEPOT: int = 8
         SUPPLY_CC: int = 15
@@ -84,8 +84,8 @@ class SupplyDepot(Building):
         supply_threshold: float = 2.5 + 0.22 * self.bot.supply_workers + math.sqrt(0.5 * self.bot.supply_workers)
         return current_supply - self.bot.supply_used < supply_threshold
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         depots: Units = self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED])
         possible_supply_positions: list[Point2] = [

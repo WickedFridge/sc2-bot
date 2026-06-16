@@ -15,8 +15,8 @@ class Medivac(Train):
         self.name = 'Medivac'
         self.order_id = AbilityId.STARPORTTRAIN_MEDIVAC
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         bio_unit_ids: List[UnitTypeId] = [
             UnitTypeId.MARINE,
@@ -67,8 +67,8 @@ class Medivac(Train):
             and not self.bot.composition_manager.should_train(UnitTypeId.BATTLECRUISER)
         )
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         return starports.filter(

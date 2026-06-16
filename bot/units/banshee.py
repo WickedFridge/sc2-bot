@@ -13,8 +13,8 @@ class Banshee(Train):
         self.name = 'Banshee'
         self.order_id = AbilityId.STARPORTTRAIN_BANSHEE
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.STARPORT).ready.filter(
             lambda starport: (

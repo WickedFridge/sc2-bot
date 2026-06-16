@@ -14,8 +14,8 @@ class Thor(Train):
         self.name = 'Thor'
         self.order_id = AbilityId.FACTORYTRAIN_THOR
 
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.FACTORY).ready.filter(
             lambda factory: (

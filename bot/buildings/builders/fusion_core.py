@@ -13,8 +13,8 @@ class FusionCore(Building):
         self.unitId = UnitTypeId.FUSIONCORE
         self.name = "Fusion Core"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         fusion_core_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.FUSIONCORE)
         fusion_core_count: int = self.bot.structures(UnitTypeId.FUSIONCORE).ready.amount + self.bot.already_pending(UnitTypeId.FUSIONCORE)
@@ -35,8 +35,8 @@ class FusionCore(Building):
             and self.bot.supply_used >= 160
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):

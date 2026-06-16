@@ -57,8 +57,8 @@ class FactoryReactor(FactoryAddon):
         self.unitId = UnitTypeId.FACTORYREACTOR
         self.name = "Factory Reactor"
 
-    @override
     @property
+    @override
     def custom_conditions(self):
         return not self.bot.build_order.build.is_completed
 
@@ -68,8 +68,8 @@ class FactoryTechlab(FactoryAddon):
         self.unitId = UnitTypeId.FACTORYTECHLAB
         self.name = "Factory Techlab"
 
-    @override
     @property
+    @override
     def custom_conditions(self):
         return (
             not self.bot.build_order.build.is_completed

@@ -11,8 +11,8 @@ class AirAttackUpgrade(Upgrade):
         UpgradeId.TERRANINFANTRYARMORSLEVEL1,
     ]
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         vikings_amount_target: int = (
             self.bot.units(UnitTypeId.VIKINGFIGHTER).amount
@@ -49,8 +49,8 @@ class AirArmorUpgrade(Upgrade):
         UpgradeId.TERRANINFANTRYARMORSLEVEL1,
     ]
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         vikings_amount_target: int = (
             self.bot.units(UnitTypeId.VIKINGFIGHTER).amount

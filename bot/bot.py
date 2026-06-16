@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.7.11"
+VERSION: str = "12.7.12"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -59,8 +59,8 @@ class WickedBot(Superbot):
         self.debug = Debug(self)
         self.structures_memory: Units = Units([], self)
 
-    @override
     @property
+    @override
     def matchup(self) -> Matchup:
         matchup: Matchup = get_matchup(self)
         if (matchup == Matchup.TvR):
@@ -70,33 +70,33 @@ class WickedBot(Superbot):
             self.opponent_random = False
         return matchup
     
-    @override
     @property
+    @override
     def expansions(self) -> Expansions:
         return get_expansions(self)
     
-    @override
     @property
+    @override
     def map(self) -> MapData:
         return get_map(self)
 
-    @override
     @property
+    @override
     def scouting(self) -> Scouting:
         return get_scouting(self)
 
-    @override
     @property
+    @override
     def composition_manager(self) -> ArmyCompositionManager:
         return get_composition_manager(self)
 
-    @override
     @property
+    @override
     def build_order(self) -> BuildOrderManager:
         return get_build_order(self)
 
-    @override
     @property
+    @override
     def ghost_units(self) -> GhostUnitsManager:
         return get_ghost_units(self)
 

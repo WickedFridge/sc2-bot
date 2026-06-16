@@ -92,8 +92,8 @@ class BarracksAddon(Building):
         # If we reach here, we continue the sequence
         return self.sequence[(self.techlab_count + self.reactor_count) % len(self.sequence)]
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         return (
             self.barracks_without_addon.amount >= 1

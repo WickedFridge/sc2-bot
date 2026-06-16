@@ -16,16 +16,16 @@ class OrbitalCommand(UpgradeBuilding):
         self.ignore_build_order = True
         self.radius = 2.5
 
-    @override
     @property
+    @override
     def base_buildings(self) -> Units:
         townhalls_amount: int = self.bot.townhalls.ready.amount
         return self.bot.structures(self.base_building_id).ready.idle.filter(
             lambda unit: townhalls_amount <= 3 or unit.position not in self.bot.expansions.positions
         )
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         orbital_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.95
         ccs_amount: int = self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle.amount

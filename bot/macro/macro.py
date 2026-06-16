@@ -306,10 +306,12 @@ class Macro:
             # 0–1 worker refineries are preferred over 2-worker ones (both are equally efficient
             # per worker, but lower counts indicate higher need). Within the chosen tier, pick the
             # refinery closest to any sufficiently saturated mineral line to minimize travel.
-            print(f"[GAS] need more | assigned={total_gas_workers} heading={workers_heading_to_gas} target={target_gas_workers} cap={total_refinery_capacity}")
+            gaz_detail: str = ""
             for _exp in expansions_list:
                 for _ref in _exp.refineries:
-                    print(f"  ref {_ref.tag}: assigned={_ref.assigned_harvesters}/{_ref.ideal_harvesters}")
+                    gaz_detail += f"({_ref.assigned_harvesters}/{_ref.ideal_harvesters}) "
+            
+            print(f"Assign to Gas [{total_gas_workers}+{workers_heading_to_gas}/{total_refinery_capacity}] [{gaz_detail}]")
             needing_gas_fill: List[Unit] = [
                 refinery
                 for expansion in expansions_list
@@ -344,7 +346,6 @@ class Macro:
                     )
                     if (free_mineral_workers.amount >= 1):
                         worker_to_redirect: Unit = free_mineral_workers.closest_to(target_refinery)
-                        print(f"  -> redirect #{worker_to_redirect.tag} (order_target={worker_to_redirect.order_target}, orders={len(worker_to_redirect.orders)}) -> ref {target_refinery.tag}")
                         worker_to_redirect.gather(target_refinery)
                     else:
                         print(f"  -> no free mineral workers (mineral_workers={nearest_saturated_expansion.mineral_workers.amount} non-carrying={nearest_saturated_expansion.mineral_workers.filter(lambda w: not w.is_carrying_minerals).amount})")

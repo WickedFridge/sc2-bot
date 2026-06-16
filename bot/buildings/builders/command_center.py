@@ -18,8 +18,8 @@ class CommandCenter(Building):
         self.name = "Command Center"
         self.radius = 2.5
 
-    @override
     @property
+    @override
     def override_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
@@ -32,8 +32,8 @@ class CommandCenter(Building):
             and self.bot.minerals >= 600
         )
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
         townhalls_count: int = self.bot.townhalls.amount
@@ -50,8 +50,8 @@ class CommandCenter(Building):
                     pending_cc_count < max_pending_cc_count
                 )
 
-    @override
     @property
+    @override
     def position(self) -> Point2:
         townhall_amount: int = self.bot.townhalls.amount
         cc_position: Point2 = self.bot.expansions.next.position

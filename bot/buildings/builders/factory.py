@@ -13,8 +13,8 @@ class Factory(Building):
         self.unitIdFlying = UnitTypeId.FACTORYFLYING
         self.name = "Factory"
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         max_factories: int = 2
 
@@ -26,7 +26,7 @@ class Factory(Building):
             )
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         return self.bot.expansions.main.position.towards(self.bot.game_info.map_center, 4)

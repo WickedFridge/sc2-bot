@@ -19,8 +19,8 @@ class InterferenceMatrix(Upgrade):
     def on_complete(self):
         self.completed = True
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         if (self.completed):
             return False

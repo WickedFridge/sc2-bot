@@ -7,8 +7,8 @@ from sc2.ids.upgrade_id import UpgradeId
 class InfantryUpgrades(Upgrade):
     building = UnitTypeId.ENGINEERINGBAY
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         bio_count: int = (
             self.bot.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]).amount

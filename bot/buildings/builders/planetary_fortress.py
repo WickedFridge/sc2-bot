@@ -14,15 +14,15 @@ class PlanetaryFortress(UpgradeBuilding):
         self.base_building_id = UnitTypeId.COMMANDCENTER
         self.radius = 2.5
 
-    @override
     @property
+    @override
     def base_buildings(self) -> Units:
         return self.bot.structures(self.base_building_id).ready.idle.filter(
             lambda unit: unit.position in self.bot.expansions.positions
         )
 
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         pf_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.PLANETARYFORTRESS) >= 0.9
         townhalls_amount: int = self.bot.townhalls.ready.amount

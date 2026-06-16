@@ -41,6 +41,7 @@ class Situation(enum.Enum):
     @property
     def is_cheese(self) -> bool:
         return self in [
+            Situation.PROXY_BUILDINGS,
             Situation.CHEESE_CANNON_RUSH,
             Situation.CHEESE_BUNKER_RUSH,
             Situation.CHEESE_LING_DRONE,
@@ -52,21 +53,18 @@ class Situation(enum.Enum):
             Situation.CHEESE_BATTLECRUISER,
             Situation.CHEESE_UNKNOWN,
         ]
-    
+
     @property
     def is_precarious(self) -> bool:
         return (
-            self in [
-                Situation.UNDER_ATTACK,
-                Situation.PROXY_BUILDINGS,
-            ]
+            self == Situation.UNDER_ATTACK
             or (
                 self.is_cheese
                 and self not in [
                     Situation.CHEESE_SKYTOSS,
                     Situation.CHEESE_BATTLECRUISER,
                 ]
-            ) 
+            )
         )
 
     def __repr__(self) -> str:

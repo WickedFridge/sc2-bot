@@ -14,13 +14,13 @@ class SiegeTank(Train):
         self.name = 'Siege Tank'
         self.order_id = AbilityId.FACTORYTRAIN_SIEGETANK
 
-    @override
     @property
+    @override
     def custom_conditions(self):
         return not self.bot.composition_manager.should_train(UnitTypeId.THOR)
     
-    @override
     @property
+    @override
     def building_group(self) -> Units:
         return self.bot.structures(UnitTypeId.FACTORY).ready.filter(
             lambda factory: (

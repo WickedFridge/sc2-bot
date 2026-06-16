@@ -15,8 +15,8 @@ class Barracks(Building):
         self.unitIdFlying = UnitTypeId.BARRACKSFLYING
         self.name = "Barracks"
 
-    @override
     @property
+    @override
     def force_position(self) -> bool:
         return self.bot.structures(UnitTypeId.BARRACKS).amount == 0
 
@@ -27,8 +27,8 @@ class Barracks(Building):
             return max(rax_amount)
         return rax_amount[self.base_amount - 1]
     
-    @override
     @property
+    @override
     def custom_conditions(self) -> bool:
         townhall_amount: int = self.bot.townhalls.ready.amount
         factory_amount: int = self.bot.structures([UnitTypeId.FACTORY, UnitTypeId.FACTORYFLYING]).amount
@@ -45,8 +45,8 @@ class Barracks(Building):
             townhall_amount >= 1
         )
     
-    @override
     @property
+    @override
     def position(self) -> Point2:
         if (self.amount == 0):
             return self.bot.main_base_ramp.barracks_in_middle
