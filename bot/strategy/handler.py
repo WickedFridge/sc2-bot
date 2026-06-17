@@ -39,6 +39,7 @@ class StrategyHandler:
             Situation.CHEESE_PROXY_RAX: self._proxy_buildings_cleared,
             Situation.CHEESE_CANNON_RUSH: self._proxy_buildings_cleared,
             Situation.CHEESE_BUNKER_RUSH: self._proxy_buildings_cleared,
+            Situation.CHEESE_WORKER_RUSH: self._enemy_workers_cleared,
             Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
         }
 
@@ -68,13 +69,14 @@ class StrategyHandler:
 
     def _is_cheese_resolved(self, situation: Situation) -> bool:
         # 3 secured bases is always a valid exit, on top of any cheese-specific condition
-        if (self._default_cheese_exit()):
+        if (self._default_cheese_exit):
             return True
         specific_condition: Optional[Callable[[], bool]] = self.cheese_exit_conditions.get(situation)
         if (specific_condition is not None):
             return specific_condition()
         return False
 
+    @property
     def _default_cheese_exit(self) -> bool:
         return self.bot.expansions.taken.amount >= 3
 
@@ -91,6 +93,14 @@ class StrategyHandler:
 
     def _proxy_buildings_cleared(self) -> bool:
         return self._nearby_enemy_buildings.amount == 0
+    
+    def _enemy_workers_cleared(self) -> bool:
+        return self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.type_id in worker_types
+                and unit.distance_to(self.bot.expansions.main.position) * 2 < unit.distance_to(self.bot.expansions.enemy_main.position)
+            )
+        ).amount < 3
 
     def _enemy_took_b2(self) -> bool:
         return self.bot.expansions.enemy_b2.is_enemy
