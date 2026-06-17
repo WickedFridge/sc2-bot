@@ -3,6 +3,7 @@ from typing import List, Optional
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from sc2.position import Point2
 from sc2.unit import Unit
+from sc2.units import Units
 
 def center(points: List[Point2]) -> Optional[Point2]:
     length: int = len(points)
@@ -85,3 +86,14 @@ def evaluate_path_debug(
     avg_danger = sum(dangers) / len(dangers)
 
     return max_danger, avg_danger
+
+def position_behind_worker_line(base_ressources: Units, expansion_position: Point2, random: bool = False) -> Point2:
+    selected_position: Point2 = (
+        base_ressources.random.position
+        if base_ressources.amount >= 1 and random
+        else base_ressources.center if base_ressources.amount >= 1
+        else expansion_position
+    )
+    offset: Point2 = selected_position.negative_offset(expansion_position)
+    target: Point2 = selected_position.__add__(offset)
+    return Point2(selected_position.towards(target, 2))

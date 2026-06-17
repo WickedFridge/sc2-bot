@@ -33,7 +33,7 @@ class MissileTurret(Building):
         return (
             enemy_burrow
             and self.expansions_without_turret.amount >= 1
-            and self.pending_amount == 0
+            and self.pending_amount <= self.bot.expansions.taken.amount
         )
     
     @property

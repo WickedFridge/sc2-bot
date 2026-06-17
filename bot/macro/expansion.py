@@ -6,7 +6,7 @@ from bot.macro.map.map import MapData, get_map
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
-from bot.utils.point2_functions.utils import center, closest_point
+from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
@@ -345,7 +345,12 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def turret_wall_position(self) -> Point2:
         if (self.is_main):
-            return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
+            bunkers_wall: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+                lambda unit: unit.distance_to(self.bunker_ramp) < 2
+            )
+            if (bunkers_wall.amount >= 1):
+                return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
+            return position_behind_worker_line(self.mineral_fields + self.vespene_geysers, self.position)
         return center([self.position, self.bunker_position])
     
     @custom_cache_once_per_frame

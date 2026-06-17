@@ -42,19 +42,19 @@ class Scv(Train):
     @property
     @override
     def building_group(self) -> Units:
-        build_with_cc: bool = (
+        townhalls_type: List[UnitTypeId] = [
+            UnitTypeId.PLANETARYFORTRESS,
+            UnitTypeId.ORBITALCOMMAND
+        ]
+        if (
             not self.bot.orbital_tech_available
             or self.bot.scouting.situation in [
-                Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_WORKER_RUSH
+                Situation.CHEESE_WORKER_RUSH,
+                Situation.CHEESE_CANNON_RUSH
             ]
-        )
-        townhalls_type: List[UnitTypeId] = (
-            [
-                UnitTypeId.PLANETARYFORTRESS,
-                UnitTypeId.COMMANDCENTER if build_with_cc
-                else UnitTypeId.ORBITALCOMMAND
-            ]
-        )
+        ):
+            townhalls_type.append(UnitTypeId.COMMANDCENTER)
+
         return self.bot.townhalls(townhalls_type).ready.filter(
             lambda unit: (
                 len(unit.orders) == 0

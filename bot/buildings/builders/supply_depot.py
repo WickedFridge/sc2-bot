@@ -3,6 +3,7 @@ from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.strategy.strategy_types import Situation
+from bot.utils.point2_functions.utils import position_behind_worker_line
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -119,11 +120,8 @@ class SupplyDepot(Building):
         expansion: Expansion = self.bot.expansions.taken.random
         if (not expansion):
             return self.bot.expansions.main.position
-        units_pool: Units = expansion.mineral_fields + expansion.vespene_geysers
-        selected_position: Point2 = units_pool.random.position if units_pool.amount >= 1 else expansion.position
-        offset: Point2 = selected_position.negative_offset(expansion.position)
-        target: Point2 = selected_position.__add__(offset)
-        return selected_position.towards(target, 2)
+        base_ressources: Units = expansion.mineral_fields + expansion.vespene_geysers
+        return position_behind_worker_line(base_ressources, expansion.position, random=True)
     
     async def move_worker_first(self):
         if (self.bot.time >= 60):
