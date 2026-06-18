@@ -35,7 +35,6 @@ class Bunker(Building):
     @property
     @override
     def custom_conditions(self) -> bool:    
-        bunker_tech_requirements: float = self.bot.tech_requirement_progress(UnitTypeId.BUNKER)
         reaper_amount: int = self.bot.units(UnitTypeId.REAPER).amount + self.bot.already_pending(UnitTypeId.REAPER)
         marine_amount: int = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
         defense_count: float = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.amount + max(
@@ -63,8 +62,7 @@ class Bunker(Building):
 
         # We want a bunker at each base after the first
         return (
-            bunker_tech_requirements == 1
-            and (reaper_amount >= 1 or marine_amount >= 2)
+            (reaper_amount >= 1 or marine_amount >= 2)
             and (
                 self.expansions_without_defense.amount >= 1
                 or (self.precarious and marine_amount >= 4)

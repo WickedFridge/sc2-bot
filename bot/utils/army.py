@@ -54,15 +54,28 @@ class Army(CachedClass):
     @property
     def armored_ground_supply(self) -> float:
         armored_ground_units: Units = self.ground_units.filter(
-            lambda unit: unit.is_armored
+            lambda unit: unit.is_armored and not unit.is_flying
         )
         return get_units_supply(armored_ground_units)
+    
+    @property
+    def armored_supply(self) -> float:
+        armored_units: Units = self.ground_units.filter(
+            lambda unit: unit.is_armored
+        )
+        return get_units_supply(armored_units)
+    
+    @property
+    def armored_ground_ratio(self) -> float:
+        if (self.supply == 0):
+            return 0
+        return self.armored_ground_supply / self.supply
     
     @property
     def armored_ratio(self) -> float:
         if (self.supply == 0):
             return 0
-        return self.armored_ground_supply / self.supply
+        return self.armored_supply / self.supply
     
     @property
     def flying_fighting_supply(self) -> float:

@@ -118,14 +118,25 @@ class ArmyCompositionManager(CachedClass):
         return min(max_thor_amount, round(thor_amount))
     
     @property
+    def tanks_amount(self) -> int:
+        default_amount: int = self.default_amount(UnitTypeId.SIEGETANK)
+        max_amount: int = 10
+        ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
+        if (ratio < 0.5):
+            return default_amount
+        # linear progression from default to max between 0.5 and 1 of armored enemy rati
+        return min(max_amount, round(default_amount + (ratio - 0.5) / 0.5 * (max_amount - default_amount)))
+    
+    @property
     def marauders_ratio(self) -> float:
         default_marauder_ratio: dict[Matchup, float] = {
             Matchup.TvT: 0,
             Matchup.TvZ: 0.1,
             Matchup.TvP: 0.3,
-            Matchup.TvR: 0.2,
+            Matchup.TvR: 0,
         }
-        
+        default_ratio: float = default_marauder_ratio[self.wicked.matchup]
+
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             # default is 0 if we can't make medivacs yet and we're not in a precarious situation
             if (
@@ -133,8 +144,8 @@ class ArmyCompositionManager(CachedClass):
                 and self.wicked.scouting.situation not in precarious_situations
             ):
                 return 0
-            return default_marauder_ratio[self.wicked.matchup]
-        return max(0.1, self.wicked.scouting.known_enemy_army.armored_ground_supply / self.wicked.scouting.known_enemy_army.supply)
+            return default_ratio
+        return max(default_ratio, self.wicked.scouting.known_enemy_army.armored_ground_ratio)
     
     def default_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:
@@ -171,24 +182,26 @@ class ArmyCompositionManager(CachedClass):
             if (self.default_amount(unit_type)):
                 composition.set(unit_type, self.default_amount(unit_type))
         
-        # TvT marine heavy specific
-        if (self.wicked.matchup == Matchup.TvT):
-            composition.set(UnitTypeId.MARINE, 40)
-        
         # build order specific modifications
         build_order_driven: bool = self.wicked.build_order.build.modify_composition(composition)
         if (build_order_driven):
             return composition
         
+        # TvT marine heavy specific
+        if (self.wicked.matchup == Matchup.TvT):
+            composition.set(UnitTypeId.MARINE, 40)
         
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
+        
+        if (UnitTypeId.SIEGETANK in available_units):
+            composition.add(UnitTypeId.SIEGETANK, self.tanks_amount)
         
         if (UnitTypeId.THOR in available_units):
             composition.add(UnitTypeId.THOR, self.thor_amount)
 
         # only start making marauders once we have at least 8 marines unless we're in danger
-        if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ratio >= 0.7)):
+        if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ground_ratio >= 0.7)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
             if (UnitTypeId.GHOST in self.available_units):

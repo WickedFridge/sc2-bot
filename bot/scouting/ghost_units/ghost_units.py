@@ -6,6 +6,7 @@ from sc2.bot_ai import BotAI
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.unit import Unit
 
 @dataclass
 class GhostUnit:
@@ -35,6 +36,8 @@ class GhostUnit:
     last_seen_frame: int
     expiry_frame: int
     is_possibly_hidden: bool = False
+    is_enemy: bool = True
+    passengers: Set[Unit] = set()
 
     def has_buff(self, buff_id: BuffId) -> bool:
         """ Checks if the ghost unit has a specific buff. """

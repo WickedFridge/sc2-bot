@@ -50,13 +50,6 @@ class SelectOrders:
     @property
     def armies_size(self) -> float:
         return math.sqrt(self.army_supply) + 10
-
-    @property
-    def armored_supply(self) -> float:
-        result: float = 0
-        for army in self.armies:
-            result += army.armored_ground_supply
-        return result
             
     def load_clusters(self) -> List[Army]:
         clusters: List[Army] = []
@@ -784,7 +777,7 @@ class SelectOrders:
                 UnitTypeId.REAPER,
             ] 
             enemy_army: Army = Army(enemy_units_menacing, self.bot)
-            load_priority: List[UnitTypeId] = armored_load_priority if enemy_army.armored_ratio >= 0.5 else default_load_priority
+            load_priority: List[UnitTypeId] = armored_load_priority if enemy_army.armored_ground_ratio >= 0.5 else default_load_priority
             
             cargo_left: int = bunker.cargo_left
             for unit_type in load_priority:

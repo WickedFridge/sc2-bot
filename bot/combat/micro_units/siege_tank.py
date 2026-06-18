@@ -20,13 +20,18 @@ class MicroSiegeTank(MicroUnit):
     def get_enemies_close_siege_range(self, tank: Unit):
         dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED]
         
-        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(lambda enemy: enemy.type_id not in dont_siege_against)
+        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(
+            lambda enemy: enemy.type_id not in dont_siege_against
+        )
         return self.bot.enemy_structures.filter(
-            lambda enemy: enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
+            lambda enemy: (
+                enemy.is_flying == False
+                and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
+            )
         ) + local_enemies.filter(
             lambda enemy: (
                 enemy.is_flying == False
-                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + self.THRESHOLD + enemy.radius
+                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + self.THRESHOLD
             )
         )
 
@@ -50,10 +55,9 @@ class MicroSiegeTank(MicroUnit):
         if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1 and other_tank_sieged_close.amount == 0):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
             return True
-        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
-            if (enemies_close.amount == 0):
-                tank(AbilityId.UNSIEGE_UNSIEGE)
-                return True
+        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED and enemies_close.amount == 0):
+            tank(AbilityId.UNSIEGE_UNSIEGE)
+            return True
         return False
 
     
@@ -72,8 +76,16 @@ class MicroSiegeTank(MicroUnit):
 
     @override
     async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):
+        self.switch_mode(unit, enemy_buildings)
         await self.fight(unit, local_units)
 
+    @override
+    async def harass(self, unit: Unit, local_units: Units, workers: Units):
+        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
+        if (self.switch_mode(unit, enemies_close_siege_range)):
+            return
+        await super().harass(unit, local_units, workers)
+    
     @override
     async def a_move(self, unit: Unit, target: Point2):
         self.switch_mode(unit, Units([], self.bot))

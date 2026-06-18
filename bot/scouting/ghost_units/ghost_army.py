@@ -1,5 +1,5 @@
 import math
-from typing import List
+from typing import List, Set
 from bot.scouting.ghost_units.ghost_units import GhostUnits
 from bot.utils.army import Army
 from bot.utils.unit_supply import get_units_supply, weighted_units_supply
@@ -16,7 +16,7 @@ class GhostArmy(CachedClass):
         self.ghost_units = ghost_units
     
     @property
-    def tags(self) -> List[int]:
+    def tags(self) -> Set[int]:
         return self.ghost_units.tags
     
     @property
@@ -52,7 +52,7 @@ class GhostArmy(CachedClass):
         return get_units_supply(self.ghost_units)
 
     @property
-    def fighting_supply(self) -> int:
+    def fighting_supply(self) -> float:
         return get_units_supply(self.fighting_units)
 
     @property

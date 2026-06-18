@@ -1,4 +1,5 @@
 import math
+from bot.scouting.ghost_units.ghost_units import GhostUnits
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -136,7 +137,7 @@ supply[UnitTypeId.MOTHERSHIP] = 8
 def get_unit_supply(unit_type: UnitTypeId) -> int:
     return supply.get(unit_type, 0)
 
-def get_units_supply(army: Units) -> float:
+def get_units_supply(army: Units | GhostUnits) -> float:
     army_supply: float = 0
     for unit in army:
         if (unit.type_id == UnitTypeId.BUNKER):
@@ -153,7 +154,7 @@ def get_units_supply(army: Units) -> float:
             army_supply += get_unit_supply(unit.type_id)
     return army_supply
 
-def weighted_units_supply(units: Units) -> float:
+def weighted_units_supply(units: Units | GhostUnits) -> float:
     army_supply: float = 0
     for unit in units:
         health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health_max + unit.shield_max)

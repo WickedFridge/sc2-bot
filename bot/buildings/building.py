@@ -97,7 +97,7 @@ class Building(CachedClass):
         return amount
     
     @property
-    def precarious(self) -> int:
+    def precarious(self) -> bool:
         return self.bot.scouting.situation.is_cheese or self.bot.scouting.situation.is_precarious
     
     def on_complete(self):

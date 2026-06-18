@@ -36,9 +36,9 @@ class StrategyHandler:
         ]
         self.cheese_exit_conditions: dict[Situation, Callable[[], bool]] = {
             Situation.PROXY_BUILDINGS: self._proxy_buildings_cleared,
-            Situation.CHEESE_PROXY_RAX: self._proxy_buildings_cleared,
-            Situation.CHEESE_CANNON_RUSH: self._proxy_buildings_cleared,
-            Situation.CHEESE_BUNKER_RUSH: self._proxy_buildings_cleared,
+            Situation.CHEESE_PROXY_RAX: lambda: self._proxy_buildings_cleared([UnitTypeId.BARRACKS]),
+            Situation.CHEESE_CANNON_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]),
+            Situation.CHEESE_BUNKER_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.BUNKER]),
             Situation.CHEESE_WORKER_RUSH: self._enemy_workers_cleared,
             Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
         }
@@ -91,8 +91,13 @@ class StrategyHandler:
             )
         )
 
-    def _proxy_buildings_cleared(self) -> bool:
-        return self._nearby_enemy_buildings.amount == 0
+    def _proxy_buildings_cleared(self, building_type: List[UnitTypeId] = []) -> bool:
+        enemy_buildings: Units = (
+            self._nearby_enemy_buildings(building_type)
+            if len(building_type) >= 1
+            else self._nearby_enemy_buildings
+        )
+        return enemy_buildings.amount == 0
     
     def _enemy_workers_cleared(self) -> bool:
         return self.bot.enemy_units.filter(

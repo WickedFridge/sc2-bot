@@ -29,11 +29,20 @@ class MissileTurret(Building):
     @override
     def custom_conditions(self) -> bool:
         enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
+        expansions_count: int = self.bot.expansions.amount_taken
+        turret_amount_target: int = expansions_count
+        turret_to_construct_amount: int = self.bot.already_pending(UnitTypeId.MISSILETURRET) - self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
+        defense_count: float = self.bot.structures(UnitTypeId.MISSILETURRET).ready.amount + max(
+            self.bot.already_pending(UnitTypeId.MISSILETURRET),
+            self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
+        )
         
         return (
             enemy_burrow
             and self.expansions_without_turret.amount >= 1
             and self.pending_amount <= self.bot.expansions.taken.amount
+            and defense_count < turret_amount_target
+            and turret_to_construct_amount == 0
         )
     
     @property

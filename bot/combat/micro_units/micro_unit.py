@@ -381,12 +381,12 @@ class MicroUnit(CachedClass):
         unit.attack(target)
     
     async def attack_nearest_base(self, unit: Unit, army: Army, target: Point2):
-        target: Point2 = (
-            army.leader.position
+        move_target: Point2 = (
+            army.leader.position.towards(unit)
             if unit.position.distance_to(army.leader.position) >= 3
             else center([unit.position, army.leader.position, target])
         )
-        unit.move(target)
+        unit.move(move_target)
       
     async def chase_buildings(self, unit: Unit, army: Army, target: Point2):
         enemy_units_in_range = self.get_enemy_units_in_range(unit)

@@ -13,6 +13,7 @@ from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.game_info import Ramp
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -345,10 +346,7 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def turret_wall_position(self) -> Point2:
         if (self.is_main):
-            bunkers_wall: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
-                lambda unit: unit.distance_to(self.bunker_ramp) < 2
-            )
-            if (bunkers_wall.amount >= 1):
+            if (UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades):
                 return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
             return position_behind_worker_line(self.mineral_fields + self.vespene_geysers, self.position)
         return center([self.position, self.bunker_position])
