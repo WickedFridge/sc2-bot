@@ -470,28 +470,24 @@ class Base:
         # find closest safe expansion
         retreat_base: Expansion = None
         safe_expansions: Units = self.bot.expansions.taken.safe
-        if (safe_expansions.amount == 0):
-            retreat_base = self.bot.expansions.main
-        else:
+        if (safe_expansions.amount >= 1):
             retreat_base = safe_expansions.closest_to(self.position)
-        
-        # move all workers to the closest expansion
-        for worker in self.workers:
-            if (retreat_base.mineral_fields.amount):
-                worker.gather(retreat_base.mineral_fields.random)
-            else:
-                worker.move(retreat_base.mineral_line)
+            # move all workers to the closest expansion
+            for worker in self.workers:
+                if (retreat_base.mineral_fields.amount):
+                    worker.gather(retreat_base.mineral_fields.random)
+                else:
+                    worker.move(retreat_base.mineral_line)
         
         # if cc isn't a PF or the main, lift it
         if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
             return
         print("Lifting CC to evacuate")
+        self.cc.stop()
         if (self.cc.type_id == UnitTypeId.ORBITALCOMMAND):
-            self.cc.stop()
-            self.cc(AbilityId.LIFT_ORBITALCOMMAND)
+            self.cc(AbilityId.LIFT_ORBITALCOMMAND, queue=True)
         else:
-            self.cc.stop()
-            self.cc(AbilityId.LIFT_COMMANDCENTER)
+            self.cc(AbilityId.LIFT_COMMANDCENTER, queue=True)
     
     def no_threat(self) -> None:
         # ask all chasing SCVs to stop
