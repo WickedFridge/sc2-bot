@@ -465,6 +465,9 @@ class Debug:
             bunker_position: Point2 = expansion.bunker_position
             self.draw_grid_on_world(bunker_position, 3, "Bunker")
             
+            bunker_position: Point2 = expansion.bunker_forward_in_pathing
+            self.draw_grid_on_world(bunker_position, 3, "Bunker forward")
+            
     async def wall_placement(self):
         self.draw_grid_on_world(self.bot.map.wall_placement[0], 2, "Depot")
         self.draw_grid_on_world(self.bot.map.wall_placement[1], 3, "Barracks")

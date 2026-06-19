@@ -307,8 +307,8 @@ class Expansion(CachedClass):
 
     @cached_property
     def bunker_forward(self) -> Point2:
-        enemy_spawn: Point2 = self.bot.enemy_start_locations[0]
-        bunker_position: Point2 = self.position.towards(enemy_spawn, 3)
+        map_center: Point2 = self.bot.game_info.map_center
+        bunker_position: Point2 = self.position.towards(map_center, 3)
         # if there's a ramp descending, position the bunker in top of it
         ramps: List[Ramp] = self.bot.game_info.map_ramps
         for ramp in ramps:
@@ -344,11 +344,13 @@ class Expansion(CachedClass):
         return self.bunker_forward_in_pathing
     
     @custom_cache_once_per_frame
+    def turret_mineral_line(self) -> Point2:
+        return position_behind_worker_line(self.mineral_fields + self.vespene_geysers, self.position)
+    
+    @custom_cache_once_per_frame
     def turret_wall_position(self) -> Point2:
         if (self.is_main):
-            if (UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades):
-                return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
-            return position_behind_worker_line(self.mineral_fields + self.vespene_geysers, self.position)
+            return Point2(self.bunker_ramp.towards(self.position, 2)).rounded
         return center([self.position, self.bunker_position])
     
     @custom_cache_once_per_frame
