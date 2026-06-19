@@ -38,8 +38,8 @@ class MicroBioUnit(MicroUnit):
             )
         )
         targets_in_range: Units = self.get_enemy_units_in_range(bio_unit, include_buildings=True)
-        closest_enemy: Unit = self.bot.enemy_units.closest_to(bio_unit)
-
+        close_enemies: Units = self.bot.enemy_units.closer_than(15, bio_unit)
+        
         if (
             (
                 bio_unit.health >= self.WITHOUT_MEDIVAC_HEALTH_THRESHOLD
@@ -51,8 +51,10 @@ class MicroBioUnit(MicroUnit):
             and (
                 # only stimming if there's enough danger or a target in range
                 targets_in_range.amount >= 1
-                or closest_enemy.type_id == UnitTypeId.TEMPEST
                 or (
+                    close_enemies.amount >= 1 and
+                    close_enemies.closest_to(bio_unit).type_id == UnitTypeId.TEMPEST
+                ) or (
                     self.bot.map.influence_maps.danger.ground[bio_unit.position] >= DANGER_THRESHOLD
                     and not bio_unit.weapon_ready
                 )
