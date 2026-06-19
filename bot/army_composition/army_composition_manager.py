@@ -118,14 +118,13 @@ class ArmyCompositionManager(CachedClass):
         return min(max_thor_amount, round(thor_amount))
     
     @property
-    def tanks_amount(self) -> int:
-        default_amount: int = self.default_amount(UnitTypeId.SIEGETANK)
-        max_amount: int = 10
+    def extra_tanks_amount(self) -> int:
+        max_extra: int = 5
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
         if (ratio < 0.5):
-            return default_amount
-        # linear progression from default to max between 0.5 and 1 of armored enemy ratio
-        return min(max_amount, round(default_amount + (ratio - 0.5) / 0.5 * (max_amount - default_amount)))
+            return 0
+        # linear progression from 0 to max_extra between 0.5 and 1 of armored enemy ratio
+        return round((ratio - 0.5) / 0.5 * max_extra)
     
     @property
     def marauders_ratio(self) -> float:
@@ -195,7 +194,7 @@ class ArmyCompositionManager(CachedClass):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)
         
         if (UnitTypeId.SIEGETANK in available_units):
-            composition.add(UnitTypeId.SIEGETANK, self.tanks_amount)
+            composition.add(UnitTypeId.SIEGETANK, self.extra_tanks_amount)
         
         if (UnitTypeId.THOR in available_units):
             composition.add(UnitTypeId.THOR, self.thor_amount)

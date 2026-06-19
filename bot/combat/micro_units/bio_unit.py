@@ -1,4 +1,4 @@
-from typing import override
+from typing import List, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.utils.army import Army
@@ -29,6 +29,7 @@ class MicroBioUnit(MicroUnit):
         
         MEDIVAC_ENERGY_THRESHOLD: int = 25
         MEDIVAC_HEALTH_THRESHOLD: int = 40
+        always_stim_against: List[UnitTypeId] = [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]
         
         local_usable_medivacs: Units = self.bot.units(UnitTypeId.MEDIVAC).filter(
             lambda medivac: (
@@ -53,7 +54,7 @@ class MicroBioUnit(MicroUnit):
                 targets_in_range.amount >= 1
                 or (
                     close_enemies.amount >= 1 and
-                    close_enemies.closest_to(bio_unit).type_id == UnitTypeId.TEMPEST
+                    close_enemies.closest_to(bio_unit).type_id in always_stim_against
                 ) or (
                     self.bot.map.influence_maps.danger.ground[bio_unit.position] >= DANGER_THRESHOLD
                     and not bio_unit.weapon_ready
