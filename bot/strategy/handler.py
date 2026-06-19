@@ -59,15 +59,15 @@ class StrategyHandler:
 
     def assess_situation(self) -> Situation:
         # a confirmed cheese doesn't stop being true just because our production/army ratio changed later
-        if (self.confirmed_cheese is not None):
-            if (self._is_cheese_resolved(self.confirmed_cheese)):
-                self.confirmed_cheese = None
-            else:
-                return self.confirmed_cheese
+        if (self.confirmed_cheese is not None and self._is_cheese_resolved(self.confirmed_cheese)):
+            self.confirmed_cheese = None
 
         situation: Situation = self.detect_situation()
         if (situation.is_cheese):
             self.confirmed_cheese = situation
+
+        if (self.confirmed_cheese is not None):
+            return self.confirmed_cheese
         return situation
 
     def _is_cheese_resolved(self, situation: Situation) -> bool:
