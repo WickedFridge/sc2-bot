@@ -40,6 +40,9 @@ class StrategyHandler:
             Situation.CHEESE_CANNON_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]),
             Situation.CHEESE_BUNKER_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.BUNKER]),
             Situation.CHEESE_WORKER_RUSH: self._enemy_workers_cleared,
+            Situation.CHEESE_LING_DRONE: self._enemy_units_cleared,
+            Situation.CHEESE_LING_FLOOD: self._enemy_units_cleared,
+            Situation.CHEESE_ROACH_RUSH: self._enemy_units_cleared,
             Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
         }
 
@@ -106,6 +109,13 @@ class StrategyHandler:
                 and unit.distance_to(self.bot.expansions.main.position) * 2 < unit.distance_to(self.bot.expansions.enemy_main.position)
             )
         ).amount < 3
+    
+    def _enemy_units_cleared(self) -> bool:
+        return self.bot.enemy_units.filter(
+            lambda unit: (
+                unit.distance_to(self.bot.expansions.main.position) * 2 < unit.distance_to(self.bot.expansions.enemy_main.position)
+            )
+        ).amount < 3
 
     def _enemy_took_b2(self) -> bool:
         return self.bot.expansions.enemy_b2.is_enemy
@@ -119,13 +129,17 @@ class StrategyHandler:
         early_cheese_situation: Optional[Situation] = self.detect_early_cheese()
         if (early_cheese_situation):
             return early_cheese_situation
+        
+        techno_cheese_situation: Optional[Situation] = self.detect_techno_cheese()
+        if (techno_cheese_situation):
+            return techno_cheese_situation
 
         # enemy has more than twice our army supply
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
         army: Army = Army(fighting_units, self.bot)
         enemy_supply: int = self.bot.scouting.known_enemy_army.fighting_supply
         OVER_POWERED_RATIO: float = 2
-        BASIC_THRESHOLD: int = 4
+        BASIC_THRESHOLD: int = 6
         
         if (
             enemy_supply > BASIC_THRESHOLD
@@ -209,7 +223,9 @@ class StrategyHandler:
             )
         ):
             return Situation.CHEESE_ROACH_RUSH
-        
+        return None
+
+    def detect_techno_cheese(self) -> Optional[Situation]:
         skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
         if (
             skytoss_tech
@@ -242,16 +258,17 @@ class StrategyHandler:
         # or enemy has way more production than us
         if (
             self.bot.expansions.enemy_b2.is_free
-            and self.bot.townhalls.amount == 3
-            or (
-                self.bot.enemy_structures(enemy_production).amount >= 3
-                and self.bot.enemy_structures(enemy_production).amount >= 2 * self.bot.structures(production).amount
+            and (
+                self.bot.townhalls.amount == 3
+                or (
+                    self.bot.enemy_structures(enemy_production).amount >= 3
+                    and self.bot.enemy_structures(enemy_production).amount >= 2 * self.bot.structures(production).amount
+                )
             )
         ):
             return Situation.CHEESE_UNKNOWN
-        
         return None
-    
+
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
         if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_RAX_EXPAND):

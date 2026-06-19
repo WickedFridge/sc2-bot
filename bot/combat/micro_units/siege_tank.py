@@ -31,7 +31,7 @@ class MicroSiegeTank(MicroUnit):
         ) + local_enemies.filter(
             lambda enemy: (
                 enemy.is_flying == False
-                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + self.THRESHOLD
+                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + self.THRESHOLD * enemy.real_speed
             )
         )
 

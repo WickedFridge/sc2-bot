@@ -30,6 +30,9 @@ def one_block_over(pos: Point2) -> Point2:
 def one_block_under(pos: Point2) -> Point2:
     return pos.offset(Point2((0, -2 * PRODUCTION_RADIUS)))
 
+def _lane(x_values: list[int], y_range: range) -> list[tuple[int, int]]:
+    return [(x, y) for x in x_values for y in y_range]
+
 class BuildingLayer:
     bot: BotAI
     occupancy: InfluenceMap
@@ -296,29 +299,14 @@ class BuildingLayer:
         )
     
     def reserve_around_production(self, origin: Point2) -> None:
-        # Points to disable to avoid units getting stuck
-        points: List[tuple[int, int]] = [
-            (-1, 0),
-            (-1, 1),
-            (-1, 2),
-            (3, 2),
-            (4, 2),
-            (5, 0),
-            (5, 1),
-            (5, 2),
-            # extra layer of safety for factories (tanks and Thors are big)
-            (-2, 0),
-            (-2, 1),
-            (-2, 2),
-            (6, 0),
-            (6, 1),
-            (6, 2),
+        lane_y = range(-2, 5)
+
+        points: list[tuple[int, int]] = [
+            *_lane([-2, -1], lane_y),  # two lanes on the left
+            *_lane([5, 6],   lane_y),  # two lanes on the right
+            (3, 2), (4, 2),            # top of the addon
         ]
 
-        factory_points: List[tuple[int, int]] = [
-        ]
-        
-        # reserve space between production buildings
         for point in points:
             self.reserve_area(origin + Point2(point), 1, set(important_buildings))
     

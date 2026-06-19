@@ -99,7 +99,7 @@ class ArmyCompositionManager(CachedClass):
         # we want pretty much matching air supply
         thor_amount: float = 0
         light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
-        no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]
+        no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (
                 unit_type in no_thors_units or (
@@ -111,7 +111,7 @@ class ArmyCompositionManager(CachedClass):
             thor_response_amount: float = get_unit_supply(unit_type) / 4
             if (enemy_units.amount > 0):
                 thor_amount += thor_response_amount * enemy_units.amount
-            else:
+            elif (unit_type != UnitTypeId.VIKING):
                 thor_amount += thor_response_amount / 2
 
         # round, because 2.3 thors = 2 thors in practice
@@ -124,7 +124,7 @@ class ArmyCompositionManager(CachedClass):
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
         if (ratio < 0.5):
             return default_amount
-        # linear progression from default to max between 0.5 and 1 of armored enemy rati
+        # linear progression from default to max between 0.5 and 1 of armored enemy ratio
         return min(max_amount, round(default_amount + (ratio - 0.5) / 0.5 * (max_amount - default_amount)))
     
     @property

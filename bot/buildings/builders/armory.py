@@ -46,17 +46,31 @@ class Armory(Building):
         # We want a second Armory once we have a bunch of mechanical units
         # Vikings so far
         composition: Composition = self.bot.composition_manager.composition
-        mechanical_units_amount: int = (
+        mechanical_units_compo: int = (
             composition[UnitTypeId.VIKINGFIGHTER]
             + composition[UnitTypeId.LIBERATOR]
             + composition[UnitTypeId.HELLION]
             + composition[UnitTypeId.SIEGETANK]
             + composition[UnitTypeId.THOR]
         )
+        mechanical_units_amount: int = self.bot.units_with_passengers([
+            UnitTypeId.SIEGETANK,
+            UnitTypeId.SIEGETANKSIEGED,
+            UnitTypeId.THOR,
+            UnitTypeId.THORAP,
+            UnitTypeId.VIKINGFIGHTER,
+            UnitTypeId.VIKINGASSAULT,
+            UnitTypeId.HELLION,
+            UnitTypeId.HELLIONTANK,
+            UnitTypeId.LIBERATOR,
+            UnitTypeId.LIBERATORAG,
+        ]).amount
+        
         if (self.amount == 1):
             return (
                 self.bot.expansions.amount_taken >= 4
-                and mechanical_units_amount >= 8
+                and mechanical_units_compo >= 12
+                and mechanical_units_amount >= 6
             )
         return False
     
