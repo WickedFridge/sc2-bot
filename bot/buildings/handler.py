@@ -185,17 +185,23 @@ class BuildingsHandler:
             else:
                 scan_banked += 1
 
-    def scan_enemy_main(self, orbitals_with_energy: Units) -> bool:
+    def scan_enemy_cheese(self, orbitals_with_energy: Units) -> bool:
+        SCOUT_THRESHOLD: int = 60
+
         if (
             self.bot.scouting.situation == Situation.CHEESE_UNKNOWN
-            and (
-                self.bot.expansions.enemy_main.is_unknown
-                or self.bot.scouting.known_enemy_army.units.amount < 5
-            )
         ):
-            position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.game_info.map_center, 2)
-            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
-            return True
+            if (
+                self.bot.expansions.enemy_main.is_unknown
+                or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD
+            ):
+                position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.expansions.enemy_b2, 2)
+                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+                return True
+            if (self.bot.time - self.bot.expansions.enemy_b2.last_scouted >= SCOUT_THRESHOLD):
+                position_to_scan: Point2 = self.bot.expansions.enemy_b2.position
+                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+                return True
         return False
 
     
@@ -298,7 +304,7 @@ class BuildingsHandler:
             return
         
         # if we don't know much about what's happening, scan the main
-        if (self.scan_enemy_main(orbitals_with_energy)):
+        if (self.scan_enemy_cheese(orbitals_with_energy)):
             return
         
         # if we have no fighting units we can't clean creep

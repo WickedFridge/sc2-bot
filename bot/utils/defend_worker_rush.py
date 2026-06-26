@@ -55,8 +55,12 @@ def wall_is_up(bot: BotAI) -> bool:
         return True
     return False
 
-def pullback_workers(workers: Units, main_position: Point2, mineral_field_main: Unit) -> None:
-    for worker in workers:
+def pullback_workers(workers: Units, main_position: Point2, main_minerals: Units, mineral_field_main: Unit) -> None:
+    workers_to_pullback: Units = workers.filter(
+        lambda worker: len(worker.orders) == 0 or worker.orders[0].target not in main_minerals.tags
+    )
+    
+    for worker in workers_to_pullback:
         if (worker.distance_to(main_position) > 5 and worker.distance_to(mineral_field_main) > 5):
             if (worker.is_carrying_resource):
                 worker.return_resource()
@@ -94,7 +98,7 @@ def defend_worker_rush(bot: BotAI) -> None:
     # if the wall is up, skip this
     if (wall_is_up(bot)):
         print("wall is up, skip this")
-        pullback_workers(workers_pulled, main_position, mineral_field_main)
+        pullback_workers(workers_pulled, main_position, main_minerals, mineral_field_main)
         worker_pulled_tags = []
         return
 
@@ -156,4 +160,4 @@ def defend_worker_rush(bot: BotAI) -> None:
             # On cooldown: gather to keep mining and avoid eating free hits
             worker.gather(mineral_field_main)
 
-    pullback_workers(workers_to_pullback, main_position, mineral_field_main)
+    pullback_workers(workers_to_pullback, main_position, main_minerals, mineral_field_main)

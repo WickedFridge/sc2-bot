@@ -17,17 +17,13 @@ class Ebay(Building):
         self.name = "Ebay"
 
     @property
-    def ebays_count(self) -> int:
-        return self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount + self.bot.already_pending(UnitTypeId.ENGINEERINGBAY)
-    
-    @property
     @override
     def override_conditions(self) -> bool:
         need_detection: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
 
         return (
             self.in_build_order or (
-                self.ebays_count == 0
+                self.amount == 0
                 and need_detection
             )
         )
@@ -43,7 +39,7 @@ class Ebay(Building):
         
         # We want 2 ebays once we have a 3rd CC and 3 raxes (by this time we probably already have a Starport and such)
         return (
-            self.ebays_count < 2
+            self.amount < 2
             and self.bot.townhalls.amount >= 3
             and barracks_count >= 3
         )
