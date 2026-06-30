@@ -134,14 +134,6 @@ class SelectOrders:
         )
     
     @property
-    def stim_completed(self) -> bool:
-        return self.bot.already_pending_upgrade(UpgradeId.STIMPACK) == 1
-    
-    @property
-    def stim_almost_completed(self) -> bool:
-        return self.bot.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.85
-    
-    @property
     def enemy_anti_air(self) -> Units:
         return self.bot.scouting.known_enemy_army.units(anti_air)
 
@@ -246,7 +238,7 @@ class SelectOrders:
         # -- Specific orders for reapers
         if (
             army.units(scouting_units).amount == army.units.amount
-            or army.units(scouting_units).amount >= 4 and not self.stim_almost_completed
+            or army.units(scouting_units).amount >= 4 and not self.bot.stim_almost_completed
             or army.units(UnitTypeId.BANSHEE).amount >= 1
             or army.units(UnitTypeId.REAPER).amount >= 1 and army.units.amount <= 2
         ):
@@ -360,7 +352,7 @@ class SelectOrders:
             # If winning with stim
             if (
                 army.potential_supply >= local_enemy_supply * 1.2 and (
-                    self.stim_completed
+                    self.bot.stim_completed
                     or (
                         army.is_technical and self.bot.matchup == Matchup.TvT
                     )
@@ -415,7 +407,7 @@ class SelectOrders:
         
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (
-            (self.stim_completed or army.is_technical)
+            (self.bot.stim_completed or army.is_technical)
             and (
                 weighted_army_supply >= local_enemy_supply
                 or army.potential_supply >= local_enemy_supply * 1.5
@@ -565,7 +557,7 @@ class SelectOrders:
             (
                 army.can_drop_medivacs.amount >= 2
                 and army.can_heal_medivacs.amount >= 2
-                and self.stim_almost_completed
+                and self.bot.stim_almost_completed
             ) or (
                 self.bot.matchup == Matchup.TvT
                 and army.is_technical

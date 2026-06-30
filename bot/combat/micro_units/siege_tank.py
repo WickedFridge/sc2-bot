@@ -36,7 +36,7 @@ class MicroSiegeTank(MicroUnit):
         )
 
     
-    def switch_mode(self, tank: Unit, enemies_close: Units) -> bool:
+    def switch_mode(self, tank: Unit, enemies_close: Units, buildings_only: bool = False) -> bool:
         # don't siege too close to another tank
         other_tank_sieged_close: Units = self.bot.units.filter(
             lambda other: (
@@ -52,6 +52,10 @@ class MicroSiegeTank(MicroUnit):
                 )
             )
         )
+
+        if (buildings_only):
+            enemies_close = enemies_close.filter(lambda unit: unit.is_structure)
+        
         if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1 and other_tank_sieged_close.amount == 0):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
             return True
@@ -64,14 +68,13 @@ class MicroSiegeTank(MicroUnit):
     @override
     async def fight(self, tank: Unit, local_units: Units, chase: bool = False):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
-        if (not chase and self.switch_mode(tank, enemies_close_siege_range)):
+        if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
             return
         enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
-                lambda unit: (unit.is_armored == False, unit.health + unit.shield)
+            lambda unit: (unit.is_armored == False, unit.health + unit.shield)
         )
         if (enemies_in_range.amount >= 1):
             tank.attack(enemies_in_range.first)
-        enemies_in_range: Units = self.get_enemy_units_in_range(tank)
         tank.move(local_units.center)
 
     @override
@@ -82,7 +85,7 @@ class MicroSiegeTank(MicroUnit):
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
-        if (self.switch_mode(unit, enemies_close_siege_range)):
+        if (self.switch_mode(unit, enemies_close_siege_range, buildings_only=True)):
             return
         await super().harass(unit, local_units, workers)
     

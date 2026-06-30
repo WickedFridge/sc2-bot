@@ -12,6 +12,7 @@ from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.cache import property_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.units import Units
 
@@ -46,6 +47,14 @@ class Superbot(BotAI):
     def ghost_units(self) -> GhostUnitsManager:
         pass
 
+    @property
+    def stim_completed(self) -> bool:
+        return self.already_pending_upgrade(UpgradeId.STIMPACK) == 1
+    
+    @property
+    def stim_almost_completed(self) -> bool:
+        return self.already_pending_upgrade(UpgradeId.STIMPACK) >= 0.85
+    
     @property
     def orbital_tech_available(self) -> bool:
         return self.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9

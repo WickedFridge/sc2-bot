@@ -416,7 +416,15 @@ class BuildingsHandler:
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
             # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)
             
-            if (danger_around >= self.DANGER_THRESHOLD or self.bot.scouting.situation.is_precarious):
+            if (
+                danger_around >= self.DANGER_THRESHOLD
+                or self.bot.scouting.situation.is_precarious
+                or (
+                    self.bot.townhalls.ready.amount == 3
+                    and self.bot.matchup == Matchup.TvP
+                    and not self.bot.stim_completed
+                )
+            ):
                 print("too much danger")
                 return
 

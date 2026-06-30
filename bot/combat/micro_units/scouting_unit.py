@@ -62,6 +62,39 @@ class MicroScoutingUnit(MicroUnit):
             unit.move(safest_spot)
 
     @override
+    async def harass(self, unit: Unit, local_units: Units, workers: Units):
+        # calculate the range of the unit based on its movement speed + range + cooldown
+        closest_worker: Unit = workers.closest_to(unit)
+        worker_potential_targets: Units = self.get_potential_targets(unit).sorted(
+            lambda worker: ((worker.health + worker.shield), worker.distance_to(unit))
+        )
+        
+        # first case : we're dangerously close to a worker => retreat to a safer spot
+        if (workers.closest_distance_to(unit) <= 1.5):
+            unit.move(unit.position.towards(closest_worker, -1))
+            return
+        
+        # in these case we should target a worker
+        if (worker_potential_targets.amount >= 1 or unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD):
+            # define the best target
+            target: Unit = worker_potential_targets.first if worker_potential_targets.amount >= 1 else closest_worker
+            # if we're not on cooldown and workers are really close, run away
+            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD):
+                if (workers.closest_distance_to(unit) <= 1.5 and unit.health_percentage < 1):
+                    # safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, workers.closest_to(unit), range_modifier=unit.health_percentage)
+                    # unit.move(safest_spot)
+                    unit.move(unit.position.towards(closest_worker, -1))
+                else:
+                    # move towards the unit but not too close
+                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target, risk=1)
+                    unit.move(best_position)
+            # if we're on cooldown, shoot at it
+            else:
+                unit.attack(target)
+        else:
+            unit.attack(closest_worker)
+
+    @override
     async def disengage(self, unit: Unit, local_units: Units):
         await self.fight(unit, local_units)
 
