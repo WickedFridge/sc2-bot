@@ -36,7 +36,8 @@ class Situation(enum.Enum):
     CHEESE_SKYTOSS = 11
     CHEESE_BATTLECRUISER = 12
     CHEESE_PROXY_RAX = 13
-    CHEESE_UNKNOWN = 14
+    CHEESE_IMMORTAL_BUST = 14
+    CHEESE_UNKNOWN = 15
 
     @property
     def is_cheese(self) -> bool:
@@ -50,6 +51,7 @@ class Situation(enum.Enum):
             Situation.CHEESE_ROACH_RUSH,
             Situation.CHEESE_SKYTOSS,
             Situation.CHEESE_PROXY_RAX,
+            Situation.CHEESE_IMMORTAL_BUST,
             Situation.CHEESE_BATTLECRUISER,
             Situation.CHEESE_UNKNOWN,
         ]

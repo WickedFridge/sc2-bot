@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
-from sc2.bot_ai import BotAI
-from sc2.ids.unit_typeid import UnitTypeId
 if TYPE_CHECKING:
     from bot.superbot import Superbot  # only imported for type hints
 
@@ -77,6 +75,11 @@ class GhostUnitsManager:
         for tag in to_remove:
             del self.ghost_units[tag]
 
+    def remove_by_tag(self, tag: int):
+        if (tag not in self.ghost_units.keys()):
+            return
+        del self.ghost_units[tag]
+    
     @property
     def assumed_enemy_units(self) -> GhostUnits:
         frame = self.bot.state.game_loop
@@ -93,7 +96,7 @@ class GhostUnitsManager:
 
         return GhostUnits(self.bot, assumed)
     
-def get_ghost_units(bot: BotAI) -> GhostUnitsManager:
+def get_ghost_units(bot: Superbot) -> GhostUnitsManager:
     global ghost_units_manager
     if (ghost_units_manager is None):
         ghost_units_manager = GhostUnitsManager(bot)

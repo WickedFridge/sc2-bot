@@ -189,19 +189,24 @@ class BuildingsHandler:
         SCOUT_THRESHOLD: int = 60
 
         if (
-            self.bot.scouting.situation == Situation.CHEESE_UNKNOWN
+            self.bot.scouting.situation != Situation.CHEESE_UNKNOWN
+            or self.bot.scouting.known_enemy_army.supply >= 12
         ):
-            if (
-                self.bot.expansions.enemy_main.is_unknown
-                or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD
-            ):
-                position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.expansions.enemy_b2, 2)
-                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
-                return True
-            if (self.bot.time - self.bot.expansions.enemy_b2.last_scouted >= SCOUT_THRESHOLD):
-                position_to_scan: Point2 = self.bot.expansions.enemy_b2.position
-                orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
-                return True
+            return False
+            
+        if (
+            self.bot.expansions.enemy_main.is_unknown
+            or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD
+        ):
+            position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.expansions.enemy_b2, 2)
+            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+            return True
+        
+        if (self.bot.time - self.bot.expansions.enemy_b2.last_scouted >= SCOUT_THRESHOLD):
+            position_to_scan: Point2 = self.bot.expansions.enemy_b2.position
+            orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+            return True
+        
         return False
 
     
@@ -411,7 +416,7 @@ class BuildingsHandler:
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
             # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)
             
-            if (danger_around >= self.DANGER_THRESHOLD):
+            if (danger_around >= self.DANGER_THRESHOLD or self.bot.scouting.situation.is_precarious):
                 print("too much danger")
                 return
 

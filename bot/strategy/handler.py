@@ -42,7 +42,8 @@ class StrategyHandler:
             Situation.CHEESE_WORKER_RUSH: self._enemy_workers_cleared,
             Situation.CHEESE_LING_DRONE: self._enemy_units_cleared,
             Situation.CHEESE_LING_FLOOD: self._enemy_units_cleared,
-            Situation.CHEESE_ROACH_RUSH: self._enemy_units_cleared,
+            Situation.CHEESE_ROACH_RUSH: self._push_ended,
+            Situation.CHEESE_IMMORTAL_BUST: self._push_ended,
             Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
         }
 
@@ -116,6 +117,9 @@ class StrategyHandler:
                 unit.distance_to(self.bot.expansions.main.position) * 2 < unit.distance_to(self.bot.expansions.enemy_main.position)
             )
         ).amount < 3
+    
+    def _push_ended(self) -> bool:
+        return self.bot.scouting.known_enemy_army.supply == 0
 
     def _enemy_took_b2(self) -> bool:
         return self.bot.expansions.enemy_b2.is_enemy
@@ -224,6 +228,28 @@ class StrategyHandler:
             )
         ):
             return Situation.CHEESE_ROACH_RUSH
+        
+        # detect immortal bust
+        # enemy has immortal tech and has either no B2
+        # or we're not sure they have a b2 and it's before 3"30
+        # or they have at least 2 immortals
+        immortal_tech: bool = UnitTypeId.IMMORTAL in self.bot.scouting.possible_enemy_composition
+
+        if (
+            immortal_tech
+            and (
+                self.bot.time <= 180
+                or self.bot.expansions.enemy_b2.is_free                    
+                or (
+                    self.bot.time <= 210
+                    and (
+                        self.bot.expansions.enemy_b2.is_unknown
+                        or self.bot.enemy_units(UnitTypeId.IMMORTAL).amount >= 1
+                    )
+                )
+            )
+        ):
+            return Situation.CHEESE_IMMORTAL_BUST
         return None
 
     def detect_techno_cheese(self) -> Optional[Situation]:

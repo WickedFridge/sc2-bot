@@ -1,8 +1,8 @@
 from __future__ import annotations
-from ast import List
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from bot.macro.resources import Resources
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
@@ -40,24 +40,46 @@ class Upgrade:
         return True
 
     @property
+    def _build_order_ok(self) -> bool:
+        """Cas où l'upgrade fait partie du build order en cours."""
+        return (
+            self.in_build_order
+            and (
+                self.bot.scouting.situation == Situation.STABLE
+                or self.custom_conditions
+            )
+        )
+
+    @property
+    def _free_research_ok(self) -> bool:
+        """Cas où le build order est terminé (ou ignoré) et qu'on recherche librement."""
+        return (
+            self.custom_conditions
+            and (self.bot.build_order.build.is_completed or self.ignore_build_order)
+            and self._upgrade_requirements_met
+            and self._building_requirements_met
+        )
+
+    @property
+    def _upgrade_requirements_met(self) -> bool:
+        return (
+            all(self.bot.already_pending_upgrade(req) > 0 for req in self.requirements_ups)
+            and all(self.bot.already_pending_upgrade(req) == 1 for req in self.requirements_ups_completed)
+        )
+
+    @property
+    def _building_requirements_met(self) -> bool:
+        return all(
+            self.bot.structures(building_type).ready.amount >= 1
+            for building_type in self.requirements_buildings
+        )
+    
+    @property
     def conditions(self) -> bool:
         return (
             self.bot.already_pending_upgrade(self.upgrade) == 0
             and self.bot.structures(self.building).ready.idle.amount >= 1
-            and self.bot.tech_requirement_progress(self.upgrade) == 1
-            and (
-                self.upgrade in self.bot.build_order.build.pending_ids
-                or (
-                    self.custom_conditions
-                    and (
-                        self.bot.build_order.build.is_completed
-                        or self.ignore_build_order
-                    ) 
-                    and all(self.bot.already_pending_upgrade(requirement) > 0 for requirement in self.requirements_ups)
-                    and all(self.bot.already_pending_upgrade(requirement) == 1 for requirement in self.requirements_ups_completed)
-                    and all(self.bot.structures(building).ready.amount >= 1 for building in self.requirements_buildings)
-                )
-            )
+            and (self._build_order_ok or self._free_research_ok)
         )
     
     def on_complete(self):

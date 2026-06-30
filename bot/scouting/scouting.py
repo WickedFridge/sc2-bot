@@ -168,6 +168,7 @@ class Scouting:
             self.known_enemy_upgrades.append(UpgradeId.ZERGLINGMOVEMENTSPEED)
 
     def unit_died(self, unit_tag: int):
+        self.bot.ghost_units.remove_by_tag(unit_tag)
         if (unit_tag in self.known_enemy_army.units.tags):
             self.known_enemy_army.remove_by_tag(unit_tag)
             enemy_army: dict = self.known_enemy_army.recap

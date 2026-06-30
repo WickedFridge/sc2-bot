@@ -18,10 +18,15 @@ class MissileTurret(Building):
     
     @property
     def expansions_without_turret(self) -> Expansions:
+        turrets: Units = self.bot.structures(self.unitId)
+        
         return self.bot.expansions.populated.filter(
             lambda expansion: (
-                self.bot.structures(UnitTypeId.MISSILETURRET).amount == 0
-                or self.bot.structures(UnitTypeId.MISSILETURRET).closest_distance_to(expansion.position) > 12
+                turrets.amount == 0
+                or (
+                    turrets.closest_distance_to(expansion.turret_mineral_line) > 5
+                    and turrets.closest_distance_to(expansion.turret_wall_position) > 5
+                )
             )
         )
     
@@ -29,20 +34,15 @@ class MissileTurret(Building):
     @override
     def custom_conditions(self) -> bool:
         enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
-        expansions_count: int = self.bot.expansions.amount_taken
-        turret_amount_target: int = expansions_count
-        turret_to_construct_amount: int = self.bot.already_pending(UnitTypeId.MISSILETURRET) - self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
-        defense_count: float = self.bot.structures(UnitTypeId.MISSILETURRET).ready.amount + max(
-            self.bot.already_pending(UnitTypeId.MISSILETURRET),
-            self.bot.structures(UnitTypeId.MISSILETURRET).not_ready.amount
-        )
+        turrets_not_finished: int = self.bot.structures(self.unitId).not_ready.amount
         
         return (
             enemy_burrow
             and self.expansions_without_turret.amount >= 1
-            and self.pending_amount <= self.bot.expansions.taken.amount
-            and defense_count < turret_amount_target
-            and turret_to_construct_amount == 0
+            and (
+                self.pending_amount == 0
+                or self.pending_amount == turrets_not_finished
+            )
         )
     
     @property

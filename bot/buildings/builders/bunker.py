@@ -63,7 +63,7 @@ class Bunker(Building):
     @property
     def _bunker_target(self) -> int:
         target = self.bot.expansions.amount_taken - 1
-        if self._needs_main_bunker:
+        if (self._needs_main_bunker or self.bot.scouting.situation.is_precarious):
             target += 1
         return target
 
@@ -117,5 +117,8 @@ class Bunker(Building):
             and self.bot.expansions.b2.is_defended
         ):
             return self.bot.expansions.b2.bunker_position
-        expansion_not_defended: Expansion = self.expansions_without_defense.first
-        return expansion_not_defended.bunker_position
+
+        expansions_not_defended: Expansions = self.expansions_without_defense
+        if (expansions_not_defended.amount >= 1):
+            return expansions_not_defended.first.bunker_position
+        return self.bot.expansions.last_taken.bunker_position

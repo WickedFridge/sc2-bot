@@ -244,14 +244,15 @@ class ArmyCompositionManager(CachedClass):
         # if we have medivacs and a lot of bio, get the medivac count up to 10
         if (UnitTypeId.MEDIVAC in available_units):
             # add up to 4 Medivac if we already have a lot of bio
-            bio_supply: int = (
+            MAX_MEDIVAC_AMOUNT: int = 6 if self.bot.matchup == Matchup.TvT else 10
+            bio_supply: float = (
                 Army(self.wicked.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]), self.wicked).supply
                 + self.bot.already_pending(UnitTypeId.MARINE) * 1
                 + self.bot.already_pending(UnitTypeId.MARAUDER) * 2
                 + self.bot.already_pending(UnitTypeId.GHOST) * 3
             )
             if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
-                composition.set(UnitTypeId.MEDIVAC, min(10, round(bio_supply / 8)))
+                composition.set(UnitTypeId.MEDIVAC, min(MAX_MEDIVAC_AMOUNT, round(bio_supply / 8)))
 
         
         # always fill the rest of the composition with 1/2 of Marines

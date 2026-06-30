@@ -1,6 +1,7 @@
 from typing import override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -12,8 +13,15 @@ class MicroScoutingUnit(MicroUnit):
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
         enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
         if (enemy_ground.amount == 0):
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
-            unit.move(safest_spot)
+            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
+                unit.move(safest_spot)
+                return
+            enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.sorted(
+                lambda ghost_unit: unit.distance_to(ghost_unit.position)
+            )
+            closest_ghost_unit: GhostUnit = enemy_ghosts.first
+            unit.attack(closest_ghost_unit.position)
             return
 
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit

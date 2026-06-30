@@ -41,6 +41,7 @@ class InfantryAttackLevel3(InfantryUpgrades):
         UpgradeId.TERRANINFANTRYWEAPONSLEVEL2,
         UpgradeId.TERRANINFANTRYARMORSLEVEL2,
     ]
+    requirements_buildings = [UnitTypeId.ARMORY]
     name = "Infantry +3 Attack"
 
 class InfantryArmorLevel1(InfantryUpgrades):
@@ -66,4 +67,5 @@ class InfantryArmorLevel3(InfantryUpgrades):
         UpgradeId.TERRANINFANTRYWEAPONSLEVEL2,
         UpgradeId.TERRANINFANTRYARMORSLEVEL2,
     ]
+    requirements_buildings = [UnitTypeId.ARMORY]
     name = "Infantry +3 Armor"
