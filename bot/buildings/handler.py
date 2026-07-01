@@ -200,11 +200,13 @@ class BuildingsHandler:
         ):
             position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.expansions.enemy_b2, 2)
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+            print("Scan enemy main for cheese")
             return True
         
         if (self.bot.time - self.bot.expansions.enemy_b2.last_scouted >= SCOUT_THRESHOLD):
             position_to_scan: Point2 = self.bot.expansions.enemy_b2.position
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
+            print("Scan enemy b2 for cheese")
             return True
         
         return False

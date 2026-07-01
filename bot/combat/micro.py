@@ -1,6 +1,3 @@
-from collections.abc import Callable
-import math
-from typing import Any, List, Optional, Union
 from bot.combat.micro_units.banshee import MicroBanshee
 from bot.combat.micro_units.cyclone import MicroCyclone
 from bot.combat.micro_units.ghost import MicroGhost
@@ -15,25 +12,11 @@ from bot.combat.micro_units.reaper import MicroReaper
 from bot.combat.micro_units.siege_tank import MicroSiegeTank
 from bot.combat.micro_units.thor import MicroThor
 from bot.combat.micro_units.viking import MicroViking
-from bot.macro.expansion import Expansion
-from bot.macro.expansion_manager import Expansions
 from bot.superbot import Superbot
-from bot.utils.army import Army
-from bot.utils.point2_functions.utils import center
-from bot.utils.unit_supply import get_unit_supply
-from sc2.cache import CachedClass, custom_cache_once_per_frame
-from sc2.ids.ability_id import AbilityId
-from sc2.ids.buff_id import BuffId
+from sc2.cache import CachedClass
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
-from sc2.units import Units
-from ..utils.unit_tags import tower_types, dont_attack, townhalls, menacing, bio_stimmable, building_priorities, creep
-
-from s2clientprotocol import raw_pb2 as raw_pb
-from s2clientprotocol import sc2api_pb2 as sc_pb
-from s2clientprotocol import ui_pb2 as ui_pb
 
 WEAPON_READY_THRESHOLD: float = 6.0
 

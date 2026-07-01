@@ -23,7 +23,9 @@ class StrategyHandler:
     priorities: List[Priority]
     situation_history: List[Situation] = []
     confirmed_cheese: Optional[Situation] = None
+    confirmed_cheese_time: Optional[float] = None
     BASE_SIZE: int = 20
+    CHEESE_MIN_DURATION: float = 30.0
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -62,23 +64,34 @@ class StrategyHandler:
         # a confirmed cheese doesn't stop being true just because our production/army ratio changed later
         if (self.confirmed_cheese is not None and self._is_cheese_resolved(self.confirmed_cheese)):
             self.confirmed_cheese = None
+            self.confirmed_cheese_time = None
 
         situation: Situation = self.detect_situation()
         if (situation.is_cheese):
+            if (situation != self.confirmed_cheese):
+                self.confirmed_cheese_time = self.bot.time
             self.confirmed_cheese = situation
 
         if (self.confirmed_cheese is not None):
             return self.confirmed_cheese
         return situation
 
-    def _is_cheese_resolved(self, situation: Situation) -> bool:
-        # 3 secured bases is always a valid exit, on top of any cheese-specific condition
+    def _exit_condition_met(self, situation: Situation) -> bool:
         if (self._default_cheese_exit):
             return True
         specific_condition: Optional[Callable[[], bool]] = self.cheese_exit_conditions.get(situation)
-        if (specific_condition is not None):
-            return specific_condition()
-        return False
+        return specific_condition is not None and specific_condition()
+
+    def _is_cheese_resolved(self, situation: Situation) -> bool:
+        if (
+            self.confirmed_cheese_time is not None
+            and self.bot.time - self.confirmed_cheese_time < self.CHEESE_MIN_DURATION
+        ):
+            return False
+        return self._exit_condition_met(situation)
+
+    def _entry_blocked_by_exit(self, situation: Situation) -> bool:
+        return situation in self.situation_history and self._is_cheese_resolved(situation)
 
     @property
     def _default_cheese_exit(self) -> bool:
@@ -125,18 +138,19 @@ class StrategyHandler:
         return self.bot.expansions.enemy_b2.is_enemy or self.bot.enemy_structures(townhalls).amount >= 2
 
     def detect_situation(self) -> Situation:
-        # identify canon rush or bunker rush
-        tower_rush_situation: Optional[Situation] = self.detect_tower_rush()
-        if (tower_rush_situation):
-            return tower_rush_situation
+        # identify various early game cheese
+        if (self.bot.expansions.taken.amount <= 2):
+            tower_rush_situation: Optional[Situation] = self.detect_tower_rush()
+            if (tower_rush_situation):
+                return tower_rush_situation
 
-        early_cheese_situation: Optional[Situation] = self.detect_early_cheese()
-        if (early_cheese_situation):
-            return early_cheese_situation
-        
-        techno_cheese_situation: Optional[Situation] = self.detect_techno_cheese()
-        if (techno_cheese_situation):
-            return techno_cheese_situation
+            early_cheese_situation: Optional[Situation] = self.detect_early_cheese()
+            if (early_cheese_situation):
+                return early_cheese_situation
+            
+            techno_cheese_situation: Optional[Situation] = self.detect_techno_cheese()
+            if (techno_cheese_situation):
+                return techno_cheese_situation
 
         # enemy has more than twice our army supply
         fighting_units: Units = self.bot.units.filter(lambda unit: unit.type_id not in worker_types)
@@ -181,18 +195,18 @@ class StrategyHandler:
         if (proxy_buildings.amount >= 1):
             for building in proxy_buildings:
                 match (building.type_id):
-                    # These make the bot crash as the buildings are too far to attack
-                    # case UnitTypeId.PYLON | UnitTypeId.PHOTONCANNON:
-                    #     return Situation.CHEESE_CANNON_RUSH
-                    # case UnitTypeId.BUNKER:
-                    #     return Situation.CHEESE_BUNKER_RUSH
                     case UnitTypeId.BARRACKS:
-                        return Situation.CHEESE_PROXY_RAX
+                        if (not self._exit_condition_met(Situation.CHEESE_PROXY_RAX)):
+                            return Situation.CHEESE_PROXY_RAX
                     case _:
                         pass
-            return Situation.PROXY_BUILDINGS
+            if (not self._exit_condition_met(Situation.PROXY_BUILDINGS)):
+                return Situation.PROXY_BUILDINGS
         
-        if (close_workers.amount >= 3):
+        if (
+            close_workers.amount >= 3
+            and not self._exit_condition_met(Situation.CHEESE_WORKER_RUSH)
+        ):
             return Situation.CHEESE_WORKER_RUSH
 
         # detect ling drone rush
@@ -201,11 +215,15 @@ class StrategyHandler:
         if (
             zerglings.amount >= 2
             and drones.amount >= 2
+            and not self._exit_condition_met(Situation.CHEESE_LING_DRONE)
         ):
             return Situation.CHEESE_LING_DRONE
         
         # detect ling flood
-        if (zerglings.amount >= 6):
+        if (
+            zerglings.amount >= 6
+            and not self._exit_condition_met(Situation.CHEESE_LING_FLOOD)
+        ):
             return Situation.CHEESE_LING_FLOOD
 
         # detect roach rush
@@ -215,6 +233,7 @@ class StrategyHandler:
 
         if (
             roach_tech
+            and not self._exit_condition_met(Situation.CHEESE_ROACH_RUSH)
             and (
                 self.bot.time <= 180
                 or self.bot.expansions.enemy_b2.is_free                    
@@ -237,6 +256,7 @@ class StrategyHandler:
 
         if (
             immortal_tech
+            and not self._exit_condition_met(Situation.CHEESE_IMMORTAL_BUST)
             and (
                 self.bot.time <= 180
                 or self.bot.expansions.enemy_b2.is_free                    
@@ -256,6 +276,7 @@ class StrategyHandler:
         skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
         if (
             skytoss_tech
+            and not self._exit_condition_met(Situation.CHEESE_SKYTOSS)
             and (
                 self.bot.expansions.enemy_b2.is_free
                 or (
@@ -269,6 +290,7 @@ class StrategyHandler:
         bc_tech: bool = UnitTypeId.BATTLECRUISER in self.bot.scouting.possible_enemy_composition
         if (
             bc_tech
+            and not self._exit_condition_met(Situation.CHEESE_BATTLECRUISER)
             and (
                 self.bot.expansions.enemy_b2.is_free
                 or (
@@ -279,12 +301,11 @@ class StrategyHandler:
         ):
             return Situation.CHEESE_BATTLECRUISER
 
-        # TODO add last scouting time of the b2
-        # TODO they might have taken it by now
         # enemy has no b2 while our b3 is started
         # or enemy has way more production than us
         if (
-            self.bot.expansions.enemy_b2.is_free
+            not self._exit_condition_met(Situation.CHEESE_UNKNOWN)
+            and self.bot.expansions.enemy_b2.is_free
             and (
                 self.bot.townhalls.amount == 3
                 or (

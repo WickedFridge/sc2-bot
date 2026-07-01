@@ -4,7 +4,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 townhalls: List[UnitTypeId] = [
     UnitTypeId.COMMANDCENTER,
+    UnitTypeId.COMMANDCENTERFLYING,
     UnitTypeId.ORBITALCOMMAND,
+    UnitTypeId.ORBITALCOMMANDFLYING,
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.HATCHERY,
     UnitTypeId.LAIR,
