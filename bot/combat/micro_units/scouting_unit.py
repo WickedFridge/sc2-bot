@@ -13,13 +13,13 @@ class MicroScoutingUnit(MicroUnit):
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
         enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
         if (enemy_ground.amount == 0):
-            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD):
-                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
-                unit.move(safest_spot)
-                return
             enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.sorted(
                 lambda ghost_unit: unit.distance_to(ghost_unit.position)
             )
+            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD or enemy_ghosts.amount == 0):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
+                unit.move(safest_spot)
+                return
             closest_ghost_unit: GhostUnit = enemy_ghosts.first
             unit.attack(closest_ghost_unit.position)
             return

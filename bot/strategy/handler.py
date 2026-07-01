@@ -326,7 +326,13 @@ class StrategyHandler:
         if (defensive_response is not None):
             await self.bot.build_order.switch_build(defensive_response)
         
-        if (not situation.is_cheese):
+        dont_cancel_b2_b3: bool = situation in [
+            Situation.CHEESE_SKYTOSS,
+            Situation.CHEESE_BATTLECRUISER,
+            Situation.CHEESE_IMMORTAL_BUST
+        ]
+
+        if (not situation.is_cheese or dont_cancel_b2_b3):
             return
         
         # cancel B2/B3 and switch towards Conservative Expand, don't cancel indoor CCs

@@ -186,7 +186,7 @@ class SelectOrders:
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
         creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center)
-        closest_scv: Unit = self.bot.workers.closest_to(army.center)
+        closest_scv: Optional[Unit] = self.bot.workers.closest_to(army.center) if self.bot.workers.amount >= 1 else None
 
         # if there are units, fight or retreat
         if (situation == Situation.CHEESE_BUNKER_RUSH):
@@ -224,6 +224,7 @@ class SelectOrders:
             army.scout_units_health_percentage <= 0.3
             or (
                 army.scout_units_health_percentage < 1
+                and closest_scv is not None
                 and closest_scv.distance_to(army.center) < 5
             )
         ):
