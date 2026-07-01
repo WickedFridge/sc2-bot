@@ -29,7 +29,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, dont_attack, hq_types, menacing, bio_stimmable, building_priorities, creep
+from ..utils.unit_tags import tower_types, dont_attack, townhalls, menacing, bio_stimmable, building_priorities, creep
 
 from s2clientprotocol import raw_pb2 as raw_pb
 from s2clientprotocol import sc2api_pb2 as sc_pb

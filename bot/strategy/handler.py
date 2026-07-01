@@ -15,7 +15,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, production, enemy_production, creep
+from ..utils.unit_tags import tower_types, worker_types, townhalls, production, enemy_production, creep
 
 class StrategyHandler:
     bot: Superbot
@@ -122,7 +122,7 @@ class StrategyHandler:
         return self.bot.scouting.known_enemy_army.supply == 0
 
     def _enemy_took_b2(self) -> bool:
-        return self.bot.expansions.enemy_b2.is_enemy
+        return self.bot.expansions.enemy_b2.is_enemy or self.bot.enemy_structures(townhalls).amount >= 2
 
     def detect_situation(self) -> Situation:
         # identify canon rush or bunker rush

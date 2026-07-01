@@ -12,7 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, hq_types
+from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, townhalls
 
 class MicroUnit(CachedClass):
     bot: Superbot

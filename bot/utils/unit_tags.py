@@ -2,7 +2,7 @@ from typing import List
 
 from sc2.ids.unit_typeid import UnitTypeId
 
-hq_types: List[UnitTypeId] = [
+townhalls: List[UnitTypeId] = [
     UnitTypeId.COMMANDCENTER,
     UnitTypeId.ORBITALCOMMAND,
     UnitTypeId.PLANETARYFORTRESS,

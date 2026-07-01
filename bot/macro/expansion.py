@@ -17,7 +17,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import hq_types, menacing, worker_types
+from bot.utils.unit_tags import townhalls, menacing, worker_types
 from functools import cached_property
 
 class Expansion(CachedClass):
@@ -71,7 +71,7 @@ class Expansion(CachedClass):
         if (self.position == self.bot.enemy_start_locations[0] and self.is_unknown):
             return True
 
-        enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in hq_types)
+        enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in townhalls)
         return enemy_townhalls.amount > 0 and enemy_townhalls.closest_distance_to(self.position) == 0
     
     @custom_cache_once_per_frame

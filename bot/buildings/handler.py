@@ -188,15 +188,15 @@ class BuildingsHandler:
     def scan_enemy_cheese(self, orbitals_with_energy: Units) -> bool:
         SCOUT_THRESHOLD: int = 60
 
-        if (
-            self.bot.scouting.situation != Situation.CHEESE_UNKNOWN
-            or self.bot.scouting.known_enemy_army.supply >= 12
-        ):
+        if (self.bot.scouting.situation != Situation.CHEESE_UNKNOWN):
             return False
             
         if (
-            self.bot.expansions.enemy_main.is_unknown
-            or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD
+            self.bot.scouting.known_enemy_army.supply < 12
+            and (
+                self.bot.expansions.enemy_main.is_unknown
+                or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD
+            )
         ):
             position_to_scan: Point2 = self.bot.expansions.enemy_main.position.towards(self.bot.expansions.enemy_b2, 2)
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position_to_scan)
@@ -418,11 +418,15 @@ class BuildingsHandler:
             
             if (
                 danger_around >= self.DANGER_THRESHOLD
-                or self.bot.scouting.situation.is_precarious
                 or (
                     self.bot.townhalls.ready.amount == 3
-                    and self.bot.matchup == Matchup.TvP
-                    and not self.bot.stim_completed
+                    and (
+                        self.bot.scouting.situation.is_precarious
+                        or (
+                            self.bot.matchup == Matchup.TvP
+                            and not self.bot.stim_completed
+                        )
+                    )
                 )
             ):
                 print("too much danger")
