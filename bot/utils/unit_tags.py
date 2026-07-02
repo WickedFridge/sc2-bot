@@ -22,7 +22,7 @@ must_repair: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,
     UnitTypeId.MISSILETURRET,
     UnitTypeId.BUNKER,
-    UnitTypeId.SUPPLYDEPOT
+    UnitTypeId.SUPPLYDEPOT,
 ]
 defensive_structures: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,

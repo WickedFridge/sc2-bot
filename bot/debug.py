@@ -415,16 +415,12 @@ class Debug:
             self.draw_text_on_world(world_pos, 'X', GREEN)
 
     
-    def full_effects(self, iteration: int):
-        if (iteration % 10 != 0):
-            return
-        effects: Set[EffectData] = self.bot.state.effects
-        print("full effects")
-        print(effects)
-        for effect in effects:
-            print(f'effect {effect.id}')
-            for i, position in enumerate(effect.positions):
-                print(f'position[{i}] = {position}')
+    def effects(self):
+        for effect in self.bot.state.effects:
+            for position in effect.positions:
+                effect_label: str = f'{effect.id if isinstance(effect.id, str) else effect.id.name}'
+                self.draw_box_on_world(position, size=effect.radius, draw_color=RED)
+                self.draw_text_on_world(position, effect_label, RED)
     
     def full_composition(self, iteration: int):
         if (iteration % 10 != 0):

@@ -26,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.10.0"
+VERSION: str = "12.10.2"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -179,7 +179,7 @@ class WickedBot(Superbot):
         # Control buildings
         self.buildings.reserve_bunkers()
         await self.buildings.scan()
-        # await self.buildings.drop_mules()
+        await self.buildings.drop_mules()
         await self.buildings.handle_supplies()
         await self.buildings.rally_points()
         await self.buildings.lift_townhalls()
@@ -285,7 +285,7 @@ class WickedBot(Superbot):
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
-        await self.debug.building_grid()
+        # await self.debug.building_grid()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
@@ -304,8 +304,8 @@ class WickedBot(Superbot):
         # await self.debug.bunker_positions()
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
-        # self.debug.full_effects(iteration)
-        # self.debug.danger_map()
+        self.debug.effects()
+        self.debug.danger_map()
         # self.debug.danger_trajectories()
         # self.debug.invisible_units()
         # self.debug.tag()
@@ -318,7 +318,7 @@ class WickedBot(Superbot):
         # self.macro.supply_block_update()
         # self.debug.changelings()
         self.debug.enemy_composition()
-        self.debug.burrowed_units()
+        # self.debug.burrowed_units()
         self.debug.ghost_units()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()

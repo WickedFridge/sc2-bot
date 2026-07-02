@@ -95,7 +95,9 @@ class BuildingsHandler:
                 lambda unit: unit.order_target == burning_building.tag
             )
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
-            max_workers_repairing_building: int = (8 if burning_building.type_id in must_repair else 3) * repair_ratio
+            # make the pull ratio vary between 0.5 and 1.5 depending on how much health the building has left
+            repair_ratio *= 1.5 - burning_building.health_percentage
+            max_workers_repairing_building: int = int((8 if burning_building.type_id in must_repair else 3) * repair_ratio)
             local_avaiable_workers: Units = (
                 available_workers.closer_than(REPAIR_RANGE_DANGER, burning_building)
                 if (burning_building.type_id not in must_repair and self.bot.scouting.situation.is_precarious)
