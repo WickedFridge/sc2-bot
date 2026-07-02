@@ -3,6 +3,7 @@ from typing import List, Set
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
+from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
@@ -142,6 +143,7 @@ class BuildingsHandler:
                     print("Morph Orbital Command")
                     cc(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)
 
+    @property
     def scan_amount_to_bank(self) -> int:
         WORKER_THRESHOLD: int = 30
         scan_to_bank: int = 0
@@ -172,7 +174,7 @@ class BuildingsHandler:
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
         # bank scans if we have 3 or more orbitals and enough SCVs
-        scan_to_bank: int = self.scan_amount_to_bank()
+        scan_to_bank: int = self.scan_amount_to_bank
         scan_banked: int = 0
         
         # call down a mule on this guy
@@ -272,24 +274,32 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                not unit.is_visible
-                and (unit.is_cloaked or unit.is_burrowed)
+                unit.is_cloaked or unit.is_burrowed
                 and detection_layer.detected[unit.position] == 0
             )
         )
+        ghost_units_to_scan: GhostUnits = self.bot.ghost_units.assumed_enemy_units.filter(
+             lambda unit: (
+                unit.is_cloaked or unit.is_burrowed
+                and detection_layer.detected[unit.position] == 0
+            )
+        )
+        aggregated_enemis_to_scan: List[Unit | GhostUnit] = list(enemy_units_to_scan) + list(ghost_units_to_scan)
         # TODO : lurker spines means burrowed lurker
         
         # invisible enemy units we should scan are in range of our fighting units
-        for enemy_unit in enemy_units_to_scan:
-            local_fighting_units: Units = self.bot.units.closer_than(10, enemy_unit).filter(
+        for enemy_unit in aggregated_enemis_to_scan:
+            local_fighting_units: Units = self.bot.units.closer_than(10, enemy_unit.position).filter(
                 lambda unit: (
                     unit.type_id not in worker_types
                     and (
-                        unit.can_attack_air if enemy_unit.is_flying else unit.can_attack_ground
+                        unit.can_attack_air
+                        if enemy_unit.is_flying
+                        else unit.can_attack_ground
                     )
                 )
             )
-            local_enemy_units: Units = self.bot.enemy_units.closer_than(8, enemy_unit).filter(
+            local_enemy_units: Units = self.bot.enemy_units.closer_than(8, enemy_unit.position).filter(
                 lambda unit: unit.tag != enemy_unit.tag
             )
             if (local_fighting_units.amount == 0):
@@ -301,13 +311,14 @@ class BuildingsHandler:
             print(f'scan enemy unit {enemy_unit.name}')
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, enemy_unit.position)
             return True
+        return False
 
     async def scan(self):
         BASE_RADIUS: int = 6
         SCAN_RADIUS: int = 15
         
         orbitals_with_energy: Units = self.bot.townhalls(UnitTypeId.ORBITALCOMMAND).ready.filter(lambda x: x.energy >= 50)
-        if (self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount == 0 or orbitals_with_energy.amount == 0):
+        if (orbitals_with_energy.amount == 0):
             return
         
         # if we don't know much about what's happening, scan the main

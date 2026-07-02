@@ -381,21 +381,16 @@ class MicroUnit(CachedClass):
         unit.attack(target)
     
     async def attack_nearest_base(self, unit: Unit, army: Army, target: Point2):
-        move_target: Point2 = (
-            army.leader.position.towards(unit)
-            if unit.position.distance_to(army.leader.position) >= 3
-            else center([unit.position, army.leader.position, target])
-        )
-        unit.move(move_target)
+        await self.chase_buildings(unit, army, target)
       
     async def chase_buildings(self, unit: Unit, army: Army, target: Point2):
         enemy_units_in_range = self.get_enemy_units_in_range(unit)
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
             unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
-        elif (unit.distance_to(army.leader) >= 3):
-            unit.move(army.leader.position)
+        elif (unit.distance_to(army.leader) > 3):
+            unit.move(army.leader)
         else:
-            unit.move(center([unit.position, army.leader.position, target]))
+            await self.a_move(unit, target)
     
     async def disengage(self, unit: Unit, local_units: Units):
         await self.retreat(unit, local_units)

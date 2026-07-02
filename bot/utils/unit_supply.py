@@ -24,12 +24,12 @@ supply[UnitTypeId.HELLIONTANK] = 2
 supply[UnitTypeId.WIDOWMINE] = 2
 supply[UnitTypeId.WIDOWMINEBURROWED] = 2
 # Tier 2
-supply[UnitTypeId.SIEGETANK] = 2
+supply[UnitTypeId.SIEGETANK] = 3
 supply[UnitTypeId.SIEGETANKSIEGED] = 5
 supply[UnitTypeId.CYCLONE] = 3
 supply[UnitTypeId.MEDIVAC] = 2
 supply[UnitTypeId.VIKING] = 2
-supply[UnitTypeId.VIKINGFIGHTER] = 3
+supply[UnitTypeId.VIKINGFIGHTER] = 2
 supply[UnitTypeId.VIKINGASSAULT] = 2
 supply[UnitTypeId.BANSHEE] = 3
 supply[UnitTypeId.RAVEN] = 2

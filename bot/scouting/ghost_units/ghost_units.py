@@ -7,6 +7,7 @@ from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
+from ...utils.unit_tags import burrowed_units
 
 @dataclass
 class GhostUnit:
@@ -35,6 +36,8 @@ class GhostUnit:
     can_attack_air: bool
     last_seen_frame: int
     expiry_frame: int
+    is_cloaked: bool
+    is_visible: bool
     is_possibly_hidden: bool = False
     is_enemy: bool = True
     passengers: Set[Unit] = set()
@@ -44,6 +47,14 @@ class GhostUnit:
         # Since we don't have actual buffs for ghost units, this is a placeholder.
         # In a real implementation, you would track buffs on ghost units as well.
         return False
+    
+    @property
+    def name(self) -> str:
+        return self.type_id.name
+    
+    @property
+    def is_burrowed(self) -> bool:
+        return self.type_id in burrowed_units
 
 class GhostUnits:
     """

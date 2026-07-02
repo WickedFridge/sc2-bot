@@ -4,6 +4,7 @@ from typing import List, Optional, Set
 import numpy as np
 from bot.army_composition.composition import Composition
 from bot.macro.expansion_manager import Expansions
+from bot.scouting.ghost_units.ghost_units import GhostUnits
 from bot.strategy.build_order.addon_swap import SwapState
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
 from bot.macro.expansion import Expansion
@@ -767,11 +768,33 @@ class Debug:
             self.draw_box_on_world(unit.position, size=1, draw_color = color)
             self.draw_text_on_world(unit.position, f'{unit.type_id}', color)
     
+    def burrowed_units(self):
+        burrowed_units: Units = self.bot.enemy_units.filter(
+            lambda unit: unit.is_burrowed
+        )
+        for unit in burrowed_units:
+            unit_label: str = f'{unit.type_id.name}'
+            if (not unit.is_visible):
+                unit_label += ' (not visible)'
+            if (unit.is_cloaked):
+                unit_label += ' (cloaked)'
+            if (unit.is_burrowed):
+                unit_label += ' (burrowed)'
+            self.draw_box_on_world(unit.position, size=1, draw_color=RED)
+            self.draw_text_on_world(unit.position, unit_label, RED)
+    
     def ghost_units(self):
-        ghost_units: Units = self.bot.ghost_units.assumed_enemy_units
+        ghost_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
         for unit in ghost_units:
+            unit_label: str = f'{unit.type_id.name}'
+            if (not unit.is_visible):
+                unit_label += ' (not visible)'
+            if (unit.is_cloaked):
+                unit_label += ' (cloaked)'
+            if (unit.is_burrowed):
+                unit_label += ' (burrowed)'
             self.draw_box_on_world(unit.position, size=1, draw_color = ORANGE)
-            self.draw_text_on_world(unit.position, f'{unit.type_id}', ORANGE)
+            self.draw_text_on_world(unit.position, unit_label, ORANGE)
     
     
     def invisible_units(self):

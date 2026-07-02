@@ -142,12 +142,13 @@ class Scouting:
     async def detect_burrow(self):
         if (UpgradeId.BURROW in self.known_enemy_upgrades):
             return
+        offensive_units: Units = self.known_enemy_army.units.filter(lambda unit: unit.type_id != UnitTypeId.QUEEN)
         if (
             any([unit_type in burrowed_units + cloaked_units for unit_type in self.possible_enemy_composition])
             or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
             or (
                 self.bot.enemy_units(UnitTypeId.ROACH).amount >= 5
-                and self.known_enemy_army.units(UnitTypeId.ROACH).amount >= 0.7 * self.known_enemy_army.units.amount
+                and self.known_enemy_army.units(UnitTypeId.ROACH).amount >= 0.7 * offensive_units.amount
             )
             or self.bot.time > 60 * 10
         ):

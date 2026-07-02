@@ -69,7 +69,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
             UnitTypeId.BATTLECRUISER: 4,
-            UnitTypeId.TEMPEST: 1,
+            UnitTypeId.TEMPEST: 3,
             UnitTypeId.BROODLORD: 3,
             UnitTypeId.MOTHERSHIP: 5,
             UnitTypeId.WARPPRISM: 0.33,
