@@ -21,7 +21,7 @@ class SupplyDepot(Building):
     @property
     @override
     def force_position(self) -> bool:
-        return self.bot.structures(UnitTypeId.SUPPLYDEPOT).amount < 2
+        return self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount < 2
     
     @property
     def max_depots_pending(self) -> int:

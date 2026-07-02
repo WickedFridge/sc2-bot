@@ -32,7 +32,7 @@ class DefensiveCycloneTank(BuildOrder):
         modified: bool = False
         if (self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1):
             modified = True
-            factory_units: Units = self.bot.units([UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK])
+            factory_units: Units = self.bot.units([UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED])
             if (factory_units.amount == 0):
                 composition.set(UnitTypeId.CYCLONE, 1)
                 composition.set(UnitTypeId.SIEGETANK, 0)
@@ -63,7 +63,9 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORT, 1, False), (UnitTypeId.STARPORTREACTOR, 2, False)]),
             BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
-            BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, workers=28, townhalls=3, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'factory techlab #3', UnitTypeId.FACTORYTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.REFINERY, 4, False)]),
         ]
     
         self.swap_plans = [
@@ -86,17 +88,12 @@ class DefensiveCycloneTank(BuildOrder):
                     and self.bot.structures(UnitTypeId.BARRACKS).amount >= 2
                 )
             ),
-            AddonSwap(
+            AddonDetachSwap(
                 bot,
                 UnitTypeId.FACTORY,
-                UnitTypeId.BARRACKS,
-                UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
-                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
-                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
+                    self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 )
-            )
+            ),
         ]
 

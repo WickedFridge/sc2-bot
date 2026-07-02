@@ -19,7 +19,6 @@ class GhostAcademy(Building):
     @override
     def custom_conditions(self) -> bool:
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL2)
-        ghost_academy_count: int = self.bot.structures(UnitTypeId.GHOSTACADEMY).ready.amount + self.bot.already_pending(UnitTypeId.GHOSTACADEMY)
         supply_min: int = 120
         supply_max: int = 160
         gas_threshold: int = 800
@@ -27,7 +26,7 @@ class GhostAcademy(Building):
         # We want a ghost academy once we have at least 4 bases and 2/2 started
         # but no ghost in TvT
         return (
-            ghost_academy_count == 0
+            self.amount == 0
             and self.bot.matchup != Matchup.TvT
             and self.bot.supply_used >= supply_min
             and (

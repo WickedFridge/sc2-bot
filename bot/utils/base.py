@@ -252,8 +252,9 @@ class Base:
                 closest_worker: Unit = self.full_available_workers.closest_to(enemy_scout)
                 closest_worker.attack(enemy_scout)
         
+        # don't repair workers chasing the enemy scout
         damaged_workers = self.workers.filter(
-            lambda unit: unit.health_percentage < 1
+            lambda unit: unit.health_percentage < 1 and not unit.is_attacking
         ).sorted(lambda unit: unit.health_percentage)
 
         max_workers_repairing: int = max(5, self.workers.amount / 3)
