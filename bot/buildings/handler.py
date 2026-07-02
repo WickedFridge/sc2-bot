@@ -191,8 +191,9 @@ class BuildingsHandler:
 
     def scan_enemy_cheese(self, orbitals_with_energy: Units) -> bool:
         SCOUT_THRESHOLD: int = 60
+        MINIMUM_WORKERS: int = 20
 
-        if (self.bot.scouting.situation != Situation.CHEESE_UNKNOWN):
+        if (self.bot.scouting.situation != Situation.CHEESE_UNKNOWN or self.bot.workers.amount < MINIMUM_WORKERS):
             return False
             
         if (
@@ -218,6 +219,7 @@ class BuildingsHandler:
     
     def scan_creep(self, orbitals_with_energy: Units, units: Units, BASE_RADIUS: int, SCAN_RADIUS: int):
         CREEP_DENSITY_THRESHOLD: float = 0.5
+        MIN_FIGHTING_UNITS: int = 2
         
         # find bases that have creep around and units who should clean creep
         # Check all owned bases
@@ -233,7 +235,7 @@ class BuildingsHandler:
             detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
             if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
                 fighting_units_around: Units = units.closer_than(BASE_RADIUS, expansion.position)
-                if (fighting_units_around.amount >= 1):
+                if (fighting_units_around.amount >= MIN_FIGHTING_UNITS):
                     print("scanning creep around base")
                     orbital: Unit = orbitals_with_energy.random
                     orbital(AbilityId.SCANNERSWEEP_SCAN, position)
@@ -256,9 +258,13 @@ class BuildingsHandler:
         # scan for creep tumors    
         # look for optimal spot to scan
         best_density: float = 0
-        best_position: Point2 = None
+        best_position: Point2 | None = None
 
         for unit in on_creep_fighting_units:
+            fighting_units_around: Units = units.closer_than(SCAN_RADIUS, unit.position)
+            if (fighting_units_around.amount < MIN_FIGHTING_UNITS):
+                continue
+            
             # get highest creep density around
             range: float = unit.ground_range
             density, position = creep_layer.max_density_in_radius(unit.position, range)
@@ -327,6 +333,9 @@ class BuildingsHandler:
         if (self.scan_enemy_cheese(orbitals_with_energy)):
             return
         
+        if (self.scan_invisible_units(orbitals_with_energy)):
+            return
+        
         # if we have no fighting units we can't clean creep
         ravens: Units = self.bot.units(UnitTypeId.RAVEN)
         enemy_units: Units = self.bot.enemy_units
@@ -345,12 +354,9 @@ class BuildingsHandler:
             )
         )
 
-        if (self.scan_invisible_units(orbitals_with_energy)):
-            return
         if (creep_cleaners.amount == 0):
             return
         self.scan_creep(orbitals_with_energy, creep_cleaners, BASE_RADIUS, SCAN_RADIUS)
-        
    
     async def handle_supplies(self):
         supplies_raised: Units = self.bot.structures(UnitTypeId.SUPPLYDEPOT).ready

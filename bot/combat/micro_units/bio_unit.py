@@ -131,7 +131,7 @@ class MicroBioUnit(MicroUnit):
                     best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
                     bio_unit.move(best_position)
                 else:
-                    bio_unit.move(local_units.center)
+                    await super().fight(bio_unit, local_units, chase)
             return
 
         if (

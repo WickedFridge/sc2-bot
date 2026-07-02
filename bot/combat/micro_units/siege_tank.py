@@ -106,8 +106,18 @@ class MicroSiegeTank(MicroUnit):
 
     @override
     async def retreat(self, unit: Unit, local_units: Units):
-        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
-        if (self.switch_mode(unit, enemies_close_siege_range)):
+        # Don't get in the way of flying townhalls
+        if (self.bot.townhalls.amount == 0):
             return
-        await super().retreat(unit, local_units)
+        local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
+        retreat_position: Point2 = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
+        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
         
+        if (unit.distance_to(retreat_position) > 2):
+            if (self.switch_mode(unit, enemies_close_siege_range)):
+                return
+            await super().retreat(unit, local_units)
+            return
+        
+        if (unit.type_id == UnitTypeId.SIEGETANK):
+            unit(AbilityId.SIEGEMODE_SIEGEMODE)

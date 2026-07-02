@@ -284,8 +284,10 @@ class Expansion(CachedClass):
         if (self.is_main):
             return self.bot.main_base_ramp.barracks_correct_placement
         if (self.is_defended and self.mineral_fields.amount >= 1):
-            reference_position: Point2 = self.mineral_fields.closest_to(self.defending_structure).position
-            return center([reference_position, self.defending_structure.position])
+            close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready.closer_than(12, self.position)
+            if (close_bunkers.amount >= 1):
+                return center([self.position, close_bunkers.center])
+            return center([self.position.towards(self.bot.game_info.map_center), self.mineral_line.towards(self.bot.game_info.map_center)])
         position: Point2 = self.bunker_ramp or self.bunker_forward
         return center([position, self.mineral_line])
     

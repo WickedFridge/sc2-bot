@@ -3,6 +3,7 @@ from typing import List
 
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
@@ -321,8 +322,16 @@ class MicroUnit(CachedClass):
         if (attackable_enemies.amount >= 1):
             closest_enemy_unit: Unit = attackable_enemies.closest_to(unit)
             unit.attack(closest_enemy_unit)
-        else:
-            unit.move(local_units.center)
+            return
+        enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.sorted(
+            lambda ghost_unit: unit.distance_to(ghost_unit.position)
+        )
+        if (enemy_ghosts.amount == 0):
+            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
+            unit.move(safest_spot)
+            return
+        closest_ghost_unit: GhostUnit = enemy_ghosts.first
+        unit.attack(closest_ghost_unit.position)
 
     async def fight_defense(self, unit: Unit, local_units: Units):
         await self.fight(unit, local_units)

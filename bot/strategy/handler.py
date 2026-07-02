@@ -248,6 +248,9 @@ class StrategyHandler:
         ):
             return Situation.CHEESE_ROACH_RUSH
         
+        return None
+
+    def detect_techno_cheese(self) -> Optional[Situation]:
         # detect immortal bust
         # enemy has immortal tech and has either no B2
         # or we're not sure they have a b2 and it's before 3"30
@@ -259,20 +262,18 @@ class StrategyHandler:
             and not self._exit_condition_met(Situation.CHEESE_IMMORTAL_BUST)
             and (
                 self.bot.time <= 180
-                or self.bot.expansions.enemy_b2.is_free                    
+                or self.bot.expansions.enemy_b2.is_free
                 or (
-                    self.bot.time <= 210
+                    self.bot.time <= 270
                     and (
                         self.bot.expansions.enemy_b2.is_unknown
-                        or self.bot.enemy_units(UnitTypeId.IMMORTAL).amount >= 1
+                        or self.bot.scouting.known_enemy_army.units(UnitTypeId.IMMORTAL).amount >= 1
                     )
                 )
             )
         ):
             return Situation.CHEESE_IMMORTAL_BUST
-        return None
-
-    def detect_techno_cheese(self) -> Optional[Situation]:
+        
         skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
         if (
             skytoss_tech

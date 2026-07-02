@@ -103,7 +103,10 @@ class Bunker(Building):
     def custom_conditions(self) -> bool:
         return (
             self._has_minimum_army
-            and self.expansions_without_defense.amount >= 1
+            and (
+                self.expansions_without_defense.amount >= 1
+                or self.bot.scouting.situation.is_precarious
+            )
             and self._active_defense_count < self._bunker_target
             and not self._bunker_placement_pending
         )
