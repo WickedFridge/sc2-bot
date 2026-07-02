@@ -102,7 +102,7 @@ class Scouting:
             and unit.type_id not in worker_types
         ))
         agressive_enemy_units: Units = enemy_units.filter(lambda unit: (
-            unit.type_id != UnitTypeId.QUEEN
+            unit.type_id not in [UnitTypeId.QUEEN, UnitTypeId.OVERLORD]
             or unit.distance_to_squared(main) < unit.distance_to_squared(enemy_main)
         ))
 
@@ -147,7 +147,7 @@ class Scouting:
             any([unit_type in burrowed_units + cloaked_units for unit_type in self.possible_enemy_composition])
             or self.bot.enemy_units.filter(lambda unit: unit.is_burrowed).amount >= 1
             or (
-                self.bot.enemy_units(UnitTypeId.ROACH).amount >= 5
+                self.known_enemy_army.units(UnitTypeId.ROACH).amount >= 5
                 and self.known_enemy_army.units(UnitTypeId.ROACH).amount >= 0.7 * offensive_units.amount
             )
             or self.bot.time > 60 * 10
