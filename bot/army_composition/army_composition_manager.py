@@ -188,7 +188,7 @@ class ArmyCompositionManager(CachedClass):
         
         # TvT marine heavy specific
         if (self.wicked.matchup == Matchup.TvT):
-            composition.set(UnitTypeId.MARINE, 40)
+            composition.set(UnitTypeId.MARINE, 30)
         
         if (UnitTypeId.VIKINGFIGHTER in available_units):
             composition.add(UnitTypeId.VIKINGFIGHTER, self.vikings_amount)

@@ -182,7 +182,7 @@ class Macro:
         has_oversaturated_refinery: bool = self.bot.gas_buildings.filter(
             lambda refinery: refinery.assigned_harvesters >= 4
         ).amount > 0
-        frequency: int = min(20 + worker_count, 100)
+        frequency: int = min(worker_count, 40)
         # frequency: int = 4
         if (not has_idle_workers and not has_oversaturated_refinery and iteration % frequency != 0):
             return
@@ -236,13 +236,17 @@ class Macro:
         # - Oscillation: adding a gas worker doesn't lower worker_count, so the ratio stays stable.
         # - Post-fight recovery: workers transitioning out of combat aren't in mineral_workers
         #   yet but are still counted in worker_count, so gas resumes immediately.
-        if (total_ideal_mineral_workers == 0 or worker_count < total_ideal_mineral_workers * RALLY_LOCAL_SATURATION_THRESHOLD):
+        if (
+            total_ideal_mineral_workers == 0
+            or worker_count < total_ideal_mineral_workers * RALLY_LOCAL_SATURATION_THRESHOLD
+            or self.bot.scouting.situation in [Situation.CHEESE_CANNON_RUSH, Situation.CHEESE_WORKER_RUSH]
+        ):
             target_gas_workers: int = 0
             gas_hysteresis: int = 0
         else:
             target_gas_workers: int = min(total_refinery_capacity, round(effective_worker_count * MAX_GAS_RATIO))
             gas_hysteresis: int = 1
-
+        
         # Rally each townhall to its own mineral line while locally under-saturated,
         # then redirect to the globally least saturated line once the local base is covered.
         for expansion in expansions_list:

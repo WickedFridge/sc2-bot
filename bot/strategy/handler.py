@@ -336,6 +336,12 @@ class StrategyHandler:
         if (not situation.is_cheese or dont_cancel_b2_b3):
             return
         
+        # cancel gas against Canon rush and Worker rush
+        if (situation in [Situation.CHEESE_CANNON_RUSH, Situation.CHEESE_WORKER_RUSH]):
+            refineries_in_progress: Units = self.bot.structures(UnitTypeId.REFINERY).not_ready
+            for refinery in refineries_in_progress:
+                refinery(AbilityId.CANCEL_BUILDINPROGRESS)
+        
         # cancel B2/B3 and switch towards Conservative Expand, don't cancel indoor CCs
         expand_in_construction: Units = self.bot.townhalls.not_ready.filter(
             lambda th: th.position in [self.bot.expansions.b2.position, self.bot.expansions.b3.position]
