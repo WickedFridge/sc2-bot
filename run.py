@@ -14,7 +14,7 @@ from sc2.main import run_game
 from sc2.data import AIBuild, Race, Difficulty
 from sc2.client import Client
 from sc2.player import Bot, Computer
-from sc2.protocol import ConnectionAlreadyClosed
+from sc2.protocol import ConnectionAlreadyClosedError
 
 
 # Run ladder game
@@ -30,12 +30,14 @@ def run_ladder_game(args, bot):
     lan_port = args.StartPort
 
     # Port config
-    ports = [lan_port + p for p in range(1, 6)]
+    if lan_port is None:
+        portconfig = None
+    else:
+        ports = [lan_port + p for p in range(1, 6)]
 
-    portconfig = sc2.portconfig.Portconfig()
-    portconfig.shared = ports[0]  # Not used
-    portconfig.server = [ports[1], ports[2]]
-    portconfig.players = [[ports[3], ports[4]]]
+        portconfig = sc2.portconfig.Portconfig()
+        portconfig.server = [ports[1], ports[2]]
+        portconfig.players = [[ports[3], ports[4]]]
 
     # Join ladder game
     g = join_ladder_game(host=host, port=host_port, players=[bot], realtime=args.Realtime, portconfig=portconfig)
@@ -58,7 +60,7 @@ async def join_ladder_game(
             await client.save_replay(save_replay_as)
         # await client.leave()
         # await client.quit()
-    except ConnectionAlreadyClosed:
+    except ConnectionAlreadyClosedError:
         logging.error(f"Connection was closed before the game ended")
         return None
     finally:
