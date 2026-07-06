@@ -24,8 +24,8 @@ class MissileTurret(Building):
             lambda expansion: (
                 turrets.amount == 0
                 or (
-                    turrets.closest_distance_to(expansion.turret_mineral_line) > 5
-                    and turrets.closest_distance_to(expansion.turret_wall_position) > 5
+                    turrets.closest_distance_to(expansion.turret_mineral_line) > 10
+                    and turrets.closest_distance_to(expansion.turret_wall_position) > 10
                 )
             )
         )
