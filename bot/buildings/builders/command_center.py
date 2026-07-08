@@ -39,6 +39,10 @@ class CommandCenter(Building):
         townhalls_count: int = self.bot.townhalls.amount
         pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
         max_pending_cc_count: int = 2
+        if (self.bot.minerals >= 1500):
+            max_pending_cc_count += 1
+        if (self.bot.minerals >= 2000):
+            max_pending_cc_count += 1
 
         match(townhalls_count):
             # build order handles that
@@ -58,6 +62,18 @@ class CommandCenter(Building):
         next_expansion: Expansion = self.bot.expansions.next
         near_cc_position: Point2 = self.bot.expansions.main.position.towards(cc_position, 2)
         safe_expansions: Expansions = self.bot.expansions.taken.safe
+        
+        # calculate the optimal worker count based on mineral field left in bases
+        optimal_worker_count: float = (
+            sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
+            + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
+        )
+        current_worker_count: float = (
+            sum(expansion.mineral_worker_count for expansion in self.bot.expansions.taken)
+            + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
+        )
+        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+
         match (townhall_amount):
             case 0:
                 return self.bot.expansions.main.position
@@ -72,7 +88,9 @@ class CommandCenter(Building):
                 return near_cc_position
             case _:
                 if (safe_expansions.amount >= 1):
-                    return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
+                    if (are_bases_saturated):
+                        return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, 2)
+                    return self.bot.expansions.taken.safe.random.position.towards(cc_position, 2)
                 return self.bot.expansions.main.position
     
     async def move_worker_expand(self):

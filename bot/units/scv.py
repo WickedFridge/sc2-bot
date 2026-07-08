@@ -1,3 +1,4 @@
+import math
 from typing import List, override
 from bot.strategy.strategy_types import Situation
 from bot.units.train import Train
@@ -26,12 +27,24 @@ class Scv(Train):
     @property
     def max_amount(self) -> int:
         minimal_amount: int = 24
-        maximal_amount: int = 84
+        absolute_maximal_amount: int = 84
         townhalls: Units = self.bot.townhalls
         orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+
+        current_mining: float = sum(
+            expansion.optimal_mineral_workers + expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken
+        )
+
+        optimal_amount: float = current_mining
+        if (townhalls.amount > self.bot.expansions.taken.amount):
+            optimal_amount += 8
+
+        maximal_amount: float = absolute_maximal_amount * (1 - 1 / (3.5 + 400 * math.exp(-orbital_count))) + 1 - 1.1 * orbital_count
+
         return max(minimal_amount, min([
-            maximal_amount, 100 - 4 * orbital_count,
-            townhalls.ready.amount * 22 + townhalls.not_ready.amount * 11,
+            absolute_maximal_amount,
+            round(maximal_amount),
+            round(optimal_amount),
         ]))
     
     @property

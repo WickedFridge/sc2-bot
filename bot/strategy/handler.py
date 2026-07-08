@@ -96,7 +96,16 @@ class StrategyHandler:
 
     @property
     def _default_cheese_exit(self) -> bool:
-        return self.bot.expansions.taken.amount >= 3
+        return (
+            self.bot.expansions.taken.amount >= 3
+            or self.bot.townhalls.amount >= 4
+            or (
+                self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount >= 3
+                and self.bot.scouting.known_enemy_army.fighting_supply < 10
+                and self.bot.stim_completed
+            )
+        
+        )
 
     @property
     def _nearby_enemy_buildings(self) -> Units:
