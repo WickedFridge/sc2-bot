@@ -63,6 +63,7 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.INFESTORBURROWED,
     UnitTypeId.SWARMHOSTMP,
     UnitTypeId.SWARMHOSTBURROWEDMP,
+    UnitTypeId.LOCUSTMPFLYING,
     UnitTypeId.LURKERMP,
     UnitTypeId.VIPER,
     UnitTypeId.CARRIER,

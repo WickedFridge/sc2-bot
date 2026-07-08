@@ -65,7 +65,7 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
             BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, workers=28, townhalls=3, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'factory techlab #3', UnitTypeId.FACTORYTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
-            BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.REFINERY, 4, False)]),
+            BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.REFINERY, 3, False)]),
         ]
     
         self.swap_plans = [
@@ -92,7 +92,10 @@ class DefensiveCycloneTank(BuildOrder):
                 bot,
                 UnitTypeId.FACTORY,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
+                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
+                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
+                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
                 )
             ),
         ]
