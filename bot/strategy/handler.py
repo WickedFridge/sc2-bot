@@ -45,6 +45,7 @@ class StrategyHandler:
             Situation.CHEESE_LING_DRONE: self._enemy_units_cleared,
             Situation.CHEESE_LING_FLOOD: self._enemy_units_cleared,
             Situation.CHEESE_ROACH_RUSH: self._push_ended,
+            Situation.CHEESE_REAPER_RUSH: self._push_ended,
             Situation.CHEESE_IMMORTAL_BUST: self._push_ended,
             Situation.CHEESE_UNKNOWN: self._enemy_took_b2,
         }
@@ -225,6 +226,14 @@ class StrategyHandler:
             and not self._exit_condition_met(Situation.CHEESE_LING_FLOOD)
         ):
             return Situation.CHEESE_LING_FLOOD
+        
+        reapers: Units = menacing_enemy_units(UnitTypeId.REAPER)
+        # detect reaper rush
+        if (
+            reapers.amount >= 3
+            and not self._exit_condition_met(Situation.CHEESE_REAPER_RUSH)
+        ):
+            return Situation.CHEESE_REAPER_RUSH
 
         # detect roach rush
         # enemy has roach tech and has either no B2
