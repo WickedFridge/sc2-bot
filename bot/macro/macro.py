@@ -182,7 +182,7 @@ class Macro:
         has_oversaturated_refinery: bool = self.bot.gas_buildings.filter(
             lambda refinery: refinery.assigned_harvesters >= 4
         ).amount > 0
-        frequency: int = min(worker_count + 1, 40)
+        frequency: int = max(1, min(worker_count, 40))
         # frequency: int = 4
         if (not has_idle_workers and not has_oversaturated_refinery and iteration % frequency != 0):
             return
