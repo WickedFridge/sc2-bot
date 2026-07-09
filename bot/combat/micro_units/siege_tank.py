@@ -19,7 +19,8 @@ class MicroSiegeTank(MicroUnit):
 
     def get_enemies_close_siege_range(self, tank: Unit):
         dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED]
-        
+        is_defending: bool = self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
+
         local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(
             lambda enemy: enemy.type_id not in dont_siege_against
         )
@@ -31,7 +32,11 @@ class MicroSiegeTank(MicroUnit):
         ) + local_enemies.filter(
             lambda enemy: (
                 enemy.is_flying == False
-                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + self.THRESHOLD * enemy.real_speed
+                and self.MIN_RANGE_SIEGED <= enemy.distance_to(tank) <= (
+                    self.SIEGE_RANGE - self.THRESHOLD
+                    if is_defending
+                    else tank.radius + self.SIEGE_RANGE + enemy.radius + self.THRESHOLD * enemy.real_speed
+                )
             )
         )
 
@@ -56,7 +61,11 @@ class MicroSiegeTank(MicroUnit):
         if (buildings_only):
             enemies_close = enemies_close.filter(lambda unit: unit.is_structure)
         
-        if (tank.type_id == UnitTypeId.SIEGETANK and enemies_close.amount >= 1 and other_tank_sieged_close.amount == 0):
+        if (
+            tank.type_id == UnitTypeId.SIEGETANK
+            and enemies_close.amount >= 1
+            and other_tank_sieged_close.amount == 0
+        ):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
             return True
         if (tank.type_id == UnitTypeId.SIEGETANKSIEGED and enemies_close.amount == 0):
@@ -113,7 +122,7 @@ class MicroSiegeTank(MicroUnit):
         retreat_position: Point2 = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
         
-        if (unit.distance_to(retreat_position) > 2):
+        if (unit.distance_to(retreat_position) > 5):
             if (self.switch_mode(unit, enemies_close_siege_range)):
                 return
             await super().retreat(unit, local_units)

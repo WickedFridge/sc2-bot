@@ -27,7 +27,7 @@ class MicroScoutingUnit(MicroUnit):
         # if no enemy is in range, we are on cooldown and are in range, shoot the lowest unit
         SAFETY: int = 2
         LIFE_THRESHOLD: int = 15
-        enemy_units_in_range: Units = self.get_enemy_units_in_range(unit)
+        enemy_ground_in_range: Units = self.get_enemy_units_in_range(unit).filter(lambda unit: unit.is_flying == False)
         threats: Units = (
             self.enemies_threatening_ground_in_range(unit, safety_distance=SAFETY, range_override=20)
             if unit.is_flying == False
@@ -39,9 +39,9 @@ class MicroScoutingUnit(MicroUnit):
             # if we can safely shoot, just shoot
             local_danger: float = self.bot.map.influence_maps.danger.ground[unit.position]
             if (threats.amount == 0 or (unit.health >= LIFE_THRESHOLD and unit.health > local_danger)):
-                if (enemy_units_in_range.amount >= 1):
+                if (enemy_ground_in_range.amount >= 1):
                     # shoot weakest enemy in range
-                    target: Unit = enemy_units_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(unit))).first
+                    target: Unit = enemy_ground_in_range.sorted(lambda u: (u.health + u.shield, u.distance_to_squared(unit))).first
                     unit.attack(target)
                 else:
                     # move toward closest enemy to chase

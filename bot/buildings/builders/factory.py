@@ -22,7 +22,10 @@ class Factory(Building):
         return (
             self.amount == 0 or (
                 self.amount < max_factories
-                and self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
+                and (
+                    self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
+                    or self.bot.composition_manager.composition[UnitTypeId.SIEGETANK] > 5
+                )
             )
         )
     

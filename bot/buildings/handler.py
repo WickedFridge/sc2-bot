@@ -402,7 +402,7 @@ class BuildingsHandler:
             return
         
         townhalls_not_on_slot: Units = self.bot.expansions.townhalls_not_on_slot.ready.idle.not_flying
-        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying
+        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying.cc
         townhalls_to_move: Units = (
             townhalls_not_on_slot
             if townhalls_not_on_slot.amount >= 1
@@ -425,7 +425,7 @@ class BuildingsHandler:
         for townhall in townhalls_to_move:
             # don't lift Orbitals after the third CC
             if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
-                if (self.bot.townhalls.ready.amount >= 4):
+                if (self.bot.townhalls.ready.amount >= 4 and townhalls_depleted.amount == 0):
                     continue
             
             # don't lift CCs before the 4th CC unless every base is already saturated

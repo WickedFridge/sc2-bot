@@ -119,12 +119,15 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def extra_tanks_amount(self) -> int:
-        max_extra: int = 5
+        min_extra: int = 0
+        max_extra: int = 10
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
         if (ratio < 0.5):
-            return 0
-        # linear progression from 0 to max_extra between 0.5 and 1 of armored enemy ratio
-        return round((ratio - 0.5) / 0.5 * max_extra)
+            return min_extra
+        if (UnitTypeId.LURKERMP in self.wicked.scouting.known_enemy_composition):
+            min_extra = 5
+        # linear progression from 0 to max_extra in function of armored enemy ratio
+        return round(max(min_extra, ratio * max_extra))
     
     @property
     def marauders_ratio(self) -> float:
