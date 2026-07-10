@@ -31,7 +31,8 @@ class Refinery(Building):
         ).amount + self.bot.already_pending(UnitTypeId.REFINERY)
 
         max_refineries: int = 8
-        workers_amount: int = self.bot.supply_workers
+        orbital_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        workers_amount: int = self.bot.supply_workers + 4 * orbital_amount
 
         
         match(refinery_amount):
@@ -40,25 +41,25 @@ class Refinery(Building):
                 return True
             
             case 2:
-                # build third rafinery as long as we have 3CCs and at least 38 SCVs  
+                # build third rafinery as long as we have 3CCs and at least 38 SCVs (50 including mules)
                 return (
                     self.bot.townhalls.amount >= 3
-                    and workers_amount >= 38
+                    and workers_amount >= 50
                 )
             
             case 3:
-                # build fourth rafinery as long as we have 2 Ebays, a 3rd base takenand at least 50 SCVs
+                # build fourth rafinery as long as we have 2 Ebays, a 3rd base taken and at least 50 SCVs (72 including mules)
                 return (
                     self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
                     and self.bot.expansions.amount_taken >= 3
-                    and workers_amount >= 50
+                    and workers_amount >= 72
                 )
 
             case 4 | 5:        
                 return (
                     refinery_amount < max_refineries
                     and refinery_amount <= 2 * self.bot.expansions.amount_taken
-                    and workers_amount >= (refinery_amount + 1) * 12.5 + 1
+                    and workers_amount >= (refinery_amount + 1) * 16.5 + 1
                 )
 
             # TODO clean this
@@ -66,7 +67,7 @@ class Refinery(Building):
                 return (
                     refinery_amount < max_refineries
                     and refinery_amount <= 2 * self.bot.expansions.amount_taken
-                    and workers_amount >= 75
+                    and workers_amount >= 80
                 )    
     
     

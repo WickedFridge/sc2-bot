@@ -402,7 +402,7 @@ class BuildingsHandler:
             return
         
         townhalls_not_on_slot: Units = self.bot.expansions.townhalls_not_on_slot.ready.idle.not_flying
-        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying.cc
+        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying
         townhalls_to_move: Units = (
             townhalls_not_on_slot
             if townhalls_not_on_slot.amount >= 1
@@ -412,20 +412,30 @@ class BuildingsHandler:
             return
 
         # calculate the optimal worker count based on mineral field left in bases
-        optimal_worker_count: int = (
+        optimal_worker_count: float = (
             sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
             + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
         )
-        current_worker_count: int = (
+        current_worker_count: float = (
             sum(expansion.mineral_worker_count for expansion in self.bot.expansions.taken)
             + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
         )
         are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
 
         for townhall in townhalls_to_move:
-            # don't lift Orbitals after the third CC
+            # once we have 3 bases and 4 CCs
+            # only lift orbitals if it's a depleated base
+            # or if we don't have a ready CC
+            
             if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
-                if (self.bot.townhalls.ready.amount >= 4 and townhalls_depleted.amount == 0):
+                if (
+                    self.bot.townhalls.ready.amount >= 4
+                    and self.bot.expansions.taken.amount >= 3
+                    and (
+                        self.bot.townhalls(UnitTypeId.COMMANDCENTER).amount >= 1
+                        or townhalls_depleted.amount == 0
+                    )
+                ):
                     continue
             
             # don't lift CCs before the 4th CC unless every base is already saturated
@@ -464,6 +474,15 @@ class BuildingsHandler:
     async def land_townhalls(self):
         flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready
         for townhall in flying_townhall:
+            # stop townhalls that are landing on a taken expansion slot, so they can find a better one
+            if (
+                len(townhall.orders) >= 1
+                and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
+                and not self.bot.expansions.closest_to(townhall.orders[0].target).is_free
+            ):
+                townhall.stop()
+                continue
+            
             expansions_with_resources: Expansions = self.bot.expansions.with_resources
             landing_spot: Point2 = (
                 townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]

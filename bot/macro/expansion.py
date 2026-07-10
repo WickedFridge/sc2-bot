@@ -115,7 +115,7 @@ class Expansion(CachedClass):
             Army(local_anti_ground_units, self.bot).weighted_supply >= Army(local_enemy_ground_units, self.bot).weighted_supply
             and Army(local_anti_air_units, self.bot).weighted_supply >= Army(local_enemy_air_units, self.bot).weighted_supply
         )
-
+    
     @custom_cache_once_per_frame
     def cc(self) -> Optional[Unit]:
         if (not self.is_taken):
