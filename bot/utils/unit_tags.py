@@ -260,3 +260,14 @@ massive_flyers: List[UnitTypeId] = [
     UnitTypeId.MOTHERSHIP,
     UnitTypeId.BROODLORD,
 ]
+
+priority_targets: List[UnitTypeId] = [
+    UnitTypeId.LURKERMPBURROWED,
+    UnitTypeId.SIEGETANKSIEGED,
+    UnitTypeId.BATTLECRUISER,
+    UnitTypeId.COLOSSUS,
+    UnitTypeId.DISRUPTORPHASED,
+    UnitTypeId.CARRIER,
+    UnitTypeId.TEMPEST,
+]
+        

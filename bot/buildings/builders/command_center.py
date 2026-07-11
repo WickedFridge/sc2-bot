@@ -19,16 +19,19 @@ class CommandCenter(Building):
         self.radius = 2.5
 
     @property
+    def max_pending(self) -> int:
+        max: int = 2
+        if (self.bot.minerals >= 800):
+            max += 1
+        if (self.bot.minerals >= 1200):
+            max += 1
+        return max;
+    
+    @property
     @override
     def override_conditions(self) -> bool:
-        base_count: int = self.bot.expansions.amount
-        townhalls_count: int = self.bot.townhalls.amount
-        pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
-        max_pending_cc_count: int = 2
-
         return (
-            townhalls_count <= base_count + 3
-            and pending_cc_count < max_pending_cc_count
+            self.custom_conditions 
             and self.bot.minerals >= 600
         )
     
@@ -36,22 +39,16 @@ class CommandCenter(Building):
     @override
     def custom_conditions(self) -> bool:
         base_count: int = self.bot.expansions.amount
-        townhalls_count: int = self.bot.townhalls.amount
-        pending_cc_count: int = self.bot.already_pending(UnitTypeId.COMMANDCENTER)
-        max_pending_cc_count: int = 2
-        if (self.bot.minerals >= 1500):
-            max_pending_cc_count += 1
-        if (self.bot.minerals >= 2000):
-            max_pending_cc_count += 1
+        townhall_amount: int = self.bot.townhalls.amount
 
-        match(townhalls_count):
+        match(townhall_amount):
             # build order handles that
             case 0 | 1 | 2:
                 return True
             case _:
                 return (
-                    townhalls_count <= base_count + 3 and
-                    pending_cc_count < max_pending_cc_count
+                    townhall_amount <= base_count + 3 and
+                    self.pending_amount < self.max_pending
                 )
 
     @property

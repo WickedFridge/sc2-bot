@@ -28,16 +28,14 @@ class Refinery(Building):
             return False
         if (self.unitId in self.bot.build_order.build.pending_ids):
             return True
-        refinery_amount: int = self.amount
+        depleted_refineries: int = self.bot.structures(self.unitId).filter(
+            lambda unit: self.bot.vespene_geyser.closest_to(unit).has_vespene == False
+        ).amount
+        refinery_amount: int = self.amount - depleted_refineries
 
         max_refineries: int = 10
         orbital_amount: float = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
         scv_amount: int = self.bot.supply_workers
-
-        # more scan usage in TvZ
-        if (self.bot.matchup == Matchup.TvZ):
-            orbital_amount *= 0.5
-
         
         match(refinery_amount):
             # Build order handles first 2 gas
@@ -67,9 +65,16 @@ class Refinery(Building):
                 ):
                     return False
                 
+                if (self.bot.minerals >= 50 * refinery_amount):
+                    return True
+                
                 # we want at least 4 orbitals for gaz 7, 5 for gaz 8 and 6 for gaz 9
                 if (refinery_amount - orbital_amount > 2):
                     return False
+                
+                # more scan usage in TvZ
+                if (self.bot.matchup == Matchup.TvZ):
+                    orbital_amount *= 0.5
                 
                 # formula to calculate this, see DESMOS
                 return scv_amount >= 26 * math.sqrt(refinery_amount) + (3 - orbital_amount) * refinery_amount * 0.6

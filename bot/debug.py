@@ -417,8 +417,16 @@ class Debug:
     
     def free_bases(self):
         for expansion in self.bot.expansions:
-            label: str = "Free" if expansion.is_free else "Not Free"
-            color: tuple = GREEN if expansion.is_free else RED
+            label: str = (
+                "Free" if expansion.is_free
+                else "Probably Free" if expansion.is_probably_free
+                else "Taken"
+            )
+            color: tuple = (
+                GREEN if expansion.is_free
+                else YELLOW if expansion.is_probably_free
+                else RED
+            )
             self.draw_text_on_world(expansion.position, label, color)
     
     def effects(self):

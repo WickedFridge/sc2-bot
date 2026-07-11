@@ -13,7 +13,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities
+from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets
 
 class MicroUnit(CachedClass):
     bot: Superbot
@@ -172,16 +172,21 @@ class MicroUnit(CachedClass):
         )
         
     def pick_best_target(self, enemy_units_in_range: Units) -> Unit:
+        enemy_priority: Units = enemy_units_in_range.filter(lambda unit: unit.type_id in priority_targets)
         enemy_bonus_damage: Units = enemy_units_in_range.filter(self.filter_bonus_damage)
         enemy_to_fight: Units = (
-            enemy_bonus_damage
+            enemy_priority
+            if enemy_priority.amount >= 1
+            else enemy_bonus_damage
             if enemy_bonus_damage.amount >= 1
             else enemy_units_in_range
         ).sorted(
             lambda enemy_unit: (
+                not enemy_unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE),              # False to come up first
                 not enemy_unit.has_buff(BuffId.RAVENSHREDDERMISSILEARMORREDUCTION), # False to come up first
                 not enemy_unit.has_buff(BuffId.GUARDIANSHIELD),                     # False to come up first
                 enemy_unit.has_buff(BuffId.PROTECTIVEBARRIER),                      # True to come up last
+                enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT),                          # True to come up last
                 enemy_unit.shield,
                 enemy_unit.shield + enemy_unit.health
             )
