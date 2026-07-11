@@ -5,6 +5,7 @@ from bot.macro.expansion_manager import Expansions
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
+from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import center, closest_point
 from bot.utils.unit_cargo import get_transport_cargo
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -420,18 +421,40 @@ class Execute(CachedClass):
         for unit in army.units:
             unit.move(closest_army_position)
 
-    def scout(self, army: Army):
-        bases_to_scout: List[Expansion] = [
-            self.bot.expansions.b2,
-            self.bot.expansions.b3,
-            self.bot.expansions.b4,
+    @custom_cache_once_per_frame
+    def bases_to_scout(self) -> Expansions:
+        bases_to_scout: Expansions = Expansions(self.bot, [])
+        
+        match(self.bot.matchup):
+            case Matchup.TvZ:
+                bases_to_scout.add(self.bot.expansions.b2)
+
+            case Matchup.TvP:
+                # scout main + 3 closest air base
+                bases_to_scout = bases_to_scout.extended(
+                    self.bot.expansions.sorted(
+                        lambda expansion: expansion.position.distance_to(self.bot.expansions.main.position)
+                    ).take(4).expansions
+                )
+            
+            case Matchup.TvT | Matchup.TvR:
+                # scout main + 3 closest ground base
+                bases_to_scout = bases_to_scout.extended(
+                    self.bot.expansions.sorted(
+                        lambda expansion: expansion.distance_from_main
+                    ).take(4).expansions
+                )
+
+        return bases_to_scout.extended([
             self.bot.expansions.enemy_b2,
             self.bot.expansions.enemy_main,
             self.bot.expansions.enemy_b3,
             self.bot.expansions.enemy_b4,
-        ]
-        scout_target: Point2 = None
-        for base in bases_to_scout:
+        ])
+    
+    def scout(self, army: Army):
+        scout_target: Optional[Point2] = None
+        for base in self.bases_to_scout:
             if (not base.is_fully_scouted):
                 scout_target = closest_point(army.center, base.unscouted_points)
                 break

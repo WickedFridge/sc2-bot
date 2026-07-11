@@ -478,7 +478,10 @@ class BuildingsHandler:
                 and townhall.orders[0].ability.id == AbilityId.LAND
             ):
                 expansion_target: Expansion = self.bot.expansions.closest_to(townhall.orders[0].target)
-                if (townhall.tag != expansion_target.cc.tag):
+                if (
+                    expansion_target.cc is not None
+                    and townhall.tag != expansion_target.cc.tag
+                ):
                     print("Stop townhall, spot already taken")
                     townhall.stop()
                     continue

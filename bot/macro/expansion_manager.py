@@ -33,6 +33,11 @@ class Expansions(CachedClass):
     def add(self, expansion: Expansion) -> None:
         self.expansions.append(expansion)
     
+    def take(self, amount: int) -> Expansions:
+        if (amount >= self.amount):
+            return self
+        return Expansions(self.bot, self.expansions[:amount])
+    
     def extended(self, expansion_list: List[Expansion]) -> Expansions:
         return Expansions(self.bot, self.expansions.copy() + expansion_list)
     
