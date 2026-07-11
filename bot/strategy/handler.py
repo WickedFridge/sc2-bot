@@ -1,4 +1,5 @@
-from typing import Callable, List, Optional
+from __future__ import annotations
+from typing import Callable, List, Optional, TYPE_CHECKING
 from bot.macro.expansion import Expansion
 from bot.macro.macro import BASE_SIZE
 from bot.strategy.build_order.bo_names import BuildOrderName
@@ -8,7 +9,6 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone
 from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_kokabuild import TwoRaxReapersKokabuild
 from bot.strategy.strategy_types import Priority, Situation, Strategy
-from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from sc2.ids.ability_id import AbilityId
@@ -16,6 +16,11 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, townhalls, production, enemy_production, creep
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
+
+strategy: StrategyHandler | None = None
 
 class StrategyHandler:
     bot: Superbot
@@ -410,3 +415,9 @@ class StrategyHandler:
                     return Situation.CHEESE_BUNKER_RUSH
                 case _:
                     return Situation.UNDER_ATTACK
+                
+def get_strategy(bot: Superbot) -> StrategyHandler:
+    global strategy
+    if (strategy is None):
+        strategy = StrategyHandler(bot)
+    return strategy

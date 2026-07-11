@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 
 from attr import dataclass
@@ -8,6 +9,7 @@ from bot.macro.map.map import MapData
 from bot.scouting.ghost_units.manager import GhostUnitsManager
 from bot.scouting.scouting import Scouting
 from bot.strategy.build_order.manager import BuildOrderManager
+from bot.strategy.handler import StrategyHandler
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 from sc2.cache import property_cache_once_per_frame
@@ -33,6 +35,10 @@ class Superbot(BotAI):
 
     @property
     def scouting(self) -> Scouting:
+        pass
+
+    @property
+    def strategy(self) -> StrategyHandler:
         pass
     
     @property

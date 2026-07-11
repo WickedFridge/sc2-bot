@@ -9,6 +9,7 @@ from bot.strategy.build_order.build_order import BuildOrderStep
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_build import MacroBuild
 from bot.strategy.strategy_types import Situation
+from sc2.ids.upgrade_id import UpgradeId
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
@@ -53,6 +54,7 @@ class MacroCyclone(MacroBuild):
             BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, False)], workers=21, townhalls=2),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, target_count=1, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
+            BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, True)], townhalls=3),
             BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT, target_count=1, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)], townhalls=3),
             BuildOrderStep(bot, self, 'starport reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, True)]),
             BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)], townhalls=3),

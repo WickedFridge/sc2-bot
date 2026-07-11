@@ -61,7 +61,7 @@ class Refinery(Building):
                 if (
                     refinery_amount >= max_refineries
                     or refinery_amount >= 2 * self.bot.expansions.amount_taken
-                    or self.bot.vespene > 300 
+                    or (self.bot.vespene > 300 and self.bot.minerals < 600)
                 ):
                     return False
                 

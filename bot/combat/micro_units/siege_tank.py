@@ -1,13 +1,16 @@
-from typing import List, override
+from __future__ import annotations
+from typing import List, override, TYPE_CHECKING
 
 from bot.combat.micro_units.micro_unit import MicroUnit
-from bot.superbot import Superbot
 from bot.utils.army import Army
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 
 class MicroSiegeTank(MicroUnit):

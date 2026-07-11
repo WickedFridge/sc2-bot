@@ -1,10 +1,10 @@
+from __future__ import annotations
 import math
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
-from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -14,6 +14,9 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 class MicroUnit(CachedClass):
     bot: Superbot

@@ -1,10 +1,10 @@
-from typing import List
+from __future__ import annotations
+from typing import List, TYPE_CHECKING
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
 from bot.strategy.strategy_types import Situation
-from bot.superbot import Superbot
 from bot.utils.base import Base
 from bot.utils.colors import BLUE, GREEN, ORANGE, PURPLE, RED, WHITE, YELLOW
 from sc2.ids.ability_id import AbilityId
@@ -13,6 +13,9 @@ from sc2.position import Point2, Point3
 from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from ..utils.unit_tags import worker_types, add_ons, tower_types
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 BASE_SIZE: int = 20
 THREAT_DISTANCE: int = 8

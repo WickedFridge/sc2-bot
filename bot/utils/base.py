@@ -1,10 +1,10 @@
+from __future__ import annotations
 import math
-from typing import List
+from typing import List, TYPE_CHECKING
 from bot.combat.micro import Micro
 from bot.combat.threats import Threat
 from bot.macro.expansion import Expansion
 from bot.strategy.strategy_types import Situation
-from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.defend_worker_rush import defend_worker_rush
@@ -15,6 +15,9 @@ from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import tower_types, worker_types, menacing
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 WEAPON_READY_THRESHOLD: float = 6.0
 

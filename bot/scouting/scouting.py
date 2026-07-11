@@ -181,7 +181,7 @@ class Scouting:
             destroyed_building: Unit = self.known_enemy_buildings.by_tag(unit_tag)
             self.known_enemy_buildings.remove(destroyed_building)
     
-def get_scouting(bot: BotAI) -> Scouting:
+def get_scouting(bot: Superbot) -> Scouting:
     global scouting
     if (scouting is None):
         scouting = Scouting(bot)

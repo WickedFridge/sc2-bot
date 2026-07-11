@@ -421,52 +421,47 @@ class BuildingsHandler:
             + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
         )
         are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+        if (not are_bases_saturated):
+            return
 
-        for townhall in townhalls_to_move:
-            # once we have 3 bases and 4 CCs
-            # only lift orbitals if it's a depleated base
-            # or if we don't have a ready CC
-            
-            if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
-                # we only lift orbitals if we don't have any CCs left
-                if (
-                    self.bot.townhalls.ready.amount >= 4
-                    and self.bot.expansions.taken.amount >= 3
-                    and self.bot.townhalls(UnitTypeId.COMMANDCENTER).amount >= 1
-                ):
-                    continue
-            
-            # don't lift CCs before the 4th CC unless every base is already saturated
-            if (not are_bases_saturated):
-                print(f"bases not saturated yet, {current_worker_count} / {optimal_worker_count}")
-                continue
-            
-            landing_spot: Point2 = self.bot.expansions.next.position
-            danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
-            # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)
-            
-            if (
-                danger_around >= self.DANGER_THRESHOLD
-                or (
-                    self.bot.townhalls.ready.amount == 3
-                    and (
-                        self.bot.scouting.situation.is_precarious
-                        or (
-                            self.bot.matchup == Matchup.TvP
-                            and not self.bot.stim_completed
-                        )
+        command_centers_to_move: Units = townhalls_to_move(UnitTypeId.COMMANDCENTER)
+        if (command_centers_to_move.amount >= 1):
+            townhalls_to_move = command_centers_to_move
+        elif (
+            self.bot.structures(UnitTypeId.COMMANDCENTER).not_ready.amount >= 1
+            and self.bot.expansions.taken.amount >= 4
+        ):
+            return
+
+        landing_spot: Point2 = self.bot.expansions.next.position
+        danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
+        # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)
+        
+        if (
+            danger_around >= self.DANGER_THRESHOLD
+            or (
+                self.bot.townhalls.ready.amount == 3
+                and (
+                    self.bot.scouting.situation.is_precarious
+                    or (
+                        self.bot.matchup == Matchup.TvP
+                        and not self.bot.stim_completed
+                        and Situation.UNDER_ATTACK in self.bot.strategy.situation_history
                     )
                 )
-            ):
-                print("too much danger")
-                return
+            )
+        ):
+            print("too much danger")
+            return
 
-            if (townhall.type_id == UnitTypeId.COMMANDCENTER):
-                print("Lift Command Center")
-                townhall(AbilityId.LIFT_COMMANDCENTER)
-            else:
-                print("Lift Orbital")
-                townhall(AbilityId.LIFT_ORBITALCOMMAND)
+        townhall: Unit = townhalls_to_move.closest_to(landing_spot)
+        if (townhall.type_id == UnitTypeId.COMMANDCENTER):
+            print("Lift Command Center")
+            townhall(AbilityId.LIFT_COMMANDCENTER)
+            return
+        print("Lift Orbital")
+        townhall(AbilityId.LIFT_ORBITALCOMMAND)
+        return
 
     
     async def land_townhalls(self):

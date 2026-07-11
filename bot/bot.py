@@ -14,7 +14,7 @@ from bot.scout import Scout
 from bot.scouting.ghost_units.manager import GhostUnitsManager, get_ghost_units
 from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
-from bot.strategy.handler import StrategyHandler
+from bot.strategy.handler import StrategyHandler, get_strategy
 from bot.superbot import Superbot
 from bot.technology.search import Search
 from bot.units.trainer import Trainer
@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.13.3"
+VERSION: str = "12.13.4"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -38,7 +38,6 @@ class WickedBot(Superbot):
     combat: SelectOrders
     trainer: Trainer
     macro: Macro
-    strategy: StrategyHandler
     debug: Debug
     structures_memory: Units
     # analytics: Analytics
@@ -56,7 +55,6 @@ class WickedBot(Superbot):
         self.combat = SelectOrders(self)
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
-        self.strategy = StrategyHandler(self)
         self.scout = Scout(self)
         self.debug = Debug(self)
         # self.analytics = Analytics(self)
@@ -87,6 +85,11 @@ class WickedBot(Superbot):
     @override
     def scouting(self) -> Scouting:
         return get_scouting(self)
+
+    @property
+    @override
+    def strategy(self) -> StrategyHandler:
+        return get_strategy(self)
 
     @property
     @override

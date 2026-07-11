@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from bot.combat.micro_units.banshee import MicroBanshee
 from bot.combat.micro_units.cyclone import MicroCyclone
 from bot.combat.micro_units.ghost import MicroGhost
@@ -12,11 +14,13 @@ from bot.combat.micro_units.reaper import MicroReaper
 from bot.combat.micro_units.siege_tank import MicroSiegeTank
 from bot.combat.micro_units.thor import MicroThor
 from bot.combat.micro_units.viking import MicroViking
-from bot.superbot import Superbot
 from sc2.cache import CachedClass
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 WEAPON_READY_THRESHOLD: float = 6.0
 
