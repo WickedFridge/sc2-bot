@@ -298,8 +298,17 @@ class BuildingLayer:
             {UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED},
         )
     
+    def reserve_around_bunker(self, origin: Point2) -> None:
+        lane_y = range(-2, 4)
+        points: list[tuple[int, int]] = [
+            *_lane([-2, -1], lane_y),  # two lanes on the left
+            *_lane([3, 4],   lane_y),  # two lanes on the right
+        ]
+        for point in points:
+            self.reserve_area(origin + Point2(point), 1, set(important_buildings))
+
     def reserve_around_production(self, origin: Point2) -> None:
-        lane_y = range(-2, 5)
+        lane_y = range(-2, 4)
 
         points: list[tuple[int, int]] = [
             *_lane([-2, -1], lane_y),  # two lanes on the left
@@ -355,6 +364,10 @@ class BuildingLayer:
     def on_building_created(self, unit: Unit) -> None:
         origin, size = self._get_footprint(unit)
         self.block_area(origin, size)
+
+        if (unit.type_id == UnitTypeId.BUNKER):
+            self.reserve_around_bunker(origin)
+            return
 
         if (unit.type_id in production + production_flying):
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))

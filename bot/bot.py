@@ -1,5 +1,6 @@
 from time import perf_counter
 from typing import Awaitable, Callable, List, override
+from bot.analytics.analytics import Analytics
 from bot.army_composition.army_composition_manager import ArmyCompositionManager, get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
@@ -26,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.12.3"
+VERSION: str = "12.13.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -40,6 +41,7 @@ class WickedBot(Superbot):
     strategy: StrategyHandler
     debug: Debug
     structures_memory: Units
+    analytics: Analytics
     opponent_random: bool = False
     tag_to_update: bool = False
 
@@ -57,6 +59,7 @@ class WickedBot(Superbot):
         self.strategy = StrategyHandler(self)
         self.scout = Scout(self)
         self.debug = Debug(self)
+        self.analytics = Analytics(self)
         self.structures_memory: Units = Units([], self)
 
     @property
@@ -127,6 +130,7 @@ class WickedBot(Superbot):
             self.map.influence_maps.init_influence_maps()
             self.build_order.select_build(self.matchup)
             await self.tag_game()
+            self.analytics.write("Test")
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()

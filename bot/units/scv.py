@@ -32,12 +32,18 @@ class Scv(Train):
         orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
 
         current_mining: float = sum(
-            expansion.optimal_mineral_workers + expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken
+            expansion.optimal_mineral_workers + 6 for expansion in self.bot.expansions.taken
         )
 
         optimal_amount: float = current_mining
         if (townhalls.amount > self.bot.expansions.taken.amount):
-            optimal_amount += 8
+            max_readyness: float = (
+                1 if self.bot.townhalls.not_ready.amount == 0
+                else max(
+                    townhall.build_progress for townhall in self.bot.townhalls.not_ready
+                )
+            )
+            optimal_amount += max(6, 11 * max_readyness)
 
         maximal_amount: float = absolute_maximal_amount * (1 - 1 / (3.5 + 400 * math.exp(-orbital_count))) + 1 - 1.1 * orbital_count
 

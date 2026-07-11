@@ -487,7 +487,7 @@ class BuildingsHandler:
             landing_spot: Point2 = (
                 townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
                 else expansions_with_resources.next.position if flying_townhall.amount == 1
-                else expansions_with_resources.free.closest_to(townhall.position).position if expansions_with_resources.free.amount >= 1
+                else expansions_with_resources.probably_free.closest_to(townhall.position).position if expansions_with_resources.probably_free.amount >= 1
                 else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
                 else self.bot.expansions.main.position
             )

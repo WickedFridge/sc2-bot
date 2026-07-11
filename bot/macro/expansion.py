@@ -79,6 +79,10 @@ class Expansion(CachedClass):
         return self.is_taken and self.cc.is_ready and not self.cc.is_flying
 
     @custom_cache_once_per_frame
+    def is_probably_free(self) -> bool:
+        return self.is_free or self.is_unknown
+    
+    @custom_cache_once_per_frame
     def is_free(self) -> bool:
         return (
             self.is_scouted

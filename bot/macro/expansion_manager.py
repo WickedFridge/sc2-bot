@@ -118,6 +118,10 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_taken == False)
     
     @custom_cache_once_per_frame
+    def probably_free(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.is_probably_free == True)
+
+    @custom_cache_once_per_frame
     def free(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_free == True)
 

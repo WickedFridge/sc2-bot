@@ -5,7 +5,7 @@ from bot.macro.expansion_manager import Expansions
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
-from bot.utils.point2_functions.utils import center
+from bot.utils.point2_functions.utils import center, closest_point
 from bot.utils.unit_cargo import get_transport_cargo
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.ability_id import AbilityId
@@ -432,8 +432,8 @@ class Execute(CachedClass):
         ]
         scout_target: Point2 = None
         for base in bases_to_scout:
-            if (base.is_unknown):
-                scout_target = base.mineral_line
+            if (not base.is_fully_scouted):
+                scout_target = closest_point(army.center, base.unscouted_points)
                 break
         
         if (scout_target is None):
