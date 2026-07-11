@@ -428,13 +428,11 @@ class BuildingsHandler:
             # or if we don't have a ready CC
             
             if (townhall.type_id == UnitTypeId.ORBITALCOMMAND):
+                # we only lift orbitals if we don't have any CCs left
                 if (
                     self.bot.townhalls.ready.amount >= 4
                     and self.bot.expansions.taken.amount >= 3
-                    and (
-                        self.bot.townhalls(UnitTypeId.COMMANDCENTER).amount >= 1
-                        or townhalls_depleted.amount == 0
-                    )
+                    and self.bot.townhalls(UnitTypeId.COMMANDCENTER).amount >= 1
                 ):
                     continue
             
@@ -477,15 +475,17 @@ class BuildingsHandler:
             # stop townhalls that are landing on a taken expansion slot, so they can find a better one
             if (
                 len(townhall.orders) >= 1
-                and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
-                and not self.bot.expansions.closest_to(townhall.orders[0].target).is_free
+                and townhall.orders[0].ability.id == AbilityId.LAND
             ):
-                townhall.stop()
-                continue
+                expansion_target: Expansion = self.bot.expansions.closest_to(townhall.orders[0].target)
+                if (townhall.tag != expansion_target.cc.tag):
+                    print("Stop townhall, spot already taken")
+                    townhall.stop()
+                    continue
             
             expansions_with_resources: Expansions = self.bot.expansions.with_resources
             landing_spot: Point2 = (
-                townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id in [AbilityId.LAND_COMMANDCENTER, AbilityId.LAND_ORBITALCOMMAND]
+                townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id == AbilityId.LAND
                 else expansions_with_resources.next.position if flying_townhall.amount == 1
                 else expansions_with_resources.probably_free.closest_to(townhall.position).position if expansions_with_resources.probably_free.amount >= 1
                 else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1

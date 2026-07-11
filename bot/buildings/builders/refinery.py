@@ -1,9 +1,11 @@
+import math
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion_manager import Expansions
 from bot.macro.resources import Resources
 from bot.strategy.strategy_types import Situation
 from bot.utils.ability_tags import AbilityBuild
+from bot.utils.matchup import Matchup
 from sc2.game_data import Cost
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -26,13 +28,15 @@ class Refinery(Building):
             return False
         if (self.unitId in self.bot.build_order.build.pending_ids):
             return True
-        refinery_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.filter(
-            lambda refinery: self.bot.expansions.taken.vespene_geysers.closest_to(refinery.position).has_vespene
-        ).amount + self.bot.already_pending(UnitTypeId.REFINERY)
+        refinery_amount: int = self.amount
 
-        max_refineries: int = 8
-        orbital_amount: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        workers_amount: int = self.bot.supply_workers + 4 * orbital_amount
+        max_refineries: int = 10
+        orbital_amount: float = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        scv_amount: int = self.bot.supply_workers
+
+        # more scan usage in TvZ
+        if (self.bot.matchup == Matchup.TvZ):
+            orbital_amount *= 0.5
 
         
         match(refinery_amount):
@@ -44,32 +48,31 @@ class Refinery(Building):
                 # build third rafinery as long as we have 3CCs and at least 38 SCVs (50 including mules)
                 return (
                     self.bot.townhalls.amount >= 3
-                    and workers_amount >= 50
+                    and scv_amount >= 38
                 )
             
             case 3:
-                # build fourth rafinery as long as we have 2 Ebays, a 3rd base taken and at least 50 SCVs (72 including mules)
+                # build fourth rafinery as long as we have 2 Ebays, a 3rd orbital and at least 50 SCVs (72 including mules)
                 return (
                     self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
-                    and self.bot.expansions.amount_taken >= 3
-                    and workers_amount >= 72
+                    and orbital_amount >= 3
+                    and scv_amount >= 50
                 )
 
-            case 4 | 5:        
-                return (
-                    refinery_amount < max_refineries
-                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
-                    and workers_amount >= (refinery_amount + 1) * 16.5 + 1
-                )
-
-            # TODO clean this
             case _:
-                return (
-                    refinery_amount < max_refineries
-                    and refinery_amount <= 2 * self.bot.expansions.amount_taken
-                    and workers_amount >= 80
-                )    
-    
+                if (
+                    refinery_amount >= max_refineries
+                    or refinery_amount >= 2 * self.bot.expansions.amount_taken
+                    or self.bot.vespene > 300 
+                ):
+                    return False
+                
+                # we want at least 4 orbitals for gaz 7, 5 for gaz 8 and 6 for gaz 9
+                if (refinery_amount - orbital_amount > 2):
+                    return False
+                
+                # formula to calculate this, see DESMOS
+                return scv_amount >= 26 * math.sqrt(refinery_amount) + (3 - orbital_amount) * refinery_amount * 0.6
     
     @property
     def target_geyser(self) -> Unit | None:

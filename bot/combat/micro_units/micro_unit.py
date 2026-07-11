@@ -425,8 +425,16 @@ class MicroUnit(CachedClass):
             return
         
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
+        attackable_enemy_units_in_range: Units = enemy_units_in_range.filter(lambda enemy: self.can_be_attacked(enemy, unit))
         if (enemy_units_in_range.amount >= 1):
+            if (attackable_enemy_units_in_range.amount >= 1):
+                target: Unit = self.pick_best_target(attackable_enemy_units_in_range)
+                unit.attack(target)
+                return
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             unit.move(safest_spot)
+            return
+        if (unit.distance_to(local_units.center) > 8):
+            unit.move(local_units.center)
         else:
             unit.move(retreat_position)

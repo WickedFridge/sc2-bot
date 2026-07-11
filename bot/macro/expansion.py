@@ -125,7 +125,7 @@ class Expansion(CachedClass):
         if (not self.is_taken):
             return None
         townhalls: Units = self.bot.townhalls
-        for townhall in townhalls:
+        for townhall in townhalls.sorted_by_distance_to(self.position):
             if (self.position in [townhall.position, townhall.order_target]):
                 return townhall
         return None

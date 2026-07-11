@@ -2,6 +2,7 @@ import math
 from typing import List, override
 from bot.strategy.strategy_types import Situation
 from bot.units.train import Train
+from bot.utils.matchup import Matchup
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
@@ -29,7 +30,11 @@ class Scv(Train):
         minimal_amount: int = 24
         absolute_maximal_amount: int = 84
         townhalls: Units = self.bot.townhalls
-        orbital_count: int = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        orbital_count: float = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
+        
+        # we use a bunch of scans in TvZ
+        if (self.bot.matchup == Matchup.TvZ):
+            orbital_count *= 0.5
 
         current_mining: float = sum(
             expansion.optimal_mineral_workers + 6 for expansion in self.bot.expansions.taken

@@ -207,7 +207,9 @@ class ArmyCompositionManager(CachedClass):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
             if (UnitTypeId.GHOST in self.available_units):
-                MAX_MARAUDER_COUNT: int = 10
+                MAX_MARAUDER_COUNT: int = (
+                    12 if self.bot.matchup == Matchup.TvZ else 15
+                )
                 marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
