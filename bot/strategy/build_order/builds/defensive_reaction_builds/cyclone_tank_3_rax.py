@@ -21,6 +21,7 @@ from sc2.units import Units
 class CycloneTank3Rax(BuildOrder):
     name: BuildOrderName = BuildOrderName.CYCLONE_TANK_3RAX
     in_base_cc: bool = True
+    is_defensive_response: bool = True
 
     @override
     def _modify_composition(self, composition: Composition) -> bool:

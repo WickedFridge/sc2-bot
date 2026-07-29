@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.13.4"
+VERSION: str = "12.14.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -245,6 +245,7 @@ class WickedBot(Superbot):
         money_spenders.extend([
             # advanced tech
             self.builder.ebay.build,
+            self.search.magfield_accelerator.search,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
             self.search.air_attack_level_3.search,
@@ -312,7 +313,7 @@ class WickedBot(Superbot):
         # await self.debug.wall_placement()
         # self.debug.full_composition(iteration)
         # self.debug.effects()
-        self.debug.danger_map()
+        # self.debug.danger_map()
         self.debug.free_bases()
         # self.debug.danger_trajectories()
         # self.debug.invisible_units()

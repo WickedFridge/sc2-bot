@@ -49,6 +49,7 @@ class BuildOrder(CachedClass):
         UnitTypeId.STARPORTREACTOR: [UnitTypeId.BARRACKSREACTOR, UnitTypeId.FACTORYREACTOR, UnitTypeId.REACTOR],
     }
     in_base_cc: bool = False
+    is_defensive_response: bool = False
     default_defensive_response: Optional[BuildOrder] = None
     defensive_responses: dict[Situation, BuildOrder] = {}
 

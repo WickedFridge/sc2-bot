@@ -21,6 +21,7 @@ from sc2.units import Units
 
 class DefensiveCycloneTank(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_CYCLONE_TANK
+    is_defensive_response: bool = True
     in_base_cc: bool = True
 
     @override

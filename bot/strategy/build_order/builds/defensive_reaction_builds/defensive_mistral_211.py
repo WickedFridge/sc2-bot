@@ -14,6 +14,7 @@ from sc2.ids.upgrade_id import UpgradeId
 
 class DefensiveMistral211(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_MISTRAL_211
+    is_defensive_response: bool = True
     in_base_cc: bool = True
 
     @override

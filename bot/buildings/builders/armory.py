@@ -31,14 +31,15 @@ class Armory(Building):
         if (self.amount == 2):
             return False
         
+        if (self.in_build_order):
+            return True
+
         # We want 1 armory once we have a +1 60% complete
-        armory_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ARMORY)
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1)
         ebays_count: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).ready.amount
         if (self.amount == 0):
             return (
-                armory_tech_requirement == 1
-                and upgrades_tech_requirement >= 0.6
+                upgrades_tech_requirement >= 0.6
                 and self.bot.townhalls.amount >= 3
                 and ebays_count >= 1
             )
@@ -50,10 +51,12 @@ class Armory(Building):
             composition[UnitTypeId.VIKINGFIGHTER]
             + composition[UnitTypeId.LIBERATOR]
             + composition[UnitTypeId.HELLION]
+            + composition[UnitTypeId.CYCLONE]
             + composition[UnitTypeId.SIEGETANK]
             + composition[UnitTypeId.THOR]
         )
         mechanical_units_amount: int = self.bot.units_with_passengers([
+            UnitTypeId.CYCLONE,
             UnitTypeId.SIEGETANK,
             UnitTypeId.SIEGETANKSIEGED,
             UnitTypeId.THOR,

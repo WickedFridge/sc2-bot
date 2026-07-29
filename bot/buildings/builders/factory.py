@@ -19,15 +19,17 @@ class Factory(Building):
         max_factories: int = 2
 
         # We want up to 2 factories so far
-        return (
-            self.amount == 0 or (
-                self.amount < max_factories
-                and (
-                    self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
-                    or self.bot.composition_manager.composition[UnitTypeId.SIEGETANK] > 5
+        if (self.bot.build_order.build.is_completed):
+            return (
+                self.amount == 0 or (
+                    self.amount < max_factories
+                    and (
+                        self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
+                        or self.bot.composition_manager.composition[UnitTypeId.SIEGETANK] > 5
+                    )
                 )
             )
-        )
+        return True
     
     @property
     @override

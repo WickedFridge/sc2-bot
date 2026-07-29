@@ -210,7 +210,7 @@ class StrategyHandler:
         if (proxy_buildings.amount >= 1):
             for building in proxy_buildings:
                 match (building.type_id):
-                    case UnitTypeId.BARRACKS:
+                    case UnitTypeId.BARRACKS | UnitTypeId.BARRACKSTECHLAB | UnitTypeId.BARRACKSREACTOR:
                         if (not self._exit_condition_met(Situation.CHEESE_PROXY_RAX)):
                             return Situation.CHEESE_PROXY_RAX
                     case _:
@@ -298,16 +298,23 @@ class StrategyHandler:
             return Situation.CHEESE_IMMORTAL_BUST
         
         skytoss_tech: bool = UnitTypeId.MOTHERSHIP in self.bot.scouting.possible_enemy_composition
+        stargate_amount: int = self.bot.enemy_structures(UnitTypeId.STARGATE).amount
         if (
-            skytoss_tech
-            and not self._exit_condition_met(Situation.CHEESE_SKYTOSS)
+            not self._exit_condition_met(Situation.CHEESE_SKYTOSS)
             and (
-                self.bot.expansions.enemy_b2.is_free
+                skytoss_tech
+                or stargate_amount >= 2
                 or (
-                    self.bot.expansions.enemy_b2.is_unknown
-                    and self.bot.time <= 210
+                    stargate_amount == 1
+                    and (
+                        self.bot.expansions.enemy_b2.is_free
+                        or (
+                            self.bot.expansions.enemy_b2.is_unknown
+                            and self.bot.time <= 210
+                        )
+                    )
                 )
-            )
+            ) 
         ):
             return Situation.CHEESE_SKYTOSS
         
@@ -343,7 +350,7 @@ class StrategyHandler:
 
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (self.bot.build_order.build.name == BuildOrderName.CONSERVATIVE_RAX_EXPAND):
+        if (self.bot.build_order.build.is_defensive_response):
             return
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)

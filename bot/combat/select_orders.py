@@ -562,6 +562,9 @@ class SelectOrders:
             ) or (
                 self.bot.matchup == Matchup.TvT
                 and army.is_technical
+            ) or (
+                army.units(UnitTypeId.CYCLONE).amount >= 3
+                and self.bot.already_pending_upgrade(UpgradeId.CYCLONELOCKONDAMAGEUPGRADE) == 1
             )
         )
         

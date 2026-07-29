@@ -15,6 +15,7 @@ from sc2.ids.upgrade_id import UpgradeId
 class ConservativeRaxExpand(BuildOrder):
     name: BuildOrderName = BuildOrderName.CONSERVATIVE_RAX_EXPAND
     in_base_cc: bool = True
+    is_defensive_response: bool = True
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)

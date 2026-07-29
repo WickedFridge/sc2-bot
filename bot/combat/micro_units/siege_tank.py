@@ -61,6 +61,9 @@ class MicroSiegeTank(MicroUnit):
             )
         )
 
+        # don't siege against creep
+        enemies_close = enemies_close.filter(lambda unit: not self.is_creep_tumor(unit))
+
         if (buildings_only):
             enemies_close = enemies_close.filter(lambda unit: unit.is_structure)
         

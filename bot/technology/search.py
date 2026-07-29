@@ -10,6 +10,7 @@ from bot.technology.upgrades.combat_shield import CombatShield
 from bot.technology.upgrades.concussive_shells import ConcussiveShells
 from bot.technology.upgrades.infantry_upgrades import InfantryArmorLevel1, InfantryArmorLevel2, InfantryArmorLevel3, InfantryAttackLevel1, InfantryAttackLevel2, InfantryAttackLevel3
 from bot.technology.upgrades.interference_matrix import InterferenceMatrix
+from bot.technology.upgrades.magfield import MagfieldAccelerator
 from bot.technology.upgrades.stimpack import Stimpack
 from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
@@ -41,6 +42,7 @@ class Search:
     air_armor_level_3: AirArmorLevel3
     caduceus_reactor: CaduceusReactor
     interference_maxtrix: InterferenceMatrix
+    magfield_accelerator: MagfieldAccelerator
     building_armor: BuildingArmor
     building_range: BuildingRange
 
@@ -64,5 +66,6 @@ class Search:
         self.air_armor_level_3 = AirArmorLevel3(self)
         self.caduceus_reactor = CaduceusReactor(self)
         self.interference_maxtrix = InterferenceMatrix(self)
+        self.magfield_accelerator = MagfieldAccelerator(self)
         self.building_armor = BuildingArmor(self)
         self.building_range = BuildingRange(self)

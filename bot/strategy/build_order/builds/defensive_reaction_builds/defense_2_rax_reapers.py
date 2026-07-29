@@ -14,6 +14,7 @@ from sc2.ids.upgrade_id import UpgradeId
 class DefensiveTwoRax(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX
     in_base_cc: bool = True
+    is_defensive_response: bool = True
     cyclone_built: bool = False
 
     @override

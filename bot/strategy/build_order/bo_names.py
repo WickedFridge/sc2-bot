@@ -11,6 +11,7 @@ class BuildOrderName(enum.Enum):
     MACRO_CYCLONE = 'Macro_Cyclone'
     DEFENSIVE_CYCLONE = 'Defensive_Cyclone'
     DEFENSIVE_CYCLONE_TANK = 'Defensive_Cyclone_Tank'
+    DEFENSIVE_DOUBLE_CYCLONE = 'Defensive_Double_Cyclone_Magfield'
     CYCLONE_TANK_3RAX = 'Cyclone_Tank_3_Rax'
     DUMMY_BUILD = 'Dummy_Build'
     GREEDY_2_2_TIMING = 'Greedy_3CC_2/2_Timing'

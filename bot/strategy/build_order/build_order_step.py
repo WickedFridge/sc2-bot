@@ -18,7 +18,7 @@ class BuildOrderStep(CachedClass):
     supply: int
     army_supply: int
     townhalls: int
-    requirements: tuple[UnitTypeId, int, bool]
+    requirements: List[tuple[UnitTypeId, int, bool]]
     upgrades_required: List[UpgradeId]
     
     def __init__(
@@ -32,8 +32,8 @@ class BuildOrderStep(CachedClass):
         supply: int = 0,
         army_supply: int = 0,
         townhalls: int = 1,
-        requirements: List[tuple[UnitTypeId, int, bool]] = None,
-        upgrades_required: List[UpgradeId] = None,
+        requirements: List[tuple[UnitTypeId, int, bool]] = [],
+        upgrades_required: List[UpgradeId] = [],
     ) -> None:
         super().__init__(bot)
         self.build_order = build_order
