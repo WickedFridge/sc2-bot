@@ -34,9 +34,9 @@ class OrbitalCommand(UpgradeBuilding):
         if (not orbital_tech_available or ccs_amount == 0):
             return False
         
-        # don't build orbital when we're getting worker rushed
+        # don't build orbital when we're getting worker rushed unless we're floating minerals
         if (self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]):
-            return False
+            return self.bot.minerals >= 200
 
         # we only build Orbital until we have 4 CCs
         if (self.bot.townhalls.ready.amount <= 3):
