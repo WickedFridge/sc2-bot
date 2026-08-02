@@ -303,7 +303,12 @@ class Execute(CachedClass):
         enemy_probes: Units = self.bot.enemy_units(UnitTypeId.PROBE).sorted(
             lambda probe: probe.distance_to(self.bot.expansions.b2.position)
         )
-        enemies: Units = self.bot.enemy_structures([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]).sorted(
+        enemy_structures: Units = self.bot.enemy_structures([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]).sorted(
+            lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position))
+        )
+        enemy_units: Units = self.bot.enemy_units.filter(
+            lambda unit: unit.type_id != UnitTypeId.PROBE
+        ).sorted(
             lambda unit: (unit.health + unit.shield, unit.distance_to(self.bot.expansions.b2.position))
         )
         
@@ -316,10 +321,19 @@ class Execute(CachedClass):
                     unit.attack(closest_probe)
                     continue
             # otherwise shoot the closest canon
-            if (enemies(UnitTypeId.PHOTONCANNON).amount >= 1):
-                unit.attack(enemies(UnitTypeId.PHOTONCANNON).first)
+            if (enemy_structures(UnitTypeId.PHOTONCANNON).amount >= 1):
+                unit.attack(enemy_structures(UnitTypeId.PHOTONCANNON).first)
+                continue
+
+            # if there's an enemy unit (zealot/stalker), shoot it
+            if (enemy_units.amount >= 1):
+                closest_enemy: Unit = enemy_units.closest_to(unit)
+                if (unit.target_in_range(closest_enemy)):
+                    unit.attack(closest_enemy)
+                    continue
+
             else:
-                unit.attack((enemies + enemy_probes).first)
+                unit.attack((enemy_structures + enemy_probes + enemy_units).closest_to(unit))
             
 
 

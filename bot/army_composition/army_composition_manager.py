@@ -119,6 +119,8 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def extra_tanks_amount(self) -> int:
+        if (self.bot.matchup == Matchup.TvP):
+            return 0
         min_extra: int = 0
         max_extra: int = 10
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
