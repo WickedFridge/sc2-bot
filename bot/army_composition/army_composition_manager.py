@@ -68,6 +68,10 @@ class ArmyCompositionManager(CachedClass):
         viking_response: dict[UnitTypeId, float] = {
             UnitTypeId.CARRIER: 4,
             UnitTypeId.COLOSSUS: 4,
+            UnitTypeId.VIKINGFIGHTER: 0.8,
+            UnitTypeId.VIKINGASSAULT: 0.8,
+            UnitTypeId.LIBERATOR: 0.8,
+            UnitTypeId.LIBERATORAG: 0.8,
             UnitTypeId.BATTLECRUISER: 4,
             UnitTypeId.TEMPEST: 3,
             UnitTypeId.BROODLORD: 3,
@@ -210,7 +214,9 @@ class ArmyCompositionManager(CachedClass):
             marauder_count: int = marauder_supply // 2
             if (UnitTypeId.GHOST in self.available_units):
                 MAX_MARAUDER_COUNT: int = (
-                    12 if self.bot.matchup == Matchup.TvZ else 15
+                    6 if self.bot.matchup == Matchup.TvT else
+                    12 if self.bot.matchup == Matchup.TvZ else
+                    15
                 )
                 marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
             composition.add(UnitTypeId.MARAUDER, marauder_count)

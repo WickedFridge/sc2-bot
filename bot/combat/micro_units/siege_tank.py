@@ -64,12 +64,15 @@ class MicroSiegeTank(MicroUnit):
         # don't siege against creep
         enemies_close = enemies_close.filter(lambda unit: not self.is_creep_tumor(unit))
 
-        if (buildings_only):
-            enemies_close = enemies_close.filter(lambda unit: unit.is_structure)
-        
+        # buildings_only only gates entering siege mode, not staying sieged:
+        # a sieged tank must keep fighting any close enemy, not just buildings
+        siege_targets: Units = (
+            enemies_close.filter(lambda unit: unit.is_structure) if buildings_only else enemies_close
+        )
+
         if (
             tank.type_id == UnitTypeId.SIEGETANK
-            and enemies_close.amount >= 1
+            and siege_targets.amount >= 1
             and other_tank_sieged_close.amount == 0
         ):
             tank(AbilityId.SIEGEMODE_SIEGEMODE)
