@@ -29,6 +29,9 @@ class OrbitalCommand(UpgradeBuilding):
     def custom_conditions(self) -> bool:
         orbital_tech_available: bool = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.95
         ccs_amount: int = self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle.amount
+        worker_amount: int = self.bot.supply_workers
+        if (worker_amount < 8):
+            return False
         if (ccs_amount > 2):
             return True
         if (not orbital_tech_available or ccs_amount == 0):

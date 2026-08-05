@@ -350,7 +350,7 @@ class StrategyHandler:
 
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (self.bot.build_order.build.is_defensive_response):
+        if (self.bot.build_order.build.is_defensive_response and self.situation_history[-1] != Situation.CHEESE_UNKNOWN):
             return
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)
@@ -374,7 +374,10 @@ class StrategyHandler:
         
         # cancel B2/B3 and switch towards Conservative Expand, don't cancel indoor CCs
         expand_in_construction: Units = self.bot.townhalls.not_ready.filter(
-            lambda th: th.position in [self.bot.expansions.b2.position, self.bot.expansions.b3.position]
+            lambda th: (
+                th.position in [self.bot.expansions.b2.position, self.bot.expansions.b3.position]
+                and th.build_progress < 0.75
+            )
         )
         if (expand_in_construction):
             expand_in_construction.first(AbilityId.CANCEL_BUILDINPROGRESS)
