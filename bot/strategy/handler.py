@@ -350,7 +350,11 @@ class StrategyHandler:
 
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (self.bot.build_order.build.is_defensive_response and self.situation_history[-1] != Situation.CHEESE_UNKNOWN):
+        if (
+            self.bot.build_order.build.is_defensive_response
+            and len(self.situation_history) >= 1
+            and self.situation_history[-1] != Situation.CHEESE_UNKNOWN
+        ):
             return
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)
