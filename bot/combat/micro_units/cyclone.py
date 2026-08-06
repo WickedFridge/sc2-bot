@@ -1,5 +1,5 @@
 import math
-from typing import override
+from typing import Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from sc2.ids.ability_id import AbilityId
@@ -12,7 +12,7 @@ class MicroCyclone(MicroUnit):
     cyclone_locks: dict[int, int] = {}
     LOCKON_KEEP_RANGE: int = 15
 
-    def _acquire_lock(self, cyclone: Unit, local_enemies: Units, total_range: float) -> Unit:
+    def _acquire_lock(self, cyclone: Unit, local_enemies: Units, total_range: float) -> bool:
         # look for potential targets, prioritize in range, then lowest health
         print("looking for a lock target")
         possible_targets: Units = local_enemies.sorted(
@@ -23,11 +23,13 @@ class MicroCyclone(MicroUnit):
                 enemy_unit.distance_to(cyclone)                  # closer first
             )
         )
+        if (possible_targets.amount == 0):
+            return False
         target: Unit = possible_targets.first
         print(f"Locking on to {target.type_id}")
         cyclone(AbilityId.LOCKON_LOCKON, target)
         self.cyclone_locks[cyclone.tag] = target.tag
-        return target
+        return True
 
     def _retreat_to_safest_spot(self, cyclone: Unit):
         safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(cyclone)
@@ -67,8 +69,8 @@ class MicroCyclone(MicroUnit):
                 self.cyclone_locks[cyclone.tag] = target.tag
                 return
 
-            self._acquire_lock(cyclone, local_enemies, total_range)
-            return
+            if (self._acquire_lock(cyclone, local_enemies, total_range)):
+                return
 
         enemies_in_range: Units = self.get_enemy_units_in_range(cyclone)
         available_abilities = (await self.bot.get_available_abilities([cyclone]))[0]
