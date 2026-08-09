@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
-from bot.army_composition import composition
 from bot.army_composition.composition import Composition
-from bot.strategy.build_order.addon_swap import AddonDetachSwap
 from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep

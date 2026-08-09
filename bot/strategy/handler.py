@@ -357,7 +357,7 @@ class StrategyHandler:
         ):
             return
         
-        defensive_response: Optional[BuildOrder] = self.bot.build_order.build.get_defensive_response(situation)
+        defensive_response: Optional[BuildOrder] = self.bot.build_order.dispatcher.get_defensive_response(situation)
         if (defensive_response is not None):
             await self.bot.build_order.switch_build(defensive_response)
         

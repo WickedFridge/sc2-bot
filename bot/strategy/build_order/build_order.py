@@ -10,7 +10,6 @@ from bot.strategy.strategy_types import Situation
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
-from sc2.unit import Unit
 from ...utils.unit_tags import reactors, techlabs
 
 if TYPE_CHECKING:

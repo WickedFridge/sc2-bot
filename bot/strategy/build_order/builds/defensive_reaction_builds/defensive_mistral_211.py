@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, override
+from typing import TYPE_CHECKING, override
 
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonSwap

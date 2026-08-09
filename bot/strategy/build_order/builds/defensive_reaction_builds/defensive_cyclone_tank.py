@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, override
 
-from bot.army_composition import composition
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap
 from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
@@ -10,7 +9,6 @@ from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 if TYPE_CHECKING:
     from bot.superbot import Superbot
-from sc2.bot_ai import BotAI
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -51,6 +49,7 @@ class DefensiveCycloneTank(BuildOrder):
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
+
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, True)]),
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)]),
@@ -68,6 +67,7 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'factory techlab #3', UnitTypeId.FACTORYTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, requirements=[(UnitTypeId.REFINERY, 3, False)]),
         ]
+        
     
         self.swap_plans = [
             AddonDetachSwap(

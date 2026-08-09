@@ -28,10 +28,12 @@ build_order_manager: BuildOrderManager | None = None
 class BuildOrderManager:
     bot: BotAI
     build: BuildOrder
+    dispatcher: BuildOrder
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
         self.build = KokaBuild(self.bot)
+        self.dispatcher = self.build
 
     @property
     def wicked(self) -> WickedBot:
@@ -69,6 +71,7 @@ class BuildOrderManager:
                 ])
             case _:
                 self.build = KokaBuild(self.bot)
+        self.dispatcher = self.build
 
     async def switch_build(self, new_build_order: BuildOrder) -> None:
     # Abort any in-progress swaps from the old build order
