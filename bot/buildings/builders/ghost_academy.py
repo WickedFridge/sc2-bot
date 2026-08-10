@@ -21,7 +21,7 @@ class GhostAcademy(Building):
         upgrades_tech_requirement: float = self.bot.already_pending_upgrade(UpgradeId.TERRANINFANTRYARMORSLEVEL2)
         supply_min: int = 120
         supply_max: int = 160
-        gas_threshold: int = 800
+        gas_threshold: int = 600
 
         # We want a ghost academy once we have at least 4 bases and 2/2 started
         # but no ghost in TvT

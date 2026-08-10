@@ -20,6 +20,7 @@ zerg_townhalls: List[UnitTypeId] = [
 ]
 must_repair: List[UnitTypeId] = [
     UnitTypeId.PLANETARYFORTRESS,
+    UnitTypeId.ORBITALCOMMAND,
     UnitTypeId.MISSILETURRET,
     UnitTypeId.BUNKER,
     UnitTypeId.SUPPLYDEPOT,

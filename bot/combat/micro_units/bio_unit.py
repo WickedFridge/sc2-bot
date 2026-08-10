@@ -9,7 +9,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import building_priorities, defensive_structures
+from bot.utils.unit_tags import building_priorities
 
 class MicroBioUnit(MicroUnit):
     stimmable: bool = True
@@ -79,6 +79,7 @@ class MicroBioUnit(MicroUnit):
             await self.fight(bio_unit, local_units)
             return
         
+        defensive_structures: List[UnitTypeId] = [UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]
         close_defensive_structure: Units = self.bot.structures(defensive_structures).filter(
             lambda defense: defense.distance_to(bio_unit) <= 10 and defense.build_progress >= 0.9
         )

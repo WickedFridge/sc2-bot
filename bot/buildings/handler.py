@@ -97,7 +97,11 @@ class BuildingsHandler:
             repair_ratio: float = min(1, self.bot.supply_workers / 10)
             # make the pull ratio vary between 0.5 and 1.5 depending on how much health the building has left
             repair_ratio *= 1.5 - burning_building.health_percentage
-            max_workers_repairing_building: int = int((8 if burning_building.type_id in must_repair else 3) * repair_ratio)
+            max_workers_repairing_building: int = int((
+                15 if burning_building.type_id == UnitTypeId.PLANETARYFORTRESS
+                else 8 if burning_building.type_id in must_repair
+                else 3
+            ) * repair_ratio)
             local_avaiable_workers: Units = (
                 available_workers.closer_than(REPAIR_RANGE_DANGER, burning_building)
                 if (burning_building.type_id not in must_repair and self.bot.scouting.situation.is_precarious)
@@ -615,7 +619,24 @@ class BuildingsHandler:
             ):
                 print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
                 production_building(AbilityId.LIFT)
-        
+
+        # bug-catch
+        # lift factories with reactor once the build is completed when we shouldn't have one
+        if (
+            not self.bot.build_order.build.is_completed
+            or self.bot.structures(UnitTypeId.FACTORYREACTOR).amount == 0
+        ):
+            return
+
+        factories_with_reactor: Units = self.bot.structures(UnitTypeId.FACTORY).filter(
+            lambda factory: (
+                factory.has_add_on
+                and self.bot.structures(UnitTypeId.FACTORYREACTOR).closest_to(factory).position == factory.add_on_position                
+            )
+        )
+        for factory in factories_with_reactor:
+            print(f"[reposition_buildings] Factory shouldn't have a Reactor once the build is completed so far — {production_building.type_id}) lifts")
+            factory(AbilityId.LIFT)
 
     async def salvage_bunkers(self) -> None:
         if (

@@ -8,6 +8,7 @@ from bot.strategy.strategy_types import Situation
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.army import Army
 from bot.utils.defend_worker_rush import defend_worker_rush
+from bot.utils.fake_order import FakeOrder
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -264,7 +265,7 @@ class Base:
         self.repair_units(self.available_workers, damaged_workers, max_workers_repairing)
 
     def get_worker_amount_to_pull(self, enemy_units: Units, attackable_enemy_units: Units, bunkers: Units) -> int:
-        specific_amount_to_pull: dict[UnitTypeId, int] = {
+        specific_amount_to_pull: dict[UnitTypeId, float] = {
             UnitTypeId.REAPER: 2.5,
             UnitTypeId.MARINE: 1.5,
             UnitTypeId.MARAUDER: 3.5,
@@ -293,7 +294,7 @@ class Base:
 
         # otherwise it depends on the life of the bunker and the amount of enemy in range
         # 2 if no units
-        amount_to_pull: int = 2
+        amount_to_pull = 2
         for bunker in bunkers:
             enemies_in_range: Units = enemy_units.filter(lambda unit: unit.target_in_range(bunker))
             if (enemies_in_range.amount >= 1 or bunker.health_percentage < 1):
@@ -404,6 +405,9 @@ class Base:
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     Micro.worker_attack(self.bot, worker, target)
                     # worker.attack(target)
+        
+        if (self.cc.health_percentage < 0.5):
+            self.lift_cc()
                 
     def workers_attack(self, workers: Units) -> List[int]:
         """
@@ -445,31 +449,21 @@ class Base:
             
         return worker_orders
     
-    # def handle_cheese_ling_drone(self):
-    #     all_workers: Units = self.bot.workers
-    #     if (all_workers.amount == 0):
-    #         return
-    #     main: Expansion = self.bot.expansions.main
-    #     central_mineral_patch: Unit = self.bot.mineral_field.closest_to(main.mineral_line)
-        
-    #     worker_orders: List[int] = []
+    def lift_cc(self) -> None:
+        # if cc isn't a PF or the main, lift it
+        if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
+            return
+        print("Lifting CC to evacuate")
+        if (not self.cc.is_idle):
+            self.cc.stop()
+            return
+        if (self.cc.type_id == UnitTypeId.ORBITALCOMMAND):
+            self.cc(AbilityId.LIFT_ORBITALCOMMAND)
+            self.cc.orders.append(FakeOrder(AbilityId.LIFT_ORBITALCOMMAND))
+        else:
+            self.cc(AbilityId.LIFT_COMMANDCENTER)
+            self.cc.orders.append(FakeOrder(AbilityId.LIFT_COMMANDCENTER))
 
-    #     # 1 - each worker that's on cooldown and can attack something, attack
-    #     worker_orders.extend(self.workers_attack(all_workers))
-        
-    #     # 2 - if a worker can repair another worker, do it
-    #     other_workers: Units = all_workers.filter(lambda worker: worker.tag not in worker_orders)
-    #     worker_orders.extend(self.workers_repair(other_workers))
-        
-        
-    #     # 3 - if my workers are near the mineral lines and unstacked, stack them
-    #     other_workers: Units = other_workers.filter(lambda worker: worker.tag not in worker_orders)
-    #     if (other_workers.center.distance_to(main.mineral_line) < 10):
-    #         if (other_workers.furthest_distance_to(other_workers.center) > 1):
-    #             for worker in other_workers:
-    #                 worker.gather(central_mineral_patch)
-    #             return
-    
     def evacuate(self) -> None:
         # find closest safe expansion
         retreat_base: Expansion = None
@@ -482,16 +476,8 @@ class Base:
                     worker.gather(retreat_base.mineral_fields.random)
                 else:
                     worker.move(retreat_base.mineral_line)
+        self.lift_cc()
         
-        # if cc isn't a PF or the main, lift it
-        if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
-            return
-        print("Lifting CC to evacuate")
-        self.cc.stop()
-        if (self.cc.type_id == UnitTypeId.ORBITALCOMMAND):
-            self.cc(AbilityId.LIFT_ORBITALCOMMAND, queue=True)
-        else:
-            self.cc(AbilityId.LIFT_COMMANDCENTER, queue=True)
     
     def no_threat(self) -> None:
         # ask all chasing SCVs to stop
