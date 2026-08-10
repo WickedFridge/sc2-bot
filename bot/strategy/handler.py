@@ -358,7 +358,7 @@ class StrategyHandler:
             return
         
         defensive_response: Optional[BuildOrder] = self.bot.build_order.dispatcher.get_defensive_response(situation)
-        if (defensive_response is not None):
+        if (defensive_response is not None and defensive_response.name != self.bot.build_order.build.name):
             await self.bot.build_order.switch_build(defensive_response)
         
         dont_cancel_b2_b3: bool = situation in [

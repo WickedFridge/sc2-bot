@@ -145,6 +145,11 @@ class ArmyCompositionManager(CachedClass):
         }
         default_ratio: float = default_marauder_ratio[self.wicked.matchup]
 
+        if (UnitTypeId.TEMPEST in self.wicked.scouting.known_enemy_composition):
+            return 0
+        if (UnitTypeId.TEMPEST in self.wicked.scouting.possible_enemy_composition):
+            default_ratio = 0.1
+
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             # default is 0 if we can't make medivacs yet and we're not in a precarious situation
             if (
