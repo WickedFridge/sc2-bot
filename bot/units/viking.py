@@ -33,7 +33,7 @@ class Viking(Train):
                 or (
                     len(starport.orders) == 2
                     and (
-                        starport.orders[0].progress >= 0.97                        
+                        starport.orders[0].progress >= 0.97
                         or starport.orders[1].progress >= 0.97
                     )
                 )

@@ -15,6 +15,7 @@ class StarportTechlab(StarportAddon):
     def custom_conditions(self) -> bool:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
         starport_reactors: Units = self.bot.structures(UnitTypeId.STARPORTREACTOR).ready
+        max_amount: int = 2
         # if we have 2 starports, and one of them doesn't have an addon
         # and we have raven / liberator in our composition
         return (
@@ -22,6 +23,7 @@ class StarportTechlab(StarportAddon):
                 starports.amount >= 2
                 and starport_reactors.amount >= 1
                 and self.starports_without_addon.idle.amount >= 1
+                and self.amount < max_amount
                 and (
                     self.bot.composition_manager.composition[UnitTypeId.RAVEN] >= 1
                     or self.bot.composition_manager.composition[UnitTypeId.BANSHEE] >= 1

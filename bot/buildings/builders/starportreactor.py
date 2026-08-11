@@ -14,6 +14,7 @@ class StarportReactor(StarportAddon):
     @override
     def custom_conditions(self) -> bool:
         starports: Units = self.bot.structures(UnitTypeId.STARPORT).ready
+        max_amount: int = 2
         # if we have 2 starports, and one of them doesn't have an addon
         # and we have raven / liberator in our composition
         return (
@@ -22,6 +23,7 @@ class StarportReactor(StarportAddon):
             or (
                 starports.amount >= 2
                 and self.starports_without_addon.idle.amount >= 1
+                and self.amount < max_amount
                 and self.bot.composition_manager.vikings_amount >= 8
             )
         )

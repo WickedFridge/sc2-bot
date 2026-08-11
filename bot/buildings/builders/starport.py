@@ -47,6 +47,11 @@ class Starport(Building):
                         or raven_target > amount_excluding_reactors
                     )
                 )
+            case 3:
+                return (
+                    self.base_amount >= 5
+                    and self.bot.composition_manager.vikings_amount >= 2 * self.amount
+                )
             case _:
                 return False
             

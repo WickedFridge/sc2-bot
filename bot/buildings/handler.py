@@ -7,6 +7,7 @@ from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
+from bot.utils.defend_worker_rush import wall_is_up
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import center, points_to_build_addon
@@ -91,6 +92,7 @@ class BuildingsHandler:
         REPAIR_RANGE_DANGER: float = 6
         REPAIR_RANGE_SAFE: float = 20
         for burning_building in burning_buildings_in_pathing:
+            building_in_main_base: bool = self.bot.get_terrain_height(burning_building.position) == self.bot.get_terrain_height(self.bot.start_location)
             workers_repairing_building: Units = workers_repairing.filter(
                 lambda unit: unit.order_target == burning_building.tag
             )
@@ -102,15 +104,30 @@ class BuildingsHandler:
                 else 8 if burning_building.type_id in must_repair
                 else 3
             ) * repair_ratio)
-            local_avaiable_workers: Units = (
+            local_available_workers: Units = (
                 available_workers.closer_than(REPAIR_RANGE_DANGER, burning_building)
-                if (burning_building.type_id not in must_repair and self.bot.scouting.situation.is_precarious)
+                if (
+                    burning_building.type_id not in must_repair
+                    and self.bot.scouting.situation.is_precarious
+                )
                 else available_workers.closer_than(REPAIR_RANGE_SAFE, burning_building)
             )
+
+            # if the building is not in the main and the wall is up, we exclude workers from the main
+            if (
+                    not building_in_main_base
+                    and wall_is_up(self.bot)
+            ):
+                print("Excluding workers from main to repair building outside of main")
+                local_available_workers = local_available_workers.filter(
+                    lambda worker: self.bot.get_terrain_height(worker.position) < self.bot.get_terrain_height(self.bot.start_location)
+                )
+            
+            # if we reach the max amount of workers repairing, we skip
             if (
                 workers_repairing_building.amount >= max_workers_repairing_building
                 or workers_repairing.amount >= max_workers_repairing
-                or local_avaiable_workers.amount == 0
+                or local_available_workers.amount == 0
             ):
                 return
             
