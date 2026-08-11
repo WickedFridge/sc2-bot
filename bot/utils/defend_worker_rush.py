@@ -56,8 +56,15 @@ def wall_is_up(bot: BotAI) -> bool:
     return False
 
 def pullback_workers(workers: Units, main_position: Point2, main_minerals: Units, mineral_field_main: Unit) -> None:
+    # don't pullback worker that aren't either gathering or attacking (they are probably repairing or building)
     workers_to_pullback: Units = workers.filter(
-        lambda worker: len(worker.orders) == 0 or worker.orders[0].target not in main_minerals.tags
+        lambda worker: (
+            len(worker.orders) == 0
+            or (
+                worker.is_gathering
+                and worker.orders[0].target not in main_minerals.tags
+            )
+        )
     )
     
     for worker in workers_to_pullback:

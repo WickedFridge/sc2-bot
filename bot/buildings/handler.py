@@ -492,11 +492,15 @@ class BuildingsHandler:
             if (
                 len(townhall.orders) >= 1
                 and townhall.orders[0].ability.id == AbilityId.LAND
+                and isinstance(townhall.orders[0].target, Point2)
             ):
+                # if trying to land on a taken expansion slot
+                target_position: Point2 = townhall.orders[0].target
                 expansion_target: Expansion = self.bot.expansions.closest_to(townhall.orders[0].target)
                 if (
                     expansion_target.cc is not None
                     and townhall.tag != expansion_target.cc.tag
+                    and target_position in self.bot.expansions.positions
                 ):
                     print("Stop townhall, spot already taken")
                     townhall.stop()

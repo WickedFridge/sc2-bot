@@ -20,12 +20,14 @@ class MicroSiegeTank(MicroUnit):
     THRESHOLD: int = 1
     bonus_against_ground_armored: bool = True
 
-    def get_enemies_close_siege_range(self, tank: Unit):
+    def get_enemies_close_siege_range(self, tank: Unit) -> Units:
         dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED]
         is_defending: bool = self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
 
         local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(
-            lambda enemy: enemy.type_id not in dont_siege_against
+            lambda enemy: (
+                enemy.type_id not in dont_siege_against
+            )
         )
         return self.bot.enemy_structures.filter(
             lambda enemy: (
@@ -44,7 +46,7 @@ class MicroSiegeTank(MicroUnit):
         )
 
     
-    def switch_mode(self, tank: Unit, enemies_close: Units, buildings_only: bool = False) -> bool:
+    def switch_mode(self, tank: Unit, enemies_close: Units, buildings_only: bool = False, visible_only: bool = False) -> bool:
         # don't siege too close to another tank
         other_tank_sieged_close: Units = self.bot.units.filter(
             lambda other: (
@@ -66,8 +68,11 @@ class MicroSiegeTank(MicroUnit):
 
         # buildings_only only gates entering siege mode, not staying sieged:
         # a sieged tank must keep fighting any close enemy, not just buildings
-        siege_targets: Units = (
-            enemies_close.filter(lambda unit: unit.is_structure) if buildings_only else enemies_close
+        siege_targets: Units = enemies_close.filter(
+            lambda unit: (
+                (unit.is_structure or not buildings_only)
+                and (unit.is_visible or not visible_only)
+            )
         )
 
         if (
@@ -85,14 +90,15 @@ class MicroSiegeTank(MicroUnit):
     
     @override
     async def fight(self, tank: Unit, local_units: Units, chase: bool = False):
-        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
-        if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
-            return
         enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
             lambda unit: (unit.is_armored == False, unit.health + unit.shield)
         )
-        if (enemies_in_range.amount >= 1):
+        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED and enemies_in_range.amount >= 1):
             tank.attack(enemies_in_range.first)
+            return
+        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
+        if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
+            return
         tank.move(local_units.center)
 
     @override
@@ -103,7 +109,7 @@ class MicroSiegeTank(MicroUnit):
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
-        if (self.switch_mode(unit, enemies_close_siege_range, buildings_only=True)):
+        if (self.switch_mode(unit, enemies_close_siege_range, buildings_only=True, visible_only=True)):
             return
         await super().harass(unit, local_units, workers)
     
@@ -132,7 +138,7 @@ class MicroSiegeTank(MicroUnit):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
         
         if (unit.distance_to(retreat_position) > 5):
-            if (self.switch_mode(unit, enemies_close_siege_range)):
+            if (self.switch_mode(unit, enemies_close_siege_range, visible_only=True)):
                 return
             await super().retreat(unit, local_units)
             return

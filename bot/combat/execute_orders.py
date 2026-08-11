@@ -471,6 +471,8 @@ class Execute(CachedClass):
         for base in self.bases_to_scout:
             if (not base.is_fully_scouted):
                 scout_target = closest_point(army.center, base.unscouted_points)
+                if (army.center.distance_to(scout_target) > 10):
+                    scout_target = base.position
                 break
         
         if (scout_target is None):

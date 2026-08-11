@@ -150,7 +150,7 @@ class MicroUnit(CachedClass):
             else (self.bot.enemy_units + self.bot.enemy_structures).filter(self.is_valid_enemy)
         )
         return enemies.filter(
-            lambda enemy: unit.target_in_range(enemy)
+            lambda enemy: unit.target_in_range(enemy) and enemy.is_visible
         )
     
     def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False, include_structures: bool = True) -> Units:
