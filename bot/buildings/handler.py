@@ -635,7 +635,7 @@ class BuildingsHandler:
             )
         )
         for factory in factories_with_reactor:
-            print(f"[reposition_buildings] Factory shouldn't have a Reactor once the build is completed so far — {production_building.type_id}) lifts")
+            print(f"[reposition_buildings] Factory shouldn't have a Reactor once the build is completed so far — {factory.type_id}) lifts")
             factory(AbilityId.LIFT)
 
     async def salvage_bunkers(self) -> None:
