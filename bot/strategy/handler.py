@@ -334,14 +334,25 @@ class StrategyHandler:
 
         # enemy has no b2 while our b3 is started
         # or enemy has way more production than us
+        # or enemy has photon cannons in the main
         if (
             not self._exit_condition_met(Situation.CHEESE_UNKNOWN)
-            and self.bot.expansions.enemy_b2.is_free
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                or (
+                    self.bot.expansions.enemy_b2.is_unknown
+                    and self.bot.time <= 210
+                )
+            )
             and (
                 self.bot.townhalls.amount == 3
                 or (
                     self.bot.enemy_structures(enemy_production).amount >= 3
                     and self.bot.enemy_structures(enemy_production).amount >= 2 * self.bot.structures(production).amount
+                )
+                or (
+                    self.bot.enemy_structures(UnitTypeId.PHOTONCANNON).amount >= 1
+                    and self.bot.enemy_structures(UnitTypeId.PHOTONCANNON).closer_than(self.BASE_SIZE, self.bot.expansions.enemy_main.position).amount >= 1
                 )
             )
         ):

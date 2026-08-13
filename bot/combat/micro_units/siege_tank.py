@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class MicroSiegeTank(MicroUnit):
     SIEGE_RANGE: int = 13
     MIN_RANGE_SIEGED: int = 2
-    MIN_SIEGE_SPACE: int = 2
+    MIN_SIEGE_SPACE: float = 1.5
     THRESHOLD: int = 1
     bonus_against_ground_armored: bool = True
 
@@ -64,14 +64,18 @@ class MicroSiegeTank(MicroUnit):
         )
 
         # don't siege against creep
-        enemies_close = enemies_close.filter(lambda unit: not self.is_creep_tumor(unit))
+        enemies_close = enemies_close.filter(
+            lambda unit: (
+                not self.is_creep_tumor(unit)
+                and (unit.is_visible or not visible_only)
+            )
+        )
 
         # buildings_only only gates entering siege mode, not staying sieged:
         # a sieged tank must keep fighting any close enemy, not just buildings
         siege_targets: Units = enemies_close.filter(
             lambda unit: (
-                (unit.is_structure or not buildings_only)
-                and (unit.is_visible or not visible_only)
+                unit.is_structure or not buildings_only
             )
         )
 

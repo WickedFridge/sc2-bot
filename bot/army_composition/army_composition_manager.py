@@ -100,7 +100,7 @@ class ArmyCompositionManager(CachedClass):
         # so far we max our thor amount at 4
         max_thor_amount: int = 4
         
-        # we want pretty much matching air supply
+        # we want thor amount for specific enemy units
         thor_amount: float = 0
         light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
         no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER]
@@ -121,6 +121,38 @@ class ArmyCompositionManager(CachedClass):
         # round, because 2.3 thors = 2 thors in practice
         return min(max_thor_amount, round(thor_amount))
     
+    @property
+    def cyclone_amount(self) -> int:
+        # so far we max our cyclone amount at 12
+        max_cyclone_amount: int = 12
+        
+        # we want cyclones against speicifc enemy units
+        # we want pretty much matching air supply
+        cyclone_response: dict[UnitTypeId, float] = {
+            UnitTypeId.TEMPEST: 2,
+            UnitTypeId.CARRIER: 2,
+            UnitTypeId.VIKINGFIGHTER: 0.8,
+            UnitTypeId.VIKINGASSAULT: 0.8,
+            UnitTypeId.LIBERATOR: 0.8,
+            UnitTypeId.LIBERATORAG: 0.8,
+            UnitTypeId.BATTLECRUISER: 2,
+            UnitTypeId.ORACLE: 1,
+            UnitTypeId.MUTALISK: 1,
+        }
+        cyclone_amount: float = 0
+        for unit_type in self.wicked.scouting.possible_enemy_composition:
+            if (unit_type not in cyclone_response.keys()):
+                continue
+            enemy_units: Units = self.wicked.scouting.known_enemy_army.units(unit_type)
+            cyclone_response_amount: float = cyclone_response.get(unit_type, 0)
+            if (enemy_units.amount > 0):
+                cyclone_amount += cyclone_response_amount * enemy_units.amount
+            else:
+                cyclone_amount += cyclone_response_amount / 2
+
+        # round, because 2.3 cyclones = 2 cyclones in practice
+        return min(max_cyclone_amount, round(cyclone_amount))
+
     @property
     def extra_tanks_amount(self) -> int:
         if (self.bot.matchup == Matchup.TvP):
@@ -212,6 +244,9 @@ class ArmyCompositionManager(CachedClass):
         
         if (UnitTypeId.THOR in available_units):
             composition.add(UnitTypeId.THOR, self.thor_amount)
+
+        if (UnitTypeId.CYCLONE in available_units):
+            composition.add(UnitTypeId.CYCLONE, self.cyclone_amount)
 
         # only start making marauders once we have at least 8 marines unless we're in danger
         if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ground_ratio >= 0.7)):

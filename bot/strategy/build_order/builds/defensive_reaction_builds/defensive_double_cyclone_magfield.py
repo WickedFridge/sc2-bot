@@ -29,11 +29,18 @@ class DefensiveDoubleCycloneMagfield(BuildOrder):
             return True
         else:
             composition.set(UnitTypeId.MARINE, 4)
-        
+
+        modified: bool = False
+        if (self.bot.structures(UnitTypeId.STARPORT).ready.amount >= 1):
+            composition.set(UnitTypeId.MEDIVAC, 0)
+            composition.set(UnitTypeId.VIKING, 4)
+            modified = True
+
         if (self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1):
             composition.set(UnitTypeId.CYCLONE, 12)
-            return True
-        return False
+            modified = True
+
+        return modified
 
     @property
     @override
