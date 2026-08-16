@@ -27,6 +27,7 @@ class StrategyHandler:
     strategy: Strategy
     priorities: List[Priority]
     situation_history: List[Situation] = []
+    last_reacted_situation: Optional[Situation] = None
     confirmed_cheese: Optional[Situation] = None
     confirmed_cheese_time: Optional[float] = None
     BASE_SIZE: int = 20
@@ -361,13 +362,10 @@ class StrategyHandler:
 
     async def cheese_response(self):
         situation: Situation = self.bot.scouting.situation
-        if (
-            self.bot.build_order.build.is_defensive_response
-            and len(self.situation_history) >= 1
-            and self.situation_history[-1] != Situation.CHEESE_UNKNOWN
-        ):
+        if (situation == self.last_reacted_situation):
             return
-        
+        self.last_reacted_situation = situation
+
         defensive_response: Optional[BuildOrder] = self.bot.build_order.dispatcher.get_defensive_response(situation)
         if (defensive_response is not None and defensive_response.name != self.bot.build_order.build.name):
             await self.bot.build_order.switch_build(defensive_response)
