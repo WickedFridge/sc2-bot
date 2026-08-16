@@ -131,6 +131,9 @@ def defend_worker_rush(bot: BotAI) -> None:
 
 
     for worker in workers_pulled:
+        if (worker.is_carrying_resource):
+            worker.return_resource()
+            continue
         enemies_in_range: Units = bot.enemy_units.in_attack_range_of(worker).sorted(lambda unit: (unit.health + unit.shield))
         best_target: Unit = (
             enemies_in_range.first if enemies_in_range else
