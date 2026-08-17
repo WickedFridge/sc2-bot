@@ -1,12 +1,11 @@
 from collections import deque
-import math
 from typing import List, Optional
 
 from bot.macro.map.map import MapData, get_map
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
-from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line
+from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line, unscouted_points_around
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
@@ -372,24 +371,7 @@ class Expansion(CachedClass):
     @custom_cache_once_per_frame
     def unscouted_points(self) -> List[Point2]:
         # Returns a list of all unscouted points within a circle of radius around the position
-        radius: int = self.radius
-        unscouted: List[Point2] = []
-
-        # Iterate over the bounding square of the circle
-        for x in range(int(self.position.x) - radius, int(self.position.x) + radius + 1):
-            for y in range(int(self.position.y) - radius, int(self.position.y) + radius + 1):
-                # Check if the point lies within the circle
-                if math.sqrt((x - self.position.x)**2 + (y - self.position.y)**2) <= radius:
-                    point = Point2((x, y))
-                    # Unscouted
-                    if (
-                        self.bot.state.visibility[point] == 0
-                        and self.bot.in_pathing_grid(point)
-                        and self.bot.get_terrain_z_height(point) == self.bot.get_terrain_z_height(self.position)
-                    ):
-                        unscouted.append(point)
-
-        return unscouted
+        return unscouted_points_around(self.bot, self.position, self.radius)
     
     @custom_cache_once_per_frame
     def is_potentially_enemy(self):

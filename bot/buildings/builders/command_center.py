@@ -58,7 +58,7 @@ class CommandCenter(Building):
         townhall_amount: int = self.bot.townhalls.amount
         cc_position: Point2 = self.bot.expansions.next.position
         next_expansion: Expansion = self.bot.expansions.next
-        near_cc_position: Point2 = self.bot.expansions.main.position.towards(cc_position, random.randrange(2, 5))
+        near_cc_position: Point2 = self.bot.expansions.main.position.towards_with_random_angle(cc_position, random.randrange(2, 5))
         safe_expansions: Expansions = self.bot.expansions.taken.safe
         
         # calculate the optimal worker count based on mineral field left in bases
@@ -88,7 +88,9 @@ class CommandCenter(Building):
                 if (safe_expansions.amount >= 1):
                     if (are_bases_saturated):
                         return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, random.randrange(2, 5))
-                    return self.bot.expansions.taken.safe.random.position.towards(cc_position, random.randrange(2, 5))
+                    return self.bot.expansions.taken.sorted(
+                        lambda expansion: self.bot.townhalls.closer_than(15, expansion.position).amount
+                    ).first.position.towards_with_random_angle(cc_position, random.randrange(2, 5))
                 return self.bot.expansions.main.position
     
     async def move_worker_expand(self):

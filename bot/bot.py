@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.15.13"
+VERSION: str = "12.16.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -182,6 +182,7 @@ class WickedBot(Superbot):
         await self.buildings.finish_construction()
         await self.builder.supply_depot.move_worker_first()
         await self.builder.command_center.move_worker_expand()
+        await self.scout.scout_proxy()
 
         # Control buildings
         self.buildings.reserve_bunkers()
@@ -281,9 +282,6 @@ class WickedBot(Superbot):
                 break
             resources = await money_spender(resources)
 
-
-        # Scout with some SCV
-        await self.scout.b2_against_proxy()
 
         # Debug stuff
         

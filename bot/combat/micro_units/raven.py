@@ -66,10 +66,12 @@ class MicroRaven(MicroUnit):
         if (best_hit_count >= HEALTH_THRESHOLD and best_target):
             print("Casting anti armor missile")
             raven(AbilityId.EFFECT_ANTIARMORMISSILE, best_target)
-            if (best_target.tag in self.anti_armor_missile_targets):
-                self.anti_armor_missile_targets[best_target.tag] += 1
-            else:
-                self.anti_armor_missile_targets[best_target.tag] = 1
+            enemy_hits: Units = close_enemy_units.closer_than(1.5, best_target.position)
+            for target in enemy_hits:
+                if (target.tag in self.anti_armor_missile_targets):
+                    self.anti_armor_missile_targets[target.tag] += 1
+                else:
+                    self.anti_armor_missile_targets[target.tag] = 1
             return True
         return False
 

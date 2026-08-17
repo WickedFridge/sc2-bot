@@ -23,6 +23,7 @@ class MacroBuild(BuildOrder):
             Situation.CHEESE_ROACH_RUSH: DefensiveCycloneTank(self.bot),
             Situation.CHEESE_CANNON_RUSH: DefensiveCycloneTank(self.bot),
             Situation.CHEESE_BUNKER_RUSH: DefensiveCycloneTank(self.bot),
+            Situation.CHEESE_PROXY_RAX: DefensiveCycloneTank(self.bot),
             Situation.CHEESE_LING_DRONE: ConservativeRaxExpand(self.bot),
             Situation.CHEESE_LING_FLOOD: DefensiveCycloneTank(self.bot),
             Situation.CHEESE_REAPER_RUSH: DefensiveMistral211(self.bot),

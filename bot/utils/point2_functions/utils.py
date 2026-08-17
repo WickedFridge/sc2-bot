@@ -1,6 +1,7 @@
 import math
 from typing import List, Optional
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
+from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -25,6 +26,23 @@ def closest_point(position: Point2, points: list[Point2]) -> Point2:
         if (point._distance_squared(position) < closest._distance_squared(position)):
             closest = point
     return closest
+
+def unscouted_points_around(bot: BotAI, position: Point2, radius: int) -> List[Point2]:
+    """ Returns unscouted, pathable points within `radius` of `position`, at the same terrain height. """
+    terrain_height = bot.get_terrain_z_height(position)
+    radius_squared: float = radius ** 2
+    unscouted: List[Point2] = []
+    for x in range(int(position.x) - radius, int(position.x) + radius + 1):
+        for y in range(int(position.y) - radius, int(position.y) + radius + 1):
+            if ((x - position.x) ** 2 + (y - position.y) ** 2 <= radius_squared):
+                point = Point2((x, y))
+                if (
+                    bot.state.visibility[point] == 0
+                    and bot.in_pathing_grid(point)
+                    and bot.get_terrain_z_height(point) == terrain_height
+                ):
+                    unscouted.append(point)
+    return unscouted
 
 def grid_offsets(radius: float, step: float = 1.0, initial_position: Point2 = Point2((0,0))) -> List[Point2]:
     count = int((2 * radius) / step) + 1
