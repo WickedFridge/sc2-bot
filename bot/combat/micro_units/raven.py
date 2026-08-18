@@ -15,6 +15,8 @@ class MicroRaven(MicroUnit):
     
     async def raven_interference_matrix(self, raven: Unit) -> bool:
         INTERFERENCE_MATRIX_RANGE: int = 9
+        MINIMAL_HEALTH_TARGET: int = 100
+        MINIMAL_HEALTH_PERCENTAGE: float = 0.5
         
         close_enemy_units: Units = self.get_local_enemy_units(raven.position, INTERFERENCE_MATRIX_RANGE + 3, only_menacing=True, include_structures=False)
         # TODO improve this, so far we consider that every unit that costs 3 or more supply is a good potential target
@@ -22,6 +24,11 @@ class MicroRaven(MicroUnit):
             lambda enemy_unit: (
                 get_unit_supply(enemy_unit.type_id) > 2
                 and not enemy_unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)
+                and (
+                    enemy_unit.health + enemy_unit.shield >= MINIMAL_HEALTH_TARGET
+                    or enemy_unit.health + enemy_unit.shield >= (enemy_unit.health_max + enemy_unit.shield_max) * MINIMAL_HEALTH_PERCENTAGE
+                )
+
             )
         )
         

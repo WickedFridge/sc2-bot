@@ -147,5 +147,5 @@ class MicroSiegeTank(MicroUnit):
             await super().retreat(unit, local_units)
             return
         
-        if (unit.type_id == UnitTypeId.SIEGETANK):
+        if (unit.type_id == UnitTypeId.SIEGETANK and local_flying_townhall.amount == 0):
             unit(AbilityId.SIEGEMODE_SIEGEMODE)

@@ -252,12 +252,13 @@ class ArmyCompositionManager(CachedClass):
         if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ground_ratio >= 0.7)):
             marauder_supply: int = int(composition.supply_remaining * self.marauders_ratio)
             marauder_count: int = marauder_supply // 2
-            if (UnitTypeId.GHOST in self.available_units):
-                MAX_MARAUDER_COUNT: int = (
-                    6 if self.bot.matchup == Matchup.TvT else
-                    12 if self.bot.matchup == Matchup.TvZ else
-                    15
-                )
+            MAX_MARAUDER_COUNT: int = (
+                6 if self.bot.matchup == Matchup.TvT else
+                12 if self.bot.matchup == Matchup.TvZ else
+                15
+            )
+            # TvT is a special case: the cap always applies, regardless of Ghost availability
+            if (self.bot.matchup == Matchup.TvT or UnitTypeId.GHOST in self.available_units):
                 marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
