@@ -470,6 +470,10 @@ class BuildingsHandler:
                         and Situation.UNDER_ATTACK in self.bot.strategy.situation_history
                     )
                 )
+            ) or (
+                self.bot.townhalls.ready.amount == 2
+                and self.bot.scouting.situation == Situation.CHEESE_PROXY_RAX
+                and self.bot.units([UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]).amount == 0
             )
         ):
             print("too much danger")
