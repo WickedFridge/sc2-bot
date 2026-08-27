@@ -75,13 +75,15 @@ class MicroCyclone(MicroUnit):
         enemies_in_range: Units = self.get_enemy_units_in_range(cyclone)
         available_abilities = (await self.bot.get_available_abilities([cyclone]))[0]
 
+        # else if we have the lock off cooldown
         if (AbilityId.LOCKON_LOCKON not in available_abilities):
             self._fight_on_lock_cooldown(cyclone, enemies_in_range, local_enemies)
             return
 
-        # else if we have the lock off cooldown
+        # else if there's isn't any enemies close, move towards the closest enemy
         if (local_enemies.amount == 0):
-            self._retreat_to_safest_spot(cyclone)
+            closest_enemy: Optional[Unit] = self.bot.enemy_units.closest_to(cyclone)
+            cyclone.move(closest_enemy.position)
             return
 
         self._acquire_lock(cyclone, local_enemies, total_range)

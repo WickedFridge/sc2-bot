@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, override, TYPE_CHECKING
+from typing import List, Optional, override, TYPE_CHECKING
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.utils.army import Army
@@ -103,7 +103,18 @@ class MicroSiegeTank(MicroUnit):
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
         if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
             return
-        tank.move(local_units.center)
+
+        # if we shouldn't siege but we can hit enemy, do it
+        if (tank.weapon_cooldown <= 4 and enemies_in_range.amount >= 1):
+            tank.attack(enemies_in_range.first)
+            return
+
+        not_tanks: Units = local_units.filter(lambda unit: unit.type_id not in [UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED])
+        if (not_tanks.amount >= 1):
+            tank.move(local_units.center)
+            return
+        closest_enemy: Optional[Unit] = self.bot.enemy_units.closest_to(tank)
+        tank.move(closest_enemy.position)
 
     @override
     async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):

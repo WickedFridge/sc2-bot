@@ -87,8 +87,8 @@ class CommandCenter(Building):
             case _:
                 if (safe_expansions.amount >= 1):
                     if (are_bases_saturated):
-                        return self.bot.expansions.taken.safe.closest_to(cc_position).position.towards(cc_position, random.randrange(2, 5))
-                    return self.bot.expansions.taken.safe.sorted(
+                        return safe_expansions.closest_to(cc_position).position.towards(cc_position, random.randrange(2, 5))
+                    return safe_expansions.sorted(
                         lambda expansion: self.bot.townhalls.closer_than(15, expansion.position).amount
                     )[random.randrange(0, max(2, safe_expansions.amount - 1))].position.towards_with_random_angle(cc_position, random.randrange(2, 5))
                 return self.bot.expansions.main.position
