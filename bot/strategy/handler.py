@@ -339,10 +339,12 @@ class StrategyHandler:
         if (
             not self._exit_condition_met(Situation.CHEESE_UNKNOWN)
             and (
-                self.bot.expansions.enemy_b2.is_free
-                or (
+                (
+                    self.bot.expansions.enemy_b2.is_free
+                    and self.bot.time >= 160
+                ) or (
                     self.bot.expansions.enemy_b2.is_unknown
-                    and self.bot.time <= 210
+                    and self.bot.time >= 240
                 )
             )
             and (
