@@ -113,6 +113,12 @@ class GhostUnits:
     
     def take(self, n: int) -> GhostUnits:
         return GhostUnits(self.bot, self.ghost_units[:n])
+
+    def closest_to(self, position: Point2 | Unit) -> GhostUnit:
+        if (not self.ghost_units):
+            raise ValueError("No ghost units available")
+        point: Point2 = position.position if isinstance(position, Unit) else position
+        return min(self.ghost_units, key=lambda g: g.position.distance_to(point))
     
     def find_by_tag(self, tag: int) -> Optional[GhostUnit]:
         """

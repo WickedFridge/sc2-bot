@@ -544,7 +544,6 @@ class SelectOrders:
         if (
             situation == Situation.UNDER_ATTACK
             or army.potential_supply < 12
-            or army.bio_health_percentage < 0.75
         ):
             return False
         
@@ -588,16 +587,13 @@ class SelectOrders:
             if (army.bio_health_percentage < 0.75):
                 if (army.can_heal_medivacs.amount >= 1):
                     return Orders.HEAL_UP
-                else:
-                    return Orders.RETREAT
             # only drop if opponent doesn't have enough anti air
             elif (
                 self.can_do_drop(army)
                 and maximal_medivacs_dropping - global_full_medivacs.amount >= 2
             ):
                 return Orders.DROP_LOAD
-            else:
-                return Orders.RETREAT
+            return Orders.RETREAT
         
         # if we would win a fight, we attack front
         else:

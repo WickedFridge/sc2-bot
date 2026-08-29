@@ -247,10 +247,8 @@ anti_air: List[UnitTypeId] = [
     # Zerg
     UnitTypeId.CORRUPTOR,
     UnitTypeId.MUTALISK,
-    UnitTypeId.HYDRALISK,
     # Protoss
     UnitTypeId.PHOENIX,
-    UnitTypeId.STALKER,
     UnitTypeId.TEMPEST,
 ]
 

@@ -1,17 +1,14 @@
 from __future__ import annotations
-from typing import List, Optional, override, TYPE_CHECKING
+from typing import List, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.scouting.ghost_units.ghost_units import GhostUnit
 from bot.utils.army import Army
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-
-if TYPE_CHECKING:
-    from bot.superbot import Superbot  # only imported for type hints
-
 
 class MicroSiegeTank(MicroUnit):
     SIEGE_RANGE: int = 13
@@ -113,8 +110,17 @@ class MicroSiegeTank(MicroUnit):
         if (not_tanks.amount >= 1):
             tank.move(local_units.center)
             return
-        closest_enemy: Optional[Unit] = self.bot.enemy_units.closest_to(tank)
-        tank.move(closest_enemy.position)
+
+        if (self.bot.enemy_units.amount >= 1):
+            closest_enemy: Unit = self.bot.enemy_units.closest_to(tank)
+            tank.move(closest_enemy.position)
+            return
+
+        if (self.bot.ghost_units.assumed_enemy_units.amount >= 1):
+            closest_ghost: GhostUnit = self.bot.ghost_units.assumed_enemy_units.closest_to(tank)
+            tank.move(closest_ghost.position)
+            return
+
 
     @override
     async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):
