@@ -129,8 +129,9 @@ class ArmyCompositionManager(CachedClass):
         # we want cyclones against speicifc enemy units
         # we want pretty much matching air supply
         cyclone_response: dict[UnitTypeId, float] = {
-            UnitTypeId.TEMPEST: 2,
+            UnitTypeId.TEMPEST: 2.5,
             UnitTypeId.CARRIER: 2,
+            UnitTypeId.MOTHERSHIP: 3,
             UnitTypeId.VIKINGFIGHTER: 0.8,
             UnitTypeId.VIKINGASSAULT: 0.8,
             UnitTypeId.LIBERATOR: 0.8,
@@ -157,6 +158,10 @@ class ArmyCompositionManager(CachedClass):
     def extra_tanks_amount(self) -> int:
         if (self.bot.matchup == Matchup.TvP):
             return 0
+        # remove extra tanks if the opponent has brood lords
+        if (UnitTypeId.BROODLORD in self.wicked.scouting.known_enemy_composition):
+            return 0
+        
         min_extra: int = 0
         max_extra: int = 10
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
@@ -165,6 +170,8 @@ class ArmyCompositionManager(CachedClass):
         if (UnitTypeId.LURKERMP in self.wicked.scouting.known_enemy_composition):
             min_extra = 5
         # linear progression from 0 to max_extra in function of armored enemy ratio
+        
+        
         return round(max(min_extra, ratio * max_extra))
     
     @property
@@ -221,7 +228,7 @@ class ArmyCompositionManager(CachedClass):
 
         max_army_supply: int = 200 - self.wicked.trainer.scv.max_amount
         composition: Composition = Composition(self.bot, max_army_supply)
-        marine_count: int = self.wicked.units(UnitTypeId.MARINE).amount + self.wicked.already_pending(UnitTypeId.MARINE)
+        marine_count: int = int(self.wicked.units(UnitTypeId.MARINE).amount + self.wicked.already_pending(UnitTypeId.MARINE))
 
         for unit_type in available_units:
             if (self.default_amount(unit_type)):
@@ -257,6 +264,10 @@ class ArmyCompositionManager(CachedClass):
                 12 if self.bot.matchup == Matchup.TvZ else
                 15
             )
+            # Cap marauders if opponent has Brood Lords
+            if (UnitTypeId.BROODLORD in self.wicked.scouting.known_enemy_composition):
+                MAX_MARAUDER_COUNT = 5
+
             # TvT is a special case: the cap always applies, regardless of Ghost availability
             if (self.bot.matchup == Matchup.TvT or UnitTypeId.GHOST in self.available_units):
                 marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
@@ -291,7 +302,7 @@ class ArmyCompositionManager(CachedClass):
             and self.bot.structures(UnitTypeId.REFINERY).amount >= 8
         ):
             powerful_unit_amount: int = self.wicked.scouting.known_enemy_army.units.filter(lambda unit: get_unit_supply(unit.type_id) >= 3).amount
-            raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
+            raven_amount: int = int(self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN))
             composition.set(UnitTypeId.RAVEN, min(max([3, raven_amount, powerful_unit_amount]), 10))
 
 

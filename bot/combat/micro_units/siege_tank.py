@@ -9,6 +9,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
+from bot.utils.unit_tags import changelings
 
 class MicroSiegeTank(MicroUnit):
     SIEGE_RANGE: int = 13
@@ -60,10 +61,11 @@ class MicroSiegeTank(MicroUnit):
             )
         )
 
-        # don't siege against creep
+        # don't siege against creep or changelings
         enemies_close = enemies_close.filter(
             lambda unit: (
                 not self.is_creep_tumor(unit)
+                and unit.type_id not in changelings
                 and (unit.is_visible or not visible_only)
             )
         )

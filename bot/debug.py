@@ -17,6 +17,7 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.cyclone_tank_3_ra
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
+from bot.strategy.build_order.builds.test_builds.cyclone_tank_test import CycloneTankTest
 from bot.superbot import Superbot
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
@@ -603,6 +604,8 @@ class Debug:
             return
         print(f'Switching to {build_order_name} !')
         match (build_order_name):
+            case BuildOrderName.TEST:
+                await self.bot.build_order.switch_build(CycloneTankTest(self.bot))
             case BuildOrderName.KOKA_BUILD:
                 await self.bot.build_order.switch_build(KokaBuild(self.bot))
             case BuildOrderName.DEFENSIVE_CYCLONE:

@@ -269,4 +269,12 @@ priority_targets: List[UnitTypeId] = [
     UnitTypeId.CARRIER,
     UnitTypeId.TEMPEST,
 ]
-        
+
+changelings: List[UnitTypeId] = [
+    UnitTypeId.CHANGELING,
+    UnitTypeId.CHANGELINGMARINESHIELD,
+    UnitTypeId.CHANGELINGMARINE,
+    UnitTypeId.CHANGELINGZEALOT,
+    UnitTypeId.CHANGELINGZERGLING,
+    UnitTypeId.CHANGELINGZERGLINGWINGS,
+]

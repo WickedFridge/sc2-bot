@@ -1,6 +1,7 @@
 import enum
 
 class BuildOrderName(enum.Enum):
+    TEST = 'test'
     KOKA_BUILD = 'Reaper_Expand_2/1/1_3cc'
     TWO_RAX_REAPERS_KOKABUILD = '2_Rax_Reapers_3cc_2/1/1'
     TWO_RAX_REAPERS_HELLBATS = '2_Rax_Reapers_3cc_Hellbat_push'

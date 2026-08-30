@@ -1,7 +1,6 @@
 from __future__ import annotations
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 import random
-from bot.strategy.build_order.addon_swap import SwapState
 from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.cyclone_tank_3_rax import CycloneTank3Rax
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_double_cyclone_magfield import DefensiveDoubleCycloneMagfield
@@ -10,6 +9,8 @@ from bot.strategy.build_order.builds.macro_builds.bansheeseburger import Banshee
 from bot.strategy.build_order.builds.macro_builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.macro_builds.cyclone_3_raven import Cyclone3Raven
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_hellbat_push import TwoRaxReapersHellbatPush
+from bot.strategy.build_order.builds.test_builds.macro_cyclone_test import CycloneTest
+from bot.strategy.build_order.builds.test_builds.two_rax_reapers_test import TwoRaxTest
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCyclone
 from bot.strategy.build_order.builds.unused.dummy_build import Dummybuild
@@ -40,9 +41,6 @@ class BuildOrderManager:
         return self.bot  # type: ignore
     
     def select_build(self, matchup: Matchup):
-        # self.build = DefensiveDoubleCycloneMagfield(self.bot)
-        # return
-    
         match(matchup):
             case Matchup.TvT:
                 self.build = random.choice([
@@ -71,18 +69,14 @@ class BuildOrderManager:
                 ])
             case _:
                 self.build = KokaBuild(self.bot)
+        # self.build = TwoRaxTest(self.bot)
         self.dispatcher = self.build
 
     async def switch_build(self, new_build_order: BuildOrder) -> None:
-    # Abort any in-progress swaps from the old build order
-        for plan in self.build.swap_plans:
-            if (not plan.is_finished and plan.state != SwapState.PENDING):
-                print(f"[BuildOrder] Aborting in-progress swap {plan.name} due to BO switch.")
-                plan.state = SwapState.ABORTED
-
+        previous_swap_plans = self.build.swap_plans
         self.build = new_build_order
         await self.announce_build()
-        self.build.reconcile()
+        self.build.reconcile(previous_swap_plans)
 
     async def announce_build(self):
         await self.bot.client.chat_send(f'Tag: {self.build.name.value}', False)
