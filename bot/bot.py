@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.17.2"
+VERSION: str = "12.18.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -202,8 +202,26 @@ class WickedBot(Superbot):
         await self.combat.handle_bunkers()
         await self.combat.micro_planetary_fortresses()
 
+        # priority for a CC if bases are saturated
+        optimal_worker_count: float = (
+            sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
+            + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
+        )
+        current_worker_count: float = (
+            sum(expansion.mineral_worker_count for expansion in self.expansions.taken)
+            + sum(expansion.vespene_worker_count for expansion in self.expansions.taken)
+        )
+        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+        has_additional_townhalls: bool = self.townhalls.amount >= self.expansions.taken.amount
+
         # Spend Money
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
+
+        if (are_bases_saturated and not has_additional_townhalls):
+            money_spenders.extend([
+                self.builder.command_center.build
+            ])
+
         money_spenders.extend([
             # basic economy
             self.builder.orbital_command.upgrade,

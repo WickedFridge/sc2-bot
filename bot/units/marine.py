@@ -25,7 +25,8 @@ class Marine(Train):
         return (
             rax.has_reactor
             and (
-                len(rax.orders) < 2
+                rax.add_on_tag not in self.bot.build_order.build.addon_transfer_map.keys()
+                and len(rax.orders) < 2
                 or (
                     len(rax.orders) == 2
                     and (
@@ -44,6 +45,7 @@ class Marine(Train):
                 or (
                     len(rax.orders) == 1
                     and rax.orders[0].progress >= 0.95
+                    and rax.add_on_tag not in self.bot.build_order.build.addon_transfer_map.keys()
                 )
             )
             and not self.bot.composition_manager.should_train(UnitTypeId.MARAUDER)

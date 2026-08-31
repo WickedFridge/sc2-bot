@@ -22,7 +22,7 @@ class Barracks(Building):
 
     @property
     def max_barracks(self) -> int:
-        rax_amount: List[int] = [1, 2, 5, 7, 9, 11]
+        rax_amount: List[int] = [1, 2, 5, 7, 8, 8, 9, 9, 10]
         if (self.base_amount > len(rax_amount) - 1):
             return max(rax_amount)
         return rax_amount[self.base_amount - 1]

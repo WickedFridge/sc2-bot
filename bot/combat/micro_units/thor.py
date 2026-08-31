@@ -50,7 +50,6 @@ class MicroThor(MicroUnit):
             await self.thor_switch_mode(thor)
         
         # find a target if our weapon isn't on cooldown
-        print(f'thor weapon cooldown : {thor.weapon_cooldown}')
         if (thor.weapon_cooldown <= self.WEAPON_READY_THRESHOLD or thor.weapon_cooldown >= self.WEAPON_DURATION_COOLDOWN):
             enemy_in_range: Units = local_enemies.filter(
                 lambda unit: thor.target_in_range(unit)
