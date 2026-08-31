@@ -278,3 +278,10 @@ changelings: List[UnitTypeId] = [
     UnitTypeId.CHANGELINGZERGLING,
     UnitTypeId.CHANGELINGZERGLINGWINGS,
 ]
+
+upgrade_buildings: List[UnitTypeId] = [
+    UnitTypeId.ENGINEERINGBAY,
+    UnitTypeId.ARMORY,
+    UnitTypeId.FORGE,
+    UnitTypeId.EVOLUTIONCHAMBER
+]

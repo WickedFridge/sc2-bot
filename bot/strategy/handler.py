@@ -15,7 +15,7 @@ from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, townhalls, production, enemy_production, creep
+from ..utils.unit_tags import tower_types, worker_types, townhalls, production, enemy_production, creep, upgrade_buildings
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot  # only imported for type hints
@@ -105,6 +105,7 @@ class StrategyHandler:
         return (
             self.bot.expansions.taken.amount >= 3
             or self.bot.townhalls.amount >= 4
+            or self.bot.enemy_structures(upgrade_buildings).amount >= 2
             or (
                 self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount >= 3
                 and self.bot.scouting.known_enemy_army.fighting_supply < 10
