@@ -254,13 +254,16 @@ class StrategyHandler:
         # enemy has roach tech and has either no B2
         # or we're not sure they have a b2 and it's before 3"30
         roach_tech: bool = UnitTypeId.ROACH in self.bot.scouting.possible_enemy_composition
-
+        roach_tech_completed: bool = (
+            self.bot.enemy_structures(UnitTypeId.ROACHWARREN).ready.amount >= 1 or 
+            self.bot.enemy_units([UnitTypeId.ROACH, UnitTypeId.RAVAGER]).amount >= 1
+        )
         if (
             roach_tech
             and not self._exit_condition_met(Situation.CHEESE_ROACH_RUSH)
             and (
-                self.bot.time <= 180
-                or self.bot.expansions.enemy_b2.is_free                    
+                self.bot.expansions.enemy_b2.is_free
+                or (roach_tech_completed and self.bot.time <= 160)
                 or (
                     self.bot.time <= 210
                     and (

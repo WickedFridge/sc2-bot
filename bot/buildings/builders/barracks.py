@@ -33,6 +33,7 @@ class Barracks(Building):
         townhall_amount: int = self.bot.townhalls.ready.amount
         factory_amount: int = self.bot.structures([UnitTypeId.FACTORY, UnitTypeId.FACTORYFLYING]).amount
         starport_amount: int = self.bot.structures([UnitTypeId.STARPORT, UnitTypeId.STARPORTFLYING]).amount
+        idle_barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).idle.amount
 
         if (self.bot.build_order.build.is_completed):
             return (
@@ -42,7 +43,7 @@ class Barracks(Building):
             )    
 
         return (
-            townhall_amount >= 1
+            townhall_amount >= 1 and idle_barracks_amount <= 1
         )
     
     @property
@@ -50,13 +51,6 @@ class Barracks(Building):
     def position(self) -> Point2:
         if (self.amount == 0):
             return self.bot.main_base_ramp.barracks_in_middle
-            # return (
-            #     self.bot.main_base_ramp.barracks_correct_placement
-            #     if self.bot.matchup == Matchup.TvT
-            #     else self.bot.main_base_ramp.barracks_in_middle
-            #     # if self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
-            #     # else self.bot.main_base_ramp.barracks_in_middle
-            # )
         
         # If we have less than 5 raxes, always build them in the main
 
