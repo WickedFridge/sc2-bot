@@ -103,7 +103,7 @@ class ArmyCompositionManager(CachedClass):
         # we want thor amount for specific enemy units
         thor_amount: float = 0
         light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
-        no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER]
+        no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER, UnitTypeId.TEMPEST]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (
                 unit_type in no_thors_units or (

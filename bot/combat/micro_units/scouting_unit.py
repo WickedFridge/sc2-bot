@@ -2,6 +2,7 @@ from typing import override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -71,7 +72,13 @@ class MicroScoutingUnit(MicroUnit):
         
         # first case : we're dangerously close to a worker => retreat to a safer spot
         if (workers.closest_distance_to(unit) <= 1.5):
-            unit.move(unit.position.towards(closest_worker, -1))
+            default_retreat_spot: Point2 = unit.position.towards(closest_worker, -1)
+            retreat_spot: Point2 = (
+                default_retreat_spot
+                if (self.bot.map.influence_maps.danger.ground_terrain[default_retreat_spot] < 999)
+                else self.bot.map.influence_maps.safest_spot_around_point(default_retreat_spot, 2)
+            )
+            unit.move(retreat_spot)
             return
         
         # in these case we should target a worker
