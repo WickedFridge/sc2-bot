@@ -141,6 +141,10 @@ def defend_worker_rush(bot: BotAI) -> None:
         )
         
         if (worker.weapon_cooldown < 6):
+            if (worker.is_attacking and not worker.target_in_range(worker.orders[0].target)):
+                worker.gather(mineral_field_main)
+                continue
+
             if (worker.target_in_range(best_target)):
                 worker.attack(best_target)
                 continue

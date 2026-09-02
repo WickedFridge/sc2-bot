@@ -72,10 +72,10 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.VIKINGASSAULT: 0.8,
             UnitTypeId.LIBERATOR: 0.8,
             UnitTypeId.LIBERATORAG: 0.8,
-            UnitTypeId.BATTLECRUISER: 4,
-            UnitTypeId.TEMPEST: 3,
+            UnitTypeId.BATTLECRUISER: 3,
+            UnitTypeId.TEMPEST: 2,
             UnitTypeId.BROODLORD: 3,
-            UnitTypeId.MOTHERSHIP: 5,
+            UnitTypeId.MOTHERSHIP: 3.5,
             UnitTypeId.WARPPRISM: 0.33,
             UnitTypeId.MUTALISK: 0,
             UnitTypeId.OBSERVER: 0,
@@ -97,8 +97,8 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def thor_amount(self) -> int:
-        # so far we max our thor amount at 4
-        max_thor_amount: int = 4
+        # so far we max our thor amount at 2 if low on pop, 4 if almost maxed
+        max_thor_amount: int = 2 if self.bot.supply_used < 160 else 4
         
         # we want thor amount for specific enemy units
         thor_amount: float = 0
@@ -131,7 +131,8 @@ class ArmyCompositionManager(CachedClass):
         cyclone_response: dict[UnitTypeId, float] = {
             UnitTypeId.TEMPEST: 2.5,
             UnitTypeId.CARRIER: 2,
-            UnitTypeId.MOTHERSHIP: 3,
+            UnitTypeId.MOTHERSHIP: 3.5,
+            UnitTypeId.VOIDRAY: 1.5,
             UnitTypeId.VIKINGFIGHTER: 0.8,
             UnitTypeId.VIKINGASSAULT: 0.8,
             UnitTypeId.LIBERATOR: 0.8,

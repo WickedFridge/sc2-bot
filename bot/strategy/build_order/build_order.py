@@ -214,9 +214,30 @@ class BuildOrder(CachedClass):
     
     @custom_cache_once_per_frame
     def current_addons(self) -> List[UnitTypeId]:
+        # A satisfied addon step's step_id is only a nominal type — the
+        # `equivalences` table (e.g. BARRACKSTECHLAB ~ FACTORYTECHLAB) is what
+        # actually made the step satisfied, so a step can be fulfilled by an
+        # addon of a different concrete type than its step_id (e.g. a prior
+        # build already put the techlab on a Factory). Report the real type
+        # that satisfies each step instead of the nominal one, otherwise
+        # reconcile() thinks a perfectly correct addon is misplaced and
+        # swaps it away.
+        real_addons: Counter[UnitTypeId] = Counter(
+            addon.type_id for addon in self.bot.structures(reactors + techlabs)
+        )
         addons: List[UnitTypeId] = []
         for step in self.steps:
-            if (step.is_satisfied and step.step_id in reactors + techlabs):
+            if not (step.is_satisfied and step.step_id in reactors + techlabs):
+                continue
+            equivalent_types: List[UnitTypeId] = [step.step_id] + self.equivalences.get(step.step_id, [])
+            matched_type: Optional[UnitTypeId] = next(
+                (addon_type for addon_type in equivalent_types if real_addons.get(addon_type, 0) > 0),
+                None,
+            )
+            if (matched_type is not None):
+                real_addons[matched_type] -= 1
+                addons.append(matched_type)
+            else:
                 addons.append(step.step_id)
         return addons
 

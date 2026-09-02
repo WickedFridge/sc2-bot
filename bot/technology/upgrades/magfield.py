@@ -15,4 +15,4 @@ class MagfieldAccelerator(Upgrade):
     def custom_conditions(self) -> bool:
         cyclone_target: int = self.bot.composition_manager.composition[UnitTypeId.CYCLONE]
         cyclone_amount: int = self.bot.units(UnitTypeId.CYCLONE).amount + self.bot.already_pending(UnitTypeId.CYCLONE)
-        return max(cyclone_target, cyclone_amount) >= 3
+        return max(cyclone_target, cyclone_amount) >= 3 and cyclone_amount >= 1

@@ -31,7 +31,7 @@ class StrategyHandler:
     confirmed_cheese: Optional[Situation] = None
     confirmed_cheese_time: Optional[float] = None
     BASE_SIZE: int = 20
-    CHEESE_MIN_DURATION: float = 30.0
+    CHEESE_MIN_DURATION: float = 10.0
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot

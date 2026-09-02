@@ -30,17 +30,14 @@ class DefensiveDoubleCycloneMagfield(BuildOrder):
         else:
             composition.set(UnitTypeId.MARINE, 4)
 
-        modified: bool = False
         if (self.bot.structures(UnitTypeId.STARPORT).ready.amount >= 1):
             composition.set(UnitTypeId.MEDIVAC, 0)
-            composition.set(UnitTypeId.VIKING, 4)
-            modified = True
+            composition.set(UnitTypeId.VIKINGFIGHTER, 4)
 
         if (self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1):
             composition.set(UnitTypeId.CYCLONE, 12)
-            modified = True
 
-        return modified
+        return True
 
     @property
     @override
@@ -68,10 +65,8 @@ class DefensiveDoubleCycloneMagfield(BuildOrder):
             BuildOrderStep(bot, self, 'techlab #2', UnitTypeId.BARRACKSTECHLAB, target_count=2, requirements=[(UnitTypeId.FACTORY, 2, False)]),
             BuildOrderStep(bot, self, 'Magfield', UpgradeId.CYCLONELOCKONDAMAGEUPGRADE, requirements=[(UnitTypeId.FACTORYTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, 'gas #4', UnitTypeId.REFINERY, target_count=4, workers=26, townhalls=2),
-            BuildOrderStep(bot, self, 'Armory', UnitTypeId.ARMORY, requirements=[(UnitTypeId.REFINERY, 4, False)]),
             BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.ARMORY, 1, False)]),
             BuildOrderStep(bot, self, 'Barracks Reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.ARMORY, 1, False)]),
-            BuildOrderStep(bot, self, '+1 armor mech', UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL1, requirements=[(UnitTypeId.ARMORY, 1, True)]),
             BuildOrderStep(bot, self, 'Starport', UnitTypeId.STARPORT, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
         ]
 

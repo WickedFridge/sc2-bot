@@ -22,4 +22,4 @@ class BuildingRange(Upgrade):
             self.bot.structures(UnitTypeId.PLANETARYFORTRESS).amount
             + self.bot.already_pending(UnitTypeId.PLANETARYFORTRESS)
         )
-        return planetary_fortress_amount >= 2
+        return planetary_fortress_amount >= 2 and self.bot.townhalls.amount >= self.bot.expansions.amount_taken

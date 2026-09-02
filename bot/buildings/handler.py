@@ -601,7 +601,9 @@ class BuildingsHandler:
 
         for flying_building in add_on_steal_candidates:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
-            if (free_addons_count >= 1):
+
+            # factory shouldn't steal reactors, so we prevent them all stealing
+            if (free_addons_count >= 1 and flying_building.type_id != UnitTypeId.FACTORYFLYING):
                 addon_to_land: Unit = free_addons.pop()
                 free_addons_count -= 1
                 print(f"[reposition_buildings] Landing {flying_building.name} (stealing add-on {addon_to_land.type_id})")
