@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
+from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from bot.utils.unit_supply import get_unit_supply
@@ -97,12 +98,17 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def thor_amount(self) -> int:
-        # so far we max our thor amount at 2 if low on pop, 4 if almost maxed
-        max_thor_amount: int = 2 if self.bot.supply_used < 160 else 4
+        # so far we max our thor amount at 2 if low on pop, 3 if almost maxed
+        max_thor_amount: int = 2 if self.bot.supply_used < 160 else 3
         
         # we want thor amount for specific enemy units
         thor_amount: float = 0
-        light_units: List[UnitTypeId] = [UnitTypeId.MUTALISK, UnitTypeId.VIKING, UnitTypeId.LIBERATOR]
+        light_units: List[UnitTypeId] = [
+            # thors proved ineffective against mass mutalisks
+            # UnitTypeId.MUTALISK,
+            UnitTypeId.VIKING,
+            UnitTypeId.LIBERATOR
+        ]
         no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER, UnitTypeId.TEMPEST]
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (
@@ -142,6 +148,9 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.MUTALISK: 1,
         }
         cyclone_amount: float = 0
+        if (Situation.CHEESE_SKYTOSS in self.wicked.strategy.situation_history):
+            cyclone_amount += 4
+
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (unit_type not in cyclone_response.keys()):
                 continue

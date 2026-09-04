@@ -145,11 +145,11 @@ def defend_worker_rush(bot: BotAI) -> None:
             if (worker.target_in_range(best_target)):
                 worker.attack(best_target)
                 continue
-            if (worker.is_attacking):
-                target: Unit = bot.enemy_units.by_tag(worker.orders[0].target)
-                if (worker.distance_to(target) > worker.radius + target.radius + 1):       
-                    worker.gather(mineral_field_main)
-                    continue
+            # if (worker.is_attacking):
+            #     target: Unit = bot.enemy_units.by_tag(worker.orders[0].target)
+            #     if (worker.distance_to(target) > worker.radius + target.radius + 1):       
+            #         worker.gather(mineral_field_main)
+            #         continue
 
         # if no enemy is in the main, stack at the ramp
         if (not any(bot.get_terrain_height(enemy) >= choke_height for enemy in enemy_units)):
