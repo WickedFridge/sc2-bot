@@ -1,5 +1,4 @@
 from __future__ import annotations
-from turtle import color
 from typing import TYPE_CHECKING, List
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.colors import ORANGE
