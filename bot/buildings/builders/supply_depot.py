@@ -117,7 +117,7 @@ class SupplyDepot(Building):
                 return position
 
         
-        expansion: Expansion = self.bot.expansions.taken.random
+        expansion: Expansion = self.bot.expansions.taken.ready.random
         if (not expansion):
             return self.bot.expansions.main.position
         base_ressources: Units = expansion.mineral_fields + expansion.vespene_geysers

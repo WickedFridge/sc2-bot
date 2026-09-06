@@ -304,6 +304,13 @@ class ArmyCompositionManager(CachedClass):
                     composition.add(UnitTypeId.RAVEN, 1)
             if (self.wicked.map.influence_maps.creep.density[self.wicked.expansions.next.position] > 0):
                 composition.add(UnitTypeId.RAVEN, 1)
+            if (UnitTypeId.LURKERMP in self.wicked.scouting.known_enemy_composition):
+                additional_ravens: int = (
+                    2
+                    if self.wicked.scouting.known_enemy_army.units([UnitTypeId.LURKERMP, UnitTypeId.LURKERMPBURROWED]).amount >= 10
+                    else 1
+                )
+                composition.add(UnitTypeId.RAVEN, additional_ravens)
             
         # if we're playing late game TvT, we want Ravens, depending on the amount of powerful enemy units
         if (

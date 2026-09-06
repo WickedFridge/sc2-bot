@@ -115,3 +115,26 @@ def position_behind_worker_line(base_ressources: Units, expansion_position: Poin
     offset: Point2 = selected_position.negative_offset(expansion_position)
     target: Point2 = selected_position.__add__(offset)
     return Point2(selected_position.towards(target, 2))
+
+def furthest_points(points: List[Point2]) -> List[Point2]:
+    """ Returns the two points that are furthest apart from each other. """
+    max_distance: float = 0
+    point_a: Point2 = points[0]
+    point_b: Point2 = points[0]
+    for i in range(len(points)):
+        for j in range(i + 1, len(points)):
+            distance: float = points[i]._distance_squared(points[j])
+            if (distance > max_distance):
+                max_distance = distance
+                point_a = points[i]
+                point_b = points[j]
+    return [point_a, point_b]
+
+def closest_to_ally_stuff(bot: BotAI, points: List[Point2]) -> Point2:
+    closest_distance: float = math.inf
+    for point in points:
+        distance: float = point.distance_to_closest(bot.units + bot.structures)
+        if (distance < closest_distance):
+            closest_distance = distance
+            closest_point: Point2 = point
+    return closest_point
