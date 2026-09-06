@@ -19,7 +19,7 @@ class MicroSiegeTank(MicroUnit):
     bonus_against_ground_armored: bool = True
 
     def get_enemies_close_siege_range(self, tank: Unit) -> Units:
-        dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED]
+        dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.BROODLING]
         is_defending: bool = self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
 
         local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(
@@ -96,9 +96,13 @@ class MicroSiegeTank(MicroUnit):
         enemies_in_range: Units = self.get_enemy_units_in_range(tank).sorted(
             lambda unit: (unit.is_armored == False, unit.health + unit.shield)
         )
-        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED and enemies_in_range.amount >= 1):
-            tank.attack(enemies_in_range.first)
-            return
+        if (tank.type_id == UnitTypeId.SIEGETANKSIEGED):
+            dont_attack: List[UnitTypeId] = [UnitTypeId.BROODLING]
+            enemies_to_attack: Units = enemies_in_range.filter(lambda unit: unit.type_id not in dont_attack)
+            if (enemies_to_attack.amount >= 1):
+                tank.attack(enemies_to_attack.first)
+                return
+
         enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
         if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
             return

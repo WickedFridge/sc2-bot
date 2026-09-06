@@ -62,8 +62,8 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def vikings_amount(self) -> int:
-        # so far we max our viking amount at 20
-        max_viking_amount: int = 20
+        # so far we max our viking amount at 10 in TvZ, 20 otherwise
+        max_viking_amount: int = 10 if self.bot.matchup == Matchup.TvZ else 20
 
         # we want pretty much matching air supply
         viking_response: dict[UnitTypeId, float] = {
@@ -145,7 +145,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.LIBERATORAG: 0.8,
             UnitTypeId.BATTLECRUISER: 2,
             UnitTypeId.ORACLE: 1,
-            UnitTypeId.MUTALISK: 1,
+            UnitTypeId.MUTALISK: 1 if UnitTypeId.GHOST not in self.available_units else 0,
         }
         cyclone_amount: float = 0
         if (Situation.CHEESE_SKYTOSS in self.wicked.strategy.situation_history):
@@ -319,7 +319,11 @@ class ArmyCompositionManager(CachedClass):
         # if we have medivacs and a lot of bio, get the medivac count up to 10
         if (UnitTypeId.MEDIVAC in available_units):
             # add up to 4 Medivac if we already have a lot of bio
-            MAX_MEDIVAC_AMOUNT: int = 6 if self.bot.matchup == Matchup.TvT else 10
+            MAX_MEDIVAC_AMOUNT: int = (
+                6
+                if (self.bot.matchup == Matchup.TvT or self.bot.already_pending(UpgradeId.MEDIVACCADUCEUSREACTOR) >= 0)
+                else 10
+            )
             bio_supply: float = (
                 Army(self.wicked.units([UnitTypeId.MARINE, UnitTypeId.MARAUDER, UnitTypeId.GHOST]), self.wicked).supply
                 + self.bot.already_pending(UnitTypeId.MARINE) * 1

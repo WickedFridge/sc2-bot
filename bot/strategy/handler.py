@@ -105,6 +105,7 @@ class StrategyHandler:
         return (
             self.bot.expansions.taken.amount >= 3
             or self.bot.townhalls.amount >= 4
+            or self.bot.expansions.enemy_b3.is_enemy
             or self.bot.enemy_structures(upgrade_buildings).amount >= 2
             or (
                 self.bot.structures(UnitTypeId.ORBITALCOMMAND).amount >= 3
