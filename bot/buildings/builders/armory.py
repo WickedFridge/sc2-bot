@@ -72,6 +72,7 @@ class Armory(Building):
         if (self.amount == 1):
             return (
                 self.bot.expansions.amount_taken >= 4
+                and self.bot.supply_used >= 180
                 and mechanical_units_compo >= 12
                 and mechanical_units_amount >= 6
             )

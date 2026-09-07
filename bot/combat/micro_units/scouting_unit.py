@@ -52,8 +52,8 @@ class MicroScoutingUnit(MicroUnit):
             # if we can't safely shoot, move away
             else:
                 # safest_spot is preferably away from threats
-                kite_target = threats.closest_to(unit)
-                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, kite_target)
+                closest_enemy: Unit = enemy_ground.closest_to(unit)
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, closest_enemy)
                 unit.move(safest_spot)
         
        # --- CASE 2: Long cooldown → retreat & wait ---

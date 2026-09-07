@@ -168,6 +168,8 @@ cloaked_units: List[UnitTypeId] = [
     # UnitTypeId.OBSERVERSIEGEMODE,
     UnitTypeId.DARKTEMPLAR,
     UnitTypeId.MOTHERSHIP,
+    # These shouldn't trigger detection but turrets so it's the same response
+    UnitTypeId.MUTALISK,
 ]
 friendly_fire: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
