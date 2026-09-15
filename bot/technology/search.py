@@ -3,6 +3,7 @@ from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.technology.tech import Tech
 from bot.technology.upgrades.air_upgrades import AirArmorLevel1, AirArmorLevel2, AirArmorLevel3, AirAttackLevel1, AirAttackLevel2, AirAttackLevel3
+from bot.technology.upgrades.blueflame import BlueFlame
 from bot.technology.upgrades.building_armor import BuildingArmor
 from bot.technology.upgrades.building_range import BuildingRange
 from bot.technology.upgrades.caduceus_reactor import CaduceusReactor
@@ -43,6 +44,7 @@ class Search:
     caduceus_reactor: CaduceusReactor
     interference_maxtrix: InterferenceMatrix
     magfield_accelerator: MagfieldAccelerator
+    blueflame: BlueFlame
     building_armor: BuildingArmor
     building_range: BuildingRange
 
@@ -67,5 +69,6 @@ class Search:
         self.caduceus_reactor = CaduceusReactor(self)
         self.interference_maxtrix = InterferenceMatrix(self)
         self.magfield_accelerator = MagfieldAccelerator(self)
+        self.blueflame = BlueFlame(self)
         self.building_armor = BuildingArmor(self)
         self.building_range = BuildingRange(self)

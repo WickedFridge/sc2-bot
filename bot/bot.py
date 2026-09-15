@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.19.2"
+VERSION: str = "12.19.3"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -266,6 +266,7 @@ class WickedBot(Superbot):
             self.builder.ebay.build,
             self.builder.ghost_academy.build,
             self.search.magfield_accelerator.search,
+            self.search.blueflame.search,
             self.search.air_attack_level_1.search,
             self.search.air_attack_level_2.search,
             self.search.air_attack_level_3.search,

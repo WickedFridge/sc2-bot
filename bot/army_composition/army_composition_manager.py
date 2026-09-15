@@ -128,6 +128,17 @@ class ArmyCompositionManager(CachedClass):
         return min(max_thor_amount, round(thor_amount))
     
     @property
+    def hellion_amount(self) -> int:
+        if (UnitTypeId.HELLION not in self.available_units or self.bot.matchup != Matchup.TvZ):
+            return 0
+        enemy_zergling_amount: int = self.wicked.scouting.known_enemy_army.units(UnitTypeId.ZERGLING).amount
+        if (enemy_zergling_amount < 40):
+            return 0
+        # we want 1 hellion for every 6 zerglings, up to a max of 10 hellions
+        max_hellion_amount: int = 10
+        return min(max_hellion_amount, round(enemy_zergling_amount / 6))
+
+    @property
     def cyclone_amount(self) -> int:
         # so far we max our cyclone amount at 12
         max_cyclone_amount: int = 12
@@ -264,6 +275,9 @@ class ArmyCompositionManager(CachedClass):
 
         if (UnitTypeId.CYCLONE in available_units):
             composition.add(UnitTypeId.CYCLONE, self.cyclone_amount)
+        
+        if (UnitTypeId.HELLION in available_units):
+            composition.add(UnitTypeId.HELLION, self.hellion_amount)
 
         # only start making marauders once we have at least 8 marines unless we're in danger
         if (UnitTypeId.MARAUDER in available_units and (marine_count >= 8 or self.wicked.scouting.known_enemy_army.armored_ground_ratio >= 0.7)):
