@@ -404,8 +404,11 @@ class StrategyHandler:
         # cancel B2/B3 and switch towards Conservative Expand, don't cancel indoor CCs
         expand_in_construction: Units = self.bot.townhalls.not_ready.filter(
             lambda th: (
-                th.position in [self.bot.expansions.b2.position, self.bot.expansions.b3.position]
-                and th.build_progress < 0.75
+                th.build_progress < 0.75
+                and (
+                    th.position == self.bot.expansions.b2.position
+                    or self.bot.townhalls.amount >= 3
+                )
             )
         )
         if (expand_in_construction):

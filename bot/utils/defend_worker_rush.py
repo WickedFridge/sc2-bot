@@ -142,14 +142,13 @@ def defend_worker_rush(bot: BotAI) -> None:
         )
         
         if (worker.weapon_cooldown < 6):
+            if (worker.is_attacking):
+                target: None | Unit = bot.enemy_units.find_by_tag(worker.orders[0].target)
+                if (target and target.tag in enemies_in_range.tags):
+                    continue
             if (worker.target_in_range(best_target)):
                 worker.attack(best_target)
                 continue
-            # if (worker.is_attacking):
-            #     target: Unit = bot.enemy_units.by_tag(worker.orders[0].target)
-            #     if (worker.distance_to(target) > worker.radius + target.radius + 1):       
-            #         worker.gather(mineral_field_main)
-            #         continue
 
         # if no enemy is in the main, stack at the ramp
         if (not any(bot.get_terrain_height(enemy) >= choke_height for enemy in enemy_units)):
@@ -171,7 +170,7 @@ def defend_worker_rush(bot: BotAI) -> None:
                 if (worker.distance_to(choke_center) > best_target.distance_to(choke_center)):
                     worker.gather(mineral_field_enemy)
                 else:
-                    worker.attack(best_target)
+                    worker.move(Point2(best_target.position.towards(worker, 1)))
         else:
             # On cooldown: gather to keep mining and avoid eating free hits
             worker.gather(mineral_field_main)
