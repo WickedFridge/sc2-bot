@@ -15,6 +15,7 @@ from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
 from bot.strategy.build_order.builds.defensive_reaction_builds.cyclone_tank_3_rax import CycloneTank3Rax
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
+from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral_211 import DefensiveMistral211
 from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCyclone
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.test_builds.cyclone_tank_test import CycloneTankTest
@@ -616,6 +617,9 @@ class Debug:
                 await self.bot.build_order.switch_build(CycloneTank3Rax(self.bot))
             case BuildOrderName.CONSERVATIVE_RAX_EXPAND:
                 await self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
+            case BuildOrderName.DEFENSIVE_MISTRAL_211:
+                await self.bot.build_order.switch_build(DefensiveMistral211(self.bot))
+
             case _:
                 print(f'switch to {build_order_name} not implemented')
     

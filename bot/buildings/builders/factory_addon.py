@@ -71,11 +71,12 @@ class FactoryTechlab(FactoryAddon):
     @property
     @override
     def custom_conditions(self):
+        techlab_units: list[UnitTypeId] = [
+            UnitTypeId.SIEGETANK,
+            UnitTypeId.THOR,
+            UnitTypeId.CYCLONE,
+        ]
         return (
             not self.bot.build_order.build.is_completed
-            or self.bot.matchup in [Matchup.TvT, Matchup.TvZ]
-            or (
-                UnitTypeId.TEMPEST in self.bot.scouting.known_enemy_composition
-                or UnitTypeId.MUTALISK in self.bot.scouting.known_enemy_composition
-            )
+            or any(unit in self.bot.composition_manager.composition for unit in techlab_units)
         )

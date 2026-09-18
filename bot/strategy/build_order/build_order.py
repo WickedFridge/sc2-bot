@@ -4,6 +4,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, List, Optional
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap, AddonSwap, SwapPlan, SwapState
+from bot.strategy.build_order.addon_swap.attach_swap import AddonAttachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 # from sc2.bot_ai import BotAI
@@ -100,7 +101,7 @@ class BuildOrder(CachedClass):
 
         return count
 
-    def reconcile(self, previous_swap_plans: Optional[list[SwapPlan]] = None) -> None:
+    def reconcile(self, previous_swap_plans: list[SwapPlan] = []) -> None:
         plans_to_prepend: list[SwapPlan] = []
         current_addons: list[UnitTypeId] = [addon.type_id for addon in self.bot.structures(reactors + techlabs)]
         print("[reconcile] current addons:", current_addons)
@@ -145,22 +146,84 @@ class BuildOrder(CachedClass):
         # abort the ones this build order no longer needs, but keep driving the
         # ones that still deliver something this build order's target requires —
         # otherwise the donor/recipient are left stranded mid-transfer.
-        for plan in previous_swap_plans or []:
+        for plan in previous_swap_plans:
             if (plan.is_finished or plan.state == SwapState.PENDING):
                 continue
 
             group: list[UnitTypeId] = addon_group(plan.desired_addon_type)
-            still_needed: bool = any(
-                addon_owner.get(addon) == plan.recipient_type
-                for addon in self.current_addons
-                if addon in group
-            )
-            if (still_needed):
-                print(f"[reconcile] Carrying over in-progress swap {plan.name} — still required.")
-                plans_to_prepend.append(plan)
-            else:
-                print(f"[reconcile] Aborting in-progress swap {plan.name} — no longer needed.")
+            addon_family_needed: bool = any(addon in group for addon in self.current_addons)
+            
+            if (not addon_family_needed):
+                print(f"[reconcile] Aborting in-progress swap {plan.name} — family no longer needed.")
                 plan.state = SwapState.ABORTED
+                continue
+
+            # La famille est toujours voulue. Cherche si CE build order déclare
+            # un swap PENDING pour la même famille (= dit qui doit la recevoir).
+            matching_declared_plan = next(
+                (p for p in self.swap_plans
+                if p.state == SwapState.PENDING
+                and addon_group(p.desired_addon_type) == group),
+                None,
+            )
+
+            if (matching_declared_plan is not None and plan.recipient_tag is None):
+                # Le donor a déjà décollé mais pas encore choisi de recipient :
+                # on redirige le swap en cours vers le nouveau destinataire
+                # au lieu de le laisser partir dans le vide.
+                print(f"[reconcile] Retargeting in-progress swap {plan.name} -> {matching_declared_plan.recipient_type.name}")
+                plan.recipient_type = matching_declared_plan.recipient_type
+                plan.recipient_flying_type = plan.flying_correspondances.get(matching_declared_plan.recipient_type)
+                plan.desired_addon_type = matching_declared_plan.desired_addon_type
+                # on retire le plan déclaré doublon pour ne pas créer 2 swaps pour 1 addon
+                self.swap_plans.remove(matching_declared_plan)
+                plans_to_prepend.append(plan)
+                continue
+
+            # recipient déjà committé (Path B, ou déjà en RECIPIENT_LANDING) :
+            # trop tard pour rediriger proprement, on laisse finir puis ça sera
+            # rattrapé par reposition_buildings/detach normalement.
+            plans_to_prepend.append(plan)
+
+        # --- NOUVEAU : addons libres (génériques, orphelins) non trackés par un
+        # swap actif. Le diff multiset ci-dessus ne les voit jamais : un addon
+        # générique satisfait fictivement une step côté "target" (via
+        # equivalences) ET compte identiquement côté "réel", donc missing/surplus
+        # restent vides même si personne ne va réellement l'attacher.
+        owned_addon_tags: set[int] = {
+            plan.addon_tag
+            for plan in plans_to_prepend + self.swap_plans
+            if (plan.addon_tag is not None and not plan.is_finished)
+        }
+        free_addons: Units = self.bot.structures([UnitTypeId.REACTOR, UnitTypeId.TECHLAB]).filter(
+            lambda a: a.tag not in owned_addon_tags and a.is_ready
+        )
+
+        for addon in free_addons:
+            addon_family: UnitTypeId = (
+                UnitTypeId.REACTOR if addon.type_id == UnitTypeId.REACTOR else UnitTypeId.TECHLAB
+            )
+            group: list[UnitTypeId] = addon_group(addon_family)
+
+            matching_declared_plan: Optional[SwapPlan] = next(
+                (p for p in self.swap_plans
+                if p.state == SwapState.PENDING
+                and addon_group(p.desired_addon_type) == group),
+                None,
+            )
+            if (matching_declared_plan is None):
+                continue  # rien n'en a besoin actuellement — reposition_buildings s'en chargera
+
+            print(
+                f"[reconcile] Free-standing {addon.type_id.name} (tag={addon.tag}) found — "
+                f"injecting AddonAttachSwap for {matching_declared_plan.recipient_type.name}."
+            )
+            plans_to_prepend.append(AddonAttachSwap(
+                self.bot,
+                recipient_type=matching_declared_plan.recipient_type,
+                desired_addon_type=addon_family,
+            ))
+            self.swap_plans.remove(matching_declared_plan)
 
         for plan in self.swap_plans:
             if (plan.state != SwapState.PENDING):

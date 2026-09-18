@@ -50,6 +50,9 @@ class StrategyHandler:
             Situation.CHEESE_WORKER_RUSH: self._enemy_workers_cleared,
             Situation.CHEESE_LING_DRONE: self._enemy_units_cleared,
             Situation.CHEESE_LING_FLOOD: self._enemy_units_cleared,
+            Situation.CHEESE_MASS_MARINES: self._push_ended,
+            Situation.CHEESE_3_GATES: self._push_ended,
+            Situation.CHEESE_1_1_1: self._push_ended,
             Situation.CHEESE_ROACH_RUSH: self._push_ended,
             Situation.CHEESE_REAPER_RUSH: self._push_ended,
             Situation.CHEESE_IMMORTAL_BUST: self._push_ended,
@@ -251,6 +254,37 @@ class StrategyHandler:
             and not self._exit_condition_met(Situation.CHEESE_REAPER_RUSH)
         ):
             return Situation.CHEESE_REAPER_RUSH
+
+        # detect 1 base push
+        # first 1 base marine
+        if (
+            not self._exit_condition_met(Situation.CHEESE_MASS_MARINES)
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                and self.bot.enemy_structures([UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING]).amount >= 3
+            )
+        ):
+            return Situation.CHEESE_MASS_MARINES
+
+        # 1/1/1
+        if (
+            not self._exit_condition_met(Situation.CHEESE_1_1_1)
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                and self.bot.enemy_structures(production).amount >= 3
+            )
+        ):
+            return Situation.CHEESE_1_1_1
+
+        # detect 3/4 gate push
+        if (
+            not self._exit_condition_met(Situation.CHEESE_3_GATES)
+            and (
+                self.bot.expansions.enemy_b2.is_free
+                and self.bot.enemy_structures([UnitTypeId.GATEWAY, UnitTypeId.WARPGATE]).amount >= 3
+            )
+        ):
+            return Situation.CHEESE_3_GATES
 
         # detect roach rush
         # enemy has roach tech and has either no B2

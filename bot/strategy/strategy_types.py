@@ -16,7 +16,7 @@ class Strategy(enum.Enum):
     TURTLE_ECO = 2
     TURTLE_TECH = 3
     RUSH_TECH_GREEDY = 4
-    RUSH_TECH_SAFE = 4
+    RUSH_TECH_SAFE = 5
 
     def __repr__(self) -> str:
         return f"{self.name.capitalize()}"
@@ -34,11 +34,14 @@ class Situation(enum.Enum):
     CHEESE_WORKER_RUSH = 9
     CHEESE_REAPER_RUSH = 10
     CHEESE_ROACH_RUSH = 11
-    CHEESE_SKYTOSS = 12
-    CHEESE_BATTLECRUISER = 13
-    CHEESE_PROXY_RAX = 14
-    CHEESE_IMMORTAL_BUST = 15
-    CHEESE_UNKNOWN = 16
+    CHEESE_MASS_MARINES = 12
+    CHEESE_3_GATES = 13
+    CHEESE_1_1_1 = 14
+    CHEESE_SKYTOSS = 15
+    CHEESE_BATTLECRUISER = 16
+    CHEESE_PROXY_RAX = 17
+    CHEESE_IMMORTAL_BUST = 18
+    CHEESE_UNKNOWN = 19
 
     @property
     def is_cheese(self) -> bool:
@@ -50,6 +53,9 @@ class Situation(enum.Enum):
             Situation.CHEESE_LING_FLOOD,
             Situation.CHEESE_WORKER_RUSH,
             Situation.CHEESE_ROACH_RUSH,
+            Situation.CHEESE_MASS_MARINES,
+            Situation.CHEESE_3_GATES,
+            Situation.CHEESE_1_1_1,
             Situation.CHEESE_SKYTOSS,
             Situation.CHEESE_PROXY_RAX,
             Situation.CHEESE_REAPER_RUSH,

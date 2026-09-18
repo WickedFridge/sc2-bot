@@ -16,20 +16,29 @@ class Factory(Building):
     @property
     @override
     def custom_conditions(self) -> bool:
-        max_factories: int = 2
+        if (not self.bot.build_order.build.is_completed):
+            return True
 
-        # We want up to 2 factories so far
-        if (self.bot.build_order.build.is_completed):
-            return (
-                self.amount == 0 or (
-                    self.amount < max_factories
-                    and (
-                        self.bot.composition_manager.composition[UnitTypeId.THOR] > self.amount
-                        or self.bot.composition_manager.composition[UnitTypeId.SIEGETANK] > 5
-                    )
+        # We want up to 3 factories so far
+        max_factories: int = 3
+
+        tank_target: int = self.bot.composition_manager.composition[UnitTypeId.SIEGETANK]
+        cyclone_target: int = self.bot.composition_manager.composition[UnitTypeId.CYCLONE]
+        thor_target: int = self.bot.composition_manager.composition[UnitTypeId.THOR]
+        hellion_target: int = self.bot.composition_manager.composition[UnitTypeId.HELLION]
+        
+        return (
+            self.amount == 0 or (
+                self.amount < max_factories
+                and self.bot.expansions.amount_taken >= self.amount * 2
+                and (
+                    thor_target * 2
+                    + tank_target
+                    + cyclone_target
+                    + hellion_target / 2 > 6 * self.amount
                 )
             )
-        return True
+        )
     
     @property
     @override

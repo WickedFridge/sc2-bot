@@ -2,6 +2,7 @@ import math
 from typing import Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.scouting.ghost_units.ghost_units import GhostUnit
 from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -80,10 +81,16 @@ class MicroCyclone(MicroUnit):
             self._fight_on_lock_cooldown(cyclone, enemies_in_range, local_enemies)
             return
 
-        # else if there's isn't any enemies close, move towards the closest enemy
-        if (local_enemies.amount == 0):
-            closest_enemy: Optional[Unit] = self.bot.enemy_units.closest_to(cyclone)
-            cyclone.move(closest_enemy.position)
-            return
+        # if there are local enemies, lock onto the best one
+        if (local_enemies.amount >= 1):
+            if (self._acquire_lock(cyclone, local_enemies, total_range)):
+                return
 
-        self._acquire_lock(cyclone, local_enemies, total_range)
+        # else if there's isn't any enemies close, move towards the closest enemy
+        best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(cyclone, radius=5)
+        if (self.bot.enemy_units.amount >= 1):
+            best_position = self.bot.enemy_units.closest_to(cyclone).position
+        elif(self.bot.ghost_units.assumed_enemy_units.amount >= 1):
+            best_position = self.bot.ghost_units.assumed_enemy_units.closest_to(cyclone).position
+
+        cyclone.move(best_position)
