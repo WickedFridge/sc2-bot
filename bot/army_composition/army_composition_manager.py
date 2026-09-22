@@ -270,6 +270,9 @@ class ArmyCompositionManager(CachedClass):
         
         if (UnitTypeId.SIEGETANK in available_units):
             composition.add(UnitTypeId.SIEGETANK, self.extra_tanks_amount)
+            # max at 3 tanks when opponent has a bunch of mutalisks
+            if (self.wicked.scouting.known_enemy_army.units(UnitTypeId.MUTALISK).amount >= 10):
+                composition.set(UnitTypeId.SIEGETANK, 3)
         
         if (UnitTypeId.THOR in available_units):
             composition.add(UnitTypeId.THOR, self.thor_amount)
