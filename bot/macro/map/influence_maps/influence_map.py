@@ -108,7 +108,7 @@ class InfluenceMap:
         return x1, y1, x2, y2, submap, dist_array
     
     def read_values(
-        self, pos: Point2 | Unit, radius: int = 5,
+        self, pos: Point2 | Unit, radius: float = 5,
     ) -> tuple[int, int, np.ma.MaskedArray]:
         
         x1, y1, _, _, submap, dist_sq = self._region(pos, radius, exact_dist=False)

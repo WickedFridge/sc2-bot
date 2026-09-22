@@ -10,7 +10,6 @@ from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
 from bot.macro.map.map import MapData, get_map
 from bot.macro.resources import Resources
-from bot.scout import Scout
 from bot.scouting.ghost_units.manager import GhostUnitsManager, get_ghost_units
 from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
@@ -27,7 +26,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "12.20.0"
+VERSION: str = "13.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -55,7 +54,6 @@ class WickedBot(Superbot):
         self.combat = SelectOrders(self)
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
-        self.scout = Scout(self)
         self.debug = Debug(self)
         # self.analytics = Analytics(self)
         self.structures_memory: Units = Units([], self)
@@ -182,7 +180,7 @@ class WickedBot(Superbot):
         await self.buildings.finish_construction()
         await self.builder.supply_depot.move_worker_first()
         await self.builder.command_center.move_worker_expand()
-        await self.scout.scout_proxy()
+        await self.scouting.scout_proxy()
 
         # Control buildings
         self.buildings.reserve_bunkers()

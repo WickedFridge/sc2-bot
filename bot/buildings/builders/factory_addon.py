@@ -60,7 +60,19 @@ class FactoryReactor(FactoryAddon):
     @property
     @override
     def custom_conditions(self):
-        return not self.bot.build_order.build.is_completed
+        techlab_amount: int = self.bot.structures(UnitTypeId.FACTORYTECHLAB).amount
+        reactor_units_target: int = (
+            self.bot.composition_manager.composition[UnitTypeId.HELLION]
+            + self.bot.composition_manager.composition[UnitTypeId.WIDOWMINE]
+        )
+
+        return (
+            not self.bot.build_order.build.is_completed
+            or (
+                techlab_amount >= 1
+                and reactor_units_target > 6
+            )
+        )
 
 class FactoryTechlab(FactoryAddon):
     def __init__(self, build):
@@ -78,5 +90,6 @@ class FactoryTechlab(FactoryAddon):
         ]
         return (
             not self.bot.build_order.build.is_completed
+            or self.amount == 0
             or any(unit in self.bot.composition_manager.composition for unit in techlab_units)
         )

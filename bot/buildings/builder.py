@@ -85,6 +85,7 @@ class Builder:
                     or self.bot.time <= 200
                 )
                 and worker.is_attacking == False
+                and worker.tag != self.bot.scouting.scout_tag
                 and (
                     worker.is_idle
                     or not worker.is_constructing_scv

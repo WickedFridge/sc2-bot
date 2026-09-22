@@ -3,11 +3,9 @@ from scipy.ndimage import distance_transform_edt, convolve
 from scipy.signal import convolve2d
 
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
-from bot.scouting.scouting import Scouting, get_scouting
 from sc2.bot_ai import BotAI
 from sc2.position import Point2
 from sc2.unit import Unit
-from .....utils.unit_tags import creep
 
 class CreepLayer:
     bot: BotAI

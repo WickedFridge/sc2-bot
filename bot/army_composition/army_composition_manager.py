@@ -132,7 +132,7 @@ class ArmyCompositionManager(CachedClass):
         if (UnitTypeId.HELLION not in self.available_units or self.bot.matchup != Matchup.TvZ):
             return 0
         enemy_zergling_amount: int = self.wicked.scouting.known_enemy_army.units(UnitTypeId.ZERGLING).amount
-        if (enemy_zergling_amount < 40):
+        if (enemy_zergling_amount < 40 and enemy_zergling_amount < 2 * self.wicked.scouting.known_enemy_army.units.amount):
             return 0
         # we want 1 hellion for every 6 zerglings, up to a max of 10 hellions
         max_hellion_amount: int = 10
@@ -197,6 +197,7 @@ class ArmyCompositionManager(CachedClass):
     
     @property
     def marauders_ratio(self) -> float:
+        max_marauder_ratio: float = 0.4
         default_marauder_ratio: dict[Matchup, float] = {
             Matchup.TvT: 0,
             Matchup.TvZ: 0.1,
@@ -218,7 +219,7 @@ class ArmyCompositionManager(CachedClass):
             ):
                 return 0
             return default_ratio
-        return max(default_ratio, self.wicked.scouting.known_enemy_army.armored_ground_ratio)
+        return min(max_marauder_ratio, max(default_ratio, self.wicked.scouting.known_enemy_army.armored_ground_ratio))
     
     def default_amount(self, unit_type: UnitTypeId) -> int | bool:
         match unit_type:

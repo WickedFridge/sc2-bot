@@ -11,10 +11,7 @@ if TYPE_CHECKING:
     from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
 
-# Build origin (derived from)
-# Clem vs Showtime
-# HSC Finals game 2
-# https://youtu.be/qYmkoMnToA0?si=czwrxVSwsK4yBo0F&t=828
+# Build origin : invented by WickedFridge
 
 class DefensiveDoubleCycloneMagfield(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_DOUBLE_CYCLONE
