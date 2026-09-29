@@ -75,6 +75,7 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.LIBERATORAG: 0.8,
             UnitTypeId.BATTLECRUISER: 3,
             UnitTypeId.TEMPEST: 2,
+            UnitTypeId.OBSERVER: 0,
             UnitTypeId.BROODLORD: 3,
             UnitTypeId.MOTHERSHIP: 3.5,
             UnitTypeId.WARPPRISM: 0.33,
@@ -206,11 +207,6 @@ class ArmyCompositionManager(CachedClass):
         }
         default_ratio: float = default_marauder_ratio[self.wicked.matchup]
 
-        if (UnitTypeId.TEMPEST in self.wicked.scouting.known_enemy_composition):
-            return 0
-        if (UnitTypeId.TEMPEST in self.wicked.scouting.possible_enemy_composition):
-            default_ratio = 0.1
-
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             # default is 0 if we can't make medivacs yet and we're not in a precarious situation
             if (
@@ -292,13 +288,19 @@ class ArmyCompositionManager(CachedClass):
                 12 if self.bot.matchup == Matchup.TvZ else
                 15
             )
-            # Cap marauders if opponent has Brood Lords
-            if (UnitTypeId.BROODLORD in self.wicked.scouting.known_enemy_composition):
-                MAX_MARAUDER_COUNT = 5
-
+            
             # TvT is a special case: the cap always applies, regardless of Ghost availability
             if (self.bot.matchup == Matchup.TvT or UnitTypeId.GHOST in self.available_units):
                 marauder_count = min(MAX_MARAUDER_COUNT, marauder_count)
+            
+            # reduce marauders if opponent has Brood Lords or Tempests
+            if (
+                UnitTypeId.BROODLORD in self.wicked.scouting.known_enemy_composition
+                or UnitTypeId.TEMPEST in self.wicked.scouting.known_enemy_composition
+            ):
+                marauder_count = round(marauder_count * 0.75)
+            
+            
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
         # always add a minimum of the Ghost we own so far

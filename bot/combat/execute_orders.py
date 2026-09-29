@@ -165,9 +165,29 @@ class Execute(CachedClass):
         ground_units_to_pickup: Units = army.units.not_flying.filter(lambda unit: unit.type_id != UnitTypeId.SIEGETANKSIEGED)
         medivacs: Units = army.units(UnitTypeId.MEDIVAC)
         retreating_medivacs: Units = medivacs
+        cargo_one: list[UnitTypeId] = [
+            UnitTypeId.MARINE,
+            UnitTypeId.REAPER
+        ]
+        cargo_two: list[UnitTypeId] = [
+            UnitTypeId.MARAUDER,
+            UnitTypeId.GHOST,
+            UnitTypeId.HELLION, 
+            UnitTypeId.WIDOWMINE
+        ]
+        cargo_four: list[UnitTypeId] = [
+            UnitTypeId.HELLIONTANK,
+            UnitTypeId.SIEGETANK,
+            UnitTypeId.VIKINGASSAULT
+        ]
         if (ground_units_to_pickup.amount >= 1):
             # pickup units
-            minimum_cargo_slot: int = 1 if ground_units_to_pickup(UnitTypeId.MARINE).amount >= 1 else 2
+            minimum_cargo_slot: int = (
+                1 if ground_units_to_pickup(cargo_one).amount >= 1
+                else 2 if ground_units_to_pickup(cargo_two).amount >= 1
+                else 4 if ground_units_to_pickup(cargo_four).amount >= 1
+                else 8
+            )
             usable_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left >= 1 and unit.health_percentage >= 0.4)
             await self.pickup(usable_medivacs, ground_units_to_pickup)
             retreating_medivacs: Units = medivacs.filter(lambda unit: unit.cargo_left < minimum_cargo_slot or unit.health_percentage < 0.4)

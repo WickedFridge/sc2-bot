@@ -48,7 +48,7 @@ class DangerMap:
     # deserve some weight for worker-rush/drone-pull edge cases
     WORKER_DPS_FACTOR: float = 0.25
 
-    def get_unit_property(self, unit: Unit) -> tuple[Point2, float, float, float, float, float, float, float]:
+    def get_unit_property(self, unit: Unit | GhostUnit) -> tuple[Point2, float, float, float, float, float, float, float]:
         RADIUS_BUFFER: float = 1.1
 
         position: Point2 = unit.position
