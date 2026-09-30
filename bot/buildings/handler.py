@@ -454,6 +454,9 @@ class BuildingsHandler:
         ):
             return
 
+        if (self.bot.expansions.probably_free.amount == 0):
+            return
+        
         landing_spot: Point2 = self.bot.expansions.probably_free.next.position
         danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
         # enemy_units_around_spot: Units = self.bot.enemy_units.filter(lambda unit: unit.distance_to(landing_spot) < SAFETY_DISTANCE)

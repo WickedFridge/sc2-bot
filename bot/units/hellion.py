@@ -46,9 +46,9 @@ class Hellion(Train):
                     and facto.orders[0].progress >= 0.95
                 )
             )
-            and not self.bot.composition_manager.should_train(UnitTypeId.CYCLONE)
-            and not self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK)
-            and not self.bot.composition_manager.should_train(UnitTypeId.THOR)
+            # and not self.bot.composition_manager.should_train(UnitTypeId.CYCLONE)
+            # and not self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK)
+            # and not self.bot.composition_manager.should_train(UnitTypeId.THOR)
         )
     
     @property
