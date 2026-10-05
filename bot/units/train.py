@@ -85,7 +85,7 @@ class Train:
                 return resources_updated
             enough_resources: bool
             resources_updated: Resources
-            enough_resources, resources_updated = resources.update(self.training_cost)
+            enough_resources, resources_updated = resources_updated.update(self.training_cost)
             if (enough_resources == False):
                 return resources_updated            
             self.log(self.i)

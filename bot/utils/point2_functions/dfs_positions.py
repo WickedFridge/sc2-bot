@@ -1,5 +1,5 @@
 from collections import deque
-from typing import List, Optional
+from typing import Callable, Optional
 from bot.macro.map.influence_maps.layers.buildings_layer import ADDON_RADIUS
 from bot.macro.map.map import MapData, get_map
 from bot.utils.point2_functions.utils import addon_offset
@@ -17,7 +17,15 @@ def valid_building_position(bot: BotAI, position: Point2, unit_type: UnitTypeId,
     should_build: bool = map.influence_maps.buildings.should_build_building(position, unit_type, radius)    
     return should_build
 
-def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferred_direction: Optional[Point2] = None, radius: float = 1.5, has_addon: bool = False) -> Point2:
+def dfs_in_pathing(
+    bot: BotAI,
+    position: Point2,
+    unit_type: UnitTypeId,
+    preferred_direction: Optional[Point2] = None,
+    radius: float = 1.5,
+    has_addon: bool = False,
+    reject: Optional[Callable[[Point2], bool]] = None,
+) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
         The radius in tiles around the position to search for valid buildable positions."""
     size: int = int(round(radius * 2))
@@ -26,11 +34,16 @@ def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferre
         # Odd size (3x3, 5x5) → rounded_half, Even size (2x2) → rounded
         return p.rounded_half if (size % 2 != 0) else p.rounded
 
+    def is_valid(p: Point2) -> bool:
+        if (reject is not None and reject(p)):
+            return False
+        return valid_building_position(bot, p, unit_type, radius, has_addon)
+   
     position = normalize(position)
 
 
     # If already valid, return it
-    if (valid_building_position(bot, position, unit_type, radius, has_addon)):
+    if (is_valid(position)):
         return position
     
     if (preferred_direction is None):
@@ -73,7 +86,7 @@ def dfs_in_pathing(bot: BotAI, position: Point2, unit_type: UnitTypeId, preferre
             visited.add(neighbor)
 
             # If it's a valid buildable position, return it
-            if (valid_building_position(bot, neighbor, unit_type, radius, has_addon)):
+            if (is_valid(neighbor)):
                 return neighbor
 
             # Otherwise, continue expanding

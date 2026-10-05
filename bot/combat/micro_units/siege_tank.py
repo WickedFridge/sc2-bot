@@ -46,10 +46,13 @@ class MicroSiegeTank(MicroUnit):
     
     def switch_mode(self, tank: Unit, enemies_close: Units, buildings_only: bool = False, visible_only: bool = False) -> bool:
         # don't siege too close to another tank
+        local_enemy_tanks: Units = self.bot.enemy_units.closer_than(15, tank)([UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED])
+        min_siege_space: float = self.MIN_SIEGE_SPACE if not local_enemy_tanks.amount else 0
+        
         other_tank_sieged_close: Units = self.bot.units.filter(
             lambda other: (
                 other.tag != tank.tag
-                and tank.distance_to(other) <= self.MIN_SIEGE_SPACE + tank.radius + other.radius
+                and tank.distance_to(other) <= min_siege_space + tank.radius + other.radius
                 and (
                     other.type_id == UnitTypeId.SIEGETANKSIEGED
                     or (

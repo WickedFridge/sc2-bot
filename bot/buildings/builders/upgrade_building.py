@@ -28,7 +28,7 @@ class UpgradeBuilding(Building):
         for cc in self.base_buildings:
             enough_resources: bool
             resources_updated: Resources
-            enough_resources, resources_updated = resources.update(building_cost)
+            enough_resources, resources_updated = resources_updated.update(building_cost)
             if (enough_resources == False):
                 return resources_updated
             cc(self.abilityId)

@@ -132,12 +132,20 @@ class ArmyCompositionManager(CachedClass):
     def hellion_amount(self) -> int:
         if (UnitTypeId.HELLION not in self.available_units or self.bot.matchup != Matchup.TvZ):
             return 0
-        enemy_zergling_amount: int = self.wicked.scouting.known_enemy_army.units(UnitTypeId.ZERGLING).amount
-        if (enemy_zergling_amount < 40 and enemy_zergling_amount < 2 * self.wicked.scouting.known_enemy_army.units.amount):
+        lingbane_types: List[UnitTypeId] = [
+            UnitTypeId.ZERGLING,
+            UnitTypeId.BANELING,
+            UnitTypeId.ZERGLINGBURROWED,
+            UnitTypeId.BANELINGCOCOON
+        ]
+        enemy_lingbane_amount: int = self.wicked.scouting.known_enemy_army.units(lingbane_types).amount
+        
+        if (enemy_lingbane_amount < 30 and enemy_lingbane_amount < 2 * self.wicked.scouting.known_enemy_army.units.amount):
             return 0
-        # we want 1 hellion for every 6 zerglings, up to a max of 10 hellions
-        max_hellion_amount: int = 10
-        return min(max_hellion_amount, round(enemy_zergling_amount / 6))
+        
+        # we want 1 hellion for every 6 zerglings, up to a max of 12 hellions
+        max_hellion_amount: int = 12
+        return min(max_hellion_amount, round(enemy_lingbane_amount / 6))
 
     @property
     def cyclone_amount(self) -> int:

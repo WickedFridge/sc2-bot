@@ -10,7 +10,7 @@ from bot.utils.ability_tags import AbilityRepair
 from bot.utils.defend_worker_rush import wall_is_up
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
-from bot.utils.point2_functions.utils import center, points_to_build_addon
+from bot.utils.point2_functions.utils import addon_offset, center, points_to_build_addon
 from bot.utils.unit_functions import is_being_constructed
 from sc2.game_state import EffectData
 from sc2.ids.ability_id import AbilityId
@@ -602,8 +602,31 @@ class BuildingsHandler:
         )
         free_addons_count: int = free_addons.amount
 
+        # Type générique d'addon que la factory a le droit de prendre
+        # factory_wanted_addon: UnitTypeId = (
+        #     UnitTypeId.REACTOR
+        #     if self.bot.builder.factory_reactor.next_addon == UnitTypeId.FACTORYREACTOR
+        #     else UnitTypeId.TECHLAB
+        # )
+
         for flying_building in add_on_steal_candidates:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
+
+            # Les factories ne peuvent voler que l'addon "next" ; les autres, n'importe lequel
+            stealable: list[Unit] = [
+                addon for addon in free_addons
+                if (
+                    flying_building.type_id != UnitTypeId.FACTORYFLYING
+                    or addon.type_id == UnitTypeId.TECHLAB
+                )
+            ]
+            if (stealable):
+                addon_to_land: Unit = min(stealable, key=lambda addon: addon.distance_to(flying_building))
+                free_addons.remove(addon_to_land)
+                free_addons_count = free_addons.amount
+                print(f"[reposition_buildings] Landing {flying_building.name} (stealing add-on {addon_to_land.type_id})")
+                flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
+                continue
 
             # factory shouldn't steal reactors, so we prevent them all stealing
             if (free_addons_count >= 1 and flying_building.type_id != UnitTypeId.FACTORYFLYING):
@@ -619,6 +642,17 @@ class BuildingsHandler:
                 flying_building(AbilityId.LAND, wall_position)
                 continue
 
+            existing_addons: Units = self.bot.structures(add_ons)
+
+            def addon_already_there(building_position: Point2) -> bool:
+                # l'addon (2x2) du bâtiment candidat chevaucherait/rejoindrait un addon existant
+                candidate_addon: Point2 = addon_offset(building_position)
+                return any(
+                    abs(candidate_addon.x - addon.position.x) < 2
+                    and abs(candidate_addon.y - addon.position.y) < 2
+                    for addon in existing_addons
+                )
+            
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
                 flying_building.position,
@@ -626,6 +660,7 @@ class BuildingsHandler:
                 self.bot.game_info.map_center,
                 1.5,
                 True,
+                reject=addon_already_there,
             )
             print(f"[reposition_buildings] Landing {flying_building.name}")
             flying_building(AbilityId.LAND, land_position)
@@ -654,6 +689,7 @@ class BuildingsHandler:
         # lift factories with reactor once the build is completed when we shouldn't have one
         if (
             not self.bot.build_order.build.is_completed
+            or self.bot.structures(UnitTypeId.FACTORYTECHLAB).amount >= 1
             or self.bot.structures(UnitTypeId.FACTORYREACTOR).amount == 0
         ):
             return

@@ -4,6 +4,7 @@ from bot.combat.micro_units.bio_unit import MicroBioUnit
 from bot.combat.micro_units.micro_unit import MicroUnit
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
+from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
 
@@ -65,7 +66,10 @@ class MicroGhost(MicroBioUnit):
             lambda enemy_unit: (
                 enemy_unit.is_biological
                 and enemy_unit.health + enemy_unit.shield >= GHOST_SNIPE_THRESHOLD
-                and not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
+                and (
+                    enemy_unit.type_id == UnitTypeId.ULTRALISK
+                    or not enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT)
+                )
                 and (
                     enemy_unit.tag not in self.snipe_targets.keys()
                     or self.snipe_targets[enemy_unit.tag] < MAXIMUM_SNIPE_COUNT
