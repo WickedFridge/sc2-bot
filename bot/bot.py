@@ -19,6 +19,7 @@ from bot.technology.search import Search
 from bot.units.trainer import Trainer
 from bot.strategy.build_order.addon_swap import AddonSwapManager
 from bot.utils.matchup import Matchup, get_matchup
+from bot.utils.step_profiler import StepProfiler
 from sc2.bot_ai import Race
 from sc2.data import Result
 from sc2.ids.unit_typeid import UnitTypeId
@@ -57,6 +58,7 @@ class WickedBot(Superbot):
         self.debug = Debug(self)
         # self.analytics = Analytics(self)
         self.structures_memory: Units = Units([], self)
+        self.profiler: StepProfiler = StepProfiler()
 
     @property
     @override
@@ -146,6 +148,8 @@ class WickedBot(Superbot):
             # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
         
         start_time: float = perf_counter()
+        profiler: StepProfiler = self.profiler
+        profiler.start()
         await self.check_surrend_condition()
         # Update random tag
         if (self.tag_to_update):
@@ -156,12 +160,14 @@ class WickedBot(Superbot):
         self.expansions.update_scout_status()
         self.map.influence_maps.update()
         self.ghost_units.update_ghost_units()
+        profiler.mark('update_maps')
         
         # General Worker management
         await self.macro.speed_mining.execute()
         await self.macro.distribute_workers(iteration)
         await self.macro.mule_idle()
         await self.macro.unbug_workers()
+        profiler.mark('workers')
         
         # Assement of the situation
         self.scouting.detect_enemy_army()
@@ -171,6 +177,7 @@ class WickedBot(Superbot):
         await self.strategy.update_situation()
         await self.macro.update_threat_level()
         self.composition_manager.update_composition()
+        profiler.mark('situation')
         
         # Specific Worker Management & Strategy updates
         await self.macro.workers_response_to_threat()
@@ -181,6 +188,7 @@ class WickedBot(Superbot):
         await self.builder.supply_depot.move_worker_first()
         await self.builder.command_center.move_worker_expand()
         await self.scouting.scout_proxy()
+        profiler.mark('strategy')
 
         # Control buildings
         self.buildings.reserve_bunkers()
@@ -190,15 +198,22 @@ class WickedBot(Superbot):
         await self.buildings.rally_points()
         await self.buildings.lift_townhalls()
         await self.buildings.land_townhalls()
+        profiler.mark('buildings')
         self.addon_swap.on_step()
+        profiler.mark('addon_swap')
         await self.buildings.reposition_buildings()
+        profiler.mark('reposition_buildings')
         await self.buildings.salvage_bunkers()
+        profiler.mark('salvage_bunkers')
         
         # Control Attacking Units
         await self.combat.select_orders(iteration)
+        profiler.mark('combat.select_orders')
         await self.combat.execute_orders()
+        profiler.mark('combat.execute_orders')
         await self.combat.handle_bunkers()
         await self.combat.micro_planetary_fortresses()
+        profiler.mark('combat.misc')
 
         # priority for a CC if bases are saturated
         optimal_worker_count: float = (
@@ -298,11 +313,13 @@ class WickedBot(Superbot):
             if (resources.is_short_both):
                 break
             resources = await money_spender(resources)
+            profiler.mark(f'spend.{type(getattr(money_spender, "__self__", money_spender)).__name__}')
 
 
         # Debug stuff
         
         end_time: float = perf_counter()
+        profiler.mark('spend')
         await self.debug.drop_path()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
@@ -350,6 +367,8 @@ class WickedBot(Superbot):
         await self.debug.build_order()
         await self.debug.composition_manager()
         await self.debug.composition_priorities()
+        profiler.mark('debug')
+        profiler.end(iteration, self.time)
         
         self.client.debug_text_screen(
             f'Step Time: {(end_time - start_time)*1000:.2f} ms',

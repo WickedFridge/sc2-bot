@@ -152,7 +152,10 @@ class AddonSwapManager:
                 grounded(LIFT_ABILITY[swap.donor_type])
             return
 
-        if (not swap.donor_flying.is_moving):
+        # Only issue the land order once: a flying building that is landing is not
+        # "moving" (its order is LAND, not MOVE), so checking is_moving re-issued
+        # the order every step and kept resetting the landing.
+        if (not swap.donor_flying.orders):
             top_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
             land_position: Point2 = dfs_in_pathing(
                 self.bot,
@@ -228,7 +231,9 @@ class AddonSwapManager:
             swap.state = SwapState.DONE
             return
 
-        if (swap.donor_flying.is_moving):
+        # Still moving or landing — wait. If the land order fails (spot blocked),
+        # the building becomes idle and we pick a new spot on the next step.
+        if (swap.donor_flying.orders):
             return
 
         top_position: Point2 = swap.donor_original_position + Point2((0, -2.5))
