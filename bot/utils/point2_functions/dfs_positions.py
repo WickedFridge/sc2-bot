@@ -25,10 +25,15 @@ def dfs_in_pathing(
     radius: float = 1.5,
     has_addon: bool = False,
     reject: Optional[Callable[[Point2], bool]] = None,
+    max_distance: int = 30,
 ) -> Point2:
     """ Find a valid buildable position around the given position using BFS.
-        The radius in tiles around the position to search for valid buildable positions."""
+        The radius in tiles around the position to search for valid buildable positions.
+        The search stays inside the map and within max_distance tiles (Manhattan) of the
+        start, so it always terminates quickly; returns the start position if nothing is found."""
     size: int = int(round(radius * 2))
+    map_width: int = bot.game_info.pathing_grid.width
+    map_height: int = bot.game_info.pathing_grid.height
     
     def normalize(p: Point2) -> Point2:
         # Odd size (3x3, 5x5) → rounded_half, Even size (2x2) → rounded
@@ -40,7 +45,14 @@ def dfs_in_pathing(
         return valid_building_position(bot, p, unit_type, radius, has_addon)
    
     position = normalize(position)
+    start: Point2 = position
 
+    def in_search_area(p: Point2) -> bool:
+        return (
+            0 <= p.x < map_width
+            and 0 <= p.y < map_height
+            and abs(p.x - start.x) + abs(p.y - start.y) <= max_distance
+        )
 
     # If already valid, return it
     if (is_valid(position)):
@@ -84,6 +96,9 @@ def dfs_in_pathing(
                 continue  # Skip already checked locations
             
             visited.add(neighbor)
+
+            if (not in_search_area(neighbor)):
+                continue
 
             # If it's a valid buildable position, return it
             if (is_valid(neighbor)):

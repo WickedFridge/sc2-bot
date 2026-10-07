@@ -422,6 +422,13 @@ class Expansion(CachedClass):
                 
                 visited.add(neighbor)
 
+                # Stay inside the map (in_placement_grid asserts on out-of-bounds points)
+                if not (
+                    0 <= neighbor.x < self.bot.game_info.placement_grid.width
+                    and 0 <= neighbor.y < self.bot.game_info.placement_grid.height
+                ):
+                    continue
+
                 # If it's a valid buildable position, return it
                 if self.bot.in_placement_grid(neighbor):
                     return neighbor
