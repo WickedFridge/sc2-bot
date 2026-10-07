@@ -416,6 +416,11 @@ class Debug:
             # Draw on SC2 world
             self.draw_text_on_world(world_pos, 'X', GREEN)
 
+        if (self.bot.map.influence_maps.detection.detected[center] == 1):
+            self.draw_text_on_world(center, 'X', GREEN)
+        else:
+            self.draw_text_on_world(center, 'O', RED)
+
     
     def free_bases(self):
         for expansion in self.bot.expansions:

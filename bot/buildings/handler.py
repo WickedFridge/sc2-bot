@@ -385,18 +385,17 @@ class BuildingsHandler:
         # find invisible enemy unit that we should kill
         enemy_units_to_scan: Units = self.bot.enemy_units.filter(
             lambda unit: (
-                unit.is_cloaked or unit.is_burrowed
+                (unit.is_cloaked or unit.is_burrowed)
                 and detection_layer.detected[unit.position] == 0
             )
         )
         ghost_units_to_scan: GhostUnits = self.bot.ghost_units.assumed_enemy_units.filter(
              lambda unit: (
-                unit.is_cloaked or unit.is_burrowed
+                (unit.is_cloaked or unit.is_burrowed)
                 and detection_layer.detected[unit.position] == 0
             )
         )
         aggregated_enemis_to_scan: List[Unit | GhostUnit] = list(enemy_units_to_scan) + list(ghost_units_to_scan)
-        # TODO : lurker spines means burrowed lurker
         
         # invisible enemy units we should scan are in range of our fighting units
         for enemy_unit in aggregated_enemis_to_scan:
