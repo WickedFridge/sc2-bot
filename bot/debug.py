@@ -457,9 +457,21 @@ class Debug:
                 print("loaded units: ", passengers)
 
     def tag(self):
+            selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+            for unit in selected_units:
+                self.draw_text_on_world(unit.position, f'Tag: {unit.tag}', ORANGE)
+    
+    def build_progress(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         for unit in selected_units:
-            self.draw_text_on_world(unit.position, f'Tag: {unit.tag}', ORANGE)
+            self.draw_text_on_world(unit.position, f'Build Progress: {unit.build_progress}', ORANGE)
+    
+    def order_progress(self):
+            selected_units: Units = self.bot.units.selected + self.bot.structures.selected
+            for unit in selected_units:
+                if (unit.orders):
+                    self.draw_text_on_world(unit.position, f'Order Progress: {unit.orders[0].progress}', ORANGE)
+
 
     def radius(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected

@@ -120,6 +120,10 @@ class GhostUnits:
         point: Point2 = position.position if isinstance(position, Unit) else position
         return min(self.ghost_units, key=lambda g: g.position.distance_to(point))
     
+    def closer_than(self, distance: float, position: Point2 | Unit) -> GhostUnits:
+        point: Point2 = position.position if isinstance(position, Unit) else position
+        return self.filter(lambda g: g.position.distance_to(point) < distance)
+    
     def find_by_tag(self, tag: int) -> Optional[GhostUnit]:
         """
         :param tag:

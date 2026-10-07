@@ -77,6 +77,9 @@ class StrategyHandler:
             self.confirmed_cheese_time = None
 
         situation: Situation = self.detect_situation()
+        # once a specific cheese has been identified, we shouldn't fall back to an unknown cheese
+        if (situation == Situation.CHEESE_UNKNOWN and self._specific_cheese_identified()):
+            situation = Situation.STABLE
         if (situation.is_cheese):
             if (situation != self.confirmed_cheese):
                 self.confirmed_cheese_time = self.bot.time
@@ -85,6 +88,13 @@ class StrategyHandler:
         if (self.confirmed_cheese is not None):
             return self.confirmed_cheese
         return situation
+
+    def _specific_cheese_identified(self) -> bool:
+        return any(
+            situation.is_cheese and situation != Situation.CHEESE_UNKNOWN
+            for situation in self.situation_history + [self.confirmed_cheese]
+            if situation is not None
+        )
 
     def _exit_condition_met(self, situation: Situation) -> bool:
         if (self._default_cheese_exit):

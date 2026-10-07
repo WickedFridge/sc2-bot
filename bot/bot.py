@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.2.0"
+VERSION: str = "13.2.2"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -160,6 +160,7 @@ class WickedBot(Superbot):
         self.expansions.update_scout_status()
         self.map.influence_maps.update()
         self.ghost_units.update_ghost_units()
+        self.buildings.update_townhall_upgrades()
         profiler.mark('update_maps')
         
         # General Worker management
@@ -333,7 +334,7 @@ class WickedBot(Superbot):
         # await self.debug.bases_distance()
         # await self.debug.selection()
         # self.debug.type_id()
-        self.debug.weapon_cooldown()
+        # self.debug.weapon_cooldown()
         # self.debug.orders()
         # self.debug.buffs()
         # self.debug.wall()
@@ -347,6 +348,7 @@ class WickedBot(Superbot):
         # self.debug.effects()
         # self.debug.danger_map()
         self.debug.free_bases()
+        # self.debug.order_progress()
         # self.debug.danger_trajectories()
         # self.debug.invisible_units()
         # self.debug.tag()

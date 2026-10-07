@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from attr import dataclass
 from bot.army_composition.army_composition_manager import ArmyCompositionManager
@@ -18,8 +18,12 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.units import Units
 
+if TYPE_CHECKING:
+    from bot.buildings.handler import BuildingsHandler  # circular import, type hints only
+
 class Superbot(BotAI):
     addon_swap: AddonSwapManager
+    buildings: BuildingsHandler
     
     @property
     def matchup(self) -> Matchup:

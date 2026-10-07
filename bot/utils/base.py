@@ -453,9 +453,15 @@ class Base:
         # if cc isn't a PF or the main, lift it
         if (self.cc.type_id == UnitTypeId.PLANETARYFORTRESS or self.cc.position == self.bot.expansions.main.position):
             return
-        print("Lifting CC to evacuate")
+        # stop doesn't cancel a morph, it needs its own cancel ability
+        if (self.bot.buildings.cancel_upgrade(self.cc)):
+            print("Cancelling Orbital/PF to evacuate")
+            return
         if (not self.cc.is_idle):
-            self.cc.stop()
+            print("Canceling SCV")
+            # self.cc(AbilityId.CANCEL)
+            self.cc(AbilityId.CANCEL_LAST)
+            # self.cc(AbilityId.CANCEL_SLOT)
             return
         if (self.cc.type_id == UnitTypeId.ORBITALCOMMAND):
             self.cc(AbilityId.LIFT_ORBITALCOMMAND)

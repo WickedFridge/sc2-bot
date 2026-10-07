@@ -23,14 +23,71 @@ from sc2.unit import Unit
 from sc2.units import Units
 from ..utils.unit_tags import must_repair, add_ons, worker_types, menacing, creep, cloaked_units, burrowed_units, production_flying
 
+TOWNHALL_UPGRADES: dict[AbilityId, UnitTypeId] = {
+    AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND: UnitTypeId.ORBITALCOMMAND,
+    AbilityId.UPGRADETOPLANETARYFORTRESS_PLANETARYFORTRESS: UnitTypeId.PLANETARYFORTRESS,
+}
+
+# morph durations in game loops (22.4 loops per second)
+TOWNHALL_UPGRADE_DURATIONS: dict[UnitTypeId, float] = {
+    UnitTypeId.ORBITALCOMMAND: 25 * 22.4,
+    UnitTypeId.PLANETARYFORTRESS: 36 * 22.4,
+}
+
+TOWNHALL_UPGRADE_CANCELS: dict[UnitTypeId, AbilityId] = {
+    UnitTypeId.ORBITALCOMMAND: AbilityId.CANCEL_MORPHORBITAL,
+    UnitTypeId.PLANETARYFORTRESS: AbilityId.CANCEL_MORPHPLANETARYFORTRESS,
+}
+
 class BuildingsHandler:
     bot: Superbot
     DANGER_THRESHOLD: float = 8
+    # tag -> game loop at which the townhall morph started
+    townhall_upgrades_start: dict[int, int]
 
     def __init__(self, bot) -> None:
         super().__init__()
         self.bot = bot
-    
+        self.townhall_upgrades_start = {}
+
+    def update_townhall_upgrades(self) -> None:
+        """Track when Command Centers start morphing, since the API doesn't report morph progress."""
+        upgrading_tags: Set[int] = set()
+        for command_center in self.bot.townhalls(UnitTypeId.COMMANDCENTER):
+            if (self.upgrade_type(command_center) is None):
+                continue
+            upgrading_tags.add(command_center.tag)
+            self.townhall_upgrades_start.setdefault(command_center.tag, self.bot.state.game_loop)
+
+        # morph completed, cancelled or CC destroyed
+        for tag in list(self.townhall_upgrades_start):
+            if (tag not in upgrading_tags):
+                del self.townhall_upgrades_start[tag]
+
+    def upgrade_type(self, command_center: Unit) -> UnitTypeId | None:
+        """Return ORBITALCOMMAND or PLANETARYFORTRESS if the Command Center is morphing, None otherwise."""
+        if (len(command_center.orders) == 0):
+            return None
+        return TOWNHALL_UPGRADES.get(command_center.orders[0].ability.id)
+
+    def upgrade_progress(self, command_center: Unit) -> float:
+        """Return the morph progress between 0 and 1, 1 if no morph is in progress."""
+        upgrade_type: UnitTypeId | None = self.upgrade_type(command_center)
+        if (upgrade_type is None):
+            return 1
+        start: int = self.townhall_upgrades_start.get(command_center.tag, self.bot.state.game_loop)
+        elapsed: int = self.bot.state.game_loop - start
+        return min(1, elapsed / TOWNHALL_UPGRADE_DURATIONS[upgrade_type])
+
+    def cancel_upgrade(self, command_center: Unit) -> bool:
+        """Cancel the Orbital / Planetary Fortress morph if any. Returns True if a cancel was issued."""
+        upgrade_type: UnitTypeId | None = self.upgrade_type(command_center)
+        if (upgrade_type is None):
+            return False
+        print(f'Canceling morph of {upgrade_type.name}')
+        command_center(TOWNHALL_UPGRADE_CANCELS[upgrade_type])
+        return True
+
     async def finish_construction(self):
         if (self.bot.workers.collecting.amount == 0):
             return
@@ -47,6 +104,14 @@ class BuildingsHandler:
 
 
         for incomplete_building in incomplete_buildings:
+            units_around: Units = self.bot.units.closer_than(10, incomplete_building)
+            danger_around: float = self.bot.map.influence_maps.average_danger_around(incomplete_building.position, radius=10, air=False)
+            if (
+                units_around.amount == 0
+                and danger_around >= self.DANGER_THRESHOLD
+            ):
+                print(f"don't finish {incomplete_building.name}, danger around [{danger_around:.2f}]")
+                continue
             closest_worker: Unit = self.bot.workers.collecting.closest_to(incomplete_building)
             print("ordering SCV to finish", incomplete_building.name)
             closest_worker.smart(incomplete_building)
@@ -157,7 +222,24 @@ class BuildingsHandler:
             )
         )
         for building in incomplete_buildings:
+            print("Canceling building", building.name)
             building(AbilityId.CANCEL_BUILDINPROGRESS)
+        
+        unfinished_upgraded_ccs: Units = self.bot.structures(UnitTypeId.COMMANDCENTER).filter(
+            lambda structure: (
+                self.upgrade_type(structure) is not None
+                and self.upgrade_progress(structure) < 1
+                and (
+                    (structure.health < 100 and structure.health_percentage < 0.1)
+                    or (
+                        structure.health_percentage < 0.3
+                        and self.bot.scouting.situation.is_precarious
+                    )
+                )
+            )
+        )
+        for cc in unfinished_upgraded_ccs:
+            self.cancel_upgrade(cc)
     
     async def morph_orbitals(self):
         if (self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9):
@@ -514,13 +596,33 @@ class BuildingsHandler:
                     continue
             
             expansions_with_resources: Expansions = self.bot.expansions.with_resources
-            landing_spot: Point2 = (
-                townhall.orders[0].target if len(townhall.orders) >= 1 and townhall.orders[0].ability.id == AbilityId.LAND
-                else expansions_with_resources.next.position if flying_townhall.amount == 1
+            expansion_spot: Point2 = (
+                expansions_with_resources.next.position if flying_townhall.amount == 1
                 else expansions_with_resources.probably_free.closest_to(townhall.position).position if expansions_with_resources.probably_free.amount >= 1
                 else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
                 else self.bot.expansions.main.position
             )
+            is_landing: bool = len(townhall.orders) >= 1 and townhall.orders[0].ability.id == AbilityId.LAND
+
+            # townhall is landing on a safe spot (not an expansion slot) : redirect it to the expansion if it became safe
+            if (
+                is_landing
+                and isinstance(townhall.orders[0].target, Point2)
+                and townhall.orders[0].target not in self.bot.expansions.positions
+            ):
+                if (
+                    not self.bot.is_visible(expansion_spot)
+                    or self.bot.map.influence_maps.average_danger_around(expansion_spot, radius=10, air=False) >= self.DANGER_THRESHOLD
+                ):
+                    continue
+                print("Expansion is safe again, redirect townhall")
+                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
+                    townhall(AbilityId.LAND_COMMANDCENTER, expansion_spot)
+                else:
+                    townhall(AbilityId.LAND_ORBITALCOMMAND, expansion_spot)
+                continue
+
+            landing_spot: Point2 = townhall.orders[0].target if is_landing else expansion_spot
             danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
             if (danger_around < self.DANGER_THRESHOLD):
                 if (not townhall.is_idle):
