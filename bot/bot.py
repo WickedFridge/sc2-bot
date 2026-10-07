@@ -27,7 +27,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.1.0"
+VERSION: str = "13.2.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -225,7 +225,7 @@ class WickedBot(Superbot):
             + sum(expansion.vespene_worker_count for expansion in self.expansions.taken)
         )
         are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
-        has_additional_townhalls: bool = self.townhalls.amount >= self.expansions.taken.amount
+        has_additional_townhalls: bool = self.townhalls.amount > self.expansions.taken.amount
 
         # Spend Money
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
