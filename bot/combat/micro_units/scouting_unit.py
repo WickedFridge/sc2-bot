@@ -1,4 +1,4 @@
-from typing import override
+from typing import Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
@@ -14,14 +14,11 @@ class MicroScoutingUnit(MicroUnit):
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
         enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
         if (enemy_ground.amount == 0):
-            enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.sorted(
-                lambda ghost_unit: unit.distance_to(ghost_unit.position)
-            )
-            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD or enemy_ghosts.amount == 0):
+            closest_ghost_unit: Optional[GhostUnit] = self.closest_local_ghost(unit)
+            if (unit.weapon_cooldown > self.WEAPON_READY_THRESHOLD or closest_ghost_unit is None):
                 safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
                 unit.move(safest_spot)
                 return
-            closest_ghost_unit: GhostUnit = enemy_ghosts.first
             unit.attack(closest_ghost_unit.position)
             return
 
@@ -59,8 +56,12 @@ class MicroScoutingUnit(MicroUnit):
        # --- CASE 2: Long cooldown → retreat & wait ---
         else:
             closest_enemy: Unit = enemy_ground.closest_to(unit)
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, closest_enemy)
-            unit.move(safest_spot)
+            if (threats.amount >= 1):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, closest_enemy)
+                unit.move(safest_spot)
+            else:
+                best_attacking_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, closest_enemy, risk=1)
+                unit.move(best_attacking_spot)
 
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):

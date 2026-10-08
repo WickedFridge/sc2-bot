@@ -7,6 +7,8 @@ from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
+from sc2.units import Units
+from ...utils.point2_functions.utils import center
 from ...utils.unit_tags import burrowed_units
 
 @dataclass
@@ -71,6 +73,9 @@ class GhostUnits:
     def __iter__(self) -> Generator[GhostUnit, None, None]:
         return iter(self.ghost_units)
     
+    def __len__(self) -> int:
+        return len(self.ghost_units)
+
     def __getitem__(self, index: int) -> GhostUnit:
         return self.ghost_units[index]
     
@@ -124,6 +129,26 @@ class GhostUnits:
         point: Point2 = position.position if isinstance(position, Unit) else position
         return self.filter(lambda g: g.position.distance_to(point) < distance)
     
+    def in_distance_of_group(self, other_units: Units, distance: float) -> GhostUnits:
+        """Returns ghost units that are closer than distance from any unit in the other units object.
+
+        :param other_units:
+        :param distance:
+        """
+        assert other_units, "Other units object is empty"
+        # Return self because there are no ghosts
+        if not self:
+            return self
+        distance_squared = distance**2
+        # Ghosts aren't in the bot's pdist cache, so compute distances from raw positions
+        other_positions = [other_unit.position_tuple for other_unit in other_units]
+        return self.filter(
+            lambda ghost: any(
+                self.bot.distance_math_hypot_squared(ghost.position, other_position) < distance_squared
+                for other_position in other_positions
+            )
+        )
+    
     def find_by_tag(self, tag: int) -> Optional[GhostUnit]:
         """
         :param tag:
@@ -137,6 +162,14 @@ class GhostUnits:
     def first(self) -> GhostUnit:
         return self.ghost_units[0]
     
+    @property
+    def center(self) -> Point2:
+        """ Returns the central position of all ghost units. """
+        assert self.ghost_units, "Ghost units object is empty"
+        ghosts_center: Optional[Point2] = center([ghost.position for ghost in self.ghost_units])
+        assert ghosts_center is not None
+        return ghosts_center
+
     @property
     def tags(self) -> Set[int]:
         """ Returns all unit tags as a set. """

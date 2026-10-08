@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
@@ -28,6 +28,8 @@ class MicroUnit(CachedClass):
     bonus_against_ground_mechanical: bool = False
     bonus_against_air_massive: bool = False    
     PICKUP_RANGE: int = 3
+    # Don't chase ghost units (last known positions) further than this
+    GHOST_CHASE_RANGE: float = 20
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -59,7 +61,13 @@ class MicroUnit(CachedClass):
             (enemy.is_flying == False and unit.can_attack_ground)
             or (enemy.is_flying == True and unit.can_attack_air)
         )
-    
+
+    def closest_local_ghost(self, unit: Unit) -> Optional[GhostUnit]:
+        local_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.closer_than(self.GHOST_CHASE_RANGE, unit)
+        if (local_ghosts.amount == 0):
+            return None
+        return local_ghosts.closest_to(unit)
+
     def filter_bonus_damage(self, unit: Unit) -> bool:
         if (unit.is_light and unit.is_flying and self.bonus_against_air_light):
             return True
@@ -205,12 +213,21 @@ class MicroUnit(CachedClass):
                 return self.bot.expansions.last_taken.retreat_position
             second_to_last_taken_expansion: Expansion = self.bot.expansions.taken[-2]
             return center([self.bot.expansions.last_taken.position, second_to_last_taken_expansion.position])
+        
         # if one of our expand is getting harassed, choose this one
         if (self.bot.enemy_units.amount >= 1):
             # select enemy harassing
             enemy_units_harassing: Units = self.bot.enemy_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
             if (enemy_units_harassing.amount >= 1):
                 return self.bot.expansions.taken.closest_to(enemy_units_harassing.center).retreat_position
+        
+        # if one of our expand is getting harassed by ghost units (probably Lurkers or burrowed Zerglings), choose this one
+        if (self.bot.ghost_units.assumed_enemy_units.amount >= 1):
+            # select ghost of enemy harassing
+            enemy_ghosts_harassing: GhostUnits = self.bot.ghost_units.assumed_enemy_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
+            if (enemy_ghosts_harassing.amount >= 1):
+                return self.bot.expansions.taken.closest_to(enemy_ghosts_harassing.center).retreat_position
+
         return self.bot.expansions.taken.without_main.closest_to(self.bot.scouting.known_enemy_army.center).retreat_position
     
         
@@ -331,14 +348,11 @@ class MicroUnit(CachedClass):
             closest_enemy_unit: Unit = attackable_enemies.closest_to(unit)
             unit.attack(closest_enemy_unit)
             return
-        enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.sorted(
-            lambda ghost_unit: unit.distance_to(ghost_unit.position)
-        )
-        if (enemy_ghosts.amount == 0):
+        closest_ghost_unit: Optional[GhostUnit] = self.closest_local_ghost(unit)
+        if (closest_ghost_unit is None):
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(unit)
             unit.move(safest_spot)
             return
-        closest_ghost_unit: GhostUnit = enemy_ghosts.first
         unit.attack(closest_ghost_unit.position)
 
     async def fight_defense(self, unit: Unit, local_units: Units):

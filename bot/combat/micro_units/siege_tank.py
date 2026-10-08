@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, override
+from typing import List, Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.scouting.ghost_units.ghost_units import GhostUnit
@@ -125,8 +125,8 @@ class MicroSiegeTank(MicroUnit):
             tank.move(closest_enemy.position)
             return
 
-        if (self.bot.ghost_units.assumed_enemy_units.amount >= 1):
-            closest_ghost: GhostUnit = self.bot.ghost_units.assumed_enemy_units.closest_to(tank)
+        closest_ghost: Optional[GhostUnit] = self.closest_local_ghost(tank)
+        if (closest_ghost is not None):
             tank.move(closest_ghost.position)
             return
 

@@ -14,6 +14,7 @@ from bot.scouting.ghost_units.manager import GhostUnitsManager, get_ghost_units
 from bot.scouting.scouting import Scouting, get_scouting
 from bot.strategy.build_order.manager import BuildOrderManager, get_build_order
 from bot.strategy.handler import StrategyHandler, get_strategy
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.technology.search import Search
 from bot.units.trainer import Trainer
@@ -27,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.2.3"
+VERSION: str = "13.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -116,6 +117,27 @@ class WickedBot(Superbot):
         print(f'Game started, version {VERSION}')
         await self.macro.split_workers()
 
+    @property
+    def should_build_cc(self) -> bool:
+        # priority for a CC if bases are saturated
+        optimal_worker_count: float = (
+            sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
+            + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
+        )
+        current_worker_count: float = (
+            sum(expansion.mineral_worker_count for expansion in self.expansions.taken)
+            + sum(expansion.vespene_worker_count for expansion in self.expansions.taken)
+        )
+        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+        has_additional_townhalls: bool = self.townhalls.amount > self.expansions.taken.amount
+        
+        return (
+            self.build_order.build.is_completed
+            and self.scouting.situation == Situation.STABLE
+            and are_bases_saturated
+            and not has_additional_townhalls
+        )
+    
     @override
     async def on_step(self, iteration: int):
         """
@@ -194,7 +216,7 @@ class WickedBot(Superbot):
         # Control buildings
         self.buildings.reserve_bunkers()
         await self.buildings.scan()
-        # await self.buildings.drop_mules()
+        await self.buildings.drop_mules()
         await self.buildings.handle_supplies()
         await self.buildings.rally_points()
         await self.buildings.lift_townhalls()
@@ -216,22 +238,11 @@ class WickedBot(Superbot):
         await self.combat.micro_planetary_fortresses()
         profiler.mark('combat.misc')
 
-        # priority for a CC if bases are saturated
-        optimal_worker_count: float = (
-            sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
-            + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
-        )
-        current_worker_count: float = (
-            sum(expansion.mineral_worker_count for expansion in self.expansions.taken)
-            + sum(expansion.vespene_worker_count for expansion in self.expansions.taken)
-        )
-        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
-        has_additional_townhalls: bool = self.townhalls.amount > self.expansions.taken.amount
-
+        
         # Spend Money
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
 
-        if (are_bases_saturated and not has_additional_townhalls):
+        if (self.should_build_cc):
             money_spenders.extend([
                 self.builder.command_center.build
             ])

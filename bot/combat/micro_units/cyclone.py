@@ -88,9 +88,10 @@ class MicroCyclone(MicroUnit):
 
         # else if there's isn't any enemies close, move towards the closest enemy
         best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(cyclone, radius=5)
+        closest_ghost: Optional[GhostUnit] = self.closest_local_ghost(cyclone)
         if (self.bot.enemy_units.amount >= 1):
             best_position = self.bot.enemy_units.closest_to(cyclone).position
-        elif(self.bot.ghost_units.assumed_enemy_units.amount >= 1):
-            best_position = self.bot.ghost_units.assumed_enemy_units.closest_to(cyclone).position
+        elif(closest_ghost is not None):
+            best_position = closest_ghost.position
 
         cyclone.move(best_position)

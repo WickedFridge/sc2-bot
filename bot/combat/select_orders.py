@@ -158,7 +158,11 @@ class SelectOrders:
         # enemy supply
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
-        local_enemy_supply: float = local_enemy_army.weighted_supply + local_ghost_army.weighted_supply
+        local_hidden_army: Army = Army(self.get_local_hidden_enemy_units(army.units.center, army.radius), self.bot)
+        local_enemy_supply: float = local_enemy_army.weighted_supply
+        # ghost and cloaked units count in the fight, but don't trigger it alone
+        if (local_enemy_supply > 0):
+            local_enemy_supply += local_ghost_army.weighted_supply + local_hidden_army.weighted_supply
         # enemy buildings and workers
         global_enemy_buildings: Units = self.bot.enemy_structures
         local_enemy_workers: Units = self.bot.enemy_units.filter(
@@ -181,7 +185,9 @@ class SelectOrders:
         ) + global_enemy_buildings.filter(
             lambda unit: unit.type_id in tower_types
         )
-        global_unarmed_enemies: Units = self.global_enemy_units.filter(lambda u: not u.can_attack and u.type_id not in menacing)
+        global_unarmed_enemies: Units = self.global_enemy_units.filter(
+            lambda u: u.can_be_attacked and not u.can_attack and u.type_id not in menacing
+        )
 
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
@@ -262,19 +268,23 @@ class SelectOrders:
             self.global_enemy_units.filter(lambda u: u.can_attack or u.type_id in menacing)
             + global_enemy_buildings.filter(lambda u: u.type_id in tower_types)
         )
-        global_unarmed_enemies: Units = self.global_enemy_units.filter(lambda u: not u.can_attack and u.type_id not in menacing)
+        global_unarmed_enemies: Units = self.global_enemy_units.filter(
+            lambda u: u.can_be_attacked and not u.can_attack and u.type_id not in menacing
+        )
                 
         local_enemy_army: Army = Army(local_enemy_units, self.bot)
         local_ghost_army: GhostArmy = GhostArmy(local_enemy_ghosts, self.bot)
+        local_hidden_army: Army = Army(self.get_local_hidden_enemy_units(army.center, army.radius), self.bot)
         local_enemy_supply: float = local_enemy_army.weighted_supply
-        
+
+        # ghost and cloaked units count in the fight, but don't trigger it alone
         if (local_enemy_supply > 0):
-            local_enemy_supply += local_ghost_army.weighted_supply
-        
-        
+            local_enemy_supply += local_ghost_army.weighted_supply + local_hidden_army.weighted_supply
+
+
         unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
         unseen_enemy_supply: float = unseen_enemy_army.supply
-        potential_enemy_supply: float = local_enemy_army.weighted_supply + unseen_enemy_supply
+        potential_enemy_supply: float = local_enemy_army.weighted_supply + local_hidden_army.weighted_supply + unseen_enemy_supply
                 
         # -- High-priority hardcoded situations
         if (situation == Situation.CHEESE_BUNKER_RUSH):
@@ -921,12 +931,28 @@ class SelectOrders:
             lambda unit: (
                 unit.distance_to(position) <= (10 + radius)
                 and unit.type_id not in worker_types
+                # undetected cloaked units are handled by get_local_hidden_enemy_units
+                and unit.can_be_attacked
             )
         )
         local_enemy_towers: Units = self.bot.enemy_structures.filter(
-            lambda unit: unit.type_id in tower_types and unit.can_be_attacked
+            lambda unit: (
+                unit.type_id in tower_types
+                and unit.can_be_attacked
+                and unit.distance_to(position) <= (10 + radius)
+            )
         )
         return local_enemy_units + local_enemy_towers
+
+    def get_local_hidden_enemy_units(self, position: Point2, radius: float = 15) -> Units:
+        # Undetected cloaked units: like ghost units, they add to the local supply but can't trigger a fight alone
+        return self.global_enemy_units.filter(
+            lambda unit: (
+                unit.distance_to(position) <= (10 + radius)
+                and unit.type_id not in worker_types
+                and not unit.can_be_attacked
+            )
+        )
 
     def get_local_enemy_buildings(self, position: Point2, radius: float = 10) -> Units:
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
