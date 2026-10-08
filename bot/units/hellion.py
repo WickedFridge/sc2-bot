@@ -24,6 +24,7 @@ class Hellion(Train):
     def reactor_conditions(self, facto: Unit) -> bool:
         return (
             facto.has_reactor
+            and self.bot.structures.by_tag(facto.add_on_tag).build_progress >= 0.95
             and (
                 len(facto.orders) < 2
                 or (
@@ -39,6 +40,7 @@ class Hellion(Train):
     def techlab_conditions(self, facto: Unit) -> bool:
         return (
             facto.has_techlab
+            and self.bot.structures.by_tag(facto.add_on_tag).build_progress >= 0.95
             and (
                 facto.is_idle
                 or (

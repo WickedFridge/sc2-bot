@@ -19,6 +19,7 @@ class Banshee(Train):
         return self.bot.structures(UnitTypeId.STARPORT).ready.filter(
             lambda starport: (
                 starport.has_techlab
+                and self.bot.structures.by_tag(starport.add_on_tag).build_progress >= 0.95
                 and (
                     len(starport.orders) == 0
                     or (

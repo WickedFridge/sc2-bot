@@ -40,7 +40,8 @@ class MicroViking(MicroUnit):
 
         # if we're not on cooldown, either disengage or keep attacking
         elif (not self.safety_disengage(viking)):
-            if (potential_targets.amount >= 1):
+            threats: Units = self.enemies_threatening_air_in_range(viking, safety_distance=2, range_override=20)
+            if (threats.amount == 0 and potential_targets.amount >= 1):
                 best_attacking_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(viking, potential_targets.closest_to(viking), risk=0.5)
                 viking.move(best_attacking_spot)
             else:

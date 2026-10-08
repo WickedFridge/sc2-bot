@@ -6,6 +6,8 @@ from bot.strategy.build_order.addon_swap.abilities import LIFT_ABILITY
 from bot.strategy.build_order.addon_swap.state import SwapState
 from bot.strategy.build_order.addon_swap.swap_plan import SwapPlan
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
+from bot.utils.point2_functions.utils import addon_offset
+from sc2.data import ActionResult
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -79,6 +81,16 @@ class AddonSwapManager:
                 swap.state = SwapState.CONDITION_NOT_MET
                 continue
             swap.process(self)
+            if (swap.is_active):
+                self._log_action_errors(swap)
+
+    def _log_action_errors(self, swap: SwapPlan) -> None:
+        """Log orders rejected by the game for the swapped buildings (e.g. a blocked landing spot)."""
+        tags: Set[int] = {tag for tag in (swap.donor_tag, swap.recipient_tag) if tag is not None}
+        # current observation only: state.action_errors also repeats the previous frame's errors
+        for error in self.bot.state.response_observation.action_errors:
+            if (error.unit_tag in tags):
+                print(f"[AddonSwapManager] Order {AbilityId(error.ability_id).name} rejected for tag={error.unit_tag}: {ActionResult(error.result).name}")
 
     def on_unit_destroyed(self, tag: int) -> None:
         """
@@ -152,20 +164,17 @@ class AddonSwapManager:
                 grounded(LIFT_ABILITY[swap.donor_type])
             return
 
-        # Only issue the land order once: a flying building that is landing is not
-        # "moving" (its order is LAND, not MOVE), so checking is_moving re-issued
-        # the order every step and kept resetting the landing.
-        if (not swap.donor_flying.orders):
-            top_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
-            land_position: Point2 = dfs_in_pathing(
-                self.bot,
-                top_position,
-                swap.donor_type,
-                self.bot.game_info.map_center,
-                1.5,
-                True,
-            )
-            swap.donor_flying(AbilityId.LAND, land_position)
+        # The building is already of the flying type while the lift animation plays
+        # (its order is still LIFT): wait for the lift to finish before issuing the
+        # land order and leaving this state, otherwise the land order is never issued
+        # and the donor hovers until DONOR_LANDING (i.e. until the recipient has landed).
+        if (swap.donor_flying.orders):
+            return
+
+        top_position: Point2 = swap.donor_original_position + Point2((0, 2.5))
+        land_position: Point2 = self._donor_land_position(swap, top_position)
+        print(f"[AddonSwapManager] Donor lifted — landing {swap.donor_type.name} at {land_position}.")
+        swap.donor_flying(AbilityId.LAND, land_position)
 
         # AddonDetachSwap has no recipient — go straight to DONOR_LANDING.
         if (swap.recipient_tag is None):
@@ -246,14 +255,34 @@ class AddonSwapManager:
             else swap.donor_original_position
         )
 
-        land_position: Point2 = dfs_in_pathing(
+        land_position: Point2 = self._donor_land_position(swap, free_position)
+
+        print(f"[AddonSwapManager] Landing donor {swap.donor_type.name} at {land_position}.")
+        swap.donor_flying(AbilityId.LAND, land_position)
+
+    def _donor_land_position(self, swap: SwapPlan, start: Point2) -> Point2:
+        """
+        Find a landing spot for the donor (with room for an addon) that doesn't overlap
+        its original footprint. Once the donor is flying, that footprint is no longer
+        reserved in the buildings layer, but it is where the recipient lands (or where
+        the donor would re-attach the addon), so landing there blocks the swap.
+        """
+        original: Point2 = swap.donor_original_position
+
+        def overlaps_original(p: Point2) -> bool:
+            # 3x3 building footprint
+            if (abs(p.x - original.x) < 3 and abs(p.y - original.y) < 3):
+                return True
+            # 2x2 addon footprint of the donor at its new position
+            addon: Point2 = addon_offset(p)
+            return abs(addon.x - original.x) < 2.5 and abs(addon.y - original.y) < 2.5
+
+        return dfs_in_pathing(
             self.bot,
-            free_position,
+            start,
             swap.donor_type,
             self.bot.game_info.map_center,
             1.5,
             True,
+            reject=overlaps_original,
         )
-
-        print(f"[AddonSwapManager] Landing donor {swap.donor_type.name} at {land_position}.")
-        swap.donor_flying(AbilityId.LAND, land_position)

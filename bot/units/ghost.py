@@ -19,6 +19,7 @@ class Ghost(Train):
         return self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
             lambda rax: (
                 rax.has_techlab
+                and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
                 and (
                     len(rax.orders) == 0
                     or (

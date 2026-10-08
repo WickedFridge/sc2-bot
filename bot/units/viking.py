@@ -28,6 +28,7 @@ class Viking(Train):
     def reactor_conditions(self, starport: Unit) -> bool:
         return (
             starport.has_reactor
+            and self.bot.structures.by_tag(starport.add_on_tag).build_progress >= 0.95
             and (
                 len(starport.orders) < 2
                 or (
@@ -43,6 +44,7 @@ class Viking(Train):
     def techlab_conditions(self, starport: Unit) -> bool:
         return (
             starport.has_techlab
+            and self.bot.structures.by_tag(starport.add_on_tag).build_progress >= 0.95
             and (
                 starport.is_idle
                 or (

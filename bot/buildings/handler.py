@@ -703,13 +703,6 @@ class BuildingsHandler:
         )
         free_addons_count: int = free_addons.amount
 
-        # Type générique d'addon que la factory a le droit de prendre
-        # factory_wanted_addon: UnitTypeId = (
-        #     UnitTypeId.REACTOR
-        #     if self.bot.builder.factory_reactor.next_addon == UnitTypeId.FACTORYREACTOR
-        #     else UnitTypeId.TECHLAB
-        # )
-
         for flying_building in add_on_steal_candidates:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
 
@@ -774,17 +767,28 @@ class BuildingsHandler:
                 production_building(AbilityId.LIFT)
                 continue
             addon_pos: Point2 = production_building.add_on_position
-            if (
-                not self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)
+            
+            # if we can build addon, no need to lift
+            if (self.bot.map.influence_maps.buildings.should_build_building(addon_pos, UnitTypeId.BARRACKSTECHLAB, 1)):
+                continue
+            
+            # if we're on the wall and either the next step isn't an addon or the situation needs an early wall we don't lift
+            if (production_building.position == self.bot.main_base_ramp.barracks_in_middle
                 and (
-                    production_building.position != self.bot.main_base_ramp.barracks_in_middle
-                    or self.bot.scouting.situation not in [
-                        Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH
-                    ]
+                    not self.bot.build_order.build.is_completed
+                    and UnitTypeId.BARRACKSREACTOR not in self.bot.build_order.build.pending_ids
+                    and UnitTypeId.BARRACKSTECHLAB not in self.bot.build_order.build.pending_ids
                 )
+                or self.bot.scouting.situation in [
+                    Situation.CHEESE_WORKER_RUSH,
+                    Situation.CHEESE_CANNON_RUSH,
+                    Situation.CHEESE_LING_FLOOD
+                ]
             ):
-                print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
-                production_building(AbilityId.LIFT)
+                continue
+            
+            print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
+            production_building(AbilityId.LIFT)
 
         # bug-catch
         # lift factories with reactor once the build is completed when we shouldn't have one

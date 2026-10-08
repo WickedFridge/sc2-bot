@@ -20,6 +20,7 @@ class Thor(Train):
         return self.bot.structures(UnitTypeId.FACTORY).ready.filter(
             lambda factory: (
                 factory.has_techlab
+                and self.bot.structures.by_tag(factory.add_on_tag).build_progress >= 0.95
                 and (
                     len(factory.orders) == 0
                     or (

@@ -23,7 +23,7 @@ class Marine(Train):
     
     def reactor_conditions(self, rax: Unit) -> bool:
         return (
-            rax.has_reactor
+            rax.has_reactor and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
             and (
                 rax.add_on_tag not in self.bot.build_order.build.addon_transfer_map.keys()
                 and len(rax.orders) < 2
@@ -39,7 +39,7 @@ class Marine(Train):
     
     def techlab_conditions(self, rax: Unit) -> bool:
         return (
-            rax.has_techlab
+            rax.has_techlab and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
             and (
                 rax.is_idle
                 or (
