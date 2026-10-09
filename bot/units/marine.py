@@ -3,8 +3,6 @@ from bot.strategy.strategy_types import Situation
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.unit import Unit
-from sc2.units import Units
 
 
 class Marine(Train):
@@ -14,56 +12,8 @@ class Marine(Train):
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Marine'
         self.order_id = AbilityId.BARRACKSTRAIN_MARINE
-    
-    def no_addon_conditions(self, rax: Unit) -> bool:
-        return (
-            not rax.has_add_on
-            and rax.is_idle
-        )
-    
-    def reactor_conditions(self, rax: Unit) -> bool:
-        return (
-            rax.has_reactor and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
-            and (
-                rax.add_on_tag not in self.bot.build_order.build.addon_transfer_map.keys()
-                and len(rax.orders) < 2
-                or (
-                    len(rax.orders) == 2
-                    and (
-                        rax.orders[0].progress >= 0.95
-                        or rax.orders[1].progress >= 0.95
-                    )
-                )
-            )
-        )
-    
-    def techlab_conditions(self, rax: Unit) -> bool:
-        return (
-            rax.has_techlab and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
-            and (
-                rax.is_idle
-                or (
-                    len(rax.orders) == 1
-                    and rax.orders[0].progress >= 0.95
-                    and rax.add_on_tag not in self.bot.build_order.build.addon_transfer_map.keys()
-                )
-            )
-            and not self.bot.composition_manager.should_train(UnitTypeId.MARAUDER)
-            and not self.bot.composition_manager.should_train(UnitTypeId.GHOST)
-        )
-    
+
     @property
     @override
     def force_conditions(self) -> bool:
         return self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]
-    
-    @property
-    @override
-    def building_group(self) -> Units:
-        return self.bot.structures(self.buildingIds).ready.filter(
-            lambda rax: (
-                self.no_addon_conditions(rax)
-                or self.reactor_conditions(rax)
-                or self.techlab_conditions(rax)
-            )
-        ).sorted(lambda rax: rax.has_reactor, reverse=True)

@@ -490,7 +490,12 @@ class BuildingsHandler:
                 rally_point: Point2 = bunkers.closest_to(production_building).position
             else:
                 rally_point: Point2 = self.bot.expansions.closest_to(production_building.position).retreat_position
-            if (len(production_building.rally_targets) == 0 or production_building.rally_targets[0].point != rally_point):
+            if (len(production_building.rally_targets) == 0 or production_building.rally_targets[0].point.distance_to(rally_point) > 1):
+                if (len(production_building.rally_targets) == 0):
+                    print(f"setting rally point : {rally_point}")
+                else:
+                    current_rally_point: Point2 = production_building.rally_targets[0].point
+                    print(f"switching rally point : {current_rally_point} -> {rally_point}")
                 production_building(AbilityId.RALLY_BUILDING, rally_point)
             
     async def lift_townhalls(self):
@@ -730,13 +735,21 @@ class BuildingsHandler:
                 flying_building(AbilityId.LAND, addon_to_land.add_on_land_position)
                 continue
 
+            existing_addons: Units = self.bot.structures(add_ons)
+
             wall_position: Point2 = self.bot.main_base_ramp.barracks_correct_placement
-            if (self.bot.map.influence_maps.buildings.is_free(wall_position)):
+            # une factory ne doit pas se reposer sur un réacteur laissé au wall (sinon elle le reprend, se relève, etc.)
+            wall_addon_position: Point2 = addon_offset(wall_position)
+            reactor_on_wall: bool = existing_addons.of_type(UnitTypeId.REACTOR).filter(
+                lambda addon: addon.position.distance_to(wall_addon_position) < 1
+            ).amount >= 1
+            if (
+                self.bot.map.influence_maps.buildings.is_free(wall_position)
+                and not (flying_building.type_id == UnitTypeId.FACTORYFLYING and reactor_on_wall)
+            ):
                 print(f"[reposition_buildings] finishing the wall with {flying_building.name}")
                 flying_building(AbilityId.LAND, wall_position)
                 continue
-
-            existing_addons: Units = self.bot.structures(add_ons)
 
             def addon_already_there(building_position: Point2) -> bool:
                 # l'addon (2x2) du bâtiment candidat chevaucherait/rejoindrait un addon existant

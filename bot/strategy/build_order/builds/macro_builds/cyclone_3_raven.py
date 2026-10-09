@@ -12,6 +12,7 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_mistral
 from bot.strategy.build_order.builds.macro_build import MacroBuild
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 
 # build origin
@@ -21,26 +22,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 class Cyclone3Raven(MacroBuild):
     name: BuildOrderName = BuildOrderName.CYCLONE_3_RAVEN
-    cyclone_built: bool = False
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.structures(UnitTypeId.STARPORTREACTOR).amount == 0):
-            composition.set(UnitTypeId.MEDIVAC, 0)
-        if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
-            composition.set(UnitTypeId.RAVEN, 3)
-        if (self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount == 0):
-            composition.set(UnitTypeId.MARINE, 0)
-            composition.set(UnitTypeId.REAPER, 2)
-        composition.set(UnitTypeId.HELLION, 2)
-        if (self.bot.units(UnitTypeId.CYCLONE).amount >= 1):
-            self.cyclone_built = True
-        if (not self.cyclone_built):
-            composition.set(UnitTypeId.CYCLONE, 1)
-            composition.set(UnitTypeId.SIEGETANK, 0)
-        else:
-            composition.set(UnitTypeId.CYCLONE, 0)
-        return True
 
     @property
     @override
@@ -74,6 +55,27 @@ class Cyclone3Raven(MacroBuild):
             BuildOrderStep(bot, self, 'starport reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
             BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)], townhalls=3),
             BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)], townhalls=3),
+        ]
+
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 2)],
+                hold_until=lambda: (
+                    self.bot.structures(UnitTypeId.BARRACKSREACTOR).amount >= 1
+                ),
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.HELLION, 2), (UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 5)],
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.STARPORT,
+                [(UnitTypeId.RAVEN, 3)],
+            ),
         ]
 
         self.swap_plans = [

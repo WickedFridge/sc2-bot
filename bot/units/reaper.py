@@ -11,3 +11,4 @@ class Reaper(Train):
         self.name = 'Reaper'
         self.order_id = AbilityId.BARRACKSTRAIN_REAPER
         self.check_build_order = True
+        self.requeue_without_addon = True

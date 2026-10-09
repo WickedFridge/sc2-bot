@@ -7,6 +7,7 @@ from bot.strategy.build_order.addon_swap import AddonDetachSwap, AddonSwap, Swap
 from bot.strategy.build_order.addon_swap.attach_swap import AddonAttachSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order_step import BuildOrderStep
+from bot.strategy.build_order.production_queue import ProductionQueue
 # from sc2.bot_ai import BotAI
 from bot.strategy.strategy_types import Situation
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -40,6 +41,7 @@ class BuildOrder(CachedClass):
     steps: List[BuildOrderStep]
     name: BuildOrderName
     swap_plans: List[SwapPlan]
+    production_queues: List[ProductionQueue]
     equivalences: dict[UnitTypeId, List[UnitTypeId]] = {
         UnitTypeId.SUPPLYDEPOT: [UnitTypeId.SUPPLYDEPOTLOWERED],
         UnitTypeId.BARRACKS: [UnitTypeId.BARRACKSFLYING],
@@ -68,6 +70,7 @@ class BuildOrder(CachedClass):
     def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.swap_plans = []
+        self.production_queues = []
 
     @property
     def addon_transfer_map(self) -> dict[int, UnitTypeId]:
@@ -330,7 +333,11 @@ class BuildOrder(CachedClass):
     def modify_composition(self, composition: Composition) -> bool:
         if (self.is_completed):
             return False
-        return self._modify_composition(composition)
+        queue_driven: bool = False
+        for queue in self.production_queues:
+            queue_driven = queue.apply(composition) or queue_driven
+        # _modify_composition runs last so a build can still override the queues
+        return self._modify_composition(composition) or queue_driven
     
     def _modify_composition(self, composition: Composition) -> bool:
         return False

@@ -1,8 +1,6 @@
-from typing import override
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.units import Units
 
 
 class Ghost(Train):
@@ -12,20 +10,5 @@ class Ghost(Train):
         self.buildingIds = [UnitTypeId.BARRACKS]
         self.name = 'Ghost'
         self.order_id = AbilityId.BARRACKSTRAIN_GHOST
-
-    @property
-    @override
-    def building_group(self) -> Units:
-        return self.bot.structures(UnitTypeId.BARRACKS).ready.filter(
-            lambda rax: (
-                rax.has_techlab
-                and self.bot.structures.by_tag(rax.add_on_tag).build_progress >= 0.95
-                and (
-                    len(rax.orders) == 0
-                    or (
-                        len(rax.orders) == 1
-                        and rax.orders[0].progress >= 0.98
-                    )
-                )
-            )
-        )
+        self.requires_techlab = True
+        self.requeue_progress = 0.98

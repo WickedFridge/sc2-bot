@@ -1,5 +1,5 @@
 import random
-from typing import List, override
+from typing import List, Optional, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
@@ -18,6 +18,7 @@ class CommandCenter(Building):
         self.unitId = UnitTypeId.COMMANDCENTER
         self.name = "Command Center"
         self.radius = 2.5
+        self.worker_building_expand_tag: Optional[int] = None
 
     @property
     def max_pending(self) -> int:
@@ -95,7 +96,7 @@ class CommandCenter(Building):
     
     async def move_worker_expand(self):
         # move SCV for first expand
-        if (self.bot.time >= 100 or self.bot.townhalls.amount >= 2):
+        if (self.bot.time >= 180 or self.bot.townhalls.amount >= 2):
             return
         reaper_expand_builds: List[BuildOrderName] = [
             BuildOrderName.KOKA_BUILD,
@@ -104,6 +105,8 @@ class CommandCenter(Building):
             BuildOrderName.BANSHEESEBURGER,
             BuildOrderName.CYCLONE_3_RAVEN,
         ]
+        main: Expansion = self.bot.expansions.main
+        natural: Expansion = self.bot.expansions.b2
         if (self.bot.build_order.build.name in reaper_expand_builds):
             rax_builder: Units = self.bot.workers.filter(
                 lambda unit: (
@@ -114,10 +117,10 @@ class CommandCenter(Building):
             if (rax_builder.amount == 0):
                 return
             print("queue gather command for expand")
-            mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
+            mineral_field: Unit = natural.mineral_fields.random
             rax_builder.first.gather(mineral_field, True)
         elif (self.bot.build_order.build.name == BuildOrderName.CC_FIRST_TWO_RAX):
-            b2: Point2 = self.bot.expansions.b2.position
+            b2: Point2 = natural.position
             supply_builder: Units = self.bot.workers.filter(
                 lambda unit: (
                     len(unit.orders) == 1
@@ -127,7 +130,17 @@ class CommandCenter(Building):
             if (supply_builder.amount == 0):
                 return
             print("queue gather command for expand")
-            mineral_field: Unit = self.bot.expansions.b2.mineral_fields.random
+            mineral_field: Unit = natural.mineral_fields.random
             supply_builder.first.gather(mineral_field, True)
             supply_builder.first.move(b2, True)
-            supply_builder.first.patrol(b2.towards(self.bot.expansions.main.position), True)
+            supply_builder.first.patrol(b2.towards(main.position), True)
+        elif (UnitTypeId.COMMANDCENTER in self.bot.build_order.build.pending_ids and self.bot.minerals >= 320):
+            if (self.worker_building_expand_tag is not None):
+                return
+            closest_worker: Unit = self.bot.workers.filter(
+                lambda worker: worker.is_gathering and not worker.is_carrying_resource
+            ).closest_to(natural.position)
+            print("### move worker towards expand ###")
+            self.worker_building_expand_tag = closest_worker.tag
+            closest_worker.move(natural.position)
+            closest_worker.patrol(natural.position.towards(main.position, 2), True)

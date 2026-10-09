@@ -16,6 +16,13 @@ from sc2.unit import Unit
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 
+# States in which the donor and/or recipient may still be grounded and waiting to lift.
+PRE_LIFT_STATES: Set[SwapState] = {
+    SwapState.RECIPIENT_LIFTING_FIRST,
+    SwapState.DONOR_LIFTING,
+    SwapState.RECIPIENT_LIFTING,
+}
+
 
 class AddonSwapManager:
     """
@@ -66,6 +73,22 @@ class AddonSwapManager:
                 tags.add(swap.recipient_tag)
             if (swap.addon_tag is not None):
                 tags.add(swap.addon_tag)
+        return tags
+
+    @property
+    def lifting_tags(self) -> Set[int]:
+        """
+        Tags of buildings that still have to lift for their swap. They must not
+        queue production, otherwise they never go idle and the lift never happens.
+        """
+        tags: Set[int] = set()
+        for swap in self.swap_plans:
+            if (swap.state not in PRE_LIFT_STATES):
+                continue
+            if (swap.donor_tag is not None):
+                tags.add(swap.donor_tag)
+            if (swap.recipient_tag is not None):
+                tags.add(swap.recipient_tag)
         return tags
 
     def on_step(self) -> None:

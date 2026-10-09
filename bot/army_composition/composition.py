@@ -83,6 +83,8 @@ class  Composition:
                     all_units.append(passenger)
         
         for unit_type, count in self.units.items():
+            if (count == 0):
+                continue
             current_count: int = self.wicked.total_unit_amount(unit_type)
             color = WHITE
             if (current_count == count):

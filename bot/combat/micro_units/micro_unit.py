@@ -449,7 +449,8 @@ class MicroUnit(CachedClass):
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         attackable_enemy_units_in_range: Units = enemy_units_in_range.filter(lambda enemy: self.can_be_attacked(enemy, unit))
         if (enemy_units_in_range.amount >= 1):
-            if (attackable_enemy_units_in_range.amount >= 1):
+            # only shoot when the weapon is ready, otherwise keep running away
+            if (attackable_enemy_units_in_range.amount >= 1 and unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
                 target: Unit = self.pick_best_target(attackable_enemy_units_in_range)
                 unit.attack(target)
                 return

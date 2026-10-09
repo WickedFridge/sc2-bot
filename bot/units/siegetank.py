@@ -3,7 +3,6 @@ from typing import override
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.units import Units
 
 
 class SiegeTank(Train):
@@ -13,25 +12,10 @@ class SiegeTank(Train):
         self.buildingIds = [UnitTypeId.FACTORY]
         self.name = 'Siege Tank'
         self.order_id = AbilityId.FACTORYTRAIN_SIEGETANK
+        self.requires_techlab = True
+        self.requeue_progress = 0.98
 
     @property
     @override
     def custom_conditions(self):
         return not self.bot.composition_manager.should_train(UnitTypeId.THOR)
-    
-    @property
-    @override
-    def building_group(self) -> Units:
-        return self.bot.structures(UnitTypeId.FACTORY).ready.filter(
-            lambda factory: (
-                factory.has_techlab
-                and self.bot.structures.by_tag(factory.add_on_tag).build_progress >= 0.95
-                and (
-                    len(factory.orders) == 0
-                    or (
-                        len(factory.orders) == 1
-                        and factory.orders[0].progress >= 0.98
-                    )
-                )
-            )
-        )

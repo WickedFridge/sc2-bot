@@ -1,8 +1,6 @@
-from typing import override
 from bot.units.train import Train
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.units import Units
 
 
 class Raven(Train):
@@ -12,20 +10,5 @@ class Raven(Train):
         self.buildingIds = [UnitTypeId.STARPORT]
         self.name = 'Raven'
         self.order_id = AbilityId.STARPORTTRAIN_RAVEN
-
-    @property
-    @override
-    def building_group(self) -> Units:
-        return self.bot.structures(UnitTypeId.STARPORT).ready.filter(
-            lambda starport: (
-                starport.has_techlab
-                and self.bot.structures.by_tag(starport.add_on_tag).build_progress >= 0.95
-                and (
-                    len(starport.orders) == 0
-                    or (
-                        len(starport.orders) == 1
-                        and starport.orders[0].progress >= 0.98
-                    )
-                )
-            )
-        )
+        self.requires_techlab = True
+        self.requeue_progress = 0.98
