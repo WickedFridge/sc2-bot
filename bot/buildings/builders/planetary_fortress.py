@@ -18,7 +18,11 @@ class PlanetaryFortress(UpgradeBuilding):
     @override
     def base_buildings(self) -> Units:
         return self.bot.structures(self.base_building_id).ready.idle.filter(
-            lambda unit: unit.position in self.bot.expansions.positions
+            lambda unit: (
+                unit.position in self.bot.expansions.positions
+                # don't override an Orbital upgrade ordered this frame
+                and unit.tag not in self.bot.unit_tags_received_action
+            )
         )
 
     @property
@@ -28,5 +32,5 @@ class PlanetaryFortress(UpgradeBuilding):
         townhalls_amount: int = self.bot.townhalls.ready.amount
         if (townhalls_amount <= 3 or not pf_tech_available):
             return False
-        if (townhalls_amount >= 4):
+        else:
             return True

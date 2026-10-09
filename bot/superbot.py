@@ -101,3 +101,11 @@ class Superbot(BotAI):
         for u_type in unit_types:
             total_amount += self.already_pending(u_type)
         return total_amount
+
+    def units_produced(self, unit_type: UnitTypeId) -> int:
+        """Units produced this game (popped + in production), dead ones included."""
+        # units_created is tag based: morphs (hellion -> hellbat) or medivac pickups aren't counted twice
+        return sum(
+            self.units_created[u_type] + int(self.already_pending(u_type))
+            for u_type in self.equivalences(unit_type)
+        )

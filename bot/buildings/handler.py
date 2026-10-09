@@ -8,6 +8,7 @@ from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.ability_tags import AbilityRepair
 from bot.utils.defend_worker_rush import wall_is_up
+from bot.utils.fake_order import FakeOrder
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import addon_offset, center, points_to_build_addon
@@ -778,6 +779,7 @@ class BuildingsHandler:
                 free_addons_count -= 1
                 print(f"[reposition_buildings] Lifting {production_building.type_id} to take the free {free_addons.first.type_id}")
                 production_building(AbilityId.LIFT)
+                production_building.orders.append(FakeOrder(AbilityId.LIFT))
                 continue
             addon_pos: Point2 = production_building.add_on_position
             
@@ -801,6 +803,7 @@ class BuildingsHandler:
                 continue
             
             print(f"[reposition_buildings] Cannot build addon — {production_building.type_id}) lifts")
+            production_building.orders.append(FakeOrder(AbilityId.LIFT))
             production_building(AbilityId.LIFT)
 
         # bug-catch

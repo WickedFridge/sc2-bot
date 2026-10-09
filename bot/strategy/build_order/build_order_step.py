@@ -20,7 +20,8 @@ class BuildOrderStep(CachedClass):
     townhalls: int
     requirements: List[tuple[UnitTypeId, int, bool]]
     upgrades_required: List[UpgradeId]
-    
+    units_produced_required: List[tuple[UnitTypeId, int]]
+
     def __init__(
         self,
         bot: BotAI,
@@ -34,7 +35,13 @@ class BuildOrderStep(CachedClass):
         townhalls: int = 1,
         requirements: List[tuple[UnitTypeId, int, bool]] = [],
         upgrades_required: List[UpgradeId] = [],
+        units_produced_required: List[tuple[UnitTypeId, int]] = [],
     ) -> None:
+        """
+        requirements: (unit type, amount, completed) counted on units currently alive.
+        units_produced_required: (unit type, amount) counted on units produced this game
+        (popped + in production), dead ones included.
+        """
         super().__init__(bot)
         self.build_order = build_order
         self.name = name
@@ -46,7 +53,8 @@ class BuildOrderStep(CachedClass):
         self.townhalls = townhalls
         self.requirements = requirements or []
         self.upgrades_required = upgrades_required or []
-    
+        self.units_produced_required = units_produced_required or []
+
     @property
     def current_amount(self) -> int:
         if (isinstance(self.step_id, UpgradeId)):
@@ -74,6 +82,10 @@ class BuildOrderStep(CachedClass):
             unit_count: int = self.build_order.unit_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
                 return False, f'(not enough {unit_type} ({unit_count}/{amount_required}))'
+        for unit_type, amount_required in self.units_produced_required:
+            produced_count: int = self.bot.units_produced(unit_type)
+            if (produced_count < amount_required):
+                return False, f'(not enough {unit_type} produced ({produced_count}/{amount_required}))'
         for upgrade in self.upgrades_required:
             if (self.bot.already_pending_upgrade(upgrade) == 0):
                 return False, f'(upgrade {upgrade} not started)'
@@ -92,6 +104,9 @@ class BuildOrderStep(CachedClass):
         for unit_type, amount_required, completed in self.requirements:
             unit_count: int = self.build_order.unit_amount(unit_type, include_pending=not completed)
             if (unit_count < amount_required):
+                return False
+        for unit_type, amount_required in self.units_produced_required:
+            if (self.bot.units_produced(unit_type) < amount_required):
                 return False
         for upgrade in self.upgrades_required:
             if (self.bot.already_pending_upgrade(upgrade) == 0):

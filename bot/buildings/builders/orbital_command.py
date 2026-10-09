@@ -10,6 +10,7 @@ class OrbitalCommand(UpgradeBuilding):
     def __init__(self, build):
         super().__init__(build)
         self.unitId = UnitTypeId.ORBITALCOMMAND
+        self.unitIdFlying = UnitTypeId.ORBITALCOMMANDFLYING
         self.abilityId = AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND
         self.name = "Orbital Command"
         self.base_building_id = UnitTypeId.COMMANDCENTER
@@ -20,8 +21,14 @@ class OrbitalCommand(UpgradeBuilding):
     @override
     def base_buildings(self) -> Units:
         townhalls_amount: int = self.bot.townhalls.ready.amount
+        # a CC landed on an expansion still becomes an Orbital until we have 3 of them
+        missing_orbitals: bool = self.amount < 3
         return self.bot.structures(self.base_building_id).ready.idle.filter(
-            lambda unit: townhalls_amount <= 3 or unit.position not in self.bot.expansions.positions
+            lambda unit: (
+                townhalls_amount <= 3
+                or missing_orbitals
+                or unit.position not in self.bot.expansions.positions
+            )
         )
 
     @property
@@ -43,6 +50,10 @@ class OrbitalCommand(UpgradeBuilding):
 
         # we only build Orbital until we have 4 CCs
         if (self.bot.townhalls.ready.amount <= 3):
+            return True
+
+        # until we have 3 Orbitals, every CC becomes one (e.g. a 3rd CC that had to be lifted before its upgrade)
+        if (self.amount < 3):
             return True
 
         # 4th CC is never an Orbital, always a Planetary Fortress

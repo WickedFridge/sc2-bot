@@ -63,21 +63,13 @@ class ProductionQueue:
             self.started = True
         return self.started
 
-    def produced(self, unit_type: UnitTypeId) -> int:
-        # units_created is tag based: morphs (hellion -> hellbat) or medivac pickups aren't counted twice
-        unit_types: List[UnitTypeId] = self.bot.equivalences(unit_type)
-        return sum(
-            self.bot.units_created[u_type] + int(self.bot.already_pending(u_type))
-            for u_type in unit_types
-        )
-
     @property
     def current(self) -> Optional[tuple[UnitTypeId, int]]:
         """(unit type, amount left to start) of the current queue entry, None once every entry is produced."""
         consumed: Counter[tuple[UnitTypeId, ...]] = Counter()
         for unit_type, amount in self.units:
             key: tuple[UnitTypeId, ...] = tuple(self.bot.equivalences(unit_type))
-            available: int = self.produced(unit_type) - consumed[key]
+            available: int = self.bot.units_produced(unit_type) - consumed[key]
             if (available < amount):
                 return unit_type, amount - available
             consumed[key] += amount

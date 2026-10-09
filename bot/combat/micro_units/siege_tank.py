@@ -16,11 +16,46 @@ class MicroSiegeTank(MicroUnit):
     MIN_RANGE_SIEGED: int = 2
     MIN_SIEGE_SPACE: float = 1.5
     THRESHOLD: int = 1
+    UNSIEGE_MARGIN: int = 2
     bonus_against_ground_armored: bool = True
+    dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.BROODLING]
+
+    def is_defending(self, tank: Unit) -> bool:
+        return self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
+
+    def enemy_ground_range(self, enemy: Unit) -> float:
+        # an unsieged enemy tank can siege anytime, count it with its sieged range
+        if (enemy.type_id in [UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]):
+            return self.SIEGE_RANGE
+        return enemy.ground_range
+
+    def get_enemies_keeping_siege(self, tank: Unit) -> Units:
+        # a sieged tank stays sieged while an enemy is within range + margin
+        # the margin protects against mobile units dancing in and out of range,
+        # but is dropped when defending against enemies outranging us (tank mirror)
+        local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False)
+        enemy_max_range: float = max((self.enemy_ground_range(enemy) for enemy in local_enemies), default=0)
+        margin: float = (
+            0
+            if self.is_defending(tank) and enemy_max_range >= self.SIEGE_RANGE
+            else self.UNSIEGE_MARGIN
+        )
+        return local_enemies.filter(
+            lambda enemy: (
+                enemy.type_id not in self.dont_siege_against
+                and enemy.is_flying == False
+                and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + margin
+            )
+        ) + self.bot.enemy_structures.filter(
+            lambda enemy: (
+                enemy.is_flying == False
+                and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius + margin
+            )
+        )
 
     def get_enemies_close_siege_range(self, tank: Unit) -> Units:
-        dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.BROODLING]
-        is_defending: bool = self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
+        dont_siege_against: List[UnitTypeId] = self.dont_siege_against
+        is_defending: bool = self.is_defending(tank)
 
         local_enemies: Units = self.get_local_enemy_units(tank.position, include_structures=False).filter(
             lambda enemy: (
@@ -106,7 +141,11 @@ class MicroSiegeTank(MicroUnit):
                 tank.attack(enemies_to_attack.first)
                 return
 
-        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(tank)
+        enemies_close_siege_range: Units = (
+            self.get_enemies_keeping_siege(tank)
+            if tank.type_id == UnitTypeId.SIEGETANKSIEGED
+            else self.get_enemies_close_siege_range(tank)
+        )
         if (self.switch_mode(tank, enemies_close_siege_range, buildings_only=chase)):
             return
 
@@ -165,10 +204,11 @@ class MicroSiegeTank(MicroUnit):
             return
         local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
         retreat_position: Point2 = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
-        enemies_close_siege_range: Units = self.get_enemies_close_siege_range(unit)
-        
+
         if (unit.distance_to(retreat_position) > 5):
-            if (self.switch_mode(unit, enemies_close_siege_range, visible_only=True)):
+            # saving the tank matters more than the shots it could still take
+            if (unit.type_id == UnitTypeId.SIEGETANKSIEGED):
+                unit(AbilityId.UNSIEGE_UNSIEGE)
                 return
             await super().retreat(unit, local_units)
             return

@@ -50,11 +50,13 @@ class Refinery(Building):
                 )
             
             case 3:
-                # build fourth rafinery as long as we have 2 Ebays, a 3rd orbital and at least 50 SCVs (72 including mules)
+                # build fourth rafinery as long as we have 2 Ebays, a 3rd orbital (or a PF) and at least 50 SCVs (72 including mules)
                 return (
                     self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
                     and (
                         orbital_amount >= 3
+                        or self.bot.structures(UnitTypeId.PLANETARYFORTRESS).amount >= 1
+                        or self.bot.already_pending(UnitTypeId.PLANETARYFORTRESS) >= 1
                         or self.bot.minerals >= 600 and self.bot.vespene <= 100
                     )
                     and scv_amount >= 50

@@ -70,7 +70,7 @@ class TwoRaxReapersHellbatPush(MacroBuild):
                 UnitTypeId.FACTORY,
                 [(UnitTypeId.HELLION, 4)],
                 hold_until=lambda: (
-                    self.bot.already_pending(UnitTypeId.MEDIVAC) + self.bot.units_created[UnitTypeId.MEDIVAC] >= 2
+                    self.bot.units_produced(UnitTypeId.MEDIVAC) >= 2
                 )
             ),
         ]
