@@ -343,8 +343,13 @@ class ArmyCompositionManager(CachedClass):
         # if we're playing late game TvT, we want Ravens, depending on the amount of powerful enemy units
         if (
             self.wicked.matchup == Matchup.TvT
-            and self.wicked.expansions.amount_taken >= 4
-            and self.bot.structures(UnitTypeId.REFINERY).amount >= 8
+            and (
+                UnitTypeId.BATTLECRUISER in self.wicked.scouting.known_enemy_composition
+                or (
+                    self.wicked.expansions.amount_taken >= 4
+                    and self.wicked.structures(UnitTypeId.REFINERY).amount >= 8
+                )
+            )
         ):
             powerful_unit_amount: int = self.wicked.scouting.known_enemy_army.units.filter(lambda unit: get_unit_supply(unit.type_id) >= 3).amount
             raven_amount: int = int(self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN))

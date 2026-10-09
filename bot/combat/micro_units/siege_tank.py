@@ -18,7 +18,14 @@ class MicroSiegeTank(MicroUnit):
     THRESHOLD: int = 1
     UNSIEGE_MARGIN: int = 2
     bonus_against_ground_armored: bool = True
-    dont_siege_against: List[UnitTypeId] = [UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.BROODLING]
+    dont_siege_against: List[UnitTypeId] = [
+        UnitTypeId.CREEPTUMOR,
+        UnitTypeId.CREEPTUMORBURROWED,
+        UnitTypeId.BROODLING,
+        UnitTypeId.CHANGELING,
+        UnitTypeId.CHANGELINGMARINE,
+        UnitTypeId.CHANGELINGMARINESHIELD
+    ]
 
     def is_defending(self, tank: Unit) -> bool:
         return self.bot.structures.closest_distance_to(tank.position) < self.SIEGE_RANGE
@@ -154,9 +161,17 @@ class MicroSiegeTank(MicroUnit):
             tank.attack(enemies_in_range.first)
             return
 
-        not_tanks: Units = local_units.filter(lambda unit: unit.type_id not in [UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED])
+        # only follow other ground units: flyers (medivacs, ravens) follow the ground army themselves,
+        # so following them would leave the whole army waiting on each other
+        not_tanks: Units = local_units.filter(
+            lambda unit: (
+                unit.type_id not in [UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED]
+                and unit.is_flying == False
+            )
+        )
         if (not_tanks.amount >= 1):
-            tank.move(local_units.center)
+            local_ground_units: Units = local_units.filter(lambda unit: not unit.is_flying)
+            tank.move(local_ground_units.center)
             return
 
         if (self.bot.enemy_units.amount >= 1):
