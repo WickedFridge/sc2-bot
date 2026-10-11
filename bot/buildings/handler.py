@@ -2,7 +2,7 @@ import math
 from typing import List, Set
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
-from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
+from bot.macro.map.influence_maps.layers.buildings_layer import PRODUCTION_RADIUS, BuildingLayer
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
@@ -744,8 +744,10 @@ class BuildingsHandler:
             reactor_on_wall: bool = existing_addons.of_type(UnitTypeId.REACTOR).filter(
                 lambda addon: addon.position.distance_to(wall_addon_position) < 1
             ).amount >= 1
+            # toute l'empreinte 3x3 doit être libre : la rax du wall posée en barracks_in_middle
+            # ne chevauche barracks_correct_placement que sur une colonne (le centre reste libre)
             if (
-                self.bot.map.influence_maps.buildings.is_free(wall_position)
+                self.bot.map.influence_maps.buildings.should_build_building(wall_position, land_type, PRODUCTION_RADIUS)
                 and not (flying_building.type_id == UnitTypeId.FACTORYFLYING and reactor_on_wall)
             ):
                 print(f"[reposition_buildings] finishing the wall with {flying_building.name}")
