@@ -305,6 +305,9 @@ class Base:
 
     
     def attack_threat(self) -> None:
+        if (self.cc.health_percentage < 0.5):
+            self.lift_cc()
+
         if (self.available_workers.amount == 0):
             print("no workers to pull, o7")
             return
@@ -404,10 +407,6 @@ class Base:
                 else:
                     target: Unit = enemy_in_range.first if enemy_in_range.amount >= 1 else attackable_enemy_units.first
                     Micro.worker_attack(self.bot, worker, target)
-                    # worker.attack(target)
-        
-        if (self.cc.health_percentage < 0.5):
-            self.lift_cc()
                 
     def workers_attack(self, workers: Units) -> List[int]:
         """

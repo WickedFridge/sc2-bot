@@ -637,9 +637,11 @@ class BuildingsHandler:
                 else:
                     townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
             else:
-                if (self.bot.expansions.taken.safe.amount == 0):
-                    continue
-                safest_base: Expansion = self.bot.expansions.taken.safe.closest_to(townhall.position)
+                safest_base: Expansion = (
+                    self.bot.expansions.main
+                    if self.bot.expansions.taken.safe.amount == 0
+                    else self.bot.expansions.taken.safe.closest_to(townhall.position)
+                )
                 safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, landing_spot, 2.5)
                 if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
                     townhall(AbilityId.LAND_COMMANDCENTER, safe_spot)
@@ -712,7 +714,7 @@ class BuildingsHandler:
         for flying_building in add_on_steal_candidates:
             land_type: UnitTypeId = flying_building_ids.get(flying_building.type_id)
 
-            # Les factories ne peuvent voler que l'addon "next" ; les autres, n'importe lequel
+            # Les factories ne peuvent voler qu'un techlab, pas de reactor
             stealable: list[Unit] = [
                 addon for addon in free_addons
                 if (

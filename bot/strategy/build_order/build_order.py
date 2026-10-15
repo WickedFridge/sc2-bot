@@ -14,6 +14,7 @@ from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.units import Units
+from bot.utils.unit_functions import get_addon_id
 from ...utils.unit_tags import reactors, techlabs
 
 if TYPE_CHECKING:
@@ -163,6 +164,24 @@ class BuildOrder(CachedClass):
                 print(f"[reconcile] Aborting in-progress swap {plan.name} — family no longer needed.")
                 plan.state = SwapState.ABORTED
                 continue
+
+            # La famille est toujours voulue, mais le swap déplacerait l'addon
+            # d'un donor qui doit le garder (ex: BARRACKSREACTOR dans la cible,
+            # aucun FACTORYREACTOR manquant) : tant que le donor est encore au
+            # sol avec son addon, on interrompt plutôt que de le faire décoller.
+            if (isinstance(plan, AddonSwap) and plan.donor_tag is not None and plan.donor is not None):
+                donor_addon: UnitTypeId = plan.desired_addon_type
+                addon_family: UnitTypeId = UnitTypeId.REACTOR if (donor_addon in reactors) else UnitTypeId.TECHLAB
+                recipient_addon: Optional[UnitTypeId] = get_addon_id(addon_family, plan.recipient_type)
+                donor_addon_has_surplus: bool = current_counts[donor_addon] > target_counts[donor_addon]
+                recipient_addon_missing: bool = (
+                    recipient_addon is not None
+                    and target_counts[recipient_addon] > current_counts[recipient_addon]
+                )
+                if (not donor_addon_has_surplus and not recipient_addon_missing):
+                    print(f"[reconcile] Aborting in-progress swap {plan.name} — donor must keep its addon.")
+                    plan.state = SwapState.ABORTED
+                    continue
 
             # La famille est toujours voulue. Cherche si CE build order déclare
             # un swap PENDING pour la même famille (= dit qui doit la recevoir).

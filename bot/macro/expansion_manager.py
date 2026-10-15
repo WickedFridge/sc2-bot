@@ -161,19 +161,19 @@ class Expansions(CachedClass):
         return Units([expansion.cc for expansion in self.expansions if expansion.cc is not None], self.bot)
     
     @property
-    def main(self) -> Optional[Expansion]:
+    def main(self) -> Expansion:
         return self.expansions[0]
     
     @property
-    def b2(self) -> Optional[Expansion]:
+    def b2(self) -> Expansion:
         return self.expansions[1]
 
     @property
-    def b3(self) -> Optional[Expansion]:
+    def b3(self) -> Expansion:
         return self.expansions[2]
 
     @property
-    def b4(self) -> Optional[Expansion]:
+    def b4(self) -> Expansion:
         return self.expansions[3]
     
     @property

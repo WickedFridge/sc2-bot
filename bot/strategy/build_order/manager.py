@@ -75,6 +75,7 @@ class BuildOrderManager:
         self.dispatcher = self.build
 
     async def switch_build(self, new_build_order: BuildOrder) -> None:
+        print(f"[BuildOrderManager] Switching {self.build.name.value} order to {new_build_order.name.value}")
         previous_swap_plans = self.build.swap_plans
         self.build = new_build_order
         await self.announce_build()
