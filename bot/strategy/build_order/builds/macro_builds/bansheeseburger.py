@@ -95,33 +95,27 @@ class Bansheeseburger(MacroBuild):
                 UnitTypeId.BARRACKS,
                 UnitTypeId.FACTORY,
                 UnitTypeId.REACTOR,
-                condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORY).amount >= 1
-                ),
             ),
             AddonSwap(
                 bot,
                 UnitTypeId.BARRACKS,
                 UnitTypeId.STARPORT,
                 UnitTypeId.TECHLAB,
-                condition=lambda: (
-                    self.bot.structures(UnitTypeId.STARPORT).amount >= 1
-                ),
             ),
             AddonDetachSwap(
                 bot,
                 UnitTypeId.FACTORY,
+                UnitTypeId.REACTOR,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORYREACTOR).amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
                 ),
             ),
             AddonDetachSwap(
                 bot,
                 UnitTypeId.STARPORT,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.BANSHEE) == False
+                    self.bot.composition_manager.should_train(UnitTypeId.BANSHEE) == False
                 ),
             ),
             

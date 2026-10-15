@@ -88,8 +88,7 @@ class TwoRaxReapersHellbatPush(MacroBuild):
                 UnitTypeId.STARPORT,
                 UnitTypeId.REACTOR,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.STARPORT).amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
                 ),
             )
         ]

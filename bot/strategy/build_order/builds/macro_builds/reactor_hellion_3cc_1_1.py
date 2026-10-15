@@ -67,9 +67,6 @@ class Greedy22Timing(MacroBuild):
                 UnitTypeId.BARRACKS,
                 UnitTypeId.FACTORY,
                 UnitTypeId.REACTOR,
-                condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORY).amount >= 1
-                ),
             ),
             AddonSwap(
                 bot,
@@ -95,8 +92,5 @@ class Greedy22Timing(MacroBuild):
                 UnitTypeId.FACTORY,
                 UnitTypeId.STARPORT,
                 UnitTypeId.REACTOR,
-                condition=lambda: (
-                    self.bot.structures(UnitTypeId.STARPORT).amount >= 1
-                ),
             )
         ]

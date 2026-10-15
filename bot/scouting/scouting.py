@@ -258,7 +258,7 @@ class Scouting:
     async def scout_proxy(self):
         scout_needed_situations: List[Situation] = [
             Situation.STABLE,
-            Situation.PROXY_BUILDINGS,
+            Situation.CHEESE_PROXY_BUILDINGS,
             Situation.CHEESE_BUNKER_RUSH,
             Situation.CHEESE_CANNON_RUSH,
             Situation.CHEESE_UNKNOWN,

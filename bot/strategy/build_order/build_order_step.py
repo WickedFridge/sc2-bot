@@ -95,9 +95,11 @@ class BuildOrderStep(CachedClass):
     def is_available(self) -> bool:
         if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
             return False
+        if (self.bot.supply_used < self.supply):
+            return False
         if (self.bot.townhalls.amount < self.townhalls):
             return False
-        if (self.bot.supply_used < self.supply):
+        if (self.bot.supply_army < self.army_supply):
             return False
         if (self.bot.supply_workers < self.workers):
             return False

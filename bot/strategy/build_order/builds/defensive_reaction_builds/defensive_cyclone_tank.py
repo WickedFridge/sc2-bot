@@ -7,6 +7,8 @@ from bot.strategy.build_order.addon_swap import AddonDetachSwap
 from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.utils.unit_tags import techlabs, reactors
+from sc2.ids.upgrade_id import UpgradeId
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 from sc2.ids.unit_typeid import UnitTypeId
@@ -66,6 +68,10 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, workers=28, townhalls=3, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'factory techlab #3', UnitTypeId.FACTORYTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, requirements=[(UnitTypeId.REFINERY, 3, False)]),
+            BuildOrderStep(bot, self, 'factory reactor #2', UnitTypeId.FACTORYREACTOR, target_count=3, requirements=[(UnitTypeId.BARRACKSTECHLAB, 3, True)]),
+            BuildOrderStep(bot, self, '+1 atk', UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, requirements=[(UnitTypeId.ENGINEERINGBAY, 1, True)]),
+            BuildOrderStep(bot, self, '+1 def', UpgradeId.TERRANINFANTRYARMORSLEVEL1, upgrades_required=[UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]),
+            BuildOrderStep(bot, self, 'rax #4/5', UnitTypeId.BARRACKS, target_count=5, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
         ]
         
     
@@ -73,30 +79,37 @@ class DefensiveCycloneTank(BuildOrder):
             AddonDetachSwap(
                 bot,
                 UnitTypeId.STARPORT,
-                condition=lambda: (
-                    self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
-                )
-            ),
-            AddonSwap(
-                bot,
-                UnitTypeId.FACTORY,
-                UnitTypeId.BARRACKS,
                 UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
-                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
-                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 2
+                    self.bot.composition_manager.should_train(UnitTypeId.RAVEN) == False
                 )
             ),
             AddonDetachSwap(
                 bot,
                 UnitTypeId.FACTORY,
+                UnitTypeId.TECHLAB,
                 condition=lambda: (
-                    self.bot.structures(UnitTypeId.FACTORYTECHLAB).ready.amount >= 1
-                    and self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
                     and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
-                    and self.bot.structures(UnitTypeId.BARRACKS).amount >= 3
+                    and self.bot.structures(techlabs).amount >= 2
+                )
+            ),
+            AddonDetachSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.TECHLAB,
+                condition=lambda: (
+                    self.bot.composition_manager.should_train(UnitTypeId.CYCLONE) == False
+                    and self.bot.composition_manager.should_train(UnitTypeId.SIEGETANK) == False
+                    and self.bot.structures(techlabs).amount >= 3
+                )
+            ),
+            AddonDetachSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.REACTOR,
+                condition=lambda: (
+                    self.bot.structures(reactors).amount >= 3
                 )
             ),
         ]

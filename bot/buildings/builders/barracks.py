@@ -1,12 +1,19 @@
 import random
-from typing import List, override
+from collections import Counter
+from typing import List, Optional, Set, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.strategy.build_order.addon_swap.attach_swap import AddonAttachSwap
+from bot.strategy.build_order.addon_swap.swap_plan import SwapPlan
 from bot.strategy.strategy_types import Situation
 from bot.utils.matchup import Matchup
+from bot.utils.unit_tags import production_flying
+from sc2.cache import custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.unit import Unit
+from sc2.units import Units
 
 class Barracks(Building):
     def __init__(self, build):
@@ -18,11 +25,59 @@ class Barracks(Building):
     @property
     @override
     def force_position(self) -> bool:
-        return self.bot.structures(UnitTypeId.BARRACKS).amount == 0
+        return self.bot.structures(UnitTypeId.BARRACKS).amount == 0 or self.free_addon is not None
+
+    @custom_cache_once_per_frame
+    def free_addon(self) -> Optional[Unit]:
+        """
+        A free-standing reactor/techlab the barracks can be built against (it attaches
+        automatically), unless an addon swap of the current build order needs it.
+        """
+        swap_plans: List[SwapPlan] = [
+            plan for plan in self.bot.build_order.build.swap_plans
+            if not plan.is_finished
+        ]
+        swap_addon_tags: Set[int] = {
+            plan.addon_tag for plan in swap_plans if plan.addon_tag is not None
+        }
+        # attach swaps not committed yet will take any free addon of their family
+        reserved_amounts: Counter[UnitTypeId] = Counter(
+            plan.generic_addon_type for plan in swap_plans
+            if isinstance(plan, AddonAttachSwap) and plan.addon_tag is None
+        )
+
+        flying_production: Units = self.bot.structures(production_flying)
+        build_targets: List[Point2] = [
+            order.target
+            for worker in self.bot.workers
+            for order in worker.orders
+            if isinstance(getattr(order, "target", None), Point2)
+        ]
+
+        def is_free(addon: Unit) -> bool:
+            land_position: Point2 = addon.add_on_land_position
+            return (
+                addon.is_ready
+                and addon.tag not in swap_addon_tags
+                and self.bot.map.influence_maps.buildings.can_build(land_position, UnitTypeId.BARRACKS)
+                # a flying building is already landing on it
+                and not any(
+                    building.orders and building.orders[0].target == land_position
+                    for building in flying_production
+                )
+                # a worker is already going to build there
+                and not any(target.distance_to(land_position) < 1 for target in build_targets)
+            )
+
+        for addon_type in [UnitTypeId.REACTOR, UnitTypeId.TECHLAB]:
+            free_addons: Units = self.bot.structures(addon_type).filter(is_free)
+            if (free_addons.amount > reserved_amounts[addon_type]):
+                return free_addons.closest_to(self.bot.start_location)
+        return None
 
     @property
     def max_barracks(self) -> int:
-        rax_amount: List[int] = [1, 2, 5, 6, 7, 8]
+        rax_amount: List[int] = [1, 2, 5, 6, 7, 9, 10]
         if (self.base_amount > len(rax_amount) - 1):
             return max(rax_amount)
         return rax_amount[self.base_amount - 1]
@@ -51,7 +106,10 @@ class Barracks(Building):
     def position(self) -> Point2:
         if (self.amount == 0):
             return self.bot.main_base_ramp.barracks_in_middle
-        
+
+        if (self.free_addon is not None):
+            return self.free_addon.add_on_land_position
+
         # If we have less than 5 raxes, always build them in the main
 
         if (self.bot.structures(UnitTypeId.BARRACKS).amount < 5):

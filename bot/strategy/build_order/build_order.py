@@ -71,6 +71,7 @@ class BuildOrder(CachedClass):
         super().__init__(bot)
         self.swap_plans = []
         self.production_queues = []
+        self._completed = False
 
     @property
     def addon_transfer_map(self) -> dict[int, UnitTypeId]:
@@ -150,7 +151,9 @@ class BuildOrder(CachedClass):
         # ones that still deliver something this build order's target requires —
         # otherwise the donor/recipient are left stranded mid-transfer.
         for plan in previous_swap_plans:
-            if (plan.is_finished or plan.state == SwapState.PENDING):
+            # only swaps with a building actually mid-transfer: a plan still waiting on
+            # its condition would be evaluated against the previous build's context
+            if (plan.is_finished or not plan.is_active):
                 continue
 
             group: list[UnitTypeId] = addon_group(plan.desired_addon_type)
@@ -255,9 +258,14 @@ class BuildOrder(CachedClass):
             )
             if (donor_with_wrong_addon):
                 print(f"[reconcile] {plan.name} donor has wrong addon — injecting AddonDetachSwap.")
+                # the wrong addon is necessarily of the other family
+                wrong_addon_family: UnitTypeId = (
+                    UnitTypeId.REACTOR if (desired_group == techlabs) else UnitTypeId.TECHLAB
+                )
                 plans_to_prepend.append(AddonDetachSwap(
                     self.bot,
                     donor_type=plan.donor_type,
+                    addon_type=wrong_addon_family,
                 ))
                 continue
 
@@ -317,14 +325,18 @@ class BuildOrder(CachedClass):
     
     @custom_cache_once_per_frame
     def is_completed(self) -> bool:
-        # Default that 4 bases = BO completed (to avoid weird bugs)
-        return (
-            self.bot.townhalls.amount >= 4
-            or (
-                all(step.is_satisfied for step in self.steps)
-                and all(plan.is_finished for plan in self.swap_plans)
+        # Once completed, a BO stays completed: losing a townhall or a building
+        # must not hand the composition back to the build order mid-game
+        if (not self._completed):
+            # Default that 4 bases = BO completed (to avoid weird bugs)
+            self._completed = (
+                self.bot.townhalls.amount >= 4
+                or (
+                    all(step.is_satisfied for step in self.steps)
+                    and all(plan.is_finished for plan in self.swap_plans)
+                )
             )
-        )
+        return self._completed
     
     @property
     def buildings_cut(self) -> List[UnitTypeId]:

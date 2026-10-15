@@ -26,7 +26,7 @@ class Situation(enum.Enum):
     BEHIND = 1
     AHEAD = 2
     UNDER_ATTACK = 3
-    PROXY_BUILDINGS = 4
+    CHEESE_PROXY_BUILDINGS = 4
     CHEESE_CANNON_RUSH = 5
     CHEESE_BUNKER_RUSH = 6
     CHEESE_LING_DRONE = 7
@@ -46,7 +46,7 @@ class Situation(enum.Enum):
     @property
     def is_cheese(self) -> bool:
         return self in [
-            Situation.PROXY_BUILDINGS,
+            Situation.CHEESE_PROXY_BUILDINGS,
             Situation.CHEESE_CANNON_RUSH,
             Situation.CHEESE_BUNKER_RUSH,
             Situation.CHEESE_LING_DRONE,

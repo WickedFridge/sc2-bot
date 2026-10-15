@@ -43,7 +43,7 @@ class StrategyHandler:
             Priority.BUILD_ARMY
         ]
         self.cheese_exit_conditions: dict[Situation, Callable[[], bool]] = {
-            Situation.PROXY_BUILDINGS: self._proxy_buildings_cleared,
+            Situation.CHEESE_PROXY_BUILDINGS: self._proxy_buildings_cleared,
             Situation.CHEESE_PROXY_RAX: lambda: self._proxy_buildings_cleared([UnitTypeId.BARRACKS]),
             Situation.CHEESE_CANNON_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.PHOTONCANNON, UnitTypeId.PYLON]),
             Situation.CHEESE_BUNKER_RUSH: lambda: self._proxy_buildings_cleared([UnitTypeId.BUNKER]),
@@ -118,6 +118,7 @@ class StrategyHandler:
         return (
             self.bot.expansions.taken.amount >= 3
             or self.bot.townhalls.amount >= 4
+            or self.bot.time >= 600
             or self.bot.expansions.enemy_b3.is_enemy
             or self.bot.enemy_structures(upgrade_buildings).amount >= 2
             or (
@@ -231,8 +232,8 @@ class StrategyHandler:
                             return Situation.CHEESE_PROXY_RAX
                     case _:
                         pass
-            if (not self._exit_condition_met(Situation.PROXY_BUILDINGS)):
-                return Situation.PROXY_BUILDINGS
+            if (not self._exit_condition_met(Situation.CHEESE_PROXY_BUILDINGS)):
+                return Situation.CHEESE_PROXY_BUILDINGS
         
         if (
             close_workers.amount >= 3

@@ -361,7 +361,7 @@ class ArmyCompositionManager(CachedClass):
             # add up to 4 Medivac if we already have a lot of bio
             MAX_MEDIVAC_AMOUNT: int = (
                 6
-                if (self.bot.matchup == Matchup.TvT or self.bot.already_pending(UpgradeId.MEDIVACCADUCEUSREACTOR) >= 0)
+                if (self.bot.matchup == Matchup.TvT or self.bot.already_pending(UpgradeId.MEDIVACCADUCEUSREACTOR) > 0)
                 else 10
             )
             bio_supply: float = (
@@ -378,7 +378,13 @@ class ArmyCompositionManager(CachedClass):
         composition.fill(UnitTypeId.MARINE, 1/2)
         
         # Then, finish with either Ghost or Marines
-        if (UnitTypeId.GHOST in self.available_units):
+        if (
+            UnitTypeId.GHOST in self.available_units
+            and (
+                self.bot.supply_army >= 80
+                or self.bot.vespene >= 300
+            )
+        ):
             composition.fill(UnitTypeId.GHOST)
         else:
             composition.fill(UnitTypeId.MARINE)

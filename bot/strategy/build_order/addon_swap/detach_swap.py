@@ -23,6 +23,9 @@ class AddonDetachSwap(SwapPlan):
     Used during build order transitions when a donor has the wrong addon type
     and needs to free itself before the correct addon can be built or swapped.
 
+    Only a donor carrying an addon of addon_type (TECHLAB / REACTOR) is
+    detached: a donor with the other addon family is never picked.
+
     State machine: PENDING → DONOR_LIFTING → DONOR_LANDING → DONE
     """
 
@@ -30,22 +33,24 @@ class AddonDetachSwap(SwapPlan):
         self,
         bot: BotAI,
         donor_type: UnitTypeId,
+        addon_type: UnitTypeId,
         condition: Optional[callable[[], bool]] = None,
     ) -> None:
         super().__init__(
             bot=bot,
             donor_type=donor_type,
-            recipient_type=donor_type,             # unused — no recipient
-            desired_addon_type=UnitTypeId.TECHLAB, # unused — any addon qualifies
+            recipient_type=donor_type,  # unused — no recipient
+            desired_addon_type=addon_type,
             condition=condition,
         )
+        self.addon_family: UnitTypeId = addon_type
 
     @property
     def name(self) -> str:
-        return f'DetachAddon ({self.donor_type.name})'
+        return f'DetachAddon ({self.addon_family.name} from {self.donor_type.name})'
 
     def __repr__(self) -> str:
-        return f"AddonDetachSwap({self.donor_type.name}, state={self.state.value})"
+        return f"AddonDetachSwap({self.addon_family.name} from {self.donor_type.name}, state={self.state.value})"
 
     def process(self, manager: AddonSwapManager) -> None:
         match self.state:
@@ -57,10 +62,18 @@ class AddonDetachSwap(SwapPlan):
                 manager.donor_landing(self)
 
     def _initiate(self, manager: AddonSwapManager) -> None:
-        """Find a donor with any addon and lift it."""
+        """Find a donor carrying the targeted addon and lift it."""
         busy: Set[int] = manager.managed_tags
+        # the addon must be completed: units needing it aren't available before, so a
+        # condition like "should_train(RAVEN) == False" would hold during construction
+        # and the donor would lift as soon as the addon finishes
         potential_donors: Units = self.bot.structures(self.donor_type).filter(
-            lambda b: b.tag not in busy and b.has_add_on and b.is_ready
+            lambda b: (
+                b.tag not in busy
+                and b.is_ready
+                and self._addon_attached_matches(b)
+                and self.bot.structures.find_by_tag(b.add_on_tag).is_ready
+            )
         )
 
         if (potential_donors.amount == 0):
@@ -73,6 +86,6 @@ class AddonDetachSwap(SwapPlan):
         self.reserved_donor_tag = donor.tag
         self.commit(donor, None, donor.add_on_tag if donor.has_add_on else None)
 
-        print(f"[AddonDetachSwap] Lifting {self.donor_type.name} (tag={donor.tag}) to detach addon.")
+        print(f"[AddonDetachSwap] {self.name} — lifting (tag={donor.tag}).")
         donor(LIFT_ABILITY[self.donor_type])
         self.state = SwapState.DONOR_LIFTING
