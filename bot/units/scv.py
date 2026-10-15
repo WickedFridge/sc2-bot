@@ -72,10 +72,13 @@ class Scv(Train):
         ]
         if (
             not self.bot.orbital_tech_available
-            or self.bot.scouting.situation in [
-                Situation.CHEESE_WORKER_RUSH,
-                Situation.CHEESE_CANNON_RUSH
-            ]
+            or (
+                self.bot.scouting.situation in [
+                    Situation.CHEESE_WORKER_RUSH,
+                    Situation.CHEESE_CANNON_RUSH
+                ]    
+                and self.bot.minerals < 200
+            )
         ):
             townhalls_type.append(UnitTypeId.COMMANDCENTER)
 

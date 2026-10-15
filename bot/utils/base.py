@@ -173,26 +173,35 @@ class Base:
                 self.pull_workers(bunker, round((bunker.build_progress * 8)))
             
     def defend_cannon_rush(self) -> None:
-        canons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)
+        cannons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)
         pylons: Units = self.enemy_structures(UnitTypeId.PYLON)
         enemy_probe_amount: int = self.bot.enemy_units(UnitTypeId.PROBE).filter(
             lambda unit: unit.distance_to(self.position) < self.BASE_SIZE * 1.5
         ).amount
 
+        def amount_to_pull_by_pylon(pylon: Unit) -> int:
+            marine_amount: int = self.bot.units(UnitTypeId.MARINE).amount
+            if (marine_amount >= 1 and cannons.amount == 0):
+                return 0
+            
+            default_amount: int = (
+                4 if enemy_probe_amount >= 1
+                else 2 if pylon.is_ready
+                else 1
+            )
+
+            return max(0, default_amount - marine_amount)
+        
         # track the probes with 2 workers each
         self.track_enemy_scout(2, chase_b2=True)
         # respond to canon rush
         # Pull 3 workers by tower, 4 by pylon, less if we don't have enough
-        if (canons.amount == 0):
+        if (cannons.amount == 0):
             for pylon in pylons:
-                amount_to_pull: int = (
-                    4 if enemy_probe_amount >= 1
-                    else 2 if pylon.is_ready
-                    else 1
-                )
+                amount_to_pull: int = amount_to_pull_by_pylon(pylon)
                 self.pull_workers(pylon, amount_to_pull)
 
-        for canon in canons:
+        for canon in cannons:
             if (canon.build_progress <= 0.5):
                 self.pull_workers(canon, 3)
             else:
