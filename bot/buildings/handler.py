@@ -745,7 +745,8 @@ class BuildingsHandler:
                 lambda addon: addon.position.distance_to(wall_addon_position) < 1
             ).amount >= 1
             # toute l'empreinte 3x3 doit être libre : la rax du wall posée en barracks_in_middle
-            # ne chevauche barracks_correct_placement que sur une colonne (le centre reste libre)
+            # ne chevauche barracks_correct_placement que sur une colonne (le centre reste libre),
+            # et elle ne pose aucune réservation autour d'elle (cf. BuildingLayer.on_building_created)
             if (
                 self.bot.map.influence_maps.buildings.should_build_building(wall_position, land_type, PRODUCTION_RADIUS)
                 and not (flying_building.type_id == UnitTypeId.FACTORYFLYING and reactor_on_wall)

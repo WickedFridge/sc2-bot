@@ -370,6 +370,15 @@ class BuildingLayer:
             return
 
         if (unit.type_id in production + production_flying):
+            # la rax posée en barracks_in_middle n'est qu'une position temporaire du wall :
+            # on ne réserve rien autour, les réservations se feront quand elle se reposera
+            # en barracks_correct_placement
+            ramp = self.bot.main_base_ramp
+            if (
+                unit.position == ramp.barracks_in_middle
+                and ramp.barracks_in_middle != ramp.barracks_correct_placement
+            ):
+                return
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
             self.reserve_around_production(origin)

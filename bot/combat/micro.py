@@ -85,11 +85,9 @@ class Micro(CachedClass):
 
     def worker_attack(bot: Superbot, worker: Unit, target: Unit):
         if (worker.weapon_cooldown < 4):
-            print("worker attack !")
             worker.attack(target)
         else:
             if (bot.mineral_field.amount == 0):
                 return
             closest_mineral_field: Unit = bot.mineral_field.closest_to(worker)
-            print("worker back !")
             worker.gather(closest_mineral_field)
