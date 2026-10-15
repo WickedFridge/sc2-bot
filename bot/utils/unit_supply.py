@@ -4,7 +4,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
 
-supply: dict[UnitTypeId, int] = {}
+supply: dict[UnitTypeId, float] = {}
 
 # Terran Units
 # creeps
@@ -29,8 +29,8 @@ supply[UnitTypeId.SIEGETANKSIEGED] = 5
 supply[UnitTypeId.CYCLONE] = 3
 supply[UnitTypeId.MEDIVAC] = 2
 supply[UnitTypeId.VIKING] = 2
-supply[UnitTypeId.VIKINGFIGHTER] = 3
-supply[UnitTypeId.VIKINGASSAULT] = 3
+supply[UnitTypeId.VIKINGFIGHTER] = 2
+supply[UnitTypeId.VIKINGASSAULT] = 2
 supply[UnitTypeId.BANSHEE] = 3
 supply[UnitTypeId.RAVEN] = 2
 supply[UnitTypeId.LIBERATOR] = 3
@@ -134,8 +134,8 @@ supply[UnitTypeId.TEMPEST] = 4
 supply[UnitTypeId.CARRIER] = 6
 supply[UnitTypeId.MOTHERSHIP] = 8
 
-def get_unit_supply(unit_type: UnitTypeId) -> int:
-    return supply.get(unit_type, 0)
+def get_unit_supply(unit_type: UnitTypeId) -> float:
+    return supply.get(unit_type, 0.0)
 
 def get_units_supply(army: Units | GhostUnits) -> float:
     army_supply: float = 0
@@ -146,7 +146,7 @@ def get_units_supply(army: Units | GhostUnits) -> float:
                 army_supply += 8
                 continue
             # double the value of passengers in bunkers
-            supply: int = 0
+            supply: float = 0
             for passenger in unit.passengers:
                 supply += 2 * get_unit_supply(passenger.type_id)
             army_supply += supply

@@ -20,11 +20,12 @@ class MicroViking(MicroUnit):
                     unit.is_flying
                     or unit.type_id == UnitTypeId.COLOSSUS
                 )
+                and unit.distance_to(viking) <= 20
             )
         ).sorted(
             lambda unit: unit.health + unit.shield
         )
-        # if our weapon isn't on cooldown
+        # if we can shoot
         if (viking.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
             enemy_in_range: Units = self.get_enemy_units_in_range(viking)
             if (enemy_in_range.amount >= 1):
@@ -38,11 +39,17 @@ class MicroViking(MicroUnit):
                 if (not self.safety_disengage(viking)):
                     viking.move(local_units.center)
 
-        # if we're not on cooldown, either disengage or keep attacking
+        # if we can't shoot either disengage or keep attacking
         elif (not self.safety_disengage(viking)):
             threats: Units = self.enemies_threatening_air_in_range(viking, safety_distance=2, range_override=20)
-            if (threats.amount == 0 and potential_targets.amount >= 1):
-                best_attacking_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(viking, potential_targets.closest_to(viking), risk=0.5)
+            if (
+                potential_targets.amount >= 1
+                and (
+                    threats.amount == 0
+                    or chase
+                )
+            ):
+                best_attacking_spot: Point2 = self.bot.map.influence_maps.best_attacking_spot(viking, potential_targets.closest_to(viking), risk=1)
                 viking.move(best_attacking_spot)
             else:
                 viking.move(local_units.center)
