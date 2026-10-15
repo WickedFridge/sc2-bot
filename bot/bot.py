@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.6.3"
+VERSION: str = "13.6.5"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -207,6 +207,7 @@ class WickedBot(Superbot):
         await self.strategy.cheese_response()
         await self.buildings.repair_buildings()
         await self.buildings.cancel_buildings()
+        await self.buildings.cancel_bunkers()
         await self.buildings.finish_construction()
         await self.builder.supply_depot.move_worker_first()
         await self.builder.command_center.move_worker_expand()

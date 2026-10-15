@@ -61,6 +61,10 @@ class Expansions(CachedClass):
     def update_scout_status(self):
         for expansion in self.expansions:
             expansion.update_scout_status() 
+
+    def with_same_height(self, position: Point2) -> Expansions:
+        height: float = self.bot.get_terrain_height(position)
+        return self.filter(lambda expansion: self.bot.get_terrain_height(expansion.position) == height)
     
     @property
     def amount(self) -> int:

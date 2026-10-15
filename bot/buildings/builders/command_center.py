@@ -134,13 +134,17 @@ class CommandCenter(Building):
             supply_builder.first.gather(mineral_field, True)
             supply_builder.first.move(b2, True)
             supply_builder.first.patrol(b2.towards(main.position), True)
-        elif (UnitTypeId.COMMANDCENTER in self.bot.build_order.build.pending_ids and self.bot.minerals >= 320):
+        elif (
+            UnitTypeId.COMMANDCENTER in self.bot.build_order.build.pending_ids
+            and not self.bot.build_order.build.in_base_cc
+            and self.bot.minerals >= 320
+        ):
             if (self.worker_building_expand_tag is not None):
                 return
             closest_worker: Unit = self.bot.workers.filter(
                 lambda worker: worker.is_gathering and not worker.is_carrying_resource
             ).closest_to(natural.position)
-            print("### move worker towards expand ###")
+            print("move worker towards expand")
             self.worker_building_expand_tag = closest_worker.tag
             closest_worker.move(natural.position)
             closest_worker.patrol(natural.position.towards(main.position, 2), True)

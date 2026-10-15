@@ -241,7 +241,36 @@ class BuildingsHandler:
         )
         for cc in unfinished_upgraded_ccs:
             self.cancel_upgrade(cc)
-    
+
+    async def cancel_bunkers(self):
+        if (self.bot.scouting.situation.is_precarious):
+            return
+
+        def should_cancel(position: Point2) -> bool:
+            same_height_expansions: Expansions = self.bot.expansions.taken.with_same_height(position)
+            if (same_height_expansions.amount == 0):
+                return True
+            closest_expansion: Expansion = same_height_expansions.closest_to(position)
+            return (
+                closest_expansion.position == self.bot.expansions.main.position
+                or closest_expansion.is_defended
+            )
+
+        bunkers_in_constructions: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda structure: structure.build_progress < 0.1)
+        for bunker in bunkers_in_constructions.filter(lambda bunker: should_cancel(bunker.position)):
+            print("Canceling bunker, no expansion to defend")
+            bunker(AbilityId.CANCEL_BUILDINPROGRESS)
+
+        # SCVs ordered to build a bunker that isn't placed yet (target is still a position, not a structure tag)
+        scvs_ordered_to_build_bunker: Units = self.bot.workers.filter(
+            lambda worker: len(worker.orders) >= 1 and worker.orders[0].ability.id == AbilityId.TERRANBUILD_BUNKER
+        )
+        for scv in scvs_ordered_to_build_bunker:
+            target = scv.orders[0].target
+            if (isinstance(target, Point2) and should_cancel(target)):
+                print("Canceling bunker order, no expansion to defend")
+                scv.stop()
+
     async def morph_orbitals(self):
         if (self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND) >= 0.9):
             for cc in self.bot.townhalls(UnitTypeId.COMMANDCENTER).ready.idle:
