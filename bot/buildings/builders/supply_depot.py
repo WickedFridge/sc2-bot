@@ -57,16 +57,18 @@ class SupplyDepot(Building):
         for pending_cc in pending_ccs:
             if (pending_cc.build_progress >= 0.75):
                 current_supply += pending_cc.build_progress * SUPPLY_CC
-
         
         future_supply: float = (
-            current_supply
+            self.bot.supply_cap
             + concurrent_supply_depots * SUPPLY_DEPOT
             + concurrent_cc * SUPPLY_CC
         )
-        concurrent_supply_depots: int = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         
-        if (future_supply >= MAX_SUPPLY or concurrent_supply_depots >= self.max_depots_pending):
+        if (
+            future_supply >= MAX_SUPPLY
+            or concurrent_supply_depots >= self.max_depots_pending
+            or concurrent_supply_depots > pending_depots.amount
+        ):
             return False
         
         if (current_supply <= 15):

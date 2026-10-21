@@ -241,7 +241,9 @@ class Debug:
     def orders(self):
         selected_units: Units = self.bot.units.selected + self.bot.structures.selected
         for unit in selected_units:
-            order: str = "idle" if unit.is_idle else unit.orders[0].ability.exact_id
+            order: str = "idle" if unit.is_idle else ""
+            for unit_order in unit.orders:
+                order += str(unit_order.ability.exact_id) + " "
             target: str = "none" if unit.is_idle or unit.orders[0].target is None else str(unit.orders[0].target)
             
             self.draw_text_on_world(unit.position, f'{unit.name} [{order}] target: {target} (cooldown : {unit.weapon_cooldown:.2f})')

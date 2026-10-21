@@ -7,6 +7,7 @@ from bot.strategy.build_order.addon_swap import AddonDetachSwap
 from bot.strategy.build_order.addon_swap.addon_swap import AddonSwap
 from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
+from bot.strategy.build_order.production_queue import ProductionQueue
 from bot.utils.unit_tags import techlabs, reactors
 from sc2.ids.upgrade_id import UpgradeId
 if TYPE_CHECKING:
@@ -61,11 +62,11 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, 'barracks Reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, 'factory techlab', UnitTypeId.FACTORYTECHLAB, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'Starport', UnitTypeId.STARPORT, townhalls=2, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, True)]),
-            BuildOrderStep(bot, self, 'Starport techlab', UnitTypeId.STARPORTTECHLAB, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, True)]),
-            BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.STARPORT, 1, False), (UnitTypeId.STARPORTREACTOR, 2, False)]),
-            BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
+            BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3, requirements=[(UnitTypeId.STARPORT, 1, False)]),
+            BuildOrderStep(bot, self, 'Starport techlab', UnitTypeId.STARPORTTECHLAB, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, True)]),
             BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, workers=28, townhalls=3, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'Starport Reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORTTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, 'factory techlab #3', UnitTypeId.FACTORYTECHLAB, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'double Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, requirements=[(UnitTypeId.REFINERY, 3, False)]),
             BuildOrderStep(bot, self, 'factory reactor #2', UnitTypeId.FACTORYREACTOR, target_count=3, requirements=[(UnitTypeId.BARRACKSTECHLAB, 3, True)]),
@@ -74,7 +75,30 @@ class DefensiveCycloneTank(BuildOrder):
             BuildOrderStep(bot, self, '+1 def', UpgradeId.TERRANINFANTRYARMORSLEVEL1, upgrades_required=[UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]),
             BuildOrderStep(bot, self, 'rax #4/5', UnitTypeId.BARRACKS, target_count=5, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
         ]
-        
+
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 1)],
+            ),
+            # ProductionQueue(
+            #     bot,
+            #     UnitTypeId.FACTORY,
+            #     [(UnitTypeId.HELLION, 6)],
+            #     start_when=lambda: (
+            #         self.bot.structures(UnitTypeId.STARPORT).amount >= 1
+            #     ),
+            # ),
+            # ProductionQueue(
+            #     bot,
+            #     UnitTypeId.STARPORT,
+            #     [(UnitTypeId.BANSHEE, 2)],
+            #     hold_until=lambda: (
+            #         self.bot.structures(UnitTypeId.STARPORTREACTOR).amount >= 1
+            #     ),
+            # ),
+        ]
     
         self.swap_plans = [
             AddonDetachSwap(

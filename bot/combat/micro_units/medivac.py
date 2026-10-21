@@ -182,13 +182,14 @@ class MicroMedivac(MicroUnit):
             if (target_position and target_position.distance_to(medivac) > 10):
                 await self.boost(medivac)
         
-        # if there's a unit on cooldown under a 50% health, pick it up
-        if (len(medivac.passengers) < 2):
+        # if there's a unit on cooldown under a 50% health and we have under 33% energy, pick it up
+        if (len(medivac.passengers) < 2 and medivac.energy_percentage < 0.33):
             damaged_units_on_cooldown: Units = local_units.filter(
                 lambda unit: (
                     unit.health_percentage < 0.5
                     and unit.weapon_ready == False
                     and unit.distance_to(medivac) <= self.PICKUP_RANGE
+                    and self.bot.map.influence_maps.danger.ground[unit.position] > unit.health
                 )
             ).sorted(key = lambda unit: unit.health_percentage)
             if (damaged_units_on_cooldown.amount >= 1):
@@ -220,7 +221,7 @@ class MicroMedivac(MicroUnit):
             closest_enemy_building
             and closest_enemy_building.position.distance_to(medivac) < drop_target.distance_to(medivac) + MARGIN
         ):
-            drop_target = closest_enemy_building.position
+            drop_target = closest_enemy_building.position.towards(closest_enemy_base.mineral_line, 5)
 
         # boost towards the drop target and move towards it
         await self.boost(medivac)
