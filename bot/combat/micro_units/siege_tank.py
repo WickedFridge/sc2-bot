@@ -110,6 +110,7 @@ class MicroSiegeTank(MicroUnit):
         enemies_close = enemies_close.filter(
             lambda unit: (
                 not self.is_creep_tumor(unit)
+                and not unit.is_flying
                 and unit.type_id not in changelings
                 and (unit.is_visible or not visible_only)
             )

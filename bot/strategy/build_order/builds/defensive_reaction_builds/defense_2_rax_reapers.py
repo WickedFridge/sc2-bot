@@ -7,6 +7,7 @@ from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
@@ -15,26 +16,26 @@ class DefensiveTwoRax(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX
     in_base_cc: bool = True
     is_defensive_response: bool = True
-    cyclone_built: bool = False
+    # cyclone_built: bool = False
 
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 150):
-            composition.set(UnitTypeId.REAPER, 3)
-            composition.set(UnitTypeId.MARINE, 0)
+    # @override
+    # def _modify_composition(self, composition: Composition) -> bool:
+    #     if (self.bot.time <= 150):
+    #         composition.set(UnitTypeId.REAPER, 3)
+    #         composition.set(UnitTypeId.MARINE, 0)
         
-        if (self.bot.units(UnitTypeId.CYCLONE).amount >= 1):
-            self.cyclone_built = True
-        if (not self.cyclone_built):
-            composition.set(UnitTypeId.CYCLONE, 1)
-            composition.set(UnitTypeId.SIEGETANK, 0)
-        else:
-            composition.set(UnitTypeId.CYCLONE, 0)
+    #     if (self.bot.units(UnitTypeId.CYCLONE).amount >= 1):
+    #         self.cyclone_built = True
+    #     if (not self.cyclone_built):
+    #         composition.set(UnitTypeId.CYCLONE, 1)
+    #         composition.set(UnitTypeId.SIEGETANK, 0)
+    #     else:
+    #         composition.set(UnitTypeId.CYCLONE, 0)
             
-        if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
-            composition.set(UnitTypeId.RAVEN, 2)
-            composition.set(UnitTypeId.MEDIVAC, 0)
-        return True
+    #     if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
+    #         composition.set(UnitTypeId.RAVEN, 2)
+    #         composition.set(UnitTypeId.MEDIVAC, 0)
+    #     return True
     
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -44,7 +45,7 @@ class DefensiveTwoRax(BuildOrder):
             BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.REFINERY, 1, False)]),
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, False)]),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, townhalls=2),
-            BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2),
+            BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, townhalls=2, workers=21),
             BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.FACTORY, 1, False)]),
@@ -59,6 +60,24 @@ class DefensiveTwoRax(BuildOrder):
             BuildOrderStep(bot, self, 'reactor #3', UnitTypeId.STARPORTREACTOR, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, True)]),
         ]
 
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 3)],
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.CYCLONE, 1)],
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.STARPORT,
+                [(UnitTypeId.RAVEN, 2)]
+            ),
+        ]
+        
         self.swap_plans = [
             AddonSwap(
                 bot,

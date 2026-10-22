@@ -75,9 +75,20 @@ class Upgrade:
         )
     
     @property
+    def _is_researching(self) -> bool:
+        """already_pending_upgrade se base sur game_data, dont la research_ability est fausse pour certaines
+        upgrades (ex: Vehicle & Ship Plating -> ARMORYRESEARCHSWARM_*), on vérifie donc directement les ordres."""
+        return any(
+            order.ability.exact_id == self.ability
+            for structure in self.bot.structures(self.building)
+            for order in structure.orders
+        )
+
+    @property
     def conditions(self) -> bool:
         return (
             self.bot.already_pending_upgrade(self.upgrade) == 0
+            and not self._is_researching
             and self.bot.structures(self.building).ready.idle.amount >= 1
             and (self._build_order_ok or self._free_research_ok)
         )

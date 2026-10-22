@@ -21,6 +21,7 @@ class Factory(Building):
 
         # We want up to 3 factories so far
         max_factories: int = 3
+        refineries_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount
 
         tank_target: int = self.bot.composition_manager.composition[UnitTypeId.SIEGETANK]
         cyclone_target: int = self.bot.composition_manager.composition[UnitTypeId.CYCLONE]
@@ -30,6 +31,7 @@ class Factory(Building):
         return (
             self.amount == 0 or (
                 self.amount < max_factories
+                and refineries_amount >= 6
                 and self.bot.expansions.amount_taken >= self.amount * 2
                 and (
                     thor_target * 2

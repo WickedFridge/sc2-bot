@@ -26,4 +26,4 @@ class InterferenceMatrix(Upgrade):
             return False
         raven_target: int = self.bot.composition_manager.composition[UnitTypeId.RAVEN]
         raven_amount: int = self.bot.units(UnitTypeId.RAVEN).amount + self.bot.already_pending(UnitTypeId.RAVEN)
-        return max(raven_target, raven_amount) >= 2
+        return raven_amount > 0 and max(raven_target, raven_amount) >= 2

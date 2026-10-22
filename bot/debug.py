@@ -842,3 +842,9 @@ class Debug:
         for unit in invisible_units:
             self.draw_box_on_world(unit.position, size=1, draw_color=YELLOW)
             self.draw_text_on_world(unit.position, f'invisible', YELLOW)
+
+    def log_ability(self):
+        ra = self.bot.game_data.upgrades[UpgradeId.TERRANVEHICLEANDSHIPARMORSLEVEL1.value].research_ability
+        print("game_data:", ra.exact_id, ra.exact_id.value)
+        for armory in self.bot.structures(UnitTypeId.ARMORY):
+            print("armory", armory.tag, "idle" if armory.is_idle else "", [(o.ability.exact_id, o.ability.exact_id.value) for o in armory.orders])

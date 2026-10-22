@@ -25,31 +25,6 @@ class DefensiveCycloneTank(BuildOrder):
     is_defensive_response: bool = True
     in_base_cc: bool = True
 
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 120):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        modified: bool = False
-        if (self.bot.structures(UnitTypeId.FACTORY).ready.amount >= 1):
-            modified = True
-            factory_units: Units = self.bot.units([UnitTypeId.CYCLONE, UnitTypeId.SIEGETANK, UnitTypeId.SIEGETANKSIEGED])
-            if (factory_units.amount == 0):
-                composition.set(UnitTypeId.CYCLONE, 1)
-                composition.set(UnitTypeId.SIEGETANK, 0)
-            else:
-                composition.set(UnitTypeId.CYCLONE, 0)
-                composition.set(UnitTypeId.SIEGETANK, 2)
-        if (self.bot.structures(UnitTypeId.STARPORT).ready.amount >= 1):
-            if (self.bot.structures(UnitTypeId.STARPORTREACTOR).amount == 0):
-                composition.set(UnitTypeId.MEDIVAC, 0)
-                modified = True
-            if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
-                composition.set(UnitTypeId.RAVEN, 1)
-                modified = True
-        return modified
-
     def __init__(self, bot: Superbot):
         super().__init__(bot)
 
@@ -82,22 +57,21 @@ class DefensiveCycloneTank(BuildOrder):
                 UnitTypeId.BARRACKS,
                 [(UnitTypeId.REAPER, 1)],
             ),
-            # ProductionQueue(
-            #     bot,
-            #     UnitTypeId.FACTORY,
-            #     [(UnitTypeId.HELLION, 6)],
-            #     start_when=lambda: (
-            #         self.bot.structures(UnitTypeId.STARPORT).amount >= 1
-            #     ),
-            # ),
-            # ProductionQueue(
-            #     bot,
-            #     UnitTypeId.STARPORT,
-            #     [(UnitTypeId.BANSHEE, 2)],
-            #     hold_until=lambda: (
-            #         self.bot.structures(UnitTypeId.STARPORTREACTOR).amount >= 1
-            #     ),
-            # ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 2)],
+                hold_until=lambda: self.is_completed,
+                hold_composition={ UnitTypeId.CYCLONE: 1, UnitTypeId.SIEGETANK: 2 }
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.STARPORT,
+                [(UnitTypeId.RAVEN, 1)],
+                hold_until=lambda: (
+                    self.bot.structures(UnitTypeId.STARPORTREACTOR).amount >= 1
+                ),
+            ),
         ]
     
         self.swap_plans = [

@@ -19,6 +19,7 @@ class Starport(Building):
             return True
         
         ebays_amount: int = self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount
+        refineries_amount: int = self.bot.structures(UnitTypeId.REFINERY).ready.amount
         flying_unit_types: List[UnitTypeId] = [
             UnitTypeId.MEDIVAC,
             UnitTypeId.VIKINGFIGHTER,
@@ -40,6 +41,7 @@ class Starport(Building):
             case 1|2: 
                 return (
                     self.base_amount >= 3
+                    and refineries_amount >= 6
                     and ebays_amount >= 2
                     and flying_units_amount >= 2
                     and (
@@ -50,6 +52,7 @@ class Starport(Building):
             case 3:
                 return (
                     self.base_amount >= 5
+                    and refineries_amount >= 8
                     and self.bot.composition_manager.vikings_amount >= 2 * self.amount
                 )
             case _:

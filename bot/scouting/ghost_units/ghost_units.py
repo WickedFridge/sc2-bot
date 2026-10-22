@@ -58,6 +58,18 @@ class GhostUnit:
     def is_burrowed(self) -> bool:
         return self.type_id in burrowed_units
 
+def target_in_range(unit: Unit, target: Unit | GhostUnit, bonus_distance: float = 0) -> bool:
+    """ Same as Unit.target_in_range, but also works on ghost units (not in the distance cache). """
+    if (isinstance(target, Unit)):
+        return unit.target_in_range(target, bonus_distance)
+    if (unit.can_attack_ground and not target.is_flying):
+        attack_range: float = unit.ground_range
+    elif (unit.can_attack_air and (target.is_flying or target.type_id == UnitTypeId.COLOSSUS)):
+        attack_range = unit.air_range
+    else:
+        return False
+    return unit.position.distance_to(target.position) <= unit.radius + target.radius + attack_range + bonus_distance
+
 class GhostUnits:
     """
     Lightweight Units-like container for enemy units no longer in vision.
