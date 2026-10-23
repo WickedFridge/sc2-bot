@@ -11,4 +11,3 @@ class Cyclone(Train):
         self.name = 'Cyclone'
         self.order_id = AbilityId.TRAIN_CYCLONE
         self.requires_techlab = True
-        self.requeue_progress = 0.98

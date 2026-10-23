@@ -11,4 +11,3 @@ class Marauder(Train):
         self.name = 'Marauder'
         self.order_id = AbilityId.BARRACKSTRAIN_MARAUDER
         self.requires_techlab = True
-        self.requeue_progress = 0.98

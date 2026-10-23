@@ -11,4 +11,3 @@ class Thor(Train):
         self.name = 'Thor'
         self.order_id = AbilityId.FACTORYTRAIN_THOR
         self.requires_techlab = True
-        self.requeue_progress = 0.98

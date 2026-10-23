@@ -14,7 +14,6 @@ class Medivac(Train):
         self.name = 'Medivac'
         self.order_id = AbilityId.STARPORTTRAIN_MEDIVAC
         self.techlab_reserved_for = [UnitTypeId.RAVEN, UnitTypeId.BANSHEE, UnitTypeId.BATTLECRUISER]
-        self.requeue_progress = 0.97
 
     @property
     @override

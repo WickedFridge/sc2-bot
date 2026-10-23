@@ -11,4 +11,3 @@ class Ghost(Train):
         self.name = 'Ghost'
         self.order_id = AbilityId.BARRACKSTRAIN_GHOST
         self.requires_techlab = True
-        self.requeue_progress = 0.98

@@ -13,7 +13,6 @@ class SiegeTank(Train):
         self.name = 'Siege Tank'
         self.order_id = AbilityId.FACTORYTRAIN_SIEGETANK
         self.requires_techlab = True
-        self.requeue_progress = 0.98
 
     @property
     @override

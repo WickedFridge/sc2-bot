@@ -12,7 +12,6 @@ class Viking(Train):
         self.name = 'Viking'
         self.order_id = AbilityId.STARPORTTRAIN_VIKINGFIGHTER
         self.techlab_reserved_for = [UnitTypeId.RAVEN, UnitTypeId.BANSHEE, UnitTypeId.BATTLECRUISER]
-        self.requeue_progress = 0.97
 
     @property
     @override

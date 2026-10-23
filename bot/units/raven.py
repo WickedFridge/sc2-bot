@@ -11,4 +11,3 @@ class Raven(Train):
         self.name = 'Raven'
         self.order_id = AbilityId.STARPORTTRAIN_RAVEN
         self.requires_techlab = True
-        self.requeue_progress = 0.98

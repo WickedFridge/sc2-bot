@@ -11,4 +11,3 @@ class Banshee(Train):
         self.name = 'Banshee'
         self.order_id = AbilityId.STARPORTTRAIN_BANSHEE
         self.requires_techlab = True
-        self.requeue_progress = 0.98

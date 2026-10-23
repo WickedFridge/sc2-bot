@@ -1,4 +1,5 @@
 from __future__ import annotations
+import math
 from typing import TYPE_CHECKING, List, Set
 
 from bot.macro.resources import Resources
@@ -7,7 +8,7 @@ from bot.utils.fake_order import FakeOrder
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
-from sc2.unit import Unit
+from sc2.unit import Unit, UnitOrder
 from sc2.units import Units
 from bot.utils.unit_supply import get_unit_supply
 from bot.utils.unit_tags import worker_types
@@ -27,8 +28,9 @@ class Train:
     requires_techlab: bool = False
     # don't use a techlab building for this unit while one of these should be trained
     techlab_reserved_for: List[UnitTypeId] = []
-    # progress from which a new order can be queued behind the current one
-    requeue_progress: float = 0.95
+    # remaining time (in game seconds) of the current order from which a new one can be queued behind it.
+    # Shared by every unit type, so that units competing for the same building follow the same rule
+    REQUEUE_SECONDS: float = 1
     # queue behind the current order even without addon (prevents the addon from being built)
     requeue_without_addon: bool = False
         
@@ -87,7 +89,7 @@ class Train:
     def has_free_slot(self, building: Unit) -> bool:
         """
         A reactor gives 2 slots. A new order may also be queued when a slot
-        is about to free up, so that production never stops.
+        is about to free up (less than REQUEUE_SECONDS left), so that production never stops.
         Without addon, only train when idle: an idle building first gets the
         chance to build its addon, and only trains if none is planned.
         """
@@ -98,9 +100,16 @@ class Train:
             len(building.orders) < slots
             or (
                 len(building.orders) == slots
-                and any(order.progress >= self.requeue_progress for order in building.orders)
+                and any(self.order_remaining_time(order) <= self.REQUEUE_SECONDS for order in building.orders)
             )
         )
+
+    def order_remaining_time(self, order: UnitOrder) -> float:
+        """Game seconds left before the order completes (cost lookup is lru_cached by sc2)."""
+        build_time: float | None = self.bot.game_data.calculate_ability_cost(order.ability.exact_id).time
+        if (not build_time):
+            return math.inf
+        return (1 - order.progress) * build_time / 22.4
 
     @property
     def training_cost(self) -> Cost:
