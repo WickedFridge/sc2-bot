@@ -8,6 +8,7 @@ from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
@@ -16,22 +17,6 @@ class DefensiveMistral211(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_MISTRAL_211
     is_defensive_response: bool = True
     in_base_cc: bool = True
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 120):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        if (
-            self.bot.structures(UnitTypeId.FACTORY).amount == 1
-            and self.bot.structures(UnitTypeId.STARPORT).amount == 0
-        ):
-            composition.set(UnitTypeId.HELLION, 3)
-        if (self.bot.structures(UnitTypeId.STARPORTREACTOR).amount == 0):
-            composition.set(UnitTypeId.MEDIVAC, 0)
-        composition.set(UnitTypeId.CYCLONE, 0)
-        return True
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -50,6 +35,19 @@ class DefensiveMistral211(BuildOrder):
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
         ]
 
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 1)],
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.HELLION, 3)],
+            ),
+        ]
+        
         self.swap_plans = [
             AddonSwap(
                 bot,

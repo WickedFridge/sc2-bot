@@ -8,20 +8,13 @@ from bot.strategy.build_order.build_order import BuildOrder, BuildOrderStep
 from bot.strategy.build_order.builds.macro_build import MacroBuild
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
 
 class KokaBuild(MacroBuild):
     name: BuildOrderName = BuildOrderName.KOKA_BUILD
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 120):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        return False
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -40,6 +33,14 @@ class KokaBuild(MacroBuild):
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
         ]
 
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 1)],
+            ),
+        ]
+        
         self.swap_plans = [
             AddonSwap(
                 bot,

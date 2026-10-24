@@ -9,6 +9,7 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_
 from bot.strategy.build_order.builds.macro_build import MacroBuild
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
@@ -19,14 +20,6 @@ from sc2.ids.upgrade_id import UpgradeId
 
 class TwoRaxReapersKokabuild(MacroBuild):
     name: BuildOrderName = BuildOrderName.TWO_RAX_REAPERS_KOKABUILD
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 150):
-            composition.set(UnitTypeId.REAPER, 3)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        return False
     
     @property
     @override
@@ -54,6 +47,14 @@ class TwoRaxReapersKokabuild(MacroBuild):
             BuildOrderStep(bot, self, 'reactor #2 (from facto)', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False)]),
             BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False), (UnitTypeId.FACTORYREACTOR, 2, False)]),
             BuildOrderStep(bot, self, 'combat shield', UpgradeId.SHIELDWALL, upgrades_required=[UpgradeId.STIMPACK]),
+        ]
+
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 3)]
+            ),
         ]
         
         self.swap_plans = [

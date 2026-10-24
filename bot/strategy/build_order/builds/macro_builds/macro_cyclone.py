@@ -8,6 +8,7 @@ from bot.strategy.build_order.bo_names import BuildOrderName
 from bot.strategy.build_order.build_order import BuildOrderStep
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_build import MacroBuild
+from bot.strategy.build_order.production_queue import ProductionQueue
 from bot.strategy.strategy_types import Situation
 from sc2.ids.upgrade_id import UpgradeId
 if TYPE_CHECKING:
@@ -21,25 +22,6 @@ from sc2.ids.unit_typeid import UnitTypeId
 
 class MacroCyclone(MacroBuild):
     name: BuildOrderName = BuildOrderName.MACRO_CYCLONE
-    cyclone_built: bool = False
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 120):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        if (self.bot.already_pending(UnitTypeId.CYCLONE) >= 1):
-            self.cyclone_built = True
-        if (self.bot.structures(UnitTypeId.FACTORYTECHLAB).amount >= 1):
-            if (not self.cyclone_built):
-                composition.set(UnitTypeId.CYCLONE, 1)
-                composition.set(UnitTypeId.SIEGETANK, 0)
-            else:
-                composition.set(UnitTypeId.CYCLONE, 0)
-                composition.set(UnitTypeId.SIEGETANK, 1)
-            return True
-        return False
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -64,6 +46,20 @@ class MacroCyclone(MacroBuild):
             BuildOrderStep(bot, self, 'rax #4/5', UnitTypeId.BARRACKS, target_count=5, requirements=[(UnitTypeId.REFINERY, 4, False)]),
         ]
 
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 1)],
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 1)],
+                hold_until=lambda: self.is_completed
+            ),
+        ]
+        
         self.swap_plans = [
             AddonSwap(
                 bot,

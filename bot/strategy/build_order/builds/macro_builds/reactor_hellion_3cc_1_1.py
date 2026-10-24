@@ -12,6 +12,7 @@ from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone
 from bot.strategy.build_order.builds.macro_build import MacroBuild
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+from bot.strategy.build_order.production_queue import ProductionQueue
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 
@@ -22,18 +23,6 @@ from sc2.ids.upgrade_id import UpgradeId
 
 class Greedy22Timing(MacroBuild):
     name: BuildOrderName = BuildOrderName.GREEDY_2_2_TIMING
-
-    @override
-    def _modify_composition(self, composition: Composition) -> bool:
-        if (self.bot.time <= 120):
-            composition.set(UnitTypeId.REAPER, 1)
-            composition.set(UnitTypeId.MARINE, 0)
-            return True
-        if (self.bot.time <= 240):
-            composition.set(UnitTypeId.MARINE, 1)
-            composition.set(UnitTypeId.HELLION, 4)
-            return True
-        return False
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -61,6 +50,21 @@ class Greedy22Timing(MacroBuild):
             BuildOrderStep(bot, self, 'Armory', UnitTypeId.ARMORY, target_count=1, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False), (UnitTypeId.STARPORT, 1, False)]),
         ]
 
+        self.production_queues = [
+            ProductionQueue(
+                bot,
+                UnitTypeId.BARRACKS,
+                [(UnitTypeId.REAPER, 1), (UnitTypeId.MARINE, 1)],
+                hold_until=lambda: self.bot.structures(UnitTypeId.BARRACKSTECHLAB).amount >= 1,
+                hold_composition={ UnitTypeId.MARINE: 1 }
+            ),
+            ProductionQueue(
+                bot,
+                UnitTypeId.FACTORY,
+                [(UnitTypeId.HELLION, 4)],
+            ),
+        ]
+        
         self.swap_plans = [
             AddonSwap(
                 bot,
