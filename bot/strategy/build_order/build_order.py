@@ -369,7 +369,18 @@ class BuildOrder(CachedClass):
             queue_driven = queue.apply(composition) or queue_driven
         # _modify_composition runs last so a build can still override the queues
         return self._modify_composition(composition) or queue_driven
-    
+
+    def apply_lingering_queues(self, composition: Composition) -> None:
+        """
+        Once the build order is completed, applies the queues flagged `outlives_build`
+        on top of the regular composition (they deactivate by themselves once exhausted).
+        """
+        if (not self.is_completed):
+            return
+        for queue in self.production_queues:
+            if (queue.outlives_build):
+                queue.apply(composition)
+
     def _modify_composition(self, composition: Composition) -> bool:
         return False
     

@@ -256,11 +256,25 @@ class AddonSwapManager:
     def donor_landing(self, swap: SwapPlan) -> None:
         """
         Land the donor at a free position near its original location.
-        Marks DONE once grounded. Shared by AddonSwap and AddonDetachSwap.
+        Marks DONE once the recipient is grounded on the addon (the donor may still be
+        flying), or once the donor is grounded for AddonDetachSwap (no recipient).
         """
-        if (swap.donor_flying is None):
+        if (swap.recipient_tag is not None):
+            # The swap is only over once the recipient sits on the addon: until then the
+            # addon must stay protected, otherwise another building may land on it.
+            if (swap.recipient_flying is None):
+                print(f"[AddonSwapManager] Recipient grounded — swap DONE.")
+                swap.state = SwapState.DONE
+                return
+            # land order rejected (spot still occupied) — re-issue it
+            if (not swap.recipient_flying.orders and swap.addon is not None):
+                swap.recipient_flying(AbilityId.LAND, swap.addon.add_on_land_position)
+        elif (swap.donor_flying is None):
             print(f"[AddonSwapManager] Donor grounded — swap DONE.")
             swap.state = SwapState.DONE
+            return
+
+        if (swap.donor_flying is None):
             return
 
         # Still moving or landing — wait. If the land order fails (spot blocked),

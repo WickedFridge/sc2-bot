@@ -194,6 +194,7 @@ class SwapPlan(ABC):
         """
         Search for an eligible recipient: a grounded recipient_type building
         with no addon, not already managed by another swap.
+        Prefers completed buildings, then the most advanced construction.
         """
         candidates: Units = self.bot.structures(self.recipient_type).filter(
             lambda b: (
@@ -202,7 +203,9 @@ class SwapPlan(ABC):
                 and not b.is_flying
             )
         )
-        return candidates.first if candidates else None
+        if (not candidates):
+            return None
+        return max(candidates, key=lambda b: b.build_progress)
 
     def detect_addon_tag(self, donor: Unit) -> Optional[int]:
         """

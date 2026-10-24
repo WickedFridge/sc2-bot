@@ -16,26 +16,6 @@ class DefensiveTwoRax(BuildOrder):
     name: BuildOrderName = BuildOrderName.DEFENSIVE_TWO_RAX
     in_base_cc: bool = True
     is_defensive_response: bool = True
-    # cyclone_built: bool = False
-
-    # @override
-    # def _modify_composition(self, composition: Composition) -> bool:
-    #     if (self.bot.time <= 150):
-    #         composition.set(UnitTypeId.REAPER, 3)
-    #         composition.set(UnitTypeId.MARINE, 0)
-        
-    #     if (self.bot.units(UnitTypeId.CYCLONE).amount >= 1):
-    #         self.cyclone_built = True
-    #     if (not self.cyclone_built):
-    #         composition.set(UnitTypeId.CYCLONE, 1)
-    #         composition.set(UnitTypeId.SIEGETANK, 0)
-    #     else:
-    #         composition.set(UnitTypeId.CYCLONE, 0)
-            
-    #     if (self.bot.structures(UnitTypeId.STARPORTTECHLAB).amount == 1):
-    #         composition.set(UnitTypeId.RAVEN, 2)
-    #         composition.set(UnitTypeId.MEDIVAC, 0)
-    #     return True
     
     def __init__(self, bot: Superbot):
         super().__init__(bot)

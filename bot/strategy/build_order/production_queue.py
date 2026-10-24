@@ -29,6 +29,7 @@ class ProductionQueue:
     start_when: Optional[Callable[[], bool]]
     hold_until: Optional[Callable[[], bool]]
     hold_composition: dict[UnitTypeId, int]
+    outlives_build: bool
     started: bool
 
     def __init__(
@@ -39,6 +40,7 @@ class ProductionQueue:
         start_when: Optional[Callable[[], bool]] = None,
         hold_until: Optional[Callable[[], bool]] = None,
         hold_composition: Optional[dict[UnitTypeId, int]] = None,
+        outlives_build: bool = False,
     ) -> None:
         """
         start_when: keep the building idle until this returns True, then start the queue
@@ -48,6 +50,9 @@ class ProductionQueue:
         (e.g. waiting for an addon before switching to normal production).
         hold_composition: amounts to keep *alive* during the hold (replaced if they die),
         unlike the queue entries which are only produced once.
+        outlives_build: keep applying the queue after the build order is completed, on top of
+        the regular composition, until it is exhausted (e.g. a building that only becomes able
+        to produce on the last step of the build order).
         """
         self.bot = bot
         self.building_type = building_type
@@ -55,6 +60,7 @@ class ProductionQueue:
         self.start_when = start_when
         self.hold_until = hold_until
         self.hold_composition = hold_composition or {}
+        self.outlives_build = outlives_build
         self.started = start_when is None
 
     @property

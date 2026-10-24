@@ -16,4 +16,7 @@ class Viking(Train):
     @property
     @override
     def custom_conditions(self) -> bool:
-        return self.bot.units([UnitTypeId.MEDIVAC]).amount >= 2
+        return (
+            self.bot.composition_manager.composition[UnitTypeId.MEDIVAC] == 0
+            or self.bot.units([UnitTypeId.MEDIVAC]).amount >= 2
+        )

@@ -220,7 +220,7 @@ important_buildings: List[UnitTypeId] = [
 ]
 flying_units: list[UnitTypeId] = [
     # Terran
-    UnitTypeId.VIKING,
+    UnitTypeId.VIKINGFIGHTER,
     UnitTypeId.MEDIVAC,
     UnitTypeId.LIBERATOR,
     UnitTypeId.RAVEN,
@@ -243,7 +243,7 @@ flying_units: list[UnitTypeId] = [
 
 anti_air: List[UnitTypeId] = [
     # Terran
-    UnitTypeId.VIKING,
+    UnitTypeId.VIKINGFIGHTER,
     UnitTypeId.CYCLONE,
     UnitTypeId.THORAP,
     # Zerg

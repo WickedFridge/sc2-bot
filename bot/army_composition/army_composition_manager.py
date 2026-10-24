@@ -107,7 +107,7 @@ class ArmyCompositionManager(CachedClass):
         light_units: List[UnitTypeId] = [
             # thors proved ineffective against mass mutalisks
             # UnitTypeId.MUTALISK,
-            UnitTypeId.VIKING,
+            UnitTypeId.VIKINGFIGHTER,
             UnitTypeId.LIBERATOR
         ]
         no_thors_units: List[UnitTypeId] = [UnitTypeId.BATTLECRUISER, UnitTypeId.TEMPEST]
@@ -122,7 +122,7 @@ class ArmyCompositionManager(CachedClass):
             thor_response_amount: float = get_unit_supply(unit_type) / 4
             if (enemy_units.amount > 0):
                 thor_amount += thor_response_amount * enemy_units.amount
-            elif (unit_type != UnitTypeId.VIKING):
+            elif (unit_type != UnitTypeId.VIKINGFIGHTER):
                 thor_amount += thor_response_amount / 2
 
         # round, because 2.3 thors = 2 thors in practice
@@ -373,7 +373,10 @@ class ArmyCompositionManager(CachedClass):
             if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
                 composition.set(UnitTypeId.MEDIVAC, min(MAX_MEDIVAC_AMOUNT, round(bio_supply / 8)))
 
-        
+        # build order queues that outlive the build order override their building's units
+        # (applied before the fills so the remaining supply accounts for them)
+        self.wicked.build_order.build.apply_lingering_queues(composition)
+
         # always fill the rest of the composition with 1/2 of Marines
         composition.fill(UnitTypeId.MARINE, 1/2)
         
