@@ -1,9 +1,10 @@
 # Adapted from: https://github.com/DrInfy/sharpy-sc2/blob/master/dummy_ladder_zip.py
 
+import importlib
 import os
 import shutil
 import zipfile
-from typing import Optional
+from typing import List, Optional
 
 from bot import WickedBot as bot
 
@@ -30,6 +31,9 @@ files_and_directories_to_zip = [
     "run.py",
     # "cython_extensions",
 ]
+
+# pure-python packages not available on the ladder, copied from the local environment to the zip root
+vendored_packages: List[str] = []
 
 # the template for the ladderbots.json file that will be generated
 ladderbots_json_template = """{
@@ -96,6 +100,9 @@ def create_ladder_zip():
     for directory in directories_to_zip:
         zipdir(directory, zipf)
     zipdir("publish/cython_extensions", zipf, "publish/")
+    for package in vendored_packages:
+        package_dir = os.path.dirname(importlib.import_module(package).__file__)
+        zipdir(package_dir, zipf, os.path.dirname(package_dir) + os.sep)
     zipf.close()
 
     os.remove("ladderbots.json")

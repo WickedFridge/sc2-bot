@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 # Publish folder
 publish/
+data/
 
 # cython
 cython_extensions

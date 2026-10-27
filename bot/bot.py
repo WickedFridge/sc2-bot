@@ -1,6 +1,6 @@
 from time import perf_counter
 from typing import Awaitable, Callable, List, override
-# from bot.analytics.analytics import Analytics
+from bot.analytics.analytics import Analytics
 from bot.army_composition.army_composition_manager import ArmyCompositionManager, get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.7.0"
+VERSION: str = "14.0.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -41,7 +41,7 @@ class WickedBot(Superbot):
     macro: Macro
     debug: Debug
     structures_memory: Units
-    # analytics: Analytics
+    analytics: Analytics
     opponent_random: bool = False
     tag_to_update: bool = False
 
@@ -57,7 +57,7 @@ class WickedBot(Superbot):
         self.trainer = Trainer(self, self.combat)
         self.macro = Macro(self)
         self.debug = Debug(self)
-        # self.analytics = Analytics(self)
+        self.analytics = Analytics(self)
         self.structures_memory: Units = Units([], self)
         self.profiler: StepProfiler = StepProfiler()
 
@@ -155,7 +155,8 @@ class WickedBot(Superbot):
             self.map.influence_maps.init_influence_maps()
             self.build_order.select_build(self.matchup)
             await self.tag_game()
-            # self.analytics.write("Test")
+            self.analytics.start_match()
+            await self.analytics.announce_stats()
             # await self.client.debug_fast_build()
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
@@ -402,6 +403,7 @@ class WickedBot(Superbot):
         await self.client.chat_send(f'Tag:{self.matchup}', False)
         print(f'Matchup : {self.matchup}')
         await self.build_order.announce_build()
+        self.analytics.update_opponent_race(self.matchup)
         self.tag_to_update = False
 
     @override
@@ -419,7 +421,7 @@ class WickedBot(Superbot):
         self.scouting.unit_died(unit_tag)
         if (unit_tag in self.structures_memory.tags):
             print('structure destroyed - Removing it from grid')
-            dead_structure: Unit = self.structures_memory.find_by_tag(unit_tag)
+            dead_structure: Unit = self.structures_memory.by_tag(unit_tag)
             self.map.influence_maps.buildings.on_building_destroyed(dead_structure)
 
     @override
@@ -432,4 +434,5 @@ class WickedBot(Superbot):
         This code runs once at the end of the game
         Do things here after the game ends
         """
+        self.analytics.end_match(result)
         print("Game ended.")

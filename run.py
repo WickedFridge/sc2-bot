@@ -113,6 +113,7 @@ def load_bot(args):
     competitive_bot = WickedBot()
     # Add opponent_id to the bot class (accessed through self.opponent_id)
     competitive_bot.opponent_id = args.OpponentId
+    competitive_bot.is_ladder = args.LadderServer is not None
 
     return Bot(WickedBot.RACE, competitive_bot)
 

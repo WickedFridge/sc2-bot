@@ -80,6 +80,7 @@ class BuildOrderManager:
         print(f"[BuildOrderManager] Switching {self.build.name.value} order to {new_build_order.name.value}")
         previous_swap_plans = self.build.swap_plans
         self.build = new_build_order
+        self.wicked.analytics.record_build_switch(new_build_order.name.name, self.bot.time)
         await self.announce_build()
         self.build.reconcile(previous_swap_plans)
 

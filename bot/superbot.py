@@ -24,7 +24,9 @@ if TYPE_CHECKING:
 class Superbot(BotAI):
     addon_swap: AddonSwapManager
     buildings: BuildingsHandler
-    
+    opponent_id: str | None = None
+    is_ladder: bool = False
+
     @property
     def matchup(self) -> Matchup:
         pass
