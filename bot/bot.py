@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "13.6.11"
+VERSION: str = "13.7.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -293,13 +293,9 @@ class WickedBot(Superbot):
             self.builder.ghost_academy.build,
             self.search.magfield_accelerator.search,
             self.search.blueflame.search,
-            self.search.air_attack_level_1.search,
-            self.search.air_attack_level_2.search,
-            self.search.air_attack_level_3.search,
-            self.search.air_armor_level_1.search,
-            self.search.air_armor_level_2.search,
-            self.search.air_armor_level_3.search,
         ])
+        # mech upgrades, sorted by score
+        money_spenders.extend(self.search.ordered_mech_upgrades)
         money_spenders.extend([
             # production buildings
             self.builder.starport.build,
@@ -373,15 +369,16 @@ class WickedBot(Superbot):
         # self.debug.detection_map()
         # self.macro.supply_block_update()
         # self.debug.changelings()
-        self.debug.enemy_composition()
+        # self.debug.enemy_composition()
         # self.debug.burrowed_units()
         self.debug.ghost_units()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()
         await self.debug.chat_commands()
         await self.debug.build_order()
-        await self.debug.composition_manager()
-        await self.debug.composition_priorities()
+        self.debug.composition_manager()
+        self.debug.composition_priorities()
+        self.debug.search_priorities()
         profiler.mark('debug')
         profiler.end(iteration, self.time)
         

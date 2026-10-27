@@ -23,12 +23,15 @@ class Upgrade:
     requirements_ups_completed: List[UpgradeId] = []
     requirements_buildings: List[UnitTypeId] = []
     name: str
+    short_name: str = ""
     is_ability: bool = False
     block_gas_only: bool = False
     ignore_build_order: bool = False
     
     def __init__(self, search_manager: Search):
         self.bot = search_manager.bot
+        if (not self.short_name):
+            self.short_name = self.name
     
     @property
     def in_build_order(self) -> bool:

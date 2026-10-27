@@ -426,8 +426,8 @@ class MicroUnit(CachedClass):
     async def disengage(self, unit: Unit, local_units: Units):
         await self.retreat(unit, local_units)
 
-    async def defend(self, unit: Unit, local_units: Units, expansion: Expansion):
-        unit.attack(expansion.position)        
+    async def defend(self, unit: Unit, local_units: Units, target: Point2):
+        unit.attack(target)
     
     async def heal_up(self, unit: Unit, local_units: Units):
         if (unit.distance_to(local_units.center) > 5):

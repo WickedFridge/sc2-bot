@@ -228,15 +228,14 @@ class Execute(CachedClass):
         for unit in army.units:
             await self.micro.handlers[unit.type_id].disengage(unit, army.units)
     
-    async def defend(self, army: Army):
-        expansions_under_attack: Expansions = self.bot.expansions.taken.under_attack
-        if (expansions_under_attack.amount == 0):
-            print("Error: no expansions under attack to defend")
+    async def defend(self, army: Army, building_threatened: Units):
+        if (building_threatened.amount == 0):
+            print("Error: no building threatened to defend")
             await self.retreat_army(army)
             return
-        closest_expansion: Expansion = expansions_under_attack.closest_to(army.center)
+        defend_position: Point2 = building_threatened.closest_to(army.center).position
         for unit in army.units:
-            await self.micro.handlers[unit.type_id].defend(unit, army.units, closest_expansion)
+            await self.micro.handlers[unit.type_id].defend(unit, army.units, defend_position)
     
     def defend_bunker_rush(self, army: Army) -> None:
         main: Point2 = self.bot.expansions.main.position

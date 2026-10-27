@@ -20,6 +20,7 @@ from bot.strategy.build_order.builds.unused.defensive_cyclone import DefensiveCy
 from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.test_builds.cyclone_tank_test import CycloneTankTest
 from bot.superbot import Superbot
+from bot.technology.upgrades.mech_upgrades import MechUpgrade
 from bot.utils.army import Army
 from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.defend_worker_rush import wall_is_up
@@ -779,16 +780,29 @@ class Debug:
             self.draw_text_on_screen(f'Recipient : {swap.recipient_type}', position, color, font_size=14)
             
     
-    async def composition_manager(self):
+    def composition_manager(self):
         composition: Composition = self.bot.composition_manager.composition
         for i, (string, color) in enumerate(composition.debug_info):
             position: Point2 = Point2((0.01, 0.01 + 0.015 * (i + 1)))
             self.draw_text_on_screen(string, position, color)
 
-    async def composition_priorities(self):
+    def composition_priorities(self):
         for i, unit_type in enumerate(self.bot.trainer.ordered_unit_types):
-            position: Point2 = Point2((0.9, 0.02 + 0.015 * (i + 1)))
+            position: Point2 = Point2((0.92, 0.03 + 0.015 * (i + 1)))
             self.draw_text_on_screen(unit_type.name, position)
+
+    def search_priorities(self):
+        # displayed below the unit priorities
+        start_position: float = 0.03 + 0.015 * (len(self.bot.trainer.army_trainers) + 1)
+        i: int = 0
+        for upgrade_id, score in self.bot.search.ordered_mech_upgrade_scores:
+            upgrade: MechUpgrade = self.bot.search.mech_upgrades[upgrade_id]
+            if (not upgrade._upgrade_requirements_met or self.bot.already_pending(upgrade_id) == 1):
+                continue
+            position: Point2 = Point2((0.89, start_position + 0.015 * (i + 1)))
+            color: tuple = GREEN if score >= upgrade.min_score else RED
+            self.draw_text_on_screen(f'{upgrade.short_name} : {score:.1f} / {upgrade.min_score}', position, color)
+            i += 1
 
     def enemy_composition(self):
         start_position: float = 0.65 - 0.015 * len(self.bot.scouting.possible_enemy_composition)

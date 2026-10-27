@@ -35,7 +35,11 @@ class SelectOrders:
     execute: Execute
     armies: List[Army] = []
     DEFENSE_RANGE_LIMIT: int = 40
-    
+    # Large enough to include ranged units (Carriers, Tempests, Tanks) hitting a building from max range
+    BUILDING_THREAT_RADIUS: int = 14
+    # Trade bases instead of defending if the closest enemy building is this many times closer than the threat
+    BASE_TRADE_RATIO: float = 2
+
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.execute = Execute(bot)
@@ -133,6 +137,13 @@ class SelectOrders:
             )
         )
     
+    @property
+    def global_enemy_menacing(self) -> Units:
+        return (
+            self.global_enemy_units.filter(lambda u: u.can_attack or u.type_id in menacing)
+            + self.bot.enemy_structures.filter(lambda u: u.type_id in tower_types)
+        )
+
     @property
     def enemy_anti_air(self) -> Units:
         return self.bot.scouting.known_enemy_army.units(anti_air)
@@ -264,10 +275,7 @@ class SelectOrders:
         
         # -- Useful in case of canon/bunker rush
         situation: Situation = self.bot.scouting.situation
-        global_enemy_menacing: Units = (
-            self.global_enemy_units.filter(lambda u: u.can_attack or u.type_id in menacing)
-            + global_enemy_buildings.filter(lambda u: u.type_id in tower_types)
-        )
+        global_enemy_menacing: Units = self.global_enemy_menacing
         global_unarmed_enemies: Units = self.global_enemy_units.filter(
             lambda u: u.can_be_attacked and not u.can_attack and u.type_id not in menacing
         )
@@ -473,15 +481,28 @@ class SelectOrders:
             return True
         return False
     
+    def get_building_threats(self, global_enemy_menacing: Units) -> Units:
+        # Enemies close enough to one of our structures to be attacking it
+        if (global_enemy_menacing.amount == 0 or self.bot.structures.amount == 0):
+            return Units([], self.bot)
+        return global_enemy_menacing.in_distance_of_group(self.bot.structures, self.BUILDING_THREAT_RADIUS)
+
     def should_defend_buildings(self, army: Army, global_enemy_menacing: Units) -> bool:
-        closest_building_to_enemies: Unit = None if global_enemy_menacing.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing)
-        distance_building_to_enemies: float = 1000 if global_enemy_menacing.amount == 0 else global_enemy_menacing.closest_distance_to(closest_building_to_enemies)
-        
-        return (
-            distance_building_to_enemies <= 10
-            and Army(global_enemy_menacing, self.bot).supply >= 12
-            and global_enemy_menacing.closest_distance_to(army.center) <= self.DEFENSE_RANGE_LIMIT
-        )
+        # Only consider enemies actually threatening our buildings,
+        # so the decision matches the target used in Execute.defend
+        building_threats: Units = self.get_building_threats(global_enemy_menacing)
+        if (Army(building_threats, self.bot).supply < 12):
+            return False
+
+        distance_to_threat: float = building_threats.closest_distance_to(army.center)
+        if (distance_to_threat <= self.DEFENSE_RANGE_LIMIT):
+            return True
+
+        # Far from home: trade bases only if an enemy building is much closer than the threat
+        if (self.bot.enemy_structures.amount == 0):
+            return True
+        distance_to_enemy_building: float = self.bot.enemy_structures.closest_distance_to(army.center)
+        return distance_to_enemy_building * self.BASE_TRADE_RATIO > distance_to_threat
     
     def should_clean_creep(self, army: Army) -> Optional[Orders]:
         if (
@@ -641,7 +662,7 @@ class SelectOrders:
                     await self.execute.fight_defense(army)
                                  
                 case Orders.DEFEND:
-                    await self.execute.defend(army)
+                    await self.execute.defend(army, self.get_building_threats(self.global_enemy_menacing))
 
                 case Orders.DEFEND_BUNKER_RUSH:
                     self.execute.defend_bunker_rush(army)
