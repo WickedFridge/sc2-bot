@@ -113,7 +113,7 @@ class Analytics:
             )
         ]
         if (len(matches) == 0):
-            return ["Stats : aucun match connu contre cet adversaire"]
+            return ["Stats : no known match against this opponent"]
 
         results_by_build: Dict[str, Dict[str, int]] = {}
         for match in matches:
