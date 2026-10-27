@@ -87,7 +87,7 @@ class Base:
                 case _:
                     return Threat.HARASS
                 
-        local_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.can_attack)
+        local_enemy_units: Units = self.enemy_units.filter(lambda unit: unit.can_attack and unit.distance_to(self.position) <= self.BASE_SIZE / 2)
         if (local_enemy_units.amount == 0):
             return Threat.NO_THREAT
 
@@ -204,7 +204,7 @@ class Base:
         for canon in cannons:
             if (canon.build_progress <= 0.5):
                 self.pull_workers(canon, 3)
-            else:
+            elif (canon.build_progress < 1 or canon.health_percentage < 0.25):
                 self.pull_workers(canon, round((canon.build_progress * 8)))
 
     def avoid_harass(self) -> None:
