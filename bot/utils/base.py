@@ -204,8 +204,12 @@ class Base:
         for canon in cannons:
             if (canon.build_progress <= 0.5):
                 self.pull_workers(canon, 3)
-            elif (canon.build_progress < 1 or canon.health_percentage < 0.25):
+            # health isn't populated for snapshots (health_percentage = 0), only trust it when the cannon is visible
+            elif (canon.build_progress < 1 or (canon.is_visible and canon.health_percentage < 0.25)):
                 self.pull_workers(canon, round((canon.build_progress * 8)))
+            else:
+                # finished healthy cannon: don't fight it with workers, wait for the army
+                self.pull_workers(canon, 0)
 
     def avoid_harass(self) -> None:
         # we don't move away if we're repairing or full life

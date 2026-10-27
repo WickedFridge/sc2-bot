@@ -351,9 +351,14 @@ class Execute(CachedClass):
                     unit.attack(closest_enemy)
                     continue
 
+            # otherwise go for the closest remaining target
+            # (can be empty if the last building got canceled before the situation updates)
+            remaining_targets: Units = enemy_structures + enemy_probes + enemy_units
+            if (remaining_targets.amount >= 1):
+                unit.attack(remaining_targets.closest_to(unit))
             else:
-                unit.attack((enemy_structures + enemy_probes + enemy_units).closest_to(unit))
-            
+                unit.attack(self.bot.main_base_ramp.top_center)
+
 
 
     async def harass(self, army: Army, enemy_workers: Units):
