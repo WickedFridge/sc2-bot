@@ -132,6 +132,10 @@ class Macro:
         return bases
 
     
+    async def townhalls_response_to_threat(self):
+        for base in self.bases:
+            base.townhall_response_to_threat()
+
     async def workers_response_to_threat(self):
         # if every townhalls is dead, just attack the nearest unit with every worker
         if (self.bot.townhalls.amount == 0):
@@ -436,7 +440,7 @@ class Macro:
                     color = YELLOW
                 case Threat.HARASS:
                     color = BLUE
-                case Threat.CANNON_RUSH:
+                case Threat.CANNON_RUSH | Threat.SPINE_RUSH:
                     color = PURPLE
                 case _:
                     color = WHITE

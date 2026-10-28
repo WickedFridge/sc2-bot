@@ -299,9 +299,11 @@ class BuildingsHandler:
     
     async def drop_mules(self):
         # find biggest mineral fields near a full base
-        safe_mineral_fields: Units = self.bot.expansions.ready.safe.mineral_fields
+        safe_mineral_fields: Units = self.bot.expansions.ready.without_enemy.mineral_fields
         if (safe_mineral_fields.amount == 0):
-            return
+            safe_mineral_fields = self.bot.expansions.ready.safe.mineral_fields
+        if (safe_mineral_fields.amount == 0):
+            return    
         richest_mineral_field: Unit = max(safe_mineral_fields, key=lambda x: x.mineral_contents)
 
         # bank scans if we have 3 or more orbitals and enough SCVs

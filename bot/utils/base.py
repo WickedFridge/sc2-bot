@@ -36,6 +36,7 @@ class Base:
     REPAIR_THRESHOLD_FLAT: int = 50
     MAX_INDIVIDUAL_REPAIRERS: int = 3
     RANGE_THRESHOLD: float = 1.5
+    SPINE_RUSH_LIFT_THRESHOLD: float = 0.5
     position: Point2
 
     def __init__(self, bot: Superbot, expansion: Expansion, threat: Threat) -> None:
@@ -69,7 +70,7 @@ class Base:
             lambda unit: (
                 (
                     unit.type_id in tower_types
-                    or unit.type_id == UnitTypeId.PYLON
+                    or unit.type_id in [UnitTypeId.PYLON, UnitTypeId.SPINECRAWLERUPROOTED]
                 ) and (
                     unit.distance_to(self.bot.expansions.b2.position) <= self.BASE_SIZE
                     or unit.distance_to(self.bot.expansions.main.position) <= self.BASE_SIZE
@@ -84,6 +85,8 @@ class Base:
                     return Threat.CANNON_RUSH
                 case UnitTypeId.BUNKER:
                     return Threat.BUNKER_RUSH
+                case UnitTypeId.SPINECRAWLER | UnitTypeId.SPINECRAWLERUPROOTED:
+                    return Threat.SPINE_RUSH
                 case _:
                     return Threat.HARASS
                 
@@ -117,6 +120,23 @@ class Base:
         return Threat.NO_THREAT
     
     
+    def townhall_response_to_threat(self) -> None:
+        match self.threat:
+            case Threat.OVERWHELMED:
+                self.lift_cc()
+
+            case Threat.ATTACK:
+                if (self.cc.health_percentage < 0.5):
+                    self.lift_cc()
+
+            case Threat.SPINE_RUSH:
+                # a rooted spine shooting the townhall won't leave, lift before it dies
+                spines_shooting_cc: Units = self.enemy_structures(UnitTypeId.SPINECRAWLER).ready.filter(
+                    lambda spine: spine.target_in_range(self.cc)
+                )
+                if (spines_shooting_cc.amount >= 1 and self.cc.health_percentage < self.SPINE_RUSH_LIFT_THRESHOLD):
+                    self.lift_cc()
+
     def workers_response_to_threat(self) -> None:
         if (self.workers.amount == 0):
             return        
@@ -142,6 +162,9 @@ class Base:
 
             case Threat.BUNKER_RUSH:
                 self.defend_bunker_rush()
+
+            case Threat.SPINE_RUSH:
+                self.defend_spine_rush()
 
             case Threat.WORKER_RUSH:
                 self.defend_worker_rush()
@@ -172,6 +195,16 @@ class Base:
             else:
                 self.pull_workers(bunker, round((bunker.build_progress * 8)))
             
+    def defend_spine_rush(self) -> None:
+        for spine in self.enemy_structures(UnitTypeId.SPINECRAWLER):
+            if (spine.build_progress <= 0.5):
+                self.pull_workers(spine, 3)
+            elif (spine.build_progress < 1):
+                self.pull_workers(spine, round((spine.build_progress * 8)))
+            else:
+                # finished spine: don't fight it with workers, wait for the army
+                self.pull_workers(spine, 0)
+
     def defend_cannon_rush(self) -> None:
         cannons: Units = self.enemy_structures(UnitTypeId.PHOTONCANNON)
         pylons: Units = self.enemy_structures(UnitTypeId.PYLON)
@@ -318,9 +351,6 @@ class Base:
 
     
     def attack_threat(self) -> None:
-        if (self.cc.health_percentage < 0.5):
-            self.lift_cc()
-
         if (self.available_workers.amount == 0):
             print("no workers to pull, o7")
             return
@@ -494,7 +524,6 @@ class Base:
                     worker.gather(retreat_base.mineral_fields.random)
                 else:
                     worker.move(retreat_base.mineral_line)
-        self.lift_cc()
         
     
     def no_threat(self) -> None:

@@ -115,9 +115,16 @@ class Expansion(CachedClass):
             local_anti_ground_units.append(self.defending_structure)
         
         return (
-            Army(local_anti_ground_units, self.bot).weighted_supply >= Army(local_enemy_ground_units, self.bot).weighted_supply
-            and Army(local_anti_air_units, self.bot).weighted_supply >= Army(local_enemy_air_units, self.bot).weighted_supply
+            Army(local_anti_ground_units, self.bot).weighted_supply > Army(local_enemy_ground_units, self.bot).weighted_supply
+            and Army(local_anti_air_units, self.bot).weighted_supply > Army(local_enemy_air_units, self.bot).weighted_supply
         )
+    
+    @custom_cache_once_per_frame
+    def no_enemy_around(self) -> bool:
+        local_enemy_units: Units = self.bot.enemy_units.closer_than(8, self.mineral_line).filter(
+            lambda unit: unit.can_attack_ground or unit.type_id in menacing
+        )
+        return local_enemy_units.amount == 0
     
     @custom_cache_once_per_frame
     def cc(self) -> Optional[Unit]:

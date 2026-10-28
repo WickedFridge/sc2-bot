@@ -119,6 +119,10 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_safe == True)
 
     @custom_cache_once_per_frame
+    def without_enemy(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.no_enemy_around == True)
+
+    @custom_cache_once_per_frame
     def not_enemy(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_enemy == False)
     
