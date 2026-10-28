@@ -71,7 +71,7 @@ class Expansion(CachedClass):
             return True
 
         enemy_townhalls: Units = self.bot.enemy_structures.filter(lambda unit : unit.type_id in townhalls)
-        return enemy_townhalls.amount > 0 and enemy_townhalls.closest_distance_to(self.position) == 0
+        return enemy_townhalls.amount > 0 and enemy_townhalls.closest_distance_to(self.position) <= 0.5
     
     @custom_cache_once_per_frame
     def is_ready(self) -> bool:
@@ -79,17 +79,27 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def is_probably_free(self) -> bool:
-        return self.is_free or self.is_unknown
-    
+        return (
+            (self.is_free or self.is_unknown)
+            and not self.is_potentially_enemy
+            and self.no_enemy_around
+        )
+
     @custom_cache_once_per_frame
     def is_free(self) -> bool:
         return (
             self.is_scouted
             and not self.is_taken
             and not self.is_enemy
-            and not self.bot.has_creep(self.position)
+            and self.mineral_fields.amount >= 1
+            and self.is_buildable
         )
     
+    @custom_cache_once_per_frame
+    def is_buildable(self) -> bool:
+        """A CC can land on the slot (no creep, rocks/debris or building on the footprint)."""
+        return self.bot.map.influence_maps.buildings.should_build_building(self.position, UnitTypeId.COMMANDCENTER, 2.5)
+
     @custom_cache_once_per_frame
     def is_safe(self) -> bool:
         # Positions with high HP PF are considered safe

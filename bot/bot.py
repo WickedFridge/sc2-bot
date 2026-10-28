@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.0.6"
+VERSION: str = "14.0.7"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"

@@ -516,7 +516,7 @@ class BuildingsHandler:
             return
         
         townhalls_not_on_slot: Units = self.bot.expansions.townhalls_not_on_slot.ready.idle.not_flying
-        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.not_flying
+        townhalls_depleted: Units = self.bot.expansions.taken.depleted.townhalls.idle.not_flying([UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND])
         townhalls_to_move: Units = (
             townhalls_not_on_slot
             if townhalls_not_on_slot.amount >= 1
@@ -606,10 +606,10 @@ class BuildingsHandler:
                     townhall.stop()
                     continue
             
-            expansions_with_resources: Expansions = self.bot.expansions.with_resources
+            probably_free_expansions: Expansions = self.bot.expansions.with_resources.probably_free
             expansion_spot: Point2 = (
-                expansions_with_resources.next.position if flying_townhall.amount == 1
-                else expansions_with_resources.probably_free.closest_to(townhall.position).position if expansions_with_resources.probably_free.amount >= 1
+                probably_free_expansions.next.position if flying_townhall.amount == 1 and probably_free_expansions.amount >= 1
+                else probably_free_expansions.closest_to(townhall.position).position if probably_free_expansions.amount >= 1
                 else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
                 else self.bot.expansions.main.position
             )
