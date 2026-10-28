@@ -114,9 +114,16 @@ class Expansion(CachedClass):
         if (self.defending_structure and self.defending_structure.cargo_used >= 1):
             local_anti_ground_units.append(self.defending_structure)
         
+        # strictly stronger when enemies are around, but no enemy at all means safe
         return (
-            Army(local_anti_ground_units, self.bot).weighted_supply > Army(local_enemy_ground_units, self.bot).weighted_supply
-            and Army(local_anti_air_units, self.bot).weighted_supply > Army(local_enemy_air_units, self.bot).weighted_supply
+            (
+                local_enemy_ground_units.amount == 0
+                or Army(local_anti_ground_units, self.bot).weighted_supply > Army(local_enemy_ground_units, self.bot).weighted_supply
+            )
+            and (
+                local_enemy_air_units.amount == 0
+                or Army(local_anti_air_units, self.bot).weighted_supply > Army(local_enemy_air_units, self.bot).weighted_supply
+            )
         )
     
     @custom_cache_once_per_frame
