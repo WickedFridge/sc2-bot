@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.0.7"
+VERSION: str = "14.0.8"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -157,19 +157,9 @@ class WickedBot(Superbot):
             await self.tag_game()
             self.analytics.start_match()
             await self.analytics.announce_stats()
-            # await self.client.debug_fast_build()
-            # await self.client.debug_all_resources()
-            # await self.client.debug_show_map()
-            await self.client.debug_control_enemy()
-            # await self.client.debug_upgrade()
-            # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
-            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
-            # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
-        
+            if (not self.is_ladder):
+                await self.debug_setup()
+
         start_time: float = perf_counter()
         profiler: StepProfiler = self.profiler
         profiler.start()
@@ -327,10 +317,30 @@ class WickedBot(Superbot):
             profiler.mark(f'spend.{type(getattr(money_spender, "__self__", money_spender)).__name__}')
 
 
-        # Debug stuff
-        
         end_time: float = perf_counter()
         profiler.mark('spend')
+
+        # Debug stuff
+        if (not self.is_ladder):
+            await self.debug_step(iteration, end_time - start_time)
+            profiler.mark('debug')
+        profiler.end(iteration, self.time)
+
+    async def debug_setup(self):
+        # await self.client.debug_fast_build()
+        # await self.client.debug_all_resources()
+        # await self.client.debug_show_map()
+        await self.client.debug_control_enemy()
+        # await self.client.debug_upgrade()
+        # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
+        # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
+        # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
+        # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+        # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
+        # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
+        # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
+
+    async def debug_step(self, iteration: int, step_time: float):
         await self.debug.drop_path()
         # await self.debug.unscouted_b2()
         # await self.debug.colorize_bunkers()
@@ -381,11 +391,8 @@ class WickedBot(Superbot):
         self.debug.composition_manager()
         self.debug.composition_priorities()
         self.debug.search_priorities()
-        profiler.mark('debug')
-        profiler.end(iteration, self.time)
-        
         self.client.debug_text_screen(
-            f'Step Time: {(end_time - start_time)*1000:.2f} ms',
+            f'Step Time: {step_time*1000:.2f} ms',
             (0.01, 0.01),
         )
         

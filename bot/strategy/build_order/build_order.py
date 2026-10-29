@@ -141,6 +141,22 @@ class BuildOrder(CachedClass):
             surplus_addons.remove(surplus_type)
 
             addon_family: UnitTypeId = UnitTypeId.REACTOR if (missing_type in reactors) else UnitTypeId.TECHLAB
+            # Un swap identique encore PENDING dans le build précédent : on le reprend
+            # tel quel plutôt que d'en créer un second pour le même addon.
+            carried_plan: Optional[SwapPlan] = next(
+                (p for p in previous_swap_plans
+                if isinstance(p, AddonSwap)
+                and p.state == SwapState.PENDING
+                and p.donor_type == donor_type
+                and p.recipient_type == recipient_type
+                and addon_group(p.desired_addon_type) == group
+                and p not in plans_to_prepend),
+                None,
+            )
+            if (carried_plan is not None):
+                print(f"[reconcile] Carrying over pending swap {carried_plan.name} — covers missing {missing_type.name}.")
+                plans_to_prepend.append(carried_plan)
+                continue
             print(
                 f"[reconcile] surplus {surplus_type.name} ({donor_type.name}) covers missing "
                 f"{missing_type.name} ({recipient_type.name}) — injecting AddonSwap."
@@ -153,8 +169,9 @@ class BuildOrder(CachedClass):
         # otherwise the donor/recipient are left stranded mid-transfer.
         for plan in previous_swap_plans:
             # only swaps with a building actually mid-transfer: a plan still waiting on
-            # its condition would be evaluated against the previous build's context
-            if (plan.is_finished or not plan.is_active):
+            # its condition would be evaluated against the previous build's context.
+            # PENDING plans still useful were already carried over by the diff above.
+            if (plan.is_finished or not plan.is_active or plan in plans_to_prepend):
                 continue
 
             group: list[UnitTypeId] = addon_group(plan.desired_addon_type)
@@ -324,7 +341,11 @@ class BuildOrder(CachedClass):
                 continue
             equivalent_types: List[UnitTypeId] = [step.step_id] + self.equivalences.get(step.step_id, [])
             matched_type: Optional[UnitTypeId] = next(
-                (addon_type for addon_type in equivalent_types if real_addons.get(addon_type, 0) > 0),
+                (
+                    addon_type for addon_type in equivalent_types
+                    if real_addons.get(addon_type, 0) > 0
+                    and (addon_type == step.step_id or not self._addon_blocks_owner(addon_type))
+                ),
                 None,
             )
             if (matched_type is not None):
@@ -333,6 +354,32 @@ class BuildOrder(CachedClass):
             else:
                 addons.append(step.step_id)
         return addons
+
+    def _addon_blocks_owner(self, addon_type: UnitTypeId) -> bool:
+        """
+        True if an addon of `addon_type` sitting on its owner building prevents an
+        unsatisfied addon step of the other family on that same building type
+        (ex: BARRACKSTECHLAB alors que le build attend encore un BARRACKSREACTOR),
+        with no addon-less owner building left to host it. Such an addon must not
+        be reported under its real type: it is meant to move elsewhere.
+        """
+        owner_type: Optional[UnitTypeId] = addon_owner.get(addon_type)
+        if (owner_type is None):
+            return False
+        other_family: list[UnitTypeId] = reactors if (addon_type in techlabs) else techlabs
+        owner_needs_other_family: bool = any(
+            not step.is_satisfied
+            and step.step_id in other_family
+            and addon_owner.get(step.step_id) == owner_type
+            for step in self.steps
+        )
+        if (not owner_needs_other_family):
+            return False
+        owner_addons: int = self.bot.structures(
+            [addon for addon, owner in addon_owner.items() if owner == owner_type]
+        ).amount
+        free_owners: int = self.bot.structures(owner_type).amount - owner_addons
+        return free_owners <= 0
 
     @custom_cache_once_per_frame
     def next(self) -> BuildOrderStep | None:
