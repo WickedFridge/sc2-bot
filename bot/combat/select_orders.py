@@ -312,10 +312,17 @@ class SelectOrders:
         
         # -- Remaining general army logic
         if (local_enemy_supply > 0):
+            # Static defenses can't chase: disengaging from them only makes the army oscillate
+            only_static_enemies: bool = (
+                local_enemy_units.filter(lambda unit: not unit.is_structure).amount == 0
+                and local_enemy_ghosts.amount == 0
+                and local_hidden_army.units.amount == 0
+            )
             return self.get_fight_orders(
                 army=army,
                 local_enemy_supply=local_enemy_supply,
-                global_enemy_menacing=global_enemy_menacing
+                global_enemy_menacing=global_enemy_menacing,
+                only_static_enemies=only_static_enemies
             )
         
         # -- Clean slow unharmed enemy units
@@ -419,11 +426,12 @@ class SelectOrders:
         self,
         army: Army,
         local_enemy_supply: float,
-        global_enemy_menacing: Units
+        global_enemy_menacing: Units,
+        only_static_enemies: bool = False
     ):
         MAX_PICKUP_SUPPLY: float = 30
         weighted_army_supply: float = army.weighted_supply
-        
+
         # if enemy is a threat, micro if we win or we need to defend the base, retreat if we don't
         if (
             (self.bot.stim_completed or army.is_technical)
@@ -434,7 +442,12 @@ class SelectOrders:
         ):
             if (weighted_army_supply >= local_enemy_supply * 2):
                 return Orders.FIGHT_CHASE
-            elif (army.can_heal_medivacs.amount >= 2 or army.units(UnitTypeId.SIEGETANKSIEGED).amount >= 1):
+            elif (
+                army.can_heal_medivacs.amount >= 2
+                or army.units(UnitTypeId.SIEGETANKSIEGED).amount >= 1
+                or only_static_enemies
+                or self.is_army_ready_to_attack(army)
+            ):
                 return Orders.FIGHT_OFFENSE
             else:
                 return Orders.FIGHT_DISENGAGE
@@ -577,7 +590,11 @@ class SelectOrders:
             or army.potential_supply < 12
         ):
             return False
-        
+        return self.is_army_ready_to_attack(army)
+
+    def is_army_ready_to_attack(self, army: Army) -> bool:
+        # Composition criteria shared by the push decision and the engage decision,
+        # so an army sent to attack doesn't disengage once it meets the enemy
         if (
             army.potential_supply >= 50
             and not army.has_isolated_ghosts

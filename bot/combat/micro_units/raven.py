@@ -5,6 +5,7 @@ from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
+from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -84,9 +85,9 @@ class MicroRaven(MicroUnit):
 
     async def raven_autoturret(self, raven: Unit, defending: bool = False) -> bool:
         CASTING_RANGE: int = 2
-        AUTOTURRET_RANGE: int = 6
+        AUTOTURRET_RANGE: int = 7 if self.bot.already_pending_upgrade(UpgradeId.HISECAUTOTRACKING) == 1 else 6
         enemy_range: float = AUTOTURRET_RANGE + CASTING_RANGE if defending else CASTING_RANGE
-        potential_targets: Units = self.get_local_enemy_units(raven.position, enemy_range, only_menacing=defending)
+        potential_targets: Units = self.get_local_enemy_units(raven.position, enemy_range, only_menacing=defending, include_structures=True)
         if (potential_targets.amount == 0):
             return False
         # find a position to cast auto turret

@@ -162,7 +162,7 @@ class MicroUnit(CachedClass):
         )
     
     def get_local_enemy_units(self, position: Point2, radius: float = 20, only_menacing: bool = False, include_structures: bool = True) -> Units:
-        enemies = self.enemy_all
+        enemies: Units = self.enemy_all
         if (only_menacing):
             enemies = enemies.filter(self.is_fighting_unit)
 
