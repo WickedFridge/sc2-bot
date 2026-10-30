@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.0.9"
+VERSION: str = "14.0.10"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -136,6 +136,76 @@ class WickedBot(Superbot):
             and self.scouting.situation == Situation.STABLE
             and are_bases_saturated
             and not has_additional_townhalls
+        )
+
+    async def debug_setup(self):
+            # await self.client.debug_fast_build()
+            # await self.client.debug_all_resources()
+            # await self.client.debug_show_map()
+            await self.client.debug_control_enemy()
+            # await self.client.debug_upgrade()
+            # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
+            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
+            # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
+    
+    async def debug_step(self, iteration: int, step_time: float):
+        await self.debug.drop_path()
+        # await self.debug.unscouted_b2()
+        # await self.debug.colorize_bunkers()
+        # await self.debug.placement_grid()
+        # await self.debug.pathing_grid()
+        # await self.debug.building_grid()
+        # await self.macro.debug_bases_threat()
+        # await self.debug.bases_content()
+        # await self.debug.bases_bunkers()
+        # self.debug.bunker_data()
+        # await self.debug.bases_distance()
+        # await self.debug.selection()
+        # self.debug.type_id()
+        # self.debug.weapon_cooldown()
+        # self.debug.orders()
+        # self.debug.buffs()
+        # self.debug.wall()
+        # self.debug.height()
+        # self.debug.building()
+        # await self.debug.invisible_units()
+        # await self.debug.loaded_stuff(iteration)
+        # await self.debug.bunker_positions()
+        # await self.debug.wall_placement()
+        # self.debug.log_ability()
+        # self.debug.full_composition(iteration)
+        # self.debug.effects()
+        # self.debug.danger_map()
+        self.debug.free_bases()
+        # self.debug.order_progress()
+        # self.debug.danger_trajectories()
+        # self.debug.invisible_units()
+        # self.debug.tag()
+        # self.debug.radius()
+        # self.debug.addon_position()
+        # self.debug.range()
+        # self.debug.creep_map()
+        # self.debug.unit_type()
+        # self.debug.detection_map()
+        # self.macro.supply_block_update()
+        # self.debug.changelings()
+        # self.debug.enemy_composition()
+        # self.debug.burrowed_units()
+        self.debug.ghost_units()
+        await self.combat.debug_army_orders()
+        await self.combat.debug_drop_target()
+        await self.debug.chat_commands()
+        await self.debug.build_order()
+        self.debug.composition_manager()
+        self.debug.composition_priorities()
+        self.debug.search_priorities()
+        self.client.debug_text_screen(
+            f'Step Time: {step_time*1000:.2f} ms',
+            (0.01, 0.01),
         )
     
     @override
@@ -325,76 +395,6 @@ class WickedBot(Superbot):
             await self.debug_step(iteration, end_time - start_time)
             profiler.mark('debug')
         profiler.end(iteration, self.time)
-
-    async def debug_setup(self):
-        # await self.client.debug_fast_build()
-        # await self.client.debug_all_resources()
-        # await self.client.debug_show_map()
-        await self.client.debug_control_enemy()
-        # await self.client.debug_upgrade()
-        # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
-        # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
-        # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
-        # await self.client.debug_create_unit([[UnitTypeId.GHOST, 20, self._game_info.map_center.towards(self.townhalls.random.position, 3), 1]])
-        # await self.client.debug_create_unit([[UnitTypeId.ROACH, 14, self._game_info.map_center.towards(self.enemy_start_locations[0], 1.5), 2]])
-        # await self.client.debug_create_unit([[UnitTypeId.ROACH, 6, self._game_info.map_center.towards(self.enemy_start_locations[0], 2), 2]])
-        # await self.client.debug_create_unit([[UnitTypeId.QUEEN, 2, self._game_info.map_center.towards(self.enemy_start_locations[0], 2.5), 2]])
-
-    async def debug_step(self, iteration: int, step_time: float):
-        await self.debug.drop_path()
-        # await self.debug.unscouted_b2()
-        # await self.debug.colorize_bunkers()
-        # await self.debug.placement_grid()
-        # await self.debug.pathing_grid()
-        # await self.debug.building_grid()
-        # await self.macro.debug_bases_threat()
-        # await self.debug.bases_content()
-        # await self.debug.bases_bunkers()
-        # self.debug.bunker_data()
-        # await self.debug.bases_distance()
-        # await self.debug.selection()
-        # self.debug.type_id()
-        # self.debug.weapon_cooldown()
-        # self.debug.orders()
-        # self.debug.buffs()
-        # self.debug.wall()
-        # self.debug.height()
-        # self.debug.building()
-        # await self.debug.invisible_units()
-        # await self.debug.loaded_stuff(iteration)
-        # await self.debug.bunker_positions()
-        # await self.debug.wall_placement()
-        # self.debug.log_ability()
-        # self.debug.full_composition(iteration)
-        # self.debug.effects()
-        # self.debug.danger_map()
-        self.debug.free_bases()
-        # self.debug.order_progress()
-        # self.debug.danger_trajectories()
-        # self.debug.invisible_units()
-        # self.debug.tag()
-        # self.debug.radius()
-        # self.debug.addon_position()
-        # self.debug.range()
-        # self.debug.creep_map()
-        # self.debug.unit_type()
-        # self.debug.detection_map()
-        # self.macro.supply_block_update()
-        # self.debug.changelings()
-        # self.debug.enemy_composition()
-        # self.debug.burrowed_units()
-        self.debug.ghost_units()
-        await self.combat.debug_army_orders()
-        await self.combat.debug_drop_target()
-        await self.debug.chat_commands()
-        await self.debug.build_order()
-        self.debug.composition_manager()
-        self.debug.composition_priorities()
-        self.debug.search_priorities()
-        self.client.debug_text_screen(
-            f'Step Time: {step_time*1000:.2f} ms',
-            (0.01, 0.01),
-        )
         
                     
     async def check_surrend_condition(self):

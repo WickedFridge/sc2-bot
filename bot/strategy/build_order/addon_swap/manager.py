@@ -96,6 +96,15 @@ class AddonSwapManager:
         for swap in self.swap_plans:
             if (swap.is_finished):
                 continue
+            # a swap that hasn't started yet belongs to the opening: once the build is
+            # completed, the macro logic owns the addons and must not be undone by it
+            if (
+                swap.state in (SwapState.PENDING, SwapState.CONDITION_NOT_MET)
+                and self.bot.build_order.build.is_completed
+            ):
+                print(f"[AddonSwapManager] Build order completed — aborting unstarted swap {swap.name}.")
+                swap.state = SwapState.ABORTED
+                continue
             if (swap.state == SwapState.CONDITION_NOT_MET):
                 if (swap.condition()):
                     swap.state = SwapState.PENDING
