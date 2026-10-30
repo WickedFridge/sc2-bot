@@ -264,7 +264,7 @@ class Scouting:
             Situation.CHEESE_UNKNOWN,
             Situation.CHEESE_PROXY_RAX,
         ]
-        if (self.bot.matchup not in [Matchup.TvP, Matchup.TvT] or self.bot.scouting.situation not in scout_needed_situations):
+        if (self.bot.matchup == Matchup.TvZ or self.bot.scouting.situation not in scout_needed_situations):
             return
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")
@@ -273,7 +273,7 @@ class Scouting:
         rax_60: int = self.bot.structures(UnitTypeId.BARRACKS).filter(lambda rax: rax.build_progress >= 0.60).amount
         matchup_condition: bool = (
             (self.bot.matchup == Matchup.TvP and barracks_amount == 1)
-            or (self.bot.matchup == Matchup.TvT and rax_60 >= 1)
+            or (self.bot.matchup in [Matchup.TvT, Matchup.TvR] and rax_60 >= 1)
         )
 
         zones: List[Expansion] = self._proxy_zones
