@@ -425,8 +425,7 @@ class BuildOrder(CachedClass):
         if (not self.is_completed):
             return
         for queue in self.production_queues:
-            if (queue.outlives_build):
-                queue.apply(composition)
+            queue.apply_lingering(composition)
 
     def _modify_composition(self, composition: Composition) -> bool:
         return False

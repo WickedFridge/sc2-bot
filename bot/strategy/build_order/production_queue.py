@@ -40,7 +40,7 @@ class ProductionQueue:
         start_when: Optional[Callable[[], bool]] = None,
         hold_until: Optional[Callable[[], bool]] = None,
         hold_composition: Optional[dict[UnitTypeId, int]] = None,
-        outlives_build: bool = False,
+        outlives_build: bool = True,
     ) -> None:
         """
         start_when: keep the building idle until this returns True, then start the queue
@@ -51,8 +51,9 @@ class ProductionQueue:
         hold_composition: amounts to keep *alive* during the hold (replaced if they die),
         unlike the queue entries which are only produced once.
         outlives_build: keep applying the queue after the build order is completed, on top of
-        the regular composition, until it is exhausted (e.g. a building that only becomes able
-        to produce on the last step of the build order).
+        the regular composition, until it is exhausted. Once the build is completed,
+        start_when and hold_until are ignored: they sequence the opening and may depend on
+        steps that will never be built. Set to False for timing-only queues (e.g. opening Reapers).
         """
         self.bot = bot
         self.building_type = building_type
@@ -93,17 +94,37 @@ class ProductionQueue:
         if (not self.is_active):
             return False
 
-        for unit_type in production_units[self.building_type]:
-            composition.set(unit_type, self.bot.total_unit_amount(unit_type))
+        self._freeze_building(composition)
 
         if (not self.has_started):
             return True
 
         current: Optional[tuple[UnitTypeId, int]] = self.current
         if (current is not None):
-            unit_type, remaining = current
-            composition.set(unit_type, self.bot.total_unit_amount(unit_type) + remaining)
+            self._queue_entry(composition, current)
         else:
             for unit_type, amount in self.hold_composition.items():
                 composition.set(unit_type, amount)
         return True
+
+    def apply_lingering(self, composition: Composition) -> bool:
+        """
+        Applies the queue once the build order is completed: only the remaining entries
+        are produced, start_when / hold_until no longer keep the building idle.
+        """
+        if (not self.outlives_build):
+            return False
+        current: Optional[tuple[UnitTypeId, int]] = self.current
+        if (current is None):
+            return False
+        self._freeze_building(composition)
+        self._queue_entry(composition, current)
+        return True
+
+    def _freeze_building(self, composition: Composition) -> None:
+        for unit_type in production_units[self.building_type]:
+            composition.set(unit_type, self.bot.total_unit_amount(unit_type))
+
+    def _queue_entry(self, composition: Composition, current: tuple[UnitTypeId, int]) -> None:
+        unit_type, remaining = current
+        composition.set(unit_type, self.bot.total_unit_amount(unit_type) + remaining)

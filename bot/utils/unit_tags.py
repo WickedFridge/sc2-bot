@@ -52,6 +52,7 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINEBURROWED,
     UnitTypeId.MEDIVAC,
     UnitTypeId.RAVEN,
+    UnitTypeId.BUNKER,
     UnitTypeId.OVERLORDTRANSPORT,
     UnitTypeId.BANELING,
     UnitTypeId.BANELINGCOCOON,

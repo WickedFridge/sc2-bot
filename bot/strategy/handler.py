@@ -314,8 +314,11 @@ class StrategyHandler:
                 or (
                     self.bot.time <= 210
                     and (
-                        self.bot.expansions.enemy_b2.is_unknown
-                        or self.bot.enemy_units(UnitTypeId.ROACH).amount >= 4
+                        self.bot.enemy_units(UnitTypeId.ROACH).amount >= 4
+                        or (
+                            self.bot.expansions.enemy_b2.is_unknown
+                            and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
+                        ) 
                     )
                 )
             )
@@ -340,8 +343,11 @@ class StrategyHandler:
                 or (
                     self.bot.time <= 270
                     and (
-                        self.bot.expansions.enemy_b2.is_unknown
-                        or self.bot.scouting.known_enemy_army.units(UnitTypeId.IMMORTAL).amount >= 1
+                        self.bot.scouting.known_enemy_army.units(UnitTypeId.IMMORTAL).amount >= 1
+                        or (
+                            self.bot.expansions.enemy_b2.is_unknown
+                            and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
+                        ) 
                     )
                 )
             )
@@ -360,8 +366,11 @@ class StrategyHandler:
                     and (
                         self.bot.expansions.enemy_b2.is_free
                         or (
-                            self.bot.expansions.enemy_b2.is_unknown
-                            and self.bot.time <= 210
+                            self.bot.time <= 210
+                            or (
+                                self.bot.expansions.enemy_b2.is_unknown
+                                and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
+                            ) 
                         )
                     )
                 )
@@ -376,8 +385,11 @@ class StrategyHandler:
             and (
                 self.bot.expansions.enemy_b2.is_free
                 or (
-                    self.bot.expansions.enemy_b2.is_unknown
-                    and self.bot.time <= 210
+                    self.bot.time <= 210
+                    or (
+                        self.bot.expansions.enemy_b2.is_unknown
+                        and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
+                    ) 
                 )
             )
         ):
@@ -393,8 +405,11 @@ class StrategyHandler:
                     self.bot.expansions.enemy_b2.is_free
                     and self.bot.time >= 160
                 ) or (
-                    self.bot.expansions.enemy_b2.is_unknown
-                    and self.bot.time >= 240
+                    self.bot.time >= 240
+                    or (
+                        self.bot.expansions.enemy_b2.is_unknown
+                        and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
+                    ) 
                 )
             )
             and (

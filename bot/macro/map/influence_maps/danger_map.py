@@ -69,10 +69,6 @@ class DangerMap:
             ground_range = 1
 
         match(unit.type_id):
-            case UnitTypeId.BUNKER:
-                # assume 2 marines inside
-                ground_dps = 20
-                ground_range = 7
             case UnitTypeId.SIEGETANKSIEGED:
                 minimum_range = 2
             case UnitTypeId.DISRUPTORPHASED:
@@ -123,7 +119,7 @@ class DangerMap:
     
     def update_unit(self, unit: Unit | GhostUnit):
         # Unit that are matrixed are ignored
-        if (unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)):
+        if (unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE) or not unit.is_ready):
             return
         (
             unit_position,

@@ -38,6 +38,7 @@ class GhostUnit:
     can_attack_air: bool
     last_seen_frame: int
     expiry_frame: int
+    is_ready: bool
     is_cloaked: bool
     is_visible: bool
     is_possibly_hidden: bool = False

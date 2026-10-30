@@ -128,7 +128,7 @@ class Analytics:
                 f"-{results.get(Result.Defeat.name, 0)}"
             )
             if (results.get(Result.Tie.name, 0) > 0):
-                score += f"-{results[Result.Tie.name]}T"
+                score += f"-{results[Result.Tie.name]}"
             messages.append(f"Stats {self.display_name(build)} : {score}")
         return messages
 

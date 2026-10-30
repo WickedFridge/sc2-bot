@@ -113,6 +113,7 @@ class GhostUnitsManager:
                 can_attack=unit.can_attack,
                 can_attack_ground=unit.can_attack_ground,
                 can_attack_air=unit.can_attack_air,
+                is_ready=unit.is_ready,
                 is_visible=unit.is_visible,
                 is_cloaked=unit.is_cloaked,
                 last_seen_frame=frame,
