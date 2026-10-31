@@ -54,7 +54,7 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def has_enemy_buildings_around(self) -> bool:
-        if (self.bot.structures.amount == 0):
+        if (self.bot.enemy_structures.amount == 0):
             return False
         return self.bot.enemy_structures.closest_distance_to(self.position) < self.radius
         
