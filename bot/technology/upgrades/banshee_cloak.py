@@ -11,3 +11,8 @@ class BansheeCloak(Upgrade):
     building = UnitTypeId.STARPORTTECHLAB
     ability = AbilityId.RESEARCH_BANSHEECLOAKINGFIELD
     name = "Banshee Cloak"
+
+    @property
+    @override
+    def custom_conditions(self) -> bool:
+        return False
