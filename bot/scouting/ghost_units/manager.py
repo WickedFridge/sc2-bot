@@ -74,6 +74,7 @@ class GhostUnitsManager:
                     can_attack_air=False,
                     is_visible=False,
                     is_cloaked=False,
+                    is_ready=True,
                     last_seen_frame=frame,
                     expiry_frame=round(frame + lifetime),
                 )
