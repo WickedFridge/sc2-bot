@@ -3,6 +3,7 @@ from typing import Awaitable, Dict, List
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
 from bot.technology.tech import Tech
+from bot.technology.upgrades.banshee_cloak import BansheeCloak
 from bot.technology.upgrades.mech_upgrades import MechArmorLevel1, MechArmorLevel2, MechArmorLevel3, AirAttackLevel1, AirAttackLevel2, AirAttackLevel3, GroundAttackLevel1, GroundAttackLevel2, GroundAttackLevel3, MechUpgrade
 from bot.technology.upgrades.blueflame import BlueFlame
 from bot.technology.upgrades.building_armor import BuildingArmor
@@ -50,6 +51,7 @@ class Search:
     interference_maxtrix: InterferenceMatrix
     magfield_accelerator: MagfieldAccelerator
     blueflame: BlueFlame
+    banshee_cloak: BansheeCloak
     building_armor: BuildingArmor
     building_range: BuildingRange
 
@@ -89,6 +91,7 @@ class Search:
         self.interference_maxtrix = InterferenceMatrix(self)
         self.magfield_accelerator = MagfieldAccelerator(self)
         self.blueflame = BlueFlame(self)
+        self.banshee_cloak = BansheeCloak(self)
         self.building_armor = BuildingArmor(self)
         self.building_range = BuildingRange(self)
 

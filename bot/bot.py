@@ -28,7 +28,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.0.14"
+VERSION: str = "14.1.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -346,6 +346,7 @@ class WickedBot(Superbot):
             self.search.infantry_attack_level_3.search,
             self.search.infantry_armor_level_3.search,
             self.search.caduceus_reactor.search,
+            self.search.banshee_cloak.search,
         ])
         # army
         money_spenders.extend(self.trainer.ordered_army_trainers)

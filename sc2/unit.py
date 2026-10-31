@@ -52,6 +52,7 @@ from sc2.constants import (
     UNIT_PHOTONCANNON,
     UNIT_SENTRY,
     UNIT_VOIDRAY,
+    UNIT_BUNKER,
     transforming,
 )
 from sc2.data import Attribute, CloakState, Race, Target, race_gas, warpgate_abilities
@@ -219,7 +220,7 @@ class Unit(HasPosition2D):
     def can_attack(self) -> bool:
         """Checks if the unit can attack at all."""
         # TODO BATTLECRUISER doesnt have weapons in proto?!
-        return bool(self._weapons) or self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY}
+        return bool(self._weapons) or self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY, UNIT_BUNKER}
 
     @property
     def can_attack_both(self) -> bool:
@@ -229,7 +230,7 @@ class Unit(HasPosition2D):
     @cached_property
     def can_attack_ground(self) -> bool:
         """Checks if the unit can attack ground units."""
-        if self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY}:
+        if self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_ORACLE, UNIT_VOIDRAY, UNIT_BUNKER}:
             return True
         if self._weapons:
             return any(weapon.type in TARGET_GROUND for weapon in self._weapons)
@@ -244,6 +245,8 @@ class Unit(HasPosition2D):
             return 8.4
         if self.type_id == UNIT_VOIDRAY:
             return 16.8
+        if self.type_id == UNIT_BUNKER:
+            return 20
         if self.can_attack_ground:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_GROUND), None)
             if weapon:
@@ -261,6 +264,8 @@ class Unit(HasPosition2D):
             return 6
         if self.type_id == UNIT_BATTLECRUISER:
             return 6
+        if self.type_id == UNIT_BUNKER:
+            return 6
         if self.can_attack_ground:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_GROUND), None)
             if weapon:
@@ -270,7 +275,7 @@ class Unit(HasPosition2D):
     @cached_property
     def can_attack_air(self) -> bool:
         """Checks if the unit can air attack at all. Does not include upgrades."""
-        if self.type_id == UNIT_BATTLECRUISER:
+        if self.type_id in {UNIT_BATTLECRUISER, UNIT_SENTRY, UNIT_VOIDRAY, UNIT_BUNKER}:
             return True
         if self._weapons:
             return any(weapon.type in TARGET_AIR for weapon in self._weapons)
@@ -285,6 +290,8 @@ class Unit(HasPosition2D):
             return 8.4
         if self.type_id == UNIT_VOIDRAY:
             return 16.8
+        if self.type_id == UNIT_BUNKER:
+            return 20
         if self.can_attack_air:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_AIR), None)
             if weapon:
@@ -299,6 +306,8 @@ class Unit(HasPosition2D):
         if self.type_id == UNIT_BATTLECRUISER:
             return 6
         if self.type_id == UNIT_VOIDRAY:
+            return 6
+        if self.type_id == UNIT_BUNKER:
             return 6
         if self.can_attack_air:
             weapon = next((weapon for weapon in self._weapons if weapon.type in TARGET_AIR), None)

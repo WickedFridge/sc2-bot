@@ -170,6 +170,7 @@ UNIT_BATTLECRUISER: UnitTypeId = UnitTypeId.BATTLECRUISER
 UNIT_SENTRY: UnitTypeId = UnitTypeId.SENTRY
 UNIT_ORACLE: UnitTypeId = UnitTypeId.ORACLE
 UNIT_VOIDRAY: UnitTypeId = UnitTypeId.VOIDRAY
+UNIT_BUNKER: UnitTypeId = UnitTypeId.BUNKER
 TARGET_GROUND: set[int] = {TargetType.Ground.value, TargetType.Any.value}
 TARGET_AIR: set[int] = {TargetType.Air.value, TargetType.Any.value}
 TARGET_BOTH: set[int] = TARGET_GROUND | TARGET_AIR

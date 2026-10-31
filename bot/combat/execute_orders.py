@@ -503,4 +503,7 @@ class Execute(CachedClass):
             scout_target = self.bot.expansions.enemy_main.mineral_line
         
         for scout in army.units.filter(lambda unit: unit.type_id in scouting_units):
-            scout.move(scout_target)
+            if (scout.type_id == UnitTypeId.BANSHEE):
+                scout.move(self.bot.expansions.enemy_main.mineral_line)
+            else:
+                scout.move(scout_target)
