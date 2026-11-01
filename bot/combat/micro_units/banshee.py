@@ -84,6 +84,9 @@ class MicroBanshee(MicroScoutingUnit):
 
     @override
     async def fight(self, unit: Unit, local_units: Units, chase: bool = False):
+        # turrets, spores and cannons are detectors, being cloaked doesn't help
+        if (self.avoid_static_defense(unit)):
+            return
         if (self.is_invisible(unit) and self.fight_invisible(unit)):
             return
         threats: Units = self.local_threats(unit)

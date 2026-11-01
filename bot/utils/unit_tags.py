@@ -68,6 +68,7 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.LOCUSTMPFLYING,
     UnitTypeId.LURKERMP,
     UnitTypeId.VIPER,
+    UnitTypeId.ADEPTPHASESHIFT,
     UnitTypeId.CARRIER,
     UnitTypeId.DISRUPTORPHASED,
     UnitTypeId.WARPPRISM,

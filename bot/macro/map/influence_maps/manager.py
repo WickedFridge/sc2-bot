@@ -8,6 +8,7 @@ from bot.macro.map.influence_maps.layers.buildings_layer import BuildingLayer
 from bot.macro.map.influence_maps.layers.creep_layer import CreepLayer
 from bot.macro.map.influence_maps.layers.detection_layer import DetectionLayer
 from bot.macro.map.influence_maps.layers.effect_layer import EffectLayer
+from bot.macro.map.influence_maps.layers.static_defense_layer import StaticDefenseLayer
 from bot.macro.map.influence_maps.layers.static_layer import StaticLayer
 from bot.utils.point2_functions.utils import sample_tile_path
 from sc2.bot_ai import BotAI
@@ -22,6 +23,7 @@ class InfluenceMapManager:
     creep: CreepLayer
     detection: DetectionLayer
     buildings: BuildingLayer
+    static_defense: StaticDefenseLayer
 
     def __init__(self, bot: BotAI) -> None:
         self.bot = bot
@@ -37,7 +39,8 @@ class InfluenceMapManager:
         self.detection = DetectionLayer(self.bot)
         self.buildings = BuildingLayer(self.bot)
         self.buildings.initialize()
-        
+        self.static_defense = StaticDefenseLayer(self.bot)
+
         ground_map: np.ndarray = self.bot.game_info.pathing_grid.data_numpy.astype(np.float32)
         self.danger = DangerMap(self.bot, map=ground_map)
 
@@ -47,6 +50,7 @@ class InfluenceMapManager:
         self.creep.update()
         self.detection.update()
         self.buildings.update()
+        self.static_defense.update()
 
         # 2) unit-based danger
         self.danger.update(include_structures=True)

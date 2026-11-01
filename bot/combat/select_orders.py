@@ -3,6 +3,7 @@ from typing import List, Optional, Set
 from unittest import case
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.macro.map.influence_maps.layers.static_defense_layer import StaticDefenseLayer
 from bot.macro.map.influence_maps.manager import InfluenceMapManager
 from bot.combat.execute_orders import Execute
 from bot.combat.orders import Orders
@@ -162,7 +163,10 @@ class SelectOrders:
         situation: Situation = self.bot.scouting.situation
         # Enemy units
         ghost_enemy_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
-        local_enemy_units: Units = self.get_local_enemy_units(army.units.center, army.radius)
+        # Enemies covered by static defenses (and the towers themselves) are ignored, we go somewhere else instead
+        all_local_enemy_units: Units = self.get_local_enemy_units(army.units.center, army.radius)
+        protected_enemy_units: Units = all_local_enemy_units.filter(lambda unit: self.is_protected_from(army, unit.position))
+        local_enemy_units: Units = all_local_enemy_units.filter(lambda unit: unit.tag not in protected_enemy_units.tags)
         local_enemy_ghosts: GhostUnits = ghost_enemy_units.filter(
             lambda ghost: ghost.position.distance_to(army.units.center) <= army.radius + 10
         )
@@ -176,13 +180,15 @@ class SelectOrders:
             local_enemy_supply += local_ghost_army.weighted_supply + local_hidden_army.weighted_supply
         # enemy buildings and workers
         global_enemy_buildings: Units = self.bot.enemy_structures
-        local_enemy_workers: Units = self.bot.enemy_units.filter(
+        all_local_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.distance_to(army.units.center) <= 30
                 and unit.can_be_attacked
                 and unit.type_id in worker_types
             )
         )
+        protected_enemy_workers: Units = all_local_enemy_workers.filter(lambda unit: self.is_protected_from(army, unit.position))
+        local_enemy_workers: Units = all_local_enemy_workers.filter(lambda unit: unit.tag not in protected_enemy_workers.tags)
         # useful in case of canon/bunker rush
         global_enemy_menacing_units_buildings: Units = self.global_enemy_units.filter(
             lambda unit: (
@@ -197,12 +203,19 @@ class SelectOrders:
             lambda unit: unit.type_id in tower_types
         )
         global_unarmed_enemies: Units = self.global_enemy_units.filter(
-            lambda u: u.can_be_attacked and not u.can_attack and u.type_id not in menacing
+            lambda u: (
+                u.can_be_attacked
+                and not u.can_attack
+                and u.type_id not in menacing
+                and not self.is_protected_from(army, u.position)
+            )
         )
 
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
-        creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center)
+        creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center).filter(
+            lambda tumor: not self.is_protected_from(army, tumor.position)
+        )
         closest_scv: Optional[Unit] = self.bot.workers.closest_to(army.center) if self.bot.workers.amount >= 1 else None
 
         # if there are units, fight or retreat
@@ -246,20 +259,35 @@ class SelectOrders:
             )
         ):
             return Orders.HEAL_UP
-        
+
+        # everything around is covered by static defenses, go harass somewhere else
+        if (protected_enemy_workers.amount >= 1 or protected_enemy_units.amount >= 1):
+            return Orders.HARASS_ELSEWHERE
+
         # if Oppo doesn't have speed yet, keep scouting
         if (UpgradeId.ZERGLINGMOVEMENTSPEED not in self.bot.scouting.known_enemy_upgrades):
             return Orders.SCOUT
         return Orders.RETREAT
     
-    def get_army_orders(self, army: Army) -> Orders:
-        # -- Specific orders for reapers
-        if (
+    def is_scouting_army(self, army: Army) -> bool:
+        return (
             army.units(scouting_units).amount == army.units.amount
             or army.units(scouting_units).amount >= 4 and not self.bot.stim_almost_completed
             or army.units(UnitTypeId.BANSHEE).amount >= 1
             or army.units(UnitTypeId.REAPER).amount >= 1 and army.units.amount <= 2
-        ):
+        )
+
+    def is_protected_from(self, army: Army, position: Point2) -> bool:
+        """Position covered by an enemy static defense that can shoot at least one unit of the army."""
+        static_defense: StaticDefenseLayer = self.bot.map.influence_maps.static_defense
+        return (
+            (army.units.flying.amount >= 1 and static_defense.covers(position, flying=True))
+            or (army.units.not_flying.amount >= 1 and static_defense.covers(position, flying=False))
+        )
+
+    def get_army_orders(self, army: Army) -> Orders:
+        # -- Specific orders for reapers
+        if (self.is_scouting_army(army)):
             return self.scouting_units_orders(army)
         
         # -- Define local enemies
@@ -694,8 +722,14 @@ class SelectOrders:
                     await self.execute.drop_move(army)
                 
                 case Orders.HARASS:
-                    await self.execute.harass(army, self.get_local_enemy_workers(army.center, army.radius))
-                     
+                    workers: Units = self.get_local_enemy_workers(army.center, army.radius)
+                    if (self.is_scouting_army(army)):
+                        workers = workers.filter(lambda worker: not self.is_protected_from(army, worker.position))
+                    await self.execute.harass(army, workers)
+
+                case Orders.HARASS_ELSEWHERE:
+                    await self.execute.harass_elsewhere(army, lambda position: self.is_protected_from(army, position))
+
                 case Orders.KILL_BUILDINGS:
                     await self.execute.kill_buildings(army)
 
@@ -862,6 +896,7 @@ class SelectOrders:
             Orders.FIGHT_DISENGAGE: ORANGE,
             Orders.DEFEND: YELLOW,
             Orders.HARASS: LIGHTBLUE,
+            Orders.HARASS_ELSEWHERE: LIGHTBLUE,
             Orders.DROP_LOAD: LIGHTBLUE,
             Orders.DROP_MOVE: LIGHTBLUE,
             Orders.CHASE_BUILDINGS: LIGHTBLUE,

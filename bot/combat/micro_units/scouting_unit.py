@@ -1,6 +1,7 @@
 from typing import Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.macro.map.influence_maps.layers.static_defense_layer import StaticDefenseLayer
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from sc2.position import Point2
@@ -9,8 +10,25 @@ from sc2.units import Units
 
 
 class MicroScoutingUnit(MicroUnit):
+    def avoid_static_defense(self, unit: Unit) -> bool:
+        """
+        Step out of enemy static defense range, the orders will send us somewhere else.
+        Returns True if the unit was given an order.
+        """
+        static_defense: StaticDefenseLayer = self.bot.map.influence_maps.static_defense
+        if (not static_defense.covers(unit.position, unit.is_flying)):
+            return False
+        safe_spot: Optional[Point2] = static_defense.closest_safe_spot(unit)
+        if (safe_spot is None):
+            unit.move(self.retreat_position)
+        else:
+            unit.move(safe_spot)
+        return True
+
     @override
     async def fight(self, unit: Unit, local_units: Units, chase: bool = False):
+        if (self.avoid_static_defense(unit)):
+            return
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot
         enemy_ground: Units = self.enemy_all.filter(lambda unit: unit.is_flying == False)
         if (enemy_ground.amount == 0):
@@ -65,6 +83,8 @@ class MicroScoutingUnit(MicroUnit):
 
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):
+        if (self.avoid_static_defense(unit)):
+            return
         # calculate the range of the unit based on its movement speed + range + cooldown
         closest_worker: Unit = workers.closest_to(unit)
         worker_potential_targets: Units = self.get_potential_targets(unit).sorted(

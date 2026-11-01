@@ -1,7 +1,8 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 from bot.combat.micro import Micro
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.macro.map.influence_maps.layers.static_defense_layer import StaticDefenseLayer
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -369,6 +370,34 @@ class Execute(CachedClass):
         for unit in army.units:
             await self.micro.handlers[unit.type_id].harass(unit, army.units, enemy_workers)
     
+    def unprotected_mineral_line(
+        self, position: Point2, is_protected: Callable[[Point2], bool], exclude_closest: bool = True
+    ) -> Optional[Point2]:
+        """Closest (potential) enemy mineral line not covered by static defenses."""
+        # the closest base is the one we're coming from, it's protected
+        closest_expansion: Expansion = self.bot.expansions.closest_to(position)
+        unprotected_bases: Expansions = self.bot.expansions.potential_enemy_bases.filter(
+            lambda base: (
+                not (exclude_closest and base == closest_expansion)
+                and not is_protected(base.mineral_line)
+            )
+        )
+        if (unprotected_bases.amount == 0):
+            return None
+        return unprotected_bases.closest_to(position).mineral_line
+
+    async def harass_elsewhere(self, army: Army, is_protected: Callable[[Point2], bool]):
+        """Local targets are covered by static defenses: move to an enemy mineral line that isn't."""
+        target: Optional[Point2] = self.unprotected_mineral_line(army.center, is_protected)
+        if (target is None):
+            await self.retreat_army(army)
+            return
+        for unit in army.units:
+            # stay out of tower range on the way out
+            if (unit.type_id in scouting_units and self.micro.handlers[unit.type_id].avoid_static_defense(unit)):
+                continue
+            unit.move(target)
+
     async def kill_buildings(self, army: Army):
         local_enemy_buildings: Units = self.bot.enemy_structures.filter(
             lambda unit: unit.distance_to(army.units.center) <= army.radius and unit.can_be_attacked
@@ -502,8 +531,16 @@ class Execute(CachedClass):
         if (scout_target is None):
             scout_target = self.bot.expansions.enemy_main.mineral_line
         
+        # banshees go for the main mineral line, or the closest one not covered by anti-air
+        static_defense: StaticDefenseLayer = self.bot.map.influence_maps.static_defense
+        banshee_target: Point2 = self.bot.expansions.enemy_main.mineral_line
+        if (static_defense.covers(banshee_target, flying=True)):
+            banshee_target = self.unprotected_mineral_line(
+                army.center, lambda position: static_defense.covers(position, flying=True), exclude_closest=False
+            ) or banshee_target
+
         for scout in army.units.filter(lambda unit: unit.type_id in scouting_units):
             if (scout.type_id == UnitTypeId.BANSHEE):
-                scout.move(self.bot.expansions.enemy_main.mineral_line)
+                scout.move(banshee_target)
             else:
                 scout.move(scout_target)

@@ -50,7 +50,8 @@ class Bunker(Building):
         )
         if (ramp_bunkers.amount >= 1):
             return True
-        if (not self.precarious):
+        # same check as BuildingsHandler.cancel_bunkers, otherwise the main bunker gets built and cancelled in a loop (eg vs skytoss)
+        if (not self.bot.scouting.situation.is_precarious):
             return False
         
         marine_amount = self.bot.units(UnitTypeId.MARINE).amount + self.bot.already_pending(UnitTypeId.MARINE)
@@ -79,7 +80,7 @@ class Bunker(Building):
 
         # build a bunker in the main if we're getting proxy'd
         if (
-            self.precarious
+            self.bot.scouting.situation.is_precarious
             and (
                 self.bot.expansions.taken.amount == 1
                 or (
