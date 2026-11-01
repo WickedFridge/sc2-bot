@@ -74,7 +74,8 @@ class BansheeCloak3CC(MacroBuild):
                 UnitTypeId.FACTORY,
                 [(UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 1)],
                 start_when=lambda: (
-                    self.bot.already_pending_upgrade(UpgradeId.BANSHEECLOAK) > 0
+                    self.bot.already_pending(UnitTypeId.BANSHEE) > 0
+                    and self.bot.already_pending_upgrade(UpgradeId.BANSHEECLOAK) > 0
                 ),
                 hold_until=lambda: self.is_completed
             ),
