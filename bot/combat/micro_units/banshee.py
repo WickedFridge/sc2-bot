@@ -1,14 +1,13 @@
 from typing import override
 
 from bot.combat.micro_units.scouting_unit import MicroScoutingUnit
-from bot.utils.unit_tags import detectors
+from bot.utils.unit_tags import detectors, worker_types, townhalls
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
 from sc2.ids.effect_id import EffectId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-
 
 class MicroBanshee(MicroScoutingUnit):
     WEAPON_READY_THRESHOLD: int = 4
@@ -68,12 +67,27 @@ class MicroBanshee(MicroScoutingUnit):
 
         # Weapon ready: shoot the weakest enemy in range, otherwise go for the closest one
         if (banshee.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
+            # if there's an enemy in range, shoot it
             enemy_ground_in_range: Units = self.get_enemy_units_in_range(banshee).filter(lambda enemy: enemy.is_flying == False)
             if (enemy_ground_in_range.amount >= 1):
                 target: Unit = enemy_ground_in_range.sorted(lambda enemy: (enemy.health + enemy.shield, enemy.distance_to_squared(banshee))).first
                 banshee.attack(target)
-            else:
-                banshee.attack(enemy_ground.closest_to(banshee))
+                return True
+
+            # if there are workers around, attack the closest one
+            workers_around: Units = enemy_ground.filter(lambda enemy: enemy.type_id in worker_types and enemy.distance_to(banshee) < 10)
+            if (workers_around.amount >= 1):
+                banshee.attack(workers_around.closest_to(banshee))
+                return True
+
+            # if there are townhalls around, move to the closest one (looking for workers)
+            townhalls_around: Units = self.bot.enemy_structures.filter(lambda enemy: enemy.type_id in townhalls and enemy.distance_to(banshee) < 10)
+            if (townhalls_around.amount >= 1):
+                banshee.move(townhalls_around.closest_to(banshee))
+                return True
+
+            # otherwise, attack the closest enemy
+            banshee.attack(enemy_ground.closest_to(banshee))
             return True
 
         # On cooldown: stay just in range of the closest enemy, no need to back off

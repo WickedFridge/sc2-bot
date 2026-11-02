@@ -22,13 +22,14 @@ from bot.strategy.build_order.addon_swap import AddonSwapManager
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.step_profiler import StepProfiler
 from sc2.bot_ai import Race
-from sc2.data import Result
+from sc2.data import ActionResult, Result
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.1.3"
+VERSION: str = "14.1.4"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -233,6 +234,7 @@ class WickedBot(Superbot):
         start_time: float = perf_counter()
         profiler: StepProfiler = self.profiler
         profiler.start()
+        self.log_action_errors()
         await self.check_surrend_condition()
         # Update random tag
         if (self.tag_to_update):
@@ -398,6 +400,14 @@ class WickedBot(Superbot):
         profiler.end(iteration, self.time)
         
                     
+    def log_action_errors(self) -> None:
+        """Log every order rejected by the game during the previous step."""
+        # current observation only: state.action_errors also repeats the previous frame's errors
+        for error in self.state.response_observation.action_errors:
+            unit: Unit | None = self.all_units.find_by_tag(error.unit_tag)
+            unit_name: str = unit.type_id.name if unit is not None else "unknown"
+            print(f"[ActionError] [{self.time_formatted}] {unit_name} (tag={error.unit_tag}) — {AbilityId(error.ability_id).name} rejected: {ActionResult(error.result).name}")
+
     async def check_surrend_condition(self):
         landed_buildings: Units = self.structures.filter(lambda unit: unit.is_flying == False)
         if (landed_buildings.amount == 0):
