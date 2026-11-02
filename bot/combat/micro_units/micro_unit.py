@@ -269,8 +269,9 @@ class MicroUnit(CachedClass):
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
             unit.attack(target)
         else:
+            risk: float = 2 if target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER] else 0.7
             best_spot: Point2 = (
-                self.bot.map.influence_maps.best_attacking_spot(unit, target)
+                self.bot.map.influence_maps.best_attacking_spot(unit, target, risk)
                 if kite_forward
                 else self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             )
@@ -291,10 +292,9 @@ class MicroUnit(CachedClass):
         
         if (other_enemies.amount >= 1):
             closest_target: Unit = other_enemies.closest_to(unit)
-            if (closest_target.can_be_attacked):
-                unit.attack(closest_target)
-            else:
-                unit.move(closest_target.position)
+            risk: float = 2 if closest_target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER] else 0.7
+            best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, closest_target, risk)
+            unit.move(best_position)
             return True
         return False
     

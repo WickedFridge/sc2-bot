@@ -24,7 +24,6 @@ from bot.utils.unit_tags import techlabs
 
 class BansheeCloak3CC(MacroBuild):
     name: BuildOrderName = BuildOrderName.BANSHEE_CLOAK_3CC
-    is_defensive_response = True
 
     @property
     @override

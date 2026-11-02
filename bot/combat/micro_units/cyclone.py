@@ -20,9 +20,9 @@ class MicroCyclone(MicroUnit):
             key=lambda enemy_unit: (
                 enemy_unit.distance_to(cyclone) > total_range,   # False (in range) before True
                 enemy_unit.health + enemy_unit.shield < 80,      # 80 hp is enough to lock
-                enemy_unit.distance_to(cyclone)                  # closer first
-                -(enemy_unit.health + enemy_unit.shield),        # more total hp first
+                enemy_unit.health + enemy_unit.shield,           # less total hp first
                 enemy_unit.shield,                               # less shield first
+                enemy_unit.distance_to(cyclone)                  # closer first
             )
         )
         if (possible_targets.amount == 0):

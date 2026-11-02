@@ -685,7 +685,7 @@ class Debug:
                 lambda bunker: not self.bot.expansions.closest_to(bunker).is_taken
             ).amount
         )
-        precarious: bool = self.bot.scouting.situation.is_cheese or self.bot.scouting.situation.is_precarious
+        precarious: bool = self.bot.scouting.situation.is_precarious
         
         # place a bunker in the main if we're under attack on b2
         ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda bunker: bunker.distance_to(self.bot.main_base_ramp.top_center) < 8)
