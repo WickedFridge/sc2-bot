@@ -15,6 +15,7 @@ class Armory(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.ARMORY
         self.name = "Armory"
+        self.max_amount = 2
 
     @property
     @override
@@ -27,10 +28,6 @@ class Armory(Building):
     @property
     @override
     def custom_conditions(self) -> bool:
-        # We never want more than 2 armories
-        if (self.amount == 2):
-            return False
-        
         if (self.in_build_order):
             return True
 

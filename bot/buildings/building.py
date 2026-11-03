@@ -20,6 +20,7 @@ class Building(CachedClass):
     name: str
     radius: float = 1.5
     ignore_build_order: bool = False
+    max_amount: Optional[int] = None
 
     def __init__(self, build: Builder):
         super().__init__(build.bot)
@@ -50,6 +51,7 @@ class Building(CachedClass):
                 self.override_conditions
                 or (
                     self.custom_conditions
+                    and (self.max_amount is None or self.amount < self.max_amount)
                     and (
                         self.unitId in self.bot.build_order.build.pending_ids
                         or self.bot.build_order.build.is_completed

@@ -15,6 +15,7 @@ class Ebay(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.ENGINEERINGBAY
         self.name = "Ebay"
+        self.max_amount = 2
 
     @property
     @override
@@ -39,8 +40,7 @@ class Ebay(Building):
         
         # We want 2 ebays once we have a 3rd CC and 3 raxes (by this time we probably already have a Starport and such)
         return (
-            self.amount < 2
-            and self.bot.townhalls.amount >= 3
+            self.bot.townhalls.amount >= 3
             and barracks_count >= 3
         )
     

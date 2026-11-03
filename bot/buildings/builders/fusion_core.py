@@ -13,12 +13,11 @@ class FusionCore(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.FUSIONCORE
         self.name = "Fusion Core"
+        self.max_amount = 1
 
     @property
     @override
     def custom_conditions(self) -> bool:
-        fusion_core_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.FUSIONCORE)
-        fusion_core_count: int = self.bot.structures(UnitTypeId.FUSIONCORE).ready.amount + self.bot.already_pending(UnitTypeId.FUSIONCORE)
         starport_count: float = (
             self.bot.structures(UnitTypeId.STARPORT).amount
             + self.bot.structures(UnitTypeId.STARPORTFLYING).amount
@@ -26,13 +25,11 @@ class FusionCore(Building):
         )
         medivac_count: float = self.bot.units(UnitTypeId.MEDIVAC).amount + self.bot.already_pending(UnitTypeId.MEDIVAC)
 
-        # We want a fusion core once we have a second starport and at least two medivacs
+        # We want a fusion core once we have 4 finished CCs, 160 supply and at least 5 medivacs
         return (
-            fusion_core_tech_requirement == 1
-            and fusion_core_count < 1
-            and self.bot.townhalls.ready.amount >= 4
+            self.bot.townhalls.ready.amount >= 4
             and starport_count >= 1
-            and medivac_count >= 6
+            and medivac_count >= 5
             and self.bot.supply_used >= 160
         )
     

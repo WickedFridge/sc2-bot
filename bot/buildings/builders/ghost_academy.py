@@ -14,6 +14,7 @@ class GhostAcademy(Building):
         super().__init__(build)
         self.unitId = UnitTypeId.GHOSTACADEMY
         self.name = "Ghost Academy"
+        self.max_amount = 1
 
     @property
     @override
@@ -26,8 +27,7 @@ class GhostAcademy(Building):
         # We want a ghost academy once we have at least 4 bases and 2/2 started
         # but no ghost in TvT
         return (
-            self.amount == 0
-            and self.bot.matchup != Matchup.TvT
+            self.bot.matchup != Matchup.TvT
             and self.bot.supply_used >= supply_min
             and (
                 (
