@@ -129,8 +129,10 @@ class MicroBioUnit(MicroUnit):
                 attackable_enemies: Units = all_enemies.filter(lambda enemy: self.can_be_attacked(enemy, bio_unit))
                 if (attackable_enemies.amount >= 1):
                     target: Unit = attackable_enemies.first
-                    risk: float = 2 if target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER] else 0.7
-                    best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target, risk)
+                    if (target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]):
+                        best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(target, 2)
+                    else:
+                        best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
                     bio_unit.move(best_position)
                 else:
                     await super().fight(bio_unit, local_units, chase)

@@ -79,8 +79,11 @@ class InfluenceMapManager:
             if (include_effects):
                 temporary_map += self.effects.air.map
         else:
+            # mask unwalkable tiles explicitly instead of relying on the 999 sentinel,
+            # which no longer equals 999 once danger/effects/creep are combined
             pathing: np.ndarray = self.bot.game_info.pathing_grid.data_numpy
-            temporary_map = np.ma.masked_where(pathing == 0, temporary_map)
+            blocked: np.ndarray = (pathing == 0) | self.static.dynamic_block_grid.map
+            temporary_map = np.ma.masked_where(blocked, temporary_map)
             if (include_danger):
                 if (include_terrain_penalty):
                     temporary_map += self.danger.ground_terrain.map
@@ -109,14 +112,14 @@ class InfluenceMapManager:
     ) -> tuple[Point2, float]:
         
         # Get the masked window: returns x1, y1, masked_values
-        x1, y1, masked_values = self.read(pos, radius, air, include_danger=danger, include_terrain_penalty=terrain, include_effects=effects)
+        x1, y1, masked_values = self.read(pos.position, radius, air, include_danger=danger, include_terrain_penalty=terrain, include_effects=effects)
 
         # Build candidate tiles (masked values auto-skip)
         ys, xs = np.where(~masked_values.mask)
 
         # Precompute direction vector if provided
         if (prefer_direction is not None):
-            vec: Point2 = prefer_direction - pos
+            vec: Point2 = prefer_direction - pos.position
             length: float = (vec.x * vec.x + vec.y * vec.y) ** 0.5
 
             if (length < 1e-6):
@@ -135,8 +138,8 @@ class InfluenceMapManager:
 
         evaluator = DangerEvaluator(self.bot, masked_values, x1, y1)
         
-        best_point: Point2 | None = None
-        best_score: float = -999
+        best_point: Point2 = pos.position
+        best_score: float = -np.inf
 
         for iy, ix in zip(ys, xs):
             
@@ -179,18 +182,15 @@ class InfluenceMapManager:
                 else score_fn(value, towards, extend)
             )
 
-            if (best_score is None or score > best_score):
+            if (score > best_score):
                 best_score = score
                 best_point = Point2((px, py))
 
-        if (best_point is None):
-            print("Error - no best point found")
-            return (prefer_direction or pos, best_score)
         return best_point, best_score
 
     def best_grenade_target(self, reaper: Unit) -> tuple[Point2, float]:
         # assume most units have the same range as the reaper
-        RANGE: int = 5 + reaper.radius * 2
+        RANGE: float = 5 + reaper.radius * 2
 
         return self.pick_tile(
             reaper.position,
@@ -217,6 +217,7 @@ class InfluenceMapManager:
     
     
     def best_attacking_spot(self, unit: Unit, target: Unit, risk: float = 0.7) -> Point2:
+        MIN_DISTANCE: float = 1.5
         target_air: bool = target.is_flying
         distance: float = unit.radius + target.radius
         if (target_air):
@@ -231,7 +232,7 @@ class InfluenceMapManager:
             target_range += target.ground_range
         
         escape_range: float = target.real_speed * 1.4
-        distance -= escape_range * risk
+        distance = max(MIN_DISTANCE, distance - escape_range * risk)
 
         # we want to be in range, but not too close from melee unit, but still out of range of ranged units
         ideal_range: float = min(target_range + 2, distance)

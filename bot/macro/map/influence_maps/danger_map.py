@@ -35,8 +35,9 @@ class DangerMap:
         map: np.ndarray = None
     ):
         self.bot = bot
-        self.ground = InfluenceMap(bot, map)
-        self.ground_terrain = InfluenceMap(bot, map)
+        # each map needs its own buffer, otherwise terrain penalties leak into ground
+        self.ground = InfluenceMap(bot, map.copy() if map is not None else None)
+        self.ground_terrain = InfluenceMap(bot, map.copy() if map is not None else None)
         self.air = InfluenceMap(bot)
 
     def reset(self):
