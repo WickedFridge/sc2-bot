@@ -29,7 +29,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "14.1.5"
+VERSION: str = "15.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -224,6 +224,8 @@ class WickedBot(Superbot):
             self.map.initialize()
             await self.macro.speed_mining.start()
             self.map.influence_maps.init_influence_maps()
+            # the previous game must be in the history before using it to select the build
+            self.analytics.recover_crashed_match()
             self.build_order.select_build(self.matchup)
             await self.tag_game()
             self.analytics.start_match()

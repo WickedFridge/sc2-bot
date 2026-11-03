@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Type
 import random
 from bot.strategy.build_order.build_order import BuildOrder
+from bot.strategy.build_order.build_selector import BuildSelector
+from bot.strategy.build_order.builds.defensive_reaction_builds.conservative_rax_expand import ConservativeRaxExpand
 from bot.strategy.build_order.builds.defensive_reaction_builds.cyclone_tank_3_rax import CycloneTank3Rax
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_double_cyclone_magfield import DefensiveDoubleCycloneMagfield
@@ -20,6 +22,7 @@ from bot.strategy.build_order.builds.macro_builds.koka_build import KokaBuild
 from bot.strategy.build_order.builds.macro_builds.reactor_hellion_3cc_1_1 import Greedy22Timing
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_2_rax_reapers import DefensiveTwoRax
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_kokabuild import TwoRaxReapersKokabuild
+from bot.strategy.build_order.builds.macro_builds.threecc_5rax_plus1 import ThreeCC5RaxPlus1
 from bot.utils.matchup import Matchup
 from sc2.bot_ai import BotAI
 
@@ -43,40 +46,55 @@ class BuildOrderManager:
         return self.bot  # type: ignore
     
     def select_build(self, matchup: Matchup):
+        candidates: List[Type[BuildOrder]]
         match(matchup):
             case Matchup.TvT:
-                self.build = random.choice([
-                    # Dummybuild(self.bot)
-                    # MacroCyclone(self.bot),
-                    Cyclone3Raven(self.bot),
-                    DefensiveTwoRax(self.bot),
-                    # DefensiveMistral211(self.bot)
-                ])
+                candidates = [
+                    # Dummybuild,
+                    # MacroCyclone,
+                    Cyclone3Raven,
+                    DefensiveTwoRax,
+                    # DefensiveMistral211,
+                ]
             case Matchup.TvZ:
-                self.build = random.choice([
-                    TwoRaxReapersKokabuild(self.bot),
-                    TwoRaxReapersHellbatPush(self.bot),
-                    Greedy22Timing(self.bot),
-                    Bansheeseburger(self.bot),
-                    # DefensiveCyclone(self.bot),
-                    # KokaBuild(self.bot),
-                    # CCFirstTwoRax(self.bot)
-                ])
+                candidates = [
+                    TwoRaxReapersKokabuild,
+                    TwoRaxReapersHellbatPush,
+                    Greedy22Timing,
+                    Bansheeseburger,
+                    # DefensiveCyclone,
+                    # KokaBuild,
+                    # CCFirstTwoRax,
+                ]
             case Matchup.TvP:
-                self.build = random.choice([
-                    # MacroCyclone(self.bot),
-                    BansheeCloak3CC(self.bot),
-                    # DefensiveDoubleCycloneMagfield(self.bot),
-                    # DefensiveCycloneTank(self.bot),
-                    # CycloneTank3Rax(self.bot),
-                    # Dummybuild(self.bot),
-                    # KokaBuild(self.bot),
-                    # CCFirstTwoRax(self.bot)
-                ])
+                candidates = [
+                    MacroCyclone,
+                    BansheeCloak3CC,
+                    # ConservativeRaxExpand,
+                    ThreeCC5RaxPlus1,
+                    # DefensiveDoubleCycloneMagfield,
+                    # DefensiveCycloneTank,
+                    # CycloneTank3Rax,
+                    # Dummybuild,
+                    # KokaBuild,
+                    # CCFirstTwoRax,
+                ]
             case _:
-                self.build = KokaBuild(self.bot)
+                candidates = [KokaBuild]
+        self.build = self.choose_build(candidates, matchup)(self.wicked)
         # self.build = TwoRaxTest(self.bot)
         self.dispatcher = self.build
+
+    def choose_build(self, candidates: List[Type[BuildOrder]], matchup: Matchup) -> Type[BuildOrder]:
+        if (len(candidates) == 1):
+            return candidates[0]
+        try:
+            selector = BuildSelector(self.wicked.analytics.history, self.wicked.analytics.source)
+            return selector.select(candidates, str(self.bot.opponent_id), matchup, self.bot.game_info.map_name)
+        except Exception as e:
+            # build selection must never crash a game
+            print(f"[BuildOrderManager] Build selection failed, picking a random build: {e}")
+            return random.choice(candidates)
 
     async def switch_build(self, new_build_order: BuildOrder) -> None:
         print(f"[BuildOrderManager] Switching {self.build.name.value} order to {new_build_order.name.value}")

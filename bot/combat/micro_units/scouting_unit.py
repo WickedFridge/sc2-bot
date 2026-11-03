@@ -1,14 +1,92 @@
-from typing import Optional, override
+from itertools import permutations
+from typing import List, Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
+from bot.macro.expansion import Expansion
+from bot.macro.expansion_manager import Expansions
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
+from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
+from bot.utils.point2_functions.utils import closest_point
+from sc2.cache import custom_cache_once_per_frame
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 
 
 class MicroScoutingUnit(MicroUnit):
+    # scouts make a detour to any unscouted base spot closer than this
+    DETOUR_SCOUT_DISTANCE: float = 15
+    # past this distance from the next unscouted point, head for the base center instead
+    BASE_APPROACH_DISTANCE: float = 15
+
+    @custom_cache_once_per_frame
+    def enemy_bases_to_scout(self) -> Expansions:
+        # always scouted in this order
+        return Expansions(self.bot, [
+            self.bot.expansions.enemy_b2,
+            self.bot.expansions.enemy_main,
+            self.bot.expansions.enemy_b3,
+            self.bot.expansions.enemy_b4,
+        ])
+
+    @custom_cache_once_per_frame
+    def home_bases_to_scout(self) -> Expansions:
+        home_bases: Expansions = Expansions(self.bot, [])
+
+        match(self.bot.matchup):
+            case Matchup.TvZ:
+                home_bases.add(self.bot.expansions.b2)
+
+            case Matchup.TvP:
+                # scout main + 3 closest air base
+                home_bases = self.bot.expansions.sorted(
+                    lambda expansion: expansion.position.distance_to(self.bot.expansions.main.position)
+                ).take(4)
+
+            case Matchup.TvT | Matchup.TvR:
+                # scout main + 3 closest ground base
+                home_bases = self.bot.expansions.sorted(
+                    lambda expansion: expansion.distance_from_main
+                ).take(4)
+
+        return home_bases.filter(lambda base: base not in self.enemy_bases_to_scout.expansions)
+
+    def home_scout_route(self, start: Point2) -> Expansions:
+        """
+        Unscouted home bases, ordered to minimize the path start -> bases -> enemy natural.
+        At most 4 bases, so brute forcing every permutation (24 max) is cheap.
+        """
+        bases: Expansions = self.home_bases_to_scout.filter(lambda base: not base.is_fully_scouted)
+        end: Point2 = self.bot.expansions.enemy_b2.position
+
+        def route_length(order: tuple[Expansion, ...]) -> float:
+            points: List[Point2] = [start] + [base.position for base in order] + [end]
+            return sum(a.distance_to(b) for a, b in zip(points, points[1:]))
+
+        return Expansions(self.bot, list(min(permutations(bases), key=route_length)))
+
+    def scout_target(self, unit: Unit) -> Point2:
+        # if we pass close to a base whose spot has never been seen, take a quick look on the way
+        nearby_unscouted_bases: Expansions = self.bot.expansions.filter(
+            lambda base: not base.is_scouted and base.position.distance_to(unit) <= self.DETOUR_SCOUT_DISTANCE
+        )
+        if (nearby_unscouted_bases.amount >= 1):
+            return nearby_unscouted_bases.closest_to(unit).position
+
+        for base in self.home_scout_route(unit.position).extended(self.enemy_bases_to_scout.expansions):
+            if (not base.is_fully_scouted):
+                target: Point2 = closest_point(unit.position, base.unscouted_points)
+                if (unit.distance_to(target) > self.BASE_APPROACH_DISTANCE):
+                    return base.position
+                return target
+
+        return self.bot.expansions.enemy_main.mineral_line
+
+    @override
+    async def scout(self, unit: Unit, local_units: Units):
+        unit.move(self.scout_target(unit))
+
     @override
     async def fight(self, unit: Unit, local_units: Units, chase: bool = False):
         # If there isn't any visible unit (ghost units are probably menacing), move to safest spot

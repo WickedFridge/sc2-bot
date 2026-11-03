@@ -108,6 +108,7 @@ class Bansheeseburger(MacroBuild):
                 UnitTypeId.REACTOR,
                 condition=lambda: (
                     self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    and self.bot.structures(UnitTypeId.STARPORT).amount >= 1
                 ),
             ),
             AddonDetachSwap(

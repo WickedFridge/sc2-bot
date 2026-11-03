@@ -54,12 +54,15 @@ class Analytics:
 
     def recover_crashed_match(self) -> None:
         # a match still pending means the previous game ended without on_end being called
-        crashed: MatchRecord | None = self.history.pop_current()
-        if (crashed is None):
-            return
-        crashed.result = RESULT_CRASH
-        self.history.append(crashed)
-        print(f"[Analytics] Recovered crashed match against {crashed.opponent_id}")
+        try:
+            crashed: MatchRecord | None = self.history.pop_current()
+            if (crashed is None):
+                return
+            crashed.result = RESULT_CRASH
+            self.history.append(crashed)
+            print(f"[Analytics] Recovered crashed match against {crashed.opponent_id}")
+        except Exception as e:
+            print(f"[Analytics] recover_crashed_match failed: {e}")
 
     def record_build_switch(self, build_name: str, time: float) -> None:
         if (self.record is None):
@@ -103,34 +106,44 @@ class Analytics:
     def stats_messages(self) -> List[str]:
         opponent_id: str = str(self.bot.opponent_id)
         matchup: Matchup = self.bot.matchup
+        map_name: str = self.bot.game_info.map_name
         matches: List[MatchRecord] = [
             match for match in self.history.load()
             if (
                 match.source == self.source
-                and match.opponent_id == opponent_id
+                and match.result in (Result.Victory.name, Result.Defeat.name)
                 # random opponents: their race isn't known yet, so every matchup counts
                 and (matchup == Matchup.TvR or match.matchup == matchup.name)
             )
         ]
-        if (len(matches) == 0):
-            return ["Stats : no known match against this opponent"]
+        opponent_matches: List[MatchRecord] = [match for match in matches if match.opponent_id == opponent_id]
+        map_matches: List[MatchRecord] = [
+            match for match in matches
+            if (match.opponent_id != opponent_id and match.map == map_name)
+        ]
+        if (len(opponent_matches) == 0 and len(map_matches) == 0):
+            return ["Stats : no known match against this opponent or on this map"]
 
-        results_by_build: Dict[str, Dict[str, int]] = {}
-        for match in matches:
-            build: str = match.starting_build or "Unknown"
-            results: Dict[str, int] = results_by_build.setdefault(build, {})
-            results[match.result] = results.get(match.result, 0) + 1
-
-        messages: List[str] = [f"Stats vs {opponent_id} ({matchup}) : {len(matches)} matchs"]
-        for build, results in results_by_build.items():
-            score: str = (
-                f"{results.get(Result.Victory.name, 0)}"
-                f"-{results.get(Result.Defeat.name, 0)}"
-            )
-            if (results.get(Result.Tie.name, 0) > 0):
-                score += f"-{results[Result.Tie.name]}"
-            messages.append(f"Stats {self.display_name(build)} : {score}")
+        opponent_scores: Dict[str, List[int]] = self.scores_by_build(opponent_matches)
+        map_scores: Dict[str, List[int]] = self.scores_by_build(map_matches)
+        messages: List[str] = [
+            f"Stats vs {opponent_id} ({matchup}) : W-L vs this opponent (W-L vs others on {map_name})"
+        ]
+        # builds played against this opponent first
+        builds: List[str] = list(opponent_scores) + [build for build in map_scores if build not in opponent_scores]
+        for build in builds:
+            wins, losses = opponent_scores.get(build, [0, 0])
+            map_wins, map_losses = map_scores.get(build, [0, 0])
+            messages.append(f"{self.display_name(build)} : {wins}-{losses} ({map_wins}-{map_losses})")
         return messages
+
+    def scores_by_build(self, matches: List[MatchRecord]) -> Dict[str, List[int]]:
+        """[wins, losses] of each starting build"""
+        scores: Dict[str, List[int]] = {}
+        for match in matches:
+            score: List[int] = scores.setdefault(match.starting_build or "Unknown", [0, 0])
+            score[0 if match.result == Result.Victory.name else 1] += 1
+        return scores
 
     def display_name(self, build: str) -> str:
         if (build in BuildOrderName.__members__):

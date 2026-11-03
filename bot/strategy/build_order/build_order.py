@@ -19,6 +19,7 @@ from ...utils.unit_tags import reactors, techlabs
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot
+    from bot.utils.army import Army
 
 def addon_group(addon_type: UnitTypeId) -> list[UnitTypeId]:
     """Return all addon types functionally equivalent to the given one."""
@@ -429,7 +430,15 @@ class BuildOrder(CachedClass):
 
     def _modify_composition(self, composition: Composition) -> bool:
         return False
-    
+
+    def is_army_ready_to_attack(self, army: Army) -> Optional[bool]:
+        """
+        Build-specific attack condition, checked while the build order isn't completed.
+        True forces the attack, False holds the army back,
+        None falls back to the default criteria.
+        """
+        return None
+
     def get_defensive_response(self, situation: Situation) -> BuildOrder | None:
         specific_response: BuildOrder | None = self.defensive_responses.get(situation, None)
         if (specific_response is not None):

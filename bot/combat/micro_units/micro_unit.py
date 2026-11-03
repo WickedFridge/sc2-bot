@@ -426,6 +426,9 @@ class MicroUnit(CachedClass):
     async def disengage(self, unit: Unit, local_units: Units):
         await self.retreat(unit, local_units)
 
+    async def scout(self, unit: Unit, local_units: Units):
+        unit.move(self.bot.expansions.enemy_main.mineral_line)
+
     async def defend(self, unit: Unit, local_units: Units, target: Point2):
         unit.attack(target)
     

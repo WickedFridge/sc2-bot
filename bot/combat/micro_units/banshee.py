@@ -39,6 +39,8 @@ class MicroBanshee(MicroScoutingUnit):
         )
 
     def is_detected(self, banshee: Unit) -> bool:
+        if (banshee.has_buff(BuffId.ORACLEREVELATION)):
+            return True
         enemy_detectors: Units = (self.bot.enemy_units + self.bot.enemy_structures)(detectors)
         if (enemy_detectors.closer_than(self.DETECTION_RANGE, banshee).amount >= 1):
             return True
@@ -104,6 +106,11 @@ class MicroBanshee(MicroScoutingUnit):
         if (threats.amount >= 1):
             self.cloak(unit)
         return await super().fight(unit, local_units, chase)
+
+    @override
+    async def scout(self, unit: Unit, local_units: Units):
+        # banshees ignore the scouting route and go straight for the enemy mineral line
+        unit.move(self.bot.expansions.enemy_main.mineral_line)
 
     @override
     async def retreat(self, unit: Unit, local_units: Units):

@@ -329,6 +329,7 @@ class BuildingsHandler:
             
         if (
             self.bot.scouting.known_enemy_army.supply < 12
+            and not self.bot.expansions.enemy_b2.is_unknown
             and (
                 self.bot.expansions.enemy_main.is_unknown
                 or self.bot.time - self.bot.expansions.enemy_main.last_scouted >= SCOUT_THRESHOLD

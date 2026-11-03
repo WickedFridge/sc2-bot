@@ -20,6 +20,7 @@ class BuildOrderName(enum.Enum):
     BANSHEESEBURGER = 'Bansheeseburger'
     BANSHEE_CLOAK_3CC = "Banshee Cloak 3CC"
     BANSHEE_CLOAK_MARINE_TANK = "Banshee Cloak Marine Tank"
+    THREECC_5RAX_PLUS_1 = "3CC 5Rax +1"
 
 for item in BuildOrderName:
     globals()[item.name] = item

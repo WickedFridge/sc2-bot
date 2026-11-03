@@ -413,7 +413,10 @@ class StrategyHandler:
                 )
             )
             and (
-                self.bot.townhalls.amount == 3
+                (
+                    self.bot.townhalls.amount == 3
+                    and self.bot.time >= 240
+                )
                 or (
                     self.bot.enemy_structures(enemy_production).amount >= 3
                     and self.bot.enemy_structures(enemy_production).amount >= 2 * self.bot.structures(production).amount

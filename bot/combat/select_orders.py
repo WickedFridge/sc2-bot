@@ -10,6 +10,7 @@ from bot.macro.macro import BASE_SIZE
 from bot.scouting.ghost_units.ghost_army import GhostArmy
 from bot.scouting.ghost_units.ghost_units import GhostUnits
 from bot.scouting.ghost_units.manager import GhostUnit
+from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -595,6 +596,12 @@ class SelectOrders:
     def is_army_ready_to_attack(self, army: Army) -> bool:
         # Composition criteria shared by the push decision and the engage decision,
         # so an army sent to attack doesn't disengage once it meets the enemy
+        build: BuildOrder = self.bot.build_order.build
+        if (self.bot.townhalls.ready.amount < 4):
+            build_decision: Optional[bool] = build.is_army_ready_to_attack(army)
+            if (build_decision is not None):
+                return build_decision
+
         if (
             army.potential_supply >= 50
             and not army.has_isolated_ghosts
@@ -715,7 +722,7 @@ class SelectOrders:
                     self.execute.regroup(army, self.armies)
 
                 case Orders.SCOUT:
-                    self.execute.scout(army)
+                    await self.execute.scout(army)
     
     async def handle_bunkers(self):
         for bunker in self.bot.structures(UnitTypeId.BUNKER):

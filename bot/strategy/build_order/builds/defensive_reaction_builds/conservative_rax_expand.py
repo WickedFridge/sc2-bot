@@ -27,12 +27,13 @@ class ConservativeRaxExpand(BuildOrder):
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, townhalls=2, requirements=[(UnitTypeId.MARINE, 1, False)]),
             BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, townhalls=2, requirements=[(UnitTypeId.MARINE, 1, False), (UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=3, townhalls=2),
-            BuildOrderStep(bot, self, 'reactor #2', UnitTypeId.BARRACKSREACTOR, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
-            BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
-            BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.FACTORY, 1, False)]),
+            BuildOrderStep(bot, self, 'techlab #2', UnitTypeId.BARRACKSTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False), (UnitTypeId.BARRACKSTECHLAB, 1, False)]),
+            BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)], workers=19),
+            BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, requirements=[(UnitTypeId.BARRACKS, 3, False), (UnitTypeId.BARRACKSTECHLAB, 1, False), (UnitTypeId.BARRACKSREACTOR, 1, False)]),
             BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT),
-            BuildOrderStep(bot, self, 'facto reactor', UnitTypeId.FACTORYREACTOR, target_count=3, requirements=[(UnitTypeId.STARPORT, 1, False)]),
+            BuildOrderStep(bot, self, 'shield', UpgradeId.SHIELDWALL, requirements=[(UnitTypeId.STARPORT, 1, False)]),
+            BuildOrderStep(bot, self, 'facto reactor', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
         ]
 
