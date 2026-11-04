@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING, List, Optional
+from functools import partial
+from typing import TYPE_CHECKING, List, Optional, Set
 from bot.army_composition.composition import Composition
 from bot.strategy.build_order.addon_swap import AddonDetachSwap, AddonSwap, SwapPlan, SwapState
 from bot.strategy.build_order.addon_swap.attach_swap import AddonAttachSwap
@@ -13,9 +14,10 @@ from bot.strategy.strategy_types import Situation
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
+from sc2.unit import Unit
 from sc2.units import Units
 from bot.utils.unit_functions import get_addon_id
-from ...utils.unit_tags import reactors, techlabs
+from ...utils.unit_tags import reactors, techlab_units, techlabs
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot
@@ -268,21 +270,54 @@ class BuildOrder(CachedClass):
             ))
             self.swap_plans.remove(matching_declared_plan)
 
-        for plan in self.swap_plans:
+        # Swaps still delivering an addon: their recipient has no addon yet, but it's on its way.
+        in_flight_swaps: list[SwapPlan] = [
+            plan for plan in plans_to_prepend
+            if isinstance(plan, AddonSwap) and plan.is_active
+        ]
+        # A recipient only satisfies one plan: 2 identical swaps target 2 different buildings.
+        satisfied_recipient_tags: Set[int] = set()
+        # Addons of the donors, each one can only be given once.
+        donor_addons: Counter[UnitTypeId] = Counter(
+            addon.type_id for addon in self.bot.structures(reactors + techlabs)
+            if addon.tag not in owned_addon_tags
+        )
+
+        for index, plan in enumerate(self.swap_plans):
             if (plan.state != SwapState.PENDING):
                 continue
 
             desired_group: list[UnitTypeId] = addon_group(plan.desired_addon_type)
 
-            # Case 1: recipient already has a functionally equivalent addon → DONE
-            recipient_with_equivalent_addon: bool = any(
-                structure.has_add_on
-                and self.bot.structures.find_by_tag(structure.add_on_tag) is not None
-                and self.bot.structures.find_by_tag(structure.add_on_tag).type_id in desired_group
-                for structure in self.bot.structures(plan.recipient_type)
+            # Case 0: a swap carried over from the previous build already delivers this addon → DONE
+            covering_swap: Optional[SwapPlan] = next(
+                (
+                    swap for swap in in_flight_swaps
+                    if swap.recipient_type == plan.recipient_type
+                    and addon_group(swap.desired_addon_type) == desired_group
+                ),
+                None,
             )
-            if (recipient_with_equivalent_addon):
+            if (covering_swap is not None):
+                print(f"[reconcile] {plan.name} covered by in-progress swap {covering_swap.name} — DONE.")
+                in_flight_swaps.remove(covering_swap)
+                plan.state = SwapState.DONE
+                continue
+
+            # Case 1: recipient already has a functionally equivalent addon → DONE
+            recipient_with_equivalent_addon: Optional[Unit] = next(
+                (
+                    structure for structure in self.bot.structures(plan.recipient_type)
+                    if structure.tag not in satisfied_recipient_tags
+                    and structure.has_add_on
+                    and self.bot.structures.find_by_tag(structure.add_on_tag) is not None
+                    and self.bot.structures.find_by_tag(structure.add_on_tag).type_id in desired_group
+                ),
+                None,
+            )
+            if (recipient_with_equivalent_addon is not None):
                 print(f"[reconcile] {plan.name} already satisfied (equivalent addon) — DONE.")
+                satisfied_recipient_tags.add(recipient_with_equivalent_addon.tag)
                 plan.state = SwapState.DONE
                 continue
 
@@ -293,7 +328,18 @@ class BuildOrder(CachedClass):
                 and self.bot.structures.find_by_tag(structure.add_on_tag).type_id not in desired_group
                 for structure in self.bot.structures(plan.donor_type)
             )
-            if (donor_with_wrong_addon):
+            # No detach if another swap of this build already moves the wrong addon elsewhere:
+            # the detach would run first and leave that swap without a donor. A swap towards
+            # the same recipient type doesn't count, it would take the recipient of this plan.
+            wrong_addon_already_moving: bool = any(
+                other is not plan
+                and other.state == SwapState.PENDING
+                and other.donor_type == plan.donor_type
+                and other.recipient_type != plan.recipient_type
+                and addon_group(other.desired_addon_type) != desired_group
+                for other in self.swap_plans
+            )
+            if (donor_with_wrong_addon and not wrong_addon_already_moving):
                 print(f"[reconcile] {plan.name} donor has wrong addon — injecting AddonDetachSwap.")
                 # the wrong addon is necessarily of the other family
                 wrong_addon_family: UnitTypeId = (
@@ -306,11 +352,86 @@ class BuildOrder(CachedClass):
                 ))
                 continue
 
-            # Case 3: donor doesn't exist yet, or has no addon → stay PENDING
-            # print(f"[reconcile] {plan.name} stays PENDING.")
+            # Case 3: donor has the addon, or a step will build it → stay PENDING
+            if (not isinstance(plan, AddonSwap)):
+                continue
+            if (donor_addons[plan.desired_addon_type] >= 1):
+                donor_addons[plan.desired_addon_type] -= 1
+                continue
+            if (self._step_builds_addon(plan.donor_type, desired_group)):
+                continue
+
+            # Case 4: the donor will never get the addon, as the steps are already satisfied
+            # by an addon sitting on another building type → take it from there if it's spare
+            spare_addon: Optional[Unit] = self._find_spare_addon(plan, desired_group, owned_addon_tags)
+            if (spare_addon is None):
+                # never finishing this swap would prevent the build order from completing
+                print(f"[reconcile] {plan.name} has no donor and no spare addon — aborting.")
+                plan.state = SwapState.ABORTED
+                continue
+
+            spare_donor_type: UnitTypeId = addon_owner[spare_addon.type_id]
+            print(f"[reconcile] {plan.name} has no donor — rerouting from spare {spare_addon.type_id.name}.")
+            owned_addon_tags.add(spare_addon.tag)
+            self.swap_plans[index] = AddonSwap(
+                self.bot,
+                spare_donor_type,
+                plan.recipient_type,
+                UnitTypeId.REACTOR if (desired_group == reactors) else UnitTypeId.TECHLAB,
+                # the donor would otherwise lift as soon as the recipient is placed,
+                # and stop producing until its construction is over
+                condition=partial(self._has_ready_recipient, plan.recipient_type),
+            )
 
         self.swap_plans = plans_to_prepend + self.swap_plans
-    
+
+    def _step_builds_addon(self, building_type: UnitTypeId, group: list[UnitTypeId]) -> bool:
+        """True if an unsatisfied step will build an addon of this family on `building_type`."""
+        return any(
+            not step.is_satisfied
+            and step.step_id in group
+            and addon_owner.get(step.step_id) == building_type
+            for step in self.steps
+        )
+
+    def _find_spare_addon(self, plan: SwapPlan, group: list[UnitTypeId], owned_addon_tags: Set[int]) -> Optional[Unit]:
+        """
+        Find a completed addon of this family, sitting on another building type,
+        that this build order doesn't need there.
+        """
+        def is_spare(addon: Unit) -> bool:
+            owner_type: Optional[UnitTypeId] = addon_owner.get(addon.type_id)
+            return (
+                owner_type not in (None, plan.donor_type, plan.recipient_type)
+                and addon.is_ready
+                # a techlab can be researching an upgrade
+                and addon.is_idle
+                and addon.tag not in owned_addon_tags
+                and not any(step.step_id == addon.type_id for step in self.steps)
+                and not any(
+                    other is not plan
+                    and not other.is_finished
+                    and owner_type in (other.donor_type, other.recipient_type)
+                    and addon_group(other.desired_addon_type) == group
+                    for other in self.swap_plans
+                )
+                and not (group == techlabs and self._queue_needs_techlab(owner_type))
+            )
+
+        return next((addon for addon in self.bot.structures(group) if is_spare(addon)), None)
+
+    def _queue_needs_techlab(self, building_type: UnitTypeId) -> bool:
+        """True if an unfinished production queue of this building has techlab units."""
+        return any(
+            queue.building_type == building_type
+            and queue.current is not None
+            and any(unit_type in techlab_units for unit_type, _ in queue.units)
+            for queue in self.production_queues
+        )
+
+    def _has_ready_recipient(self, recipient_type: UnitTypeId) -> bool:
+        return self.bot.structures(recipient_type).ready.filter(lambda b: not b.has_add_on).amount >= 1
+
     @custom_cache_once_per_frame
     def steps_completed(self) -> List[BuildOrderStep]:
         return [step for step in self.steps if step.is_satisfied]

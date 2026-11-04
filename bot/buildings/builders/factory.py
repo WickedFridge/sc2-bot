@@ -37,7 +37,7 @@ class Factory(Building):
                     thor_target * 2
                     + tank_target
                     + cyclone_target
-                    + hellion_target / 2 > 6 * self.amount
+                    + hellion_target / 2 >= 6 * self.amount
                 )
             )
         )

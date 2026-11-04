@@ -69,7 +69,7 @@ class Cyclone3Raven(MacroBuild):
             ProductionQueue(
                 bot,
                 UnitTypeId.FACTORY,
-                [(UnitTypeId.HELLION, 2), (UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 5)],
+                [(UnitTypeId.HELLION, 2), (UnitTypeId.CYCLONE, 1), (UnitTypeId.SIEGETANK, 2)],
             ),
             ProductionQueue(
                 bot,

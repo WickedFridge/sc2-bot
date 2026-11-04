@@ -109,6 +109,16 @@ techlabs: List[UnitTypeId] = [
     UnitTypeId.STARPORTTECHLAB,
     UnitTypeId.TECHLAB,
 ]
+techlab_units: List[UnitTypeId] = [
+    UnitTypeId.MARAUDER,
+    UnitTypeId.GHOST,
+    UnitTypeId.CYCLONE,
+    UnitTypeId.SIEGETANK,
+    UnitTypeId.THOR,
+    UnitTypeId.RAVEN,
+    UnitTypeId.BANSHEE,
+    UnitTypeId.BATTLECRUISER,
+]
 bio: List[UnitTypeId] = [
     UnitTypeId.REAPER,
     UnitTypeId.MARINE,

@@ -89,9 +89,10 @@ class CommandCenter(Building):
                 if (safe_expansions.amount >= 1):
                     if (are_bases_saturated):
                         return safe_expansions.closest_to(cc_position).position.towards(cc_position, random.randrange(2, 5))
+                    min_range: int = 0 if townhall_amount < 4 else 1
                     return safe_expansions.sorted(
                         lambda expansion: self.bot.townhalls.closer_than(15, expansion.position).amount
-                    )[random.randrange(0, min(2, safe_expansions.amount))].position.towards_with_random_angle(cc_position, random.randrange(2, 5))
+                    )[random.randrange(min_range, min(2, safe_expansions.amount))].position.towards_with_random_angle(cc_position, random.randrange(2, 5))
                 return self.bot.expansions.main.position
     
     async def move_worker_expand(self):

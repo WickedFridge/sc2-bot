@@ -195,7 +195,7 @@ class ArmyCompositionManager(CachedClass):
         min_extra: int = 0
         max_extra: int = 10
         ratio: float = self.wicked.scouting.known_enemy_army.armored_ground_ratio
-        if (ratio < 0.5):
+        if (ratio < 0.35):
             return min_extra
         if (UnitTypeId.LURKERMP in self.wicked.scouting.known_enemy_composition):
             min_extra = 5
