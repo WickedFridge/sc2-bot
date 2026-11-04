@@ -13,6 +13,7 @@ from bot.strategy.build_order.builds.macro_build import MacroBuild
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 from bot.strategy.build_order.production_queue import ProductionQueue
+from bot.strategy.strategy_types import Situation
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from bot.utils.unit_tags import techlabs
@@ -40,6 +41,7 @@ class BansheeCloak3CC(MacroBuild):
     def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.default_defensive_response = DefensiveCycloneTank(bot)
+        self.defensive_responses[Situation.CHEESE_SKYTOSS] = None
         
         self.steps = [
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.SUPPLYDEPOT, 1, False)]),

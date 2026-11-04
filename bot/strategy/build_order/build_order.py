@@ -69,7 +69,7 @@ class BuildOrder(CachedClass):
     in_base_cc: bool = False
     is_defensive_response: bool = False
     default_defensive_response: Optional[BuildOrder] = None
-    defensive_responses: dict[Situation, BuildOrder] = {}
+    defensive_responses: dict[Situation, BuildOrder | None] = {}
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -561,9 +561,9 @@ class BuildOrder(CachedClass):
         return None
 
     def get_defensive_response(self, situation: Situation) -> BuildOrder | None:
-        specific_response: BuildOrder | None = self.defensive_responses.get(situation, None)
-        if (specific_response is not None):
-            return specific_response
+        # an explicit None means we keep the current build
+        if (situation in self.defensive_responses):
+            return self.defensive_responses[situation]
         
         if (situation.is_cheese):
             return self.default_defensive_response

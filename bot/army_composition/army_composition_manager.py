@@ -2,7 +2,6 @@ from __future__ import annotations
 import math
 from typing import List, TYPE_CHECKING
 from bot.army_composition.composition import Composition
-from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup
 from bot.utils.unit_supply import get_unit_supply
@@ -168,8 +167,6 @@ class ArmyCompositionManager(CachedClass):
             UnitTypeId.MUTALISK: 1 if UnitTypeId.GHOST not in self.available_units else 0,
         }
         cyclone_amount: float = 0
-        if (Situation.CHEESE_SKYTOSS in self.wicked.strategy.situation_history):
-            cyclone_amount += 4
 
         for unit_type in self.wicked.scouting.possible_enemy_composition:
             if (unit_type not in cyclone_response.keys()):
