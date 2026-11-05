@@ -24,10 +24,18 @@ class Refinery(Building):
     def custom_conditions(self) -> bool:
         if (self.target_geyser is None):
             return False
-        if (self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]):
+        
+        scv_amount: int = self.bot.supply_workers
+        
+        if (
+            self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]
+            and scv_amount < 14
+        ):
             return False
+        
         if (self.unitId in self.bot.build_order.build.pending_ids):
             return True
+        
         depleted_refineries: int = self.bot.structures(self.unitId).filter(
             lambda unit: self.bot.vespene_geyser.closest_to(unit).has_vespene == False
         ).amount
@@ -35,7 +43,7 @@ class Refinery(Building):
 
         max_refineries: int = 10
         orbital_amount: float = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
-        scv_amount: int = self.bot.supply_workers
+        
         
         match(refinery_amount):
             # Build order handles first 2 gas

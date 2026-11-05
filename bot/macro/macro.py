@@ -49,6 +49,7 @@ class Macro:
                 or (
                     (worker.is_repairing or worker.is_attacking)
                     and not self.bot.scouting.situation.is_cheese
+                    and not self.bot.scouting.is_chasing(worker)
                     and positions and min(worker.distance_to(p) for p in positions) >= 20
                 )
             ):
@@ -246,7 +247,10 @@ class Macro:
         if (
             total_ideal_mineral_workers == 0
             or worker_count < total_ideal_mineral_workers * RALLY_LOCAL_SATURATION_THRESHOLD
-            or self.bot.scouting.situation in [Situation.CHEESE_CANNON_RUSH, Situation.CHEESE_WORKER_RUSH]
+            or (
+                self.bot.scouting.situation in [Situation.CHEESE_CANNON_RUSH, Situation.CHEESE_WORKER_RUSH]
+                and worker_count < 16
+            )
         ):
             target_gas_workers: int = 0
             gas_hysteresis: int = 0

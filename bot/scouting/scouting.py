@@ -202,6 +202,10 @@ class Scouting:
             return None
         return self.bot.units.find_by_tag(self.scout_tag)
 
+    def is_chasing(self, worker: Unit) -> bool:
+        """ True if this worker is the scout chasing an enemy worker: its leash is relative to the scouted zones, not to our bases. """
+        return worker.tag == self.scout_tag and self.engaged_worker_tag is not None
+
     # zones scouted for a proxy, in priority order: our next expansions first, the interior of the main last
     @property
     def _proxy_zones(self) -> List[Expansion]:
@@ -215,10 +219,13 @@ class Scouting:
             zones.append(self.bot.expansions.main)
         return zones
 
+    def _is_near_zones(self, unit: Unit, zones: List[Expansion]) -> bool:
+        return any(unit.distance_to(zone.position) < self.PROXY_SEARCH_RADIUS for zone in zones)
+
     def _proxy_building_points(self, zones: List[Expansion]) -> List[Point2]:
         # for every enemy building found near a scouted zone, scout a bit around it: there may be a second one
         nearby_enemy_structures: Units = self.bot.enemy_structures.filter(
-            lambda structure: any(structure.distance_to(zone.position) < self.PROXY_SEARCH_RADIUS for zone in zones)
+            lambda structure: self._is_near_zones(structure, zones)
         )
         points: List[Point2] = []
         for structure in nearby_enemy_structures:
@@ -234,16 +241,19 @@ class Scouting:
             if (engaged_worker is not None):
                 distance: float = scout.distance_to(engaged_worker)
                 self.engaged_min_distance = min(self.engaged_min_distance, distance)
-                if (distance <= self.engaged_min_distance + self.DISENGAGE_MARGIN):
+                if (
+                    distance <= self.engaged_min_distance + self.DISENGAGE_MARGIN
+                    and self._is_near_zones(engaged_worker, zones)
+                ):
                     scout.attack(engaged_worker)
                     return True
-            # dead, out of vision, or pulling away: give up and resume scouting
+            # dead, out of vision, pulling away or leaving the scouted zones: give up and resume scouting
             self.engaged_worker_tag = None
 
         nearby_enemy_workers: Units = self.bot.enemy_units.filter(
             lambda unit: (
                 unit.type_id in worker_types
-                and any(unit.distance_to(zone.position) < self.PROXY_SEARCH_RADIUS for zone in zones)
+                and self._is_near_zones(unit, zones)
             )
         )
         if (nearby_enemy_workers.amount == 0):
@@ -265,9 +275,11 @@ class Scouting:
             Situation.CHEESE_PROXY_RAX,
         ]
         if (self.bot.matchup == Matchup.TvZ or self.bot.scouting.situation not in scout_needed_situations):
+            self.engaged_worker_tag = None
             return
         if (self.bot.workers.gathering.amount == 0):
             print("no worker available to scout o7")
+            self.engaged_worker_tag = None
             return
         barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).amount
         rax_60: int = self.bot.structures(UnitTypeId.BARRACKS).filter(lambda rax: rax.build_progress >= 0.60).amount

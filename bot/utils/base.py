@@ -280,7 +280,11 @@ class Base:
         for enemy_scout in scouts_out_of_range:
             # is scout is too far, stop chasing it
             attacking_workers: Units = self.workers.filter(
-                lambda unit: unit.is_attacking and unit.order_target == enemy_scout.tag
+                lambda unit: (
+                    unit.is_attacking
+                    and unit.order_target == enemy_scout.tag
+                    and not self.bot.scouting.is_chasing(unit)
+                )
             )
             if (attacking_workers.amount == 0 or chase_scout == True):
                 continue
@@ -528,7 +532,7 @@ class Base:
     
     def no_threat(self) -> None:
         # ask all chasing SCVs to stop
-        attacking_workers = self.workers.filter(lambda unit: unit.is_attacking)
+        attacking_workers = self.workers.filter(lambda unit: unit.is_attacking and not self.bot.scouting.is_chasing(unit))
         for attacking_worker in attacking_workers:
             attacking_worker.stop()
         
