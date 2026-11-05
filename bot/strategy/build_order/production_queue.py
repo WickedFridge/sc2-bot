@@ -111,11 +111,13 @@ class ProductionQueue:
         """
         Applies the queue once the build order is completed: only the remaining entries
         are produced, start_when / hold_until no longer keep the building idle.
+        An entry that can't be trained right now (e.g. Raven without a starport techlab)
+        doesn't freeze the building, the queue resumes once the unit is available again.
         """
         if (not self.outlives_build):
             return False
         current: Optional[tuple[UnitTypeId, int]] = self.current
-        if (current is None):
+        if (current is None or current[0] not in self.bot.composition_manager.available_units):
             return False
         self._freeze_building(composition)
         self._queue_entry(composition, current)
