@@ -8,7 +8,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, menacing, bio, droppable_units
+from ..utils.unit_tags import worker_types, menacing, bio, droppable_units, support_units
 from ..utils.unit_supply import get_units_supply, weighted_units_supply
 
 
@@ -34,7 +34,7 @@ class Army(CachedClass):
     
     @property
     def ground_center(self) -> Point2:
-        return self.units.filter(lambda unit: unit.is_flying != False).center
+        return self.ground_units.center
 
     @property
     def ground_units(self) -> Units:
@@ -76,6 +76,17 @@ class Army(CachedClass):
         if (self.supply == 0):
             return 0
         return self.armored_supply / self.supply
+
+    @property
+    def support_supply(self) -> float:
+        supports: Units = self.units.filter(lambda unit: unit.type_id in support_units)
+        return get_units_supply(supports)
+    
+    @property
+    def support_ratio(self) -> float:
+        if (self.supply == 0):
+            return 0
+        return self.support_supply / self.supply
     
     @property
     def flying_fighting_supply(self) -> float:
@@ -139,7 +150,12 @@ class Army(CachedClass):
         return self.units(UnitTypeId.MEDIVAC).filter(
             lambda unit: unit.energy >= 25
         )
-    
+
+    @property
+    def can_heal_up(self) -> bool:
+        # medivacs only heal bio: without any, the army would wait on itself instead of retreating
+        return self.can_heal_medivacs.amount >= 1 and self.potential_bio_supply > 0
+
     @property
     def can_attack_ground(self) -> bool:
         return self.units.filter(lambda unit: unit.can_attack_ground).amount >= 1

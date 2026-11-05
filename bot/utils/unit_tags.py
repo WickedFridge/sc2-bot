@@ -134,6 +134,11 @@ scouting_units: List[UnitTypeId] = [
     UnitTypeId.HELLION,
     UnitTypeId.BANSHEE,
 ]
+support_units: List[UnitTypeId] = [
+    UnitTypeId.MEDIVAC,
+    UnitTypeId.RAVEN,
+    UnitTypeId.SIEGETANK,
+]
 droppable_units: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER,

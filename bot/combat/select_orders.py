@@ -27,7 +27,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air, scouting_units
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air, scouting_units, support_units
 
 WEAPON_READY_THRESHOLD: float = 6.0
 
@@ -412,7 +412,7 @@ class SelectOrders:
             
         # Heal up first if low bio HP
         if (army.bio_health_percentage < 0.75):
-            if (army.can_heal_medivacs.amount >= 1):
+            if (army.can_heal_up):
                 return Orders.HEAL_UP
             return Orders.RETREAT
 
@@ -608,6 +608,9 @@ class SelectOrders:
         ):
             return True
         
+        if (army.support_ratio > 0.5):
+            return False
+        
         return (
             (
                 army.can_drop_medivacs.amount >= 2
@@ -640,7 +643,7 @@ class SelectOrders:
         ):
             # if our bio is too low, heal up if we have enough energy
             if (army.bio_health_percentage < 0.75):
-                if (army.can_heal_medivacs.amount >= 1):
+                if (army.can_heal_up):
                     return Orders.HEAL_UP
             # only drop if opponent doesn't have enough anti air
             elif (
