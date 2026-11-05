@@ -45,11 +45,10 @@ class BuildOrderManager:
     def wicked(self) -> WickedBot:
         return self.bot  # type: ignore
     
-    def select_build(self, matchup: Matchup):
-        candidates: List[Type[BuildOrder]]
+    def candidates(self, matchup: Matchup) -> List[Type[BuildOrder]]:
         match(matchup):
             case Matchup.TvT:
-                candidates = [
+                return [
                     # Dummybuild,
                     # MacroCyclone,
                     Cyclone3Raven,
@@ -57,7 +56,7 @@ class BuildOrderManager:
                     # DefensiveMistral211,
                 ]
             case Matchup.TvZ:
-                candidates = [
+                return [
                     TwoRaxReapersKokabuild,
                     TwoRaxReapersHellbatPush,
                     Greedy22Timing,
@@ -67,7 +66,7 @@ class BuildOrderManager:
                     # CCFirstTwoRax,
                 ]
             case Matchup.TvP:
-                candidates = [
+                return [
                     MacroCyclone,
                     BansheeCloak3CC,
                     # ConservativeRaxExpand,
@@ -80,8 +79,10 @@ class BuildOrderManager:
                     # CCFirstTwoRax,
                 ]
             case _:
-                candidates = [KokaBuild]
-        self.build = self.choose_build(candidates, matchup)(self.wicked)
+                return [KokaBuild]
+
+    def select_build(self, matchup: Matchup):
+        self.build = self.choose_build(self.candidates(matchup), matchup)(self.wicked)
         # self.build = TwoRaxTest(self.bot)
         self.dispatcher = self.build
 

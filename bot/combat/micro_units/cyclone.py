@@ -1,5 +1,5 @@
 import math
-from typing import Optional, override
+from typing import List, Optional, override
 
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.scouting.ghost_units.ghost_units import GhostUnit
@@ -7,12 +7,22 @@ from sc2.ids.ability_id import AbilityId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
+from bot.utils.unit_tags import townhalls
 
 
 class MicroCyclone(MicroUnit):
     cyclone_locks: dict[int, int] = {}
     LOCKON_KEEP_RANGE: int = 15
 
+    async def _lock_closest_townhall(self, cyclone: Unit, enemy_buildings: Units) -> bool:
+        available_abilities: List[AbilityId] = (await self.bot.get_available_abilities([cyclone]))[0]
+        if (AbilityId.LOCKON_LOCKON in available_abilities and enemy_buildings(townhalls).amount >= 1):
+            target: Unit = enemy_buildings(townhalls).closest_to(cyclone)
+            cyclone(AbilityId.LOCKON_LOCKON, target)
+            self.cyclone_locks[cyclone.tag] = target.tag
+            return True
+        return False
+    
     def _acquire_lock(self, cyclone: Unit, local_enemies: Units, total_range: float) -> bool:
         # look for potential targets, prioritize in range, then lowest health
         print("looking for a lock target")
@@ -58,6 +68,25 @@ class MicroCyclone(MicroUnit):
         self._retreat_to_safest_spot(cyclone)
 
     @override
+    async def harass(self, unit: Unit, local_units: Units, workers: Units):
+        townhalls_to_lock: Units = self.bot.enemy_structures(townhalls).filter(
+            lambda th: (
+                th.distance_to(unit) <= self.LOCKON_KEEP_RANGE
+                and th.health + th.shield <= (th.health_max + th.shield_max) / 2
+            )
+        )
+        if (townhalls_to_lock.amount >= 1):
+            if (await self._lock_closest_townhall(unit, townhalls_to_lock)):
+                return
+        return await super().harass(unit, local_units, workers)
+    
+    @override
+    async def kill_buildings(self, unit: Unit, local_units: Units, enemy_buildings: Units):
+        if (await self._lock_closest_townhall(unit, enemy_buildings)):
+            return
+        await super().kill_buildings(unit, local_units, enemy_buildings)
+    
+    @override
     async def fight(self, cyclone: Unit, local_units: Units, chase: bool = False):
         LOCKON_RANGE: int = 7
         total_range: float = LOCKON_RANGE + cyclone.radius
@@ -75,7 +104,7 @@ class MicroCyclone(MicroUnit):
                 return
 
         enemies_in_range: Units = self.get_enemy_units_in_range(cyclone)
-        available_abilities = (await self.bot.get_available_abilities([cyclone]))[0]
+        available_abilities: List[AbilityId] = (await self.bot.get_available_abilities([cyclone]))[0]
 
         # else if we have the lock off cooldown
         if (AbilityId.LOCKON_LOCKON not in available_abilities):

@@ -107,11 +107,14 @@ class Analytics:
         opponent_id: str = str(self.bot.opponent_id)
         matchup: Matchup = self.bot.matchup
         map_name: str = self.bot.game_info.map_name
+        # builds that can't be selected in this matchup are not worth announcing
+        playable_builds: List[str] = [build.name.name for build in self.bot.build_order.candidates(matchup)]
         matches: List[MatchRecord] = [
             match for match in self.history.load()
             if (
                 match.source == self.source
                 and match.result in (Result.Victory.name, Result.Defeat.name)
+                and match.starting_build in playable_builds
                 # random opponents: their race isn't known yet, so every matchup counts
                 and (matchup == Matchup.TvR or match.matchup == matchup.name)
             )
