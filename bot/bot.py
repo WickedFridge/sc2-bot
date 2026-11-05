@@ -29,7 +29,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.0.6"
+VERSION: str = "15.1.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -265,6 +265,7 @@ class WickedBot(Superbot):
         await self.strategy.update_situation()
         await self.macro.update_threat_level()
         self.composition_manager.update_composition()
+        self.composition_manager.log_composition()
         profiler.mark('situation')
         
         # Specific Townhall/Worker Management & Strategy updates

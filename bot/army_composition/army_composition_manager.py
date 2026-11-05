@@ -18,12 +18,16 @@ if TYPE_CHECKING:
 
 composition_manager: ArmyCompositionManager | None = None
 
+LOG_INTERVAL: float = 30
+
 class ArmyCompositionManager(CachedClass):
     composition: Composition
+    last_log_time: float
 
     def __init__(self, bot: BotAI) -> None:
         super().__init__(bot)
         self.composition = Composition(bot, 0)
+        self.last_log_time = 0
 
     def __is_available(self, unit_upgrade_type: UnitTypeId|UpgradeId) -> bool:
         if (isinstance(unit_upgrade_type, UnitTypeId)):
@@ -392,7 +396,19 @@ class ArmyCompositionManager(CachedClass):
 
     def update_composition(self) -> None:
         self.composition = self.calculate_composition()
-        
+
+    def log_composition(self) -> None:
+        """Log the target composition every LOG_INTERVAL seconds of game time."""
+        if (self.bot.time - self.last_log_time < LOG_INTERVAL):
+            return
+        self.last_log_time = self.bot.time
+        units: str = ', '.join(
+            f'{unit_type.name} {self.wicked.total_unit_amount(unit_type)}/{count}'
+            for unit_type, count in self.composition.units.items()
+            if count > 0
+        )
+        print(f'[Composition] [{self.bot.time_formatted}] supply cap {self.composition.supply_cap} — {units}')
+
     def get(self, unit_type: UnitTypeId) -> int:
         return self.composition[unit_type]
 

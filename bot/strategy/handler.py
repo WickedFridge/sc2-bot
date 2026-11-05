@@ -443,7 +443,8 @@ class StrategyHandler:
         dont_cancel_b2_b3: bool = situation in [
             Situation.CHEESE_SKYTOSS,
             Situation.CHEESE_BATTLECRUISER,
-            Situation.CHEESE_IMMORTAL_BUST
+            Situation.CHEESE_IMMORTAL_BUST,
+            Situation.CHEESE_UNKNOWN,
         ]
 
         if (not situation.is_cheese or dont_cancel_b2_b3):
