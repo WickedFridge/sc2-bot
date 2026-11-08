@@ -56,8 +56,13 @@ class Expansion(CachedClass):
     def has_enemy_buildings_around(self) -> bool:
         if (self.bot.enemy_structures.amount == 0):
             return False
-        return self.bot.enemy_structures.closest_distance_to(self.position) < self.radius
-        
+        return self.bot.enemy_structures.filter(
+            lambda building: (
+                building.distance_to(self.position) < self.radius
+                and self.bot.get_terrain_height(building.position) == self.bot.get_terrain_height(self.position)
+            )
+        ).amount > 0
+
     @custom_cache_once_per_frame
     def is_scouted(self) -> bool:
         return self.bot.state.visibility[self.position.rounded] >= 1

@@ -406,10 +406,8 @@ class StrategyHandler:
                     and self.bot.time >= 160
                 ) or (
                     self.bot.time >= 240
-                    or (
-                        self.bot.expansions.enemy_b2.is_unknown
-                        and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
-                    ) 
+                    and self.bot.expansions.enemy_b2.is_unknown
+                    and not self.bot.expansions.enemy_b2.has_enemy_buildings_around
                 )
             )
             and (

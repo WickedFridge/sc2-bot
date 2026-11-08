@@ -16,7 +16,7 @@ from sc2.units import Units
 
 class MicroScoutingUnit(MicroUnit):
     # scouts make a detour to any unscouted base spot closer than this
-    DETOUR_SCOUT_DISTANCE: float = 15
+    DETOUR_SCOUT_DISTANCE: float = 18
     # past this distance from the next unscouted point, head for the base center instead
     BASE_APPROACH_DISTANCE: float = 15
 
@@ -69,7 +69,11 @@ class MicroScoutingUnit(MicroUnit):
     def scout_target(self, unit: Unit) -> Point2:
         # if we pass close to a base whose spot has never been seen, take a quick look on the way
         nearby_unscouted_bases: Expansions = self.bot.expansions.filter(
-            lambda base: not base.is_scouted and base.position.distance_to(unit) <= self.DETOUR_SCOUT_DISTANCE
+            lambda base: (
+                not base.is_scouted
+                and base.position.distance_to(unit) <= self.DETOUR_SCOUT_DISTANCE
+                and not base.has_enemy_buildings_around
+            )
         )
         if (nearby_unscouted_bases.amount >= 1):
             return nearby_unscouted_bases.closest_to(unit).position
