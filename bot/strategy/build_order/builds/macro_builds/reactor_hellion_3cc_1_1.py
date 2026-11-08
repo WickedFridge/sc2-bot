@@ -10,6 +10,8 @@ from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_build import MacroBuild
+from bot.strategy.build_order.builds.macro_builds.bansheeseburger import Bansheeseburger
+from bot.strategy.strategy_types import Situation
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 from bot.strategy.build_order.production_queue import ProductionQueue
@@ -27,6 +29,7 @@ class Greedy22Timing(MacroBuild):
     def __init__(self, bot: Superbot):
         super().__init__(bot)
         self.default_defensive_response = DefensiveCycloneTank(bot)
+        self.defensive_responses[Situation.CHEESE_ROACH_RUSH] = Bansheeseburger(bot)
         
         self.steps = [
             BuildOrderStep(bot, self, 'rax', UnitTypeId.BARRACKS),

@@ -83,13 +83,12 @@ class MicroBioUnit(MicroUnit):
         close_defensive_structure: Units = self.bot.structures(defensive_structures).filter(
             lambda defense: defense.distance_to(bio_unit) <= 10 and defense.build_progress >= 0.9
         )
-        closest_defensive_structure: Unit = (
-            close_defensive_structure.closest_to(bio_unit)
-            if close_defensive_structure
-            else None
-        )
-        if (closest_defensive_structure):
-            # handle stim
+        if (close_defensive_structure.amount >= 1):
+            closest_defensive_structure: Unit = (
+                close_defensive_structure.sorted(
+                    lambda structure: (structure.cargo_used, structure.distance_to(bio_unit))
+                ).first
+            )            
             self.stim(bio_unit)
             self.fight_around_structure(bio_unit, enemy_units, closest_defensive_structure)
         else:

@@ -418,7 +418,7 @@ class MicroUnit(CachedClass):
         enemy_units_in_range = self.get_enemy_units_in_range(unit)
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD and enemy_units_in_range.amount >= 1):
             unit.attack(enemy_units_in_range.sorted(lambda unit: (unit.health + unit.shield)).first)
-        elif (unit.distance_to(army.leader) > 3):
+        elif (army.leader is not None and unit.distance_to(army.leader) > 3):
             unit.move(army.leader)
         else:
             await self.a_move(unit, target)

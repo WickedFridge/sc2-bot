@@ -379,6 +379,7 @@ class Execute(CachedClass):
     async def attack_nearest_base(self, army: Army):
         # if army is purely air
         if (not army.leader):
+            await self.retreat_army(army)
             return
         nearest_base_target: Point2 = self.micro.get_nearest_base_target(army.leader)
         await self.micro.handlers[army.leader.type_id].a_move(army.leader, nearest_base_target)
@@ -388,6 +389,7 @@ class Execute(CachedClass):
     async def chase_buildings(self, army: Army):
         # if army is purely air
         if (not army.leader):
+            await self.retreat_army(army)
             return
         attack_position: Point2 = self.bot.enemy_structures.closest_to(army.leader).position
         await self.micro.handlers[army.leader.type_id].a_move(army.leader, attack_position)

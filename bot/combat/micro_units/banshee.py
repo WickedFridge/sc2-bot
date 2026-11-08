@@ -1,6 +1,7 @@
 from typing import override
 
 from bot.combat.micro_units.scouting_unit import MicroScoutingUnit
+from bot.utils.unit_supply import get_unit_supply
 from bot.utils.unit_tags import detectors, worker_types, townhalls
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.buff_id import BuffId
@@ -67,17 +68,23 @@ class MicroBanshee(MicroScoutingUnit):
         if (enemy_ground.amount == 0):
             return False
 
+        workers_around: Units = enemy_ground.filter(lambda enemy: enemy.type_id in worker_types and enemy.distance_to(banshee) < 10)
+        
         # Weapon ready: shoot the weakest enemy in range, otherwise go for the closest one
         if (banshee.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
             # if there's an enemy in range, shoot it
             enemy_ground_in_range: Units = self.get_enemy_units_in_range(banshee).filter(lambda enemy: enemy.is_flying == False)
             if (enemy_ground_in_range.amount >= 1):
-                target: Unit = enemy_ground_in_range.sorted(lambda enemy: (enemy.health + enemy.shield, enemy.distance_to_squared(banshee))).first
+                target: Unit = enemy_ground_in_range.sorted(lambda enemy: (
+                    not enemy.can_attack_air,
+                    -get_unit_supply(enemy.type_id),
+                    enemy.health + enemy.shield,
+                    enemy.distance_to_squared(banshee))
+                ).first
                 banshee.attack(target)
                 return True
 
             # if there are workers around, attack the closest one
-            workers_around: Units = enemy_ground.filter(lambda enemy: enemy.type_id in worker_types and enemy.distance_to(banshee) < 10)
             if (workers_around.amount >= 1):
                 banshee.attack(workers_around.closest_to(banshee))
                 return True
@@ -93,7 +100,11 @@ class MicroBanshee(MicroScoutingUnit):
             return True
 
         # On cooldown: stay just in range of the closest enemy, no need to back off
-        closest_enemy: Unit = enemy_ground.closest_to(banshee)
+        closest_enemy: Unit = (
+            workers_around.closest_to(banshee)
+            if (workers_around.amount >= 1)
+            else enemy_ground.closest_to(banshee)
+        )
         attack_distance: float = banshee.radius + closest_enemy.radius + banshee.ground_range - 0.5
         banshee.move(closest_enemy.position.towards(banshee, attack_distance))
         return True

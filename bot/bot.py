@@ -29,7 +29,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.1.3"
+VERSION: str = "15.1.4"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -302,7 +302,7 @@ class WickedBot(Superbot):
         profiler.mark('combat.select_orders')
         await self.combat.execute_orders()
         profiler.mark('combat.execute_orders')
-        await self.combat.handle_bunkers()
+        await self.combat.bunker_micro.handle_bunkers()
         await self.combat.micro_planetary_fortresses()
         profiler.mark('combat.misc')
 

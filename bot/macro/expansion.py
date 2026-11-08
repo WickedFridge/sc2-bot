@@ -58,7 +58,7 @@ class Expansion(CachedClass):
             return False
         return self.bot.enemy_structures.filter(
             lambda building: (
-                building.distance_to(self.position) < self.radius
+                building.distance_to(self.position) < self.radius + 5
                 and self.bot.get_terrain_height(building.position) == self.bot.get_terrain_height(self.position)
             )
         ).amount > 0

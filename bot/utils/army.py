@@ -273,7 +273,7 @@ class Army(CachedClass):
     def leader(self) -> Optional[Unit]:
         if (self.ground_units.amount == 0):
             return None
-        return self.ground_units.sorted(lambda unit: (unit.real_speed, unit.tag)).first
+        return self.ground_units.filter(lambda unit: unit.type_id not in [UnitTypeId.THOR, UnitTypeId.THORAP]).sorted(lambda unit: (unit.real_speed, unit.tag)).first
     
     @property
     def followers(self) -> Units:
