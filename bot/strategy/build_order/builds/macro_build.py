@@ -28,4 +28,5 @@ class MacroBuild(BuildOrder):
             Situation.CHEESE_LING_FLOOD: ConservativeRaxExpand(self.bot),
             Situation.CHEESE_REAPER_RUSH: DefensiveMistral211(self.bot),
             Situation.CHEESE_SKYTOSS: DefensiveDoubleCycloneMagfield(self.bot),
+            Situation.CHEESE_BATTLECRUISER: DefensiveDoubleCycloneMagfield(self.bot),
         }
