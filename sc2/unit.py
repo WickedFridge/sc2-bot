@@ -131,9 +131,10 @@ class Unit(HasPosition2D):
         """Returns string of this form: Unit(name='SCV', tag=4396941328)."""
         return f"Unit(name={self.name!r}, tag={self.tag})"
 
-    @property
+    @cached_property
     def type_id(self) -> UnitTypeId:
-        """UnitTypeId found in sc2/ids/unit_typeid."""
+        """UnitTypeId found in sc2/ids/unit_typeid.
+        Cached: a Unit object is rebuilt from its proto every frame, so its type never changes during its lifetime."""
         unit_type: int = self._proto.unit_type
         return self.class_cache.retrieve_and_set(unit_type, lambda: UnitTypeId(unit_type))
 

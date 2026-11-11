@@ -157,6 +157,33 @@ class Expansions(CachedClass):
     @custom_cache_once_per_frame
     def with_resources(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_depleted == False)
+
+    @custom_cache_once_per_frame
+    def are_saturated(self) -> bool:
+        """
+        True when the workers mining in these expansions reach the optimal amount (minus a margin of 5),
+        based on the resources left in each base.
+        Extra Orbitals (from the 3rd one) count as MULE equivalents, so saturation is reached sooner.
+        """
+        optimal_worker_count: float = sum(
+            expansion.optimal_mineral_workers + expansion.optimal_vespene_workers
+            for expansion in self.expansions
+        )
+        current_worker_count: int = sum(
+            expansion.mineral_worker_count + expansion.vespene_worker_count
+            for expansion in self.expansions
+        )
+        return current_worker_count + self.mule_worker_equivalent >= optimal_worker_count - 5
+
+    @property
+    def mule_worker_equivalent(self) -> float:
+        """
+        SCV equivalent of the MULEs provided by our extra Orbitals:
+        each Orbital from the 3rd one counts as 0.7 MULE, each MULE as 4 SCVs
+        """
+        orbital_amount: int = self.bot.townhalls([UnitTypeId.ORBITALCOMMAND, UnitTypeId.ORBITALCOMMANDFLYING]).ready.amount
+        extra_orbital_amount: int = max(0, orbital_amount - 2)
+        return extra_orbital_amount * 0.7 * 4
     
     @property
     def random(self) -> Optional[Expansion]:

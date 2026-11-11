@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from itertools import chain
 from typing import TYPE_CHECKING, Any
 
@@ -36,8 +36,62 @@ class Units(list[Unit]):
         """
         return self.of_type(unit_types)
 
-    def __iter__(self) -> Generator[Unit, None, None]:
-        return (item for item in super().__iter__())
+    # --- mutations: clear the lazy indexes (find_by_tag / of_type) ---
+    def _invalidate_indexes(self) -> None:
+        self._tag_index_cache = None
+        self._type_index_cache = None
+
+    def append(self, unit: Unit) -> None:
+        self._invalidate_indexes()
+        super().append(unit)
+
+    def extend(self, units: Iterable[Unit]) -> None:
+        self._invalidate_indexes()
+        super().extend(units)
+
+    def insert(self, index: int, unit: Unit) -> None:
+        self._invalidate_indexes()
+        super().insert(index, unit)
+
+    def remove(self, unit: Unit) -> None:
+        self._invalidate_indexes()
+        super().remove(unit)
+
+    def pop(self, index: int = -1) -> Unit:
+        self._invalidate_indexes()
+        return super().pop(index)
+
+    def clear(self) -> None:
+        self._invalidate_indexes()
+        super().clear()
+
+    def sort(self, *args, **kwargs) -> None:
+        self._invalidate_indexes()
+        super().sort(*args, **kwargs)
+
+    def reverse(self) -> None:
+        self._invalidate_indexes()
+        super().reverse()
+
+    def __setitem__(self, index, value) -> None:
+        self._invalidate_indexes()
+        super().__setitem__(index, value)
+
+    def __delitem__(self, index) -> None:
+        self._invalidate_indexes()
+        super().__delitem__(index)
+
+    def __iadd__(self, units: Iterable[Unit]) -> Units:
+        self._invalidate_indexes()
+        return super().__iadd__(units)
+
+    def __imul__(self, n: int) -> Units:
+        self._invalidate_indexes()
+        return super().__imul__(n)
+
+    def __iter__(self) -> Iterator[Unit]:
+        # native list iterator: the former generator wrapper was only there for old IDE autocompletion
+        return super().__iter__()
 
     def copy(self) -> Units:
         """Creates a new mutable Units object from Units or list object.
@@ -46,45 +100,56 @@ class Units(list[Unit]):
         """
         return Units(self, self._bot_object)
 
+    # Set operations: the tags of one side are put in a set once, so each membership test is O(1)
+    # and the whole operation is O(n + m) instead of O(n * m). Order and duplicates are unchanged.
+
     def __or__(self, other: Units) -> Units:
-        """
+        """Units of self, then units of other whose tag is not in self.
+
         :param other:
         """
+        self_tags: set[int] = {self_unit.tag for self_unit in self}
         return Units(
             chain(
                 iter(self),
-                (other_unit for other_unit in other if other_unit.tag not in (self_unit.tag for self_unit in self)),
+                (other_unit for other_unit in other if other_unit.tag not in self_tags),
             ),
             self._bot_object,
         )
 
     def __add__(self, other: Units) -> Units:
-        """
+        """Units of self, then units of other whose tag is not in self.
+
         :param other:
         """
+        self_tags: set[int] = {self_unit.tag for self_unit in self}
         return Units(
             chain(
                 iter(self),
-                (other_unit for other_unit in other if other_unit.tag not in (self_unit.tag for self_unit in self)),
+                (other_unit for other_unit in other if other_unit.tag not in self_tags),
             ),
             self._bot_object,
         )
 
     def __and__(self, other: Units) -> Units:
-        """
+        """Units of other whose tag is in self.
+
         :param other:
         """
+        self_tags: set[int] = {self_unit.tag for self_unit in self}
         return Units(
-            (other_unit for other_unit in other if other_unit.tag in (self_unit.tag for self_unit in self)),
+            (other_unit for other_unit in other if other_unit.tag in self_tags),
             self._bot_object,
         )
 
     def __sub__(self, other: Units) -> Units:
-        """
+        """Units of self whose tag is not in other.
+
         :param other:
         """
+        other_tags: set[int] = {other_unit.tag for other_unit in other}
         return Units(
-            (self_unit for self_unit in self if self_unit.tag not in (other_unit.tag for other_unit in other)),
+            (self_unit for self_unit in self if self_unit.tag not in other_tags),
             self._bot_object,
         )
 
@@ -105,12 +170,22 @@ class Units(list[Unit]):
 
     def find_by_tag(self, tag: int) -> Unit | None:
         """
+        Uses a tag -> unit index built once per Units object (cleared by any mutation of the list).
+
         :param tag:
         """
-        for unit in self:
-            if unit.tag == tag:
-                return unit
-        return None
+        index: dict[int, Unit] | None = getattr(self, "_tag_index_cache", None)
+        if index is None:
+            index = {}
+            for unit in list.__iter__(self):
+                # keep the first unit for a given tag, like a linear search would
+                index.setdefault(unit.tag, unit)
+            self._tag_index_cache = index
+        try:
+            return index.get(tag)
+        except TypeError:
+            # unhashable tag: can't match any unit
+            return None
 
     def by_tag(self, tag: int) -> Unit:
         """
@@ -548,11 +623,26 @@ class Units(list[Unit]):
 
         :param other:
         """
+        type_index: dict[UnitTypeId, list[int]] = self._type_index()
         if isinstance(other, UnitTypeId):
-            other = {other}
-        elif isinstance(other, list):
-            other = set(other)
-        return self.filter(lambda unit: unit.type_id in other)
+            return self.subgroup(self[i] for i in type_index.get(other, ()))
+        positions: list[int] = []
+        for unit_type in (other if isinstance(other, (set, frozenset)) else set(other)):
+            positions.extend(type_index.get(unit_type, ()))
+        # keep the original order of the units, like a plain filter would
+        positions.sort()
+        return self.subgroup(self[i] for i in positions)
+
+    def _type_index(self) -> dict[UnitTypeId, list[int]]:
+        """Positions of the units grouped by type, built once per Units object
+        (cleared by any mutation of the list)."""
+        index: dict[UnitTypeId, list[int]] | None = getattr(self, "_type_index_cache", None)
+        if index is None:
+            index = {}
+            for i, unit in enumerate(list.__iter__(self)):
+                index.setdefault(unit.type_id, []).append(i)
+            self._type_index_cache = index
+        return index
 
     def exclude_type(self, other: UnitTypeId | Iterable[UnitTypeId]) -> Units:
         """Filters all units that are not of a specific type

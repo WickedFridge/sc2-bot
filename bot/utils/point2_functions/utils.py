@@ -44,6 +44,19 @@ def unscouted_points_around(bot: BotAI, position: Point2, radius: int) -> List[P
                     unscouted.append(point)
     return unscouted
 
+def same_height_points_around(bot: BotAI, position: Point2, radius: int) -> List[Point2]:
+    """ Returns every point within `radius` of `position` at the same terrain height (static, can be computed once). """
+    terrain_height = bot.get_terrain_z_height(position)
+    radius_squared: float = radius ** 2
+    points: List[Point2] = []
+    for x in range(int(position.x) - radius, int(position.x) + radius + 1):
+        for y in range(int(position.y) - radius, int(position.y) + radius + 1):
+            if ((x - position.x) ** 2 + (y - position.y) ** 2 <= radius_squared):
+                point = Point2((x, y))
+                if (bot.get_terrain_z_height(point) == terrain_height):
+                    points.append(point)
+    return points
+
 def grid_offsets(radius: float, step: float = 1.0, initial_position: Point2 = Point2((0,0))) -> List[Point2]:
     count = int((2 * radius) / step) + 1
     values = [round(-radius + i * step, 10) for i in range(count)]

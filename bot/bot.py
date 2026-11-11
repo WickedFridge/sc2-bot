@@ -29,7 +29,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.1.6"
+VERSION: str = "15.2.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -121,15 +121,7 @@ class WickedBot(Superbot):
     @property
     def should_build_cc(self) -> bool:
         # priority for a CC if bases are saturated
-        optimal_worker_count: float = (
-            sum(expansion.optimal_mineral_workers for expansion in self.expansions.taken)
-            + sum(expansion.optimal_vespene_workers for expansion in self.expansions.taken)
-        )
-        current_worker_count: float = (
-            sum(expansion.mineral_worker_count for expansion in self.expansions.taken)
-            + sum(expansion.vespene_worker_count for expansion in self.expansions.taken)
-        )
-        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+        are_bases_saturated: bool = self.expansions.taken.are_saturated
         has_additional_townhalls: bool = self.townhalls.amount > self.expansions.taken.ready.amount
         
         return (
@@ -310,7 +302,9 @@ class WickedBot(Superbot):
         # Spend Money
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
 
-        if (self.should_build_cc):
+        should_build_cc: bool = self.should_build_cc
+        profiler.mark('spend.should_build_cc')
+        if (should_build_cc):
             money_spenders.extend([
                 self.builder.command_center.build
             ])
@@ -385,6 +379,7 @@ class WickedBot(Superbot):
             (self.minerals, False),
             (self.vespene, False)
         )
+        profiler.mark('spend.setup')
 
         for money_spender in money_spenders:
             if (resources.is_short_both):

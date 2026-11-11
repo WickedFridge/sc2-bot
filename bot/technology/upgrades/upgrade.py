@@ -5,6 +5,7 @@ from bot.macro.resources import Resources
 from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.fake_order import FakeOrder
+from sc2.cache import CachedClass
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -14,7 +15,7 @@ from sc2.unit import Unit
 if TYPE_CHECKING:
     from ..search import Search
 
-class Upgrade:
+class Upgrade(CachedClass):
     bot: Superbot
     upgrade: UpgradeId
     building: UnitTypeId
@@ -29,7 +30,7 @@ class Upgrade:
     ignore_build_order: bool = False
     
     def __init__(self, search_manager: Search):
-        self.bot = search_manager.bot
+        super().__init__(search_manager.bot)
         if (not self.short_name):
             self.short_name = self.name
     

@@ -61,17 +61,7 @@ class CommandCenter(Building):
         next_expansion: Expansion = self.bot.expansions.next
         near_cc_position: Point2 = self.bot.expansions.main.position.towards_with_random_angle(cc_position, random.randrange(2, 5))
         safe_expansions: Expansions = self.bot.expansions.taken.safe
-        
-        # calculate the optimal worker count based on mineral field left in bases
-        optimal_worker_count: float = (
-            sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
-            + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
-        )
-        current_worker_count: float = (
-            sum(expansion.mineral_worker_count for expansion in self.bot.expansions.taken)
-            + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
-        )
-        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
+        are_bases_saturated: bool = self.bot.expansions.taken.are_saturated
 
         match (townhall_amount):
             case 0:

@@ -24,7 +24,13 @@ class MicroSiegeTank(MicroUnit):
         UnitTypeId.BROODLING,
         UnitTypeId.CHANGELING,
         UnitTypeId.CHANGELINGMARINE,
-        UnitTypeId.CHANGELINGMARINESHIELD
+        UnitTypeId.CHANGELINGMARINESHIELD,
+        UnitTypeId.SUPPLYDEPOT,
+        UnitTypeId.SUPPLYDEPOTLOWERED,
+        UnitTypeId.PYLON,
+        UnitTypeId.REFINERY,
+        UnitTypeId.ASSIMILATOR,
+        UnitTypeId.EXTRACTOR,
     ]
 
     def is_defending(self, tank: Unit) -> bool:
@@ -73,6 +79,7 @@ class MicroSiegeTank(MicroUnit):
             lambda enemy: (
                 enemy.is_flying == False
                 and enemy.distance_to(tank) <= tank.radius + self.SIEGE_RANGE + enemy.radius - self.THRESHOLD
+                and enemy.type_id not in dont_siege_against
             )
         ) + local_enemies.filter(
             lambda enemy: (

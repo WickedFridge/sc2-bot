@@ -16,6 +16,7 @@ from bot.technology.upgrades.interference_matrix import InterferenceMatrix
 from bot.technology.upgrades.magfield import MagfieldAccelerator
 from bot.technology.upgrades.stimpack import Stimpack
 from bot.utils.fake_order import FakeOrder
+from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.game_data import Cost
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -23,7 +24,7 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.unit import Unit
 
 
-class Search:
+class Search(CachedClass):
     bot: Superbot
     shield_researched: bool = False
     concussive_shells_researched: bool = False
@@ -56,8 +57,7 @@ class Search:
     building_range: BuildingRange
 
     def __init__(self, bot: Superbot) -> None:
-        super().__init__()
-        self.bot = bot
+        super().__init__(bot)
         self.stimpack = Stimpack(self)
         self.combat_shield = CombatShield(self)
         self.concussive_shells = ConcussiveShells(self)
@@ -95,7 +95,7 @@ class Search:
         self.building_armor = BuildingArmor(self)
         self.building_range = BuildingRange(self)
 
-    @property
+    @custom_cache_once_per_frame
     def ordered_mech_upgrade_scores(self) -> List[tuple[UpgradeId, float]]:
         upgrade_scores: List[tuple[UpgradeId, float]] = [
             (upgrade_id, upgrade.score) for upgrade_id, upgrade in self.mech_upgrades.items()

@@ -22,7 +22,7 @@ from bot.strategy.build_order.builds.test_builds.cyclone_tank_test import Cyclon
 from bot.superbot import Superbot
 from bot.technology.upgrades.mech_upgrades import MechUpgrade
 from bot.utils.army import Army
-from bot.utils.colors import BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
+from bot.utils.colors import BLACK, BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED, WHITE, YELLOW
 from bot.utils.defend_worker_rush import wall_is_up
 from bot.utils.point2_functions.utils import center, evaluate_path_debug, grid_offsets, sample_tile_path
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
@@ -82,7 +82,10 @@ class Debug:
             if (not tile.blocked and tile.reserved_for is not None):
                 text: str = ''
                 draw_color = YELLOW
-                if (UnitTypeId.COMMANDCENTER in tile.reserved_for):
+                if (tile.reserved_for == set()):
+                    draw_color = BLACK
+                    text = 'XX'
+                elif (UnitTypeId.COMMANDCENTER in tile.reserved_for):
                     draw_color = BLUE
                     text = 'CC'
                 elif (UnitTypeId.SUPPLYDEPOT in tile.reserved_for):
@@ -643,6 +646,22 @@ class Debug:
             case _:
                 print(f'switch to {build_order_name} not implemented')
     
+    async def spawn_orbitals(self):
+        expansions_amount: int = self.bot.expansions.amount
+        for i in range(round(expansions_amount / 2)):
+            position: Point2 = self.bot.expansions[i].position
+            await self._create_units(1, UnitTypeId.ORBITALCOMMAND, pos=position)
+
+    async def spawn_defenses(self):
+        expansions_amount: int = self.bot.expansions.amount
+        for i in range(round(expansions_amount / 2)):
+            bunker_position: Point2 = self.bot.expansions[i].bunker_position
+            turret_wall_position: Point2 = self.bot.expansions[i].turret_wall_position
+            turret_position: Point2 = self.bot.expansions[i].turret_mineral_line
+            await self._create_units(1, UnitTypeId.BUNKER, pos=bunker_position)
+            await self._create_units(1, UnitTypeId.MISSILETURRET, pos=turret_wall_position)
+            await self._create_units(1, UnitTypeId.MISSILETURRET, pos=turret_position)
+    
     async def chat_commands(self):
         if (len(self.bot.state.chat) == 0 or self.bot.state.chat[0].player_id != self.bot.player_id):
             return
@@ -662,6 +681,15 @@ class Debug:
         if (message.startswith("tumors")):
             print(f'Spawning creep')
             await self.spawn_creep()
+            return
+
+        if (message.startswith("orbitals")):
+            print(f'Spawning orbitals')
+            await self.spawn_orbitals()
+
+        if (message.startswith("defenses")):
+            print(f'Spawning defenses')
+            await self.spawn_defenses()
             return
         print(f'No command recognized')
 

@@ -232,8 +232,6 @@ class ArmyCompositionManager(CachedClass):
                 return 4
             case UnitTypeId.MARINE:
                 return 20
-            case UnitTypeId.CYCLONE:
-                return 1 if self.bot.townhalls.amount < 3 else 0
             case UnitTypeId.SIEGETANK:
                 if (
                     self.bot.matchup == Matchup.TvT

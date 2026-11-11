@@ -23,6 +23,8 @@ DEPOT_RADIUS = 1
 PRODUCTION_RADIUS = 1.5
 BUNKER_RADIUS = 1.5
 CC_RADIUS = 2.5
+CC_FOOTPRINT_HALF = 2         # empreinte 5x5 : de center - 2 à center + 2
+TURRET_LANES_AROUND_CC = 2    # nombre de cases réservées aux turrets autour du CC
 
 def one_block_over(pos: Point2) -> Point2:
     return pos.offset(Point2((0, 2 * PRODUCTION_RADIUS)))
@@ -67,6 +69,8 @@ class BuildingLayer:
         for expansion_position in self.bot.expansion_locations_list:
             minerals: Units = self.bot.mineral_field.closer_than(10, expansion_position)
             vespene_geysers: Units = self.bot.vespene_geyser.closer_than(10, expansion_position)
+            cc_center: Point2 = expansion_position.rounded
+
             # clear the building grid for the expansion
             for mineral in minerals + vespene_geysers:
                 selected_positions: List[Point2] = [expansion_position, mineral.position]
@@ -84,7 +88,18 @@ class BuildingLayer:
                 while x <= end_x:
                     y = start_y
                     while y <= end_y:
-                        self.reserve_tile(Point2((x, y)).rounded, set([UnitTypeId.MISSILETURRET]))
+                        tile: Point2 = Point2((x, y)).rounded
+                        # distance (en cases) entre la tile et l'empreinte 5x5 du CC
+                        distance_to_cc: int = max(
+                            abs(tile.x - cc_center.x) - CC_FOOTPRINT_HALF,
+                            abs(tile.y - cc_center.y) - CC_FOOTPRINT_HALF,
+                        )
+                        # les 2 premières cases autour du CC : missile turrets
+                        # au-delà, jusqu'au mineral field : rien n'est constructible
+                        if (distance_to_cc <= TURRET_LANES_AROUND_CC):
+                            self.reserve_tile(tile, set([UnitTypeId.MISSILETURRET]))
+                        else:
+                            self.reserve_tile(tile, set())
                         y += 1.0
                     x += 1.0
             self.reserve_cc(expansion_position)

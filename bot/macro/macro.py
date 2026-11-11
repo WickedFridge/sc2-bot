@@ -70,7 +70,8 @@ class Macro:
             self.structure_to_base[base.cc.tag] = base
         
         # Then distribute our other structures among these bases based on proximity
-        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in expansions_taken.ccs.tags)
+        cc_tags: set[int] = expansions_taken.ccs.tags
+        other_structures: Units = self.bot.structures.filter(lambda structure: structure.tag not in cc_tags)
         for building in other_structures:
             bases_with_same_height: List[Base] = [base for base in bases if self.bot.get_terrain_height(base.position) == self.bot.get_terrain_height(building.position)]
             if (len(bases_with_same_height) == 0):

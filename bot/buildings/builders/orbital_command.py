@@ -60,14 +60,10 @@ class OrbitalCommand(UpgradeBuilding):
         if (self.bot.townhalls.ready.amount == 4):
             return False
 
-        # if each expansion we have has less workers than the optimal amount, we can upgrade to Orbital Command
-        # otherwise we float and build a PF
-        optimal_worker_count: int = (
-            sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
-            + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
-        )
-        is_mining_optimal: bool = self.bot.supply_workers < optimal_worker_count - 5
-        return is_mining_optimal
+        # if our bases are undersaturated, we can upgrade to Orbital Command
+        # otherwise we float to a new expansion and build a PF
+        are_bases_undersaturated: bool = not self.bot.expansions.taken.are_saturated
+        return are_bases_undersaturated
     
     @override
     def on_complete(self):

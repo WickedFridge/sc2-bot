@@ -1,7 +1,7 @@
 from typing import override
 from bot.buildings.building import Building
 from bot.macro.expansion_manager import Expansions
-from sc2.ids.ability_id import AbilityId
+from bot.utils.unit_tags import flying_harassment_units
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
@@ -15,6 +15,14 @@ class MissileTurret(Building):
         self.name = "Missile Turret"
         self.ignore_build_order = True
         self.radius = 1
+    
+    @property
+    def enemy_burrow(self) -> bool:
+        return UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
+    
+    @property
+    def enemy_harass(self) -> bool:
+        return any(unit in self.bot.scouting.known_enemy_composition for unit in flying_harassment_units)
     
     @property
     def expansions_without_turret(self) -> Expansions:
@@ -33,11 +41,10 @@ class MissileTurret(Building):
     @property
     @override
     def custom_conditions(self) -> bool:
-        enemy_burrow: bool = UpgradeId.BURROW in self.bot.scouting.known_enemy_upgrades
         turrets_not_finished: int = self.bot.structures(self.unitId).not_ready.amount
         
         return (
-            enemy_burrow
+            (self.enemy_burrow or self.enemy_harass)
             and self.expansions_without_turret.amount >= 1
             and (
                 self.pending_amount == 0
@@ -48,4 +55,6 @@ class MissileTurret(Building):
     @property
     @override
     def position(self) -> Point2:
+        if (self.enemy_harass):
+            return self.expansions_without_turret.first.turret_mineral_line
         return self.expansions_without_turret.first.turret_wall_position

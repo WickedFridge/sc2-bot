@@ -5,7 +5,7 @@ from bot.macro.map.map import MapData, get_map
 from bot.utils.army import Army
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
-from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line, unscouted_points_around
+from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line, same_height_points_around
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
@@ -25,6 +25,7 @@ class Expansion(CachedClass):
     radius: int = 12
     last_scouted: float = 0
     _potentially_enemy: bool = False
+    _unscouted_candidates: Optional[List[Point2]] = None
 
     def __init__(self, bot: BotAI, position: Point2, distance: float) -> None:
         super().__init__(bot)
@@ -204,21 +205,24 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def is_depleted(self) -> bool:
+        # cheap checks first: most bases still have (snapshot) minerals, so we rarely need the scouting check
         return (
-            self.is_fully_scouted
-            and self.mineral_fields.amount == 0
+            self.mineral_fields.amount == 0
             and self.vespene == 0
+            and self.is_fully_scouted
         )
     
     @custom_cache_once_per_frame
     def mineral_workers(self) -> Units:
         if (self.mineral_fields.amount == 0):
             return Units([], self.bot)
+        # build the tag set once instead of once per worker
+        mineral_field_tags: set[int] = self.mineral_fields.tags
         return self.bot.workers.filter(
             lambda worker: (
                 (
                     worker.is_gathering
-                    and worker.order_target in self.mineral_fields.tags
+                    and worker.order_target in mineral_field_tags
                 ) or (
                     worker.is_returning
                     and worker.is_carrying_minerals
@@ -233,10 +237,11 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def vespene_workers(self) -> Units:
+        refinery_tags: set[int] = self.refineries.tags
         return self.bot.workers.closer_than(10, self.position).filter(
             lambda worker: (
                 worker.is_carrying_vespene
-                or worker.order_target in self.refineries.tags
+                or worker.order_target in refinery_tags
             )
         )
 
@@ -380,14 +385,15 @@ class Expansion(CachedClass):
         return dfs_in_pathing(self.bot, bunker_position.rounded_half, UnitTypeId.BUNKER, preferred_direction)
     
     @custom_cache_once_per_frame
-    def bunker_position(self) -> Point2 | None:
+    def bunker_position(self) -> Point2:
         if (self.is_main):
             return self.bunker_ramp
         return self.bunker_forward_in_pathing
     
     @custom_cache_once_per_frame
     def turret_mineral_line(self) -> Point2:
-        return position_behind_worker_line(self.mineral_fields + self.vespene_geysers, self.position)
+        central_mineral_field: Unit = self.mineral_fields.closest_to(self.mineral_line)
+        return central_mineral_field.position.towards(self.position)
     
     @custom_cache_once_per_frame
     def turret_wall_position(self) -> Point2:
@@ -407,8 +413,16 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def unscouted_points(self) -> List[Point2]:
-        # Returns a list of all unscouted points within a circle of radius around the position
-        return unscouted_points_around(self.bot, self.position, self.radius)
+        """
+        Unscouted, pathable points within a circle of radius around the position, at the same terrain height.
+        A point that has been seen once (visibility != 0) can never become unseen again,
+        so seen points are dropped for good and the candidate list shrinks over the game.
+        """
+        if (self._unscouted_candidates is None):
+            self._unscouted_candidates = same_height_points_around(self.bot, self.position, self.radius)
+        visibility = self.bot.state.visibility
+        self._unscouted_candidates = [point for point in self._unscouted_candidates if visibility[point] == 0]
+        return [point for point in self._unscouted_candidates if self.bot.in_pathing_grid(point)]
     
     @custom_cache_once_per_frame
     def is_potentially_enemy(self):

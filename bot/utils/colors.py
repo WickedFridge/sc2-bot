@@ -1,3 +1,4 @@
+BLACK: tuple = (0,0,0)
 RED: tuple = (255,0,0)
 ORANGE: tuple = (255,165,0)
 GREEN: tuple = (0,255,0)

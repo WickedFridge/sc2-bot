@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.ndimage import distance_transform_edt, convolve
-from scipy.signal import convolve2d
 
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from sc2.bot_ai import BotAI
@@ -26,7 +25,7 @@ class CreepLayer:
     
     CREEP_BONUS: float = 1.2
     TUMOR_RADIUS: float = 10
-    SLOW_UPDATE_INTERVAL: int = 8        # compute heavy maps every N frames
+    SLOW_UPDATE_INTERVAL: int = 16       # compute heavy maps every N game loops (~0.7s)
     MIN_CREEP_TILES_FOR_SLOW: int = 150  # skip heavy work if creep very small
     FOG_GRACE_FRAMES: int = 120          # after this, tiles become speculative again
     DECAY_STRENGTH: float = 0.4          # reduce influence after tumor kill
@@ -51,6 +50,9 @@ class CreepLayer:
         # Gradient of density map (grad_x, grad_y)
         self.grad_x = None
         self.grad_y = None
+
+        # game loop of the last heavy maps computation (None = compute on next update)
+        self.last_slow_update_loop: int | None = None
         
     
     def compute_raw_creep(self):
@@ -90,16 +92,12 @@ class CreepLayer:
         # decay cleared tile memory
         cleared_active: np.ndarray = self.creep_decay.map > self.bot.state.game_loop
         
-        # --- 1. build radius-5 disk kernel ---
-        R: float = self.ASSUMPTION_RADIUS
-        y, x = np.ogrid[-R:R+1, -R:R+1]
-        kernel = (x*x + y*y <= R*R).astype(np.float32)
+        # --- tiles within ASSUMPTION_RADIUS of real creep ---
+        # equivalent to convolving with a radius-R disk, but reuses the distance map (needs compute_distance_to_creep first)
+        creep_near: np.ndarray = self.distance_to_creep.map <= self.ASSUMPTION_RADIUS
 
-        # --- 2. convolve to find tiles near real creep ---
-        creep_near: np.ndarray = convolve2d(creep, kernel, mode="same", boundary="fill", fillvalue=0)
-
-        # --- 3. mark unseen tiles near creep as creep ---
-        assumed: np.ndarray = (creep == 1) | ((creep_near > 0) & speculative)
+        # --- mark unseen tiles near creep as creep ---
+        assumed: np.ndarray = (creep == 1) | (creep_near & speculative)
 
         # --- clear overrides everything ---
         assumed[cleared_active] = 0
@@ -140,8 +138,6 @@ class CreepLayer:
         self.edge.map[:] = edge.astype(np.float32)
     
     def compute_tumor_candidates(self):
-        if (self.bot.state.game_loop % self.SLOW_UPDATE_INTERVAL != 0):
-            return
         creep: np.ndarray = self.creep_map.map
         pathing: np.ndarray = self.bot.game_info.pathing_grid.data_numpy
         
@@ -198,18 +194,30 @@ class CreepLayer:
         self.last_seen_frame[visibility == 2] = now
     
     def update(self) -> None:
+        # cheap maps: every frame
         self.compute_raw_creep()
         if (not self.creep_map.map.any()):
             self.compute_empty_maps()
+            # recompute heavy maps as soon as creep appears
+            self.last_slow_update_loop = None
             return
         self.compute_decay()
-        self.compute_assumed_creep()
+        self.compute_bonus()
+
+        # heavy maps: every SLOW_UPDATE_INTERVAL game loops (creep spreads slowly)
+        game_loop: int = self.bot.state.game_loop
+        if (
+            self.last_slow_update_loop is not None
+            and game_loop - self.last_slow_update_loop < self.SLOW_UPDATE_INTERVAL
+        ):
+            return
+        self.last_slow_update_loop = game_loop
         self.compute_distance_to_creep()
-        self.compute_creep_edge()        
+        self.compute_assumed_creep()
+        self.compute_creep_edge()
         self.compute_creep_density()
         self.compute_gradients()
         self.compute_tumor_candidates()
-        self.compute_bonus()
     
     # -----------------------------
     # Queries
@@ -289,3 +297,5 @@ class CreepLayer:
         print("editing creep decay with dead tumor")
         value: int = self.bot.state.game_loop + self.FOG_GRACE_FRAMES
         self.creep_decay.update(unit.position, self.CLEAR_RADIUS, value, density_alpha=0)
+        # take the cleared creep into account on the next update
+        self.last_slow_update_loop = None

@@ -1,5 +1,6 @@
 from typing import Dict, override
 from bot.technology.upgrades.upgrade import Upgrade
+from sc2.cache import custom_cache_once_per_frame
 from bot.utils.unit_supply import get_unit_supply
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -22,7 +23,7 @@ class MechUpgrade(Upgrade):
             + self.bot.composition_manager.amount_to_train(unit_type) / 2
         )
 
-    @property
+    @custom_cache_once_per_frame
     def score(self) -> float:
         return sum(
             weight * self._weighted_projected_amount(unit_type)

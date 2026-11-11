@@ -526,17 +526,7 @@ class BuildingsHandler:
         if (townhalls_to_move.amount == 0):
             return
 
-        # calculate the optimal worker count based on mineral field left in bases
-        optimal_worker_count: float = (
-            sum(expansion.optimal_mineral_workers for expansion in self.bot.expansions.taken)
-            + sum(expansion.optimal_vespene_workers for expansion in self.bot.expansions.taken)
-        )
-        current_worker_count: float = (
-            sum(expansion.mineral_worker_count for expansion in self.bot.expansions.taken)
-            + sum(expansion.vespene_worker_count for expansion in self.bot.expansions.taken)
-        )
-        are_bases_saturated: bool = current_worker_count >= optimal_worker_count - 5
-        if (not are_bases_saturated):
+        if (not self.bot.expansions.taken.are_saturated):
             return
 
         command_centers_to_move: Units = townhalls_to_move(UnitTypeId.COMMANDCENTER)

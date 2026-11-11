@@ -198,6 +198,12 @@ detectors: List[UnitTypeId] = [
     UnitTypeId.MISSILETURRET,
     UnitTypeId.SPORECRAWLER
 ]
+flying_harassment_units: List[UnitTypeId] = [
+    UnitTypeId.BANSHEE,
+    UnitTypeId.BATTLECRUISER,
+    UnitTypeId.ORACLE,
+    UnitTypeId.MUTALISK,
+]
 friendly_fire: List[UnitTypeId] = [
     UnitTypeId.WIDOWMINE,
     UnitTypeId.SIEGETANK,

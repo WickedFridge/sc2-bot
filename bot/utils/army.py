@@ -28,8 +28,9 @@ class Army(CachedClass):
     def radius(self) -> float:
         return math.sqrt(self.supply) + 10
     
-    @property
+    @custom_cache_once_per_frame
     def center(self) -> Point2:
+        # cached per frame: armies mutated in place must clear self.cache (see detect_units / remove_by_tag)
         return self.units.center
     
     @property
@@ -92,8 +93,9 @@ class Army(CachedClass):
     def flying_fighting_supply(self) -> float:
         return get_units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
 
-    @property
+    @custom_cache_once_per_frame
     def supply(self) -> float:
+        # cached per frame: armies mutated in place must clear self.cache (see detect_units / remove_by_tag)
         return get_units_supply(self.units)
 
     @property
@@ -316,10 +318,14 @@ class Army(CachedClass):
             if (enemy.tag in self.units.tags):
                 self.remove_by_tag(enemy.tag)
             self.units.append(enemy)
-    
+        # units changed: drop the per-frame cached values (center, supply...)
+        self.cache.clear()
+
     def remove_by_tag(self, tag: int) -> None:
         destroyed_unit: Unit = self.units.by_tag(tag)
         self.units.remove(destroyed_unit)
+        # units changed: drop the per-frame cached values (center, supply...)
+        self.cache.clear()
         # print("enemy unit destroyed :", destroyed_unit.name)
     
     @staticmethod
