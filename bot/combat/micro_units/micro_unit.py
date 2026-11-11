@@ -240,7 +240,11 @@ class MicroUnit(CachedClass):
             target: Unit = self.pick_best_target(enemy_units_in_range)
             unit.attack(target)
         else:
-            unit.move(target_position)
+            tanks_around: Units = self.bot.units(UnitTypeId.SIEGETANKSIEGED).closer_than(10, unit.position)
+            if (tanks_around.amount >= 1):
+                unit.move(tanks_around.center)
+            else:
+                unit.move(target_position)
     
     def safety_disengage(self, flying_unit: Unit) -> bool:
         safety_distance =  0.5 + 2.5 * (1 - math.pow(flying_unit.health_percentage, 2))
