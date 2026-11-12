@@ -392,6 +392,8 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def turret_mineral_line(self) -> Point2:
+        if (self.mineral_fields.amount == 0):
+            return self.mineral_line
         central_mineral_field: Unit = self.mineral_fields.closest_to(self.mineral_line)
         return central_mineral_field.position.towards(self.position)
     
