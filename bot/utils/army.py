@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional
+from typing import List, Optional, Set
 from bot.combat.orders import Orders
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -43,7 +43,7 @@ class Army(CachedClass):
     
     @property
     def ground_droppable_units(self) -> Units:
-        return self.ground_units.filter(lambda unit: unit.type_id in droppable_units)
+        return self.ground_units(droppable_units)
     
     @property
     def speed(self) -> float:
@@ -55,13 +55,13 @@ class Army(CachedClass):
     @property
     def armored_ground_supply(self) -> float:
         armored_ground_units: Units = self.ground_units.filter(
-            lambda unit: unit.is_armored and not unit.is_flying
+            lambda unit: unit.is_armored
         )
         return get_units_supply(armored_ground_units)
     
     @property
     def armored_supply(self) -> float:
-        armored_units: Units = self.ground_units.filter(
+        armored_units: Units = self.units.filter(
             lambda unit: unit.is_armored
         )
         return get_units_supply(armored_units)
@@ -80,7 +80,7 @@ class Army(CachedClass):
 
     @property
     def support_supply(self) -> float:
-        supports: Units = self.units.filter(lambda unit: unit.type_id in support_units)
+        supports: Units = self.units(support_units)
         return get_units_supply(supports)
     
     @property
@@ -91,7 +91,7 @@ class Army(CachedClass):
     
     @property
     def flying_fighting_supply(self) -> float:
-        return get_units_supply(self.units.flying.filter(lambda unit: unit.can_attack))
+        return get_units_supply(self.fighting_units.flying)
 
     @custom_cache_once_per_frame
     def supply(self) -> float:
@@ -113,6 +113,14 @@ class Army(CachedClass):
     @property
     def weighted_supply(self) -> float:
         return weighted_units_supply(self.fighting_units)
+
+    @property
+    def weighted_potential_supply(self) -> float:
+        # potential supply (passengers included) weighted by health/energy
+        return (
+            weighted_units_supply(self.fighting_units)
+            + weighted_units_supply(self.fighting_passengers, are_passengers=True)
+        )
     
     @property
     def bio_supply(self) -> float:
@@ -120,7 +128,7 @@ class Army(CachedClass):
     
     @property
     def potential_bio_supply(self) -> float:
-        return get_units_supply(self.potential_fighting_units.filter(lambda unit: unit.type_id in bio))
+        return get_units_supply(self.potential_fighting_units(bio))
     
     @property
     def has_isolated_ghosts(self) -> bool:
@@ -165,8 +173,9 @@ class Army(CachedClass):
     @property
     def units_not_in_sight(self) -> Units:
         unseen_units: List[Unit] = []
+        enemy_tags: Set[int] = self.bot.enemy_units.tags
         for unit in self.units:
-            if (unit.tag not in self.bot.enemy_units.tags):
+            if (unit.tag not in enemy_tags):
                 unseen_units.append(unit)
         return Units(unseen_units, self.bot)
     
@@ -206,9 +215,7 @@ class Army(CachedClass):
     
     @property
     def bio_health_percentage(self) -> float:
-        bio_units: Units = (self.units + self.passengers).filter(
-            lambda unit: unit.type_id in bio
-        )
+        bio_units: Units = (self.units + self.passengers)(bio)
         if (bio_units.amount == 0):
             return 0
         
@@ -227,22 +234,32 @@ class Army(CachedClass):
         ).take(2)
         return sum([medivac.cargo_left for medivac in two_fullest_medivacs])
     
-    @property
+    @custom_cache_once_per_frame
     def passengers(self) -> Units:
-        medivacs: Units = self.units(UnitTypeId.MEDIVAC)
-        if (medivacs.amount == 0):
-            return Units([], self.bot)
         passengers: Units = Units([], self.bot)
-        for medivac in medivacs:
+        for medivac in self.units(UnitTypeId.MEDIVAC):
             passengers += Units(medivac.passengers, self.bot)
         return passengers
 
     @property
+    def usable_medivacs(self) -> Units:
+        # a medivac only fights if it can heal and there is bio to heal (ground or embarked)
+        healable_amount: int = self.bio_units.amount + self.passengers(bio).amount
+        return self.can_heal_medivacs.take(healable_amount)
+    
+    @property
+    def fighting_passengers(self) -> Units:
+        # passengers are PassengerUnit protos: no buffs, alliance or display_type, so no _is_fighter
+        return self.passengers.filter(
+            lambda unit: (
+                (unit.can_attack or unit.type_id in menacing)
+                and unit.type_id not in worker_types
+            )
+        )
+
+    @property
     def potential_fighting_units(self) -> Units:
-        medivacs_filled: Units = self.units(UnitTypeId.MEDIVAC).filter(lambda unit: unit.cargo_used >= 1)
-        if (self.fighting_units.amount >= 1):
-            return self.fighting_units + self.passengers
-        return medivacs_filled + self.passengers
+        return self.fighting_units + self.fighting_passengers
 
     @property
     def potential_droppable_units(self) -> Units:
@@ -253,23 +270,20 @@ class Army(CachedClass):
 
     @property
     def bio_units(self) -> Units:
-        return self.units.filter(lambda unit: unit.type_id in bio)
+        return self.units(bio)
     
-    @property
+    def _is_fighter(self, unit: Unit) -> bool:
+        return (
+            (unit.can_attack or unit.type_id in menacing)
+            and unit.type_id not in worker_types
+            and unit.type_id != UnitTypeId.MEDIVAC
+            and not unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)
+            and (unit.type_id != UnitTypeId.ORACLE or unit.has_buff(BuffId.ORACLEWEAPON))
+        )
+    
+    @custom_cache_once_per_frame
     def fighting_units(self) -> Units:
-        attacking_units: Units = self.units.filter(
-            lambda unit: (
-                (unit.can_attack or unit.type_id in menacing)
-                and unit.type_id not in worker_types
-                and unit.type_id != UnitTypeId.MEDIVAC
-                and not unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE)
-            )
-        )
-        healing_medivacs: Units = self.units(UnitTypeId.MEDIVAC).filter(
-            lambda unit: unit.energy >= 25
-        )
-        usable_medivacs: Units = healing_medivacs.take(attacking_units.amount)
-        return attacking_units + usable_medivacs
+        return self.units.filter(self._is_fighter) + self.usable_medivacs
 
     @property
     def leader(self) -> Optional[Unit]:

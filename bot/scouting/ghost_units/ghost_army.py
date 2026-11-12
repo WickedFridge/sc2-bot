@@ -6,7 +6,7 @@ from bot.utils.unit_supply import get_units_supply, weighted_units_supply
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass
 from sc2.ids.unit_typeid import UnitTypeId
-from bot.utils.unit_tags import worker_types, menacing
+from bot.utils.unit_tags import worker_types, menacing, bio
 
 class GhostArmy(CachedClass):
     ghost_units: GhostUnits
@@ -82,7 +82,7 @@ class GhostArmy(CachedClass):
         healing_medivacs: GhostUnits = self.ghost_units(UnitTypeId.MEDIVAC).filter(
             lambda ghost: ghost.energy >= 25
         )
-        usable_medivacs: GhostUnits = healing_medivacs.take(attacking_units.amount)
+        usable_medivacs: GhostUnits = healing_medivacs.take(attacking_units(bio).amount)
         return attacking_units + usable_medivacs
     
     @property

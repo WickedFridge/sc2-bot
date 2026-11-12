@@ -70,6 +70,9 @@ class DangerMap:
             ground_range = 1
 
         match(unit.type_id):
+            case UnitTypeId.ORACLE:
+                if (unit.energy < 25):
+                    ground_dps = 0
             case UnitTypeId.SIEGETANKSIEGED:
                 minimum_range = 2
             case UnitTypeId.DISRUPTORPHASED:

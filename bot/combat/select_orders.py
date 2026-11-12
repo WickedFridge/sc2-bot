@@ -294,7 +294,7 @@ class SelectOrders:
 
 
         unseen_enemy_army: Army = Army(self.bot.scouting.known_enemy_army.units_not_in_sight, self.bot)
-        unseen_enemy_supply: float = unseen_enemy_army.supply
+        unseen_enemy_supply: float = unseen_enemy_army.fighting_supply
         potential_enemy_supply: float = local_enemy_army.weighted_supply + local_hidden_army.weighted_supply + unseen_enemy_supply
                 
         # -- High-priority hardcoded situations
@@ -378,9 +378,11 @@ class SelectOrders:
         
         # If enemy near → follow the normal fighting logic
         if (local_enemy_supply > 0):
+            # enemy supply is weighted: compare it to our weighted potential (passengers included)
+            weighted_potential_supply: float = army.weighted_potential_supply
             # If winning with stim
             if (
-                army.potential_supply >= local_enemy_supply * 1.2 and (
+                weighted_potential_supply >= local_enemy_supply * 1.2 and (
                     self.bot.stim_completed
                     or (
                         army.is_technical and self.bot.matchup == Matchup.TvT
@@ -391,7 +393,7 @@ class SelectOrders:
                 if (army.weak_medivacs.amount >= 1 and army.is_full_drop):
                     return Orders.PICKUP_LEAVE
 
-                if (army.potential_supply >= local_enemy_supply * 2):
+                if (weighted_potential_supply >= local_enemy_supply * 2):
                     return Orders.DROP_UNLOAD
                 return Orders.FIGHT_OFFENSE
 
@@ -440,7 +442,7 @@ class SelectOrders:
             (self.bot.stim_completed or army.is_technical)
             and (
                 weighted_army_supply >= local_enemy_supply
-                or army.potential_supply >= local_enemy_supply * 1.5
+                or army.weighted_potential_supply >= local_enemy_supply * 1.5
             )
         ):
             if (weighted_army_supply >= local_enemy_supply * 2):
@@ -641,7 +643,7 @@ class SelectOrders:
         maximal_medivacs_dropping: int = 10
         # if we would lose a fight
         if (
-            army.potential_supply < potential_enemy_supply
+            army.weighted_potential_supply < potential_enemy_supply
         ):
             # if our bio is too low, heal up if we have enough energy
             if (army.bio_health_percentage < 0.75):

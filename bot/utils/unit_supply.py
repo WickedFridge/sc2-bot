@@ -137,32 +137,35 @@ supply[UnitTypeId.MOTHERSHIP] = 8
 def get_unit_supply(unit_type: UnitTypeId) -> float:
     return supply.get(unit_type, 0.0)
 
-def get_units_supply(army: Units | GhostUnits) -> float:
-    army_supply: float = 0
-    for unit in army:
-        if (unit.type_id == UnitTypeId.BUNKER):
-            # assume every enemy bunker is full
-            if (unit.is_enemy):
-                army_supply += 8
-                continue
-            # double the value of passengers in bunkers
-            supply: float = 0
-            for passenger in unit.passengers:
-                supply += 2 * get_unit_supply(passenger.type_id)
-            army_supply += supply
-        else:
-            army_supply += get_unit_supply(unit.type_id)
-    return army_supply
+# enemy bunker cargo is unknown: assume half of the 4 slots are filled with marines
+ENEMY_BUNKER_ASSUMED_CARGO_SUPPLY: float = 2
+# units in a bunker are worth twice their supply
+BUNKER_PASSENGER_MULTIPLIER: float = 2
 
-def weighted_units_supply(units: Units | GhostUnits) -> float:
+def get_unit_value(unit) -> float:
+    if (unit.type_id == UnitTypeId.BUNKER):
+        if (unit.is_enemy):
+            return BUNKER_PASSENGER_MULTIPLIER * ENEMY_BUNKER_ASSUMED_CARGO_SUPPLY
+        return BUNKER_PASSENGER_MULTIPLIER * sum(
+            get_unit_supply(passenger.type_id) for passenger in unit.passengers
+        )
+    return get_unit_supply(unit.type_id)
+
+def get_units_supply(army: Units | GhostUnits) -> float:
+    # passengers (PassengerUnit) are accepted: only type_id is read
+    return sum(get_unit_value(unit) for unit in army)
+
+def weighted_units_supply(units: Units | GhostUnits, are_passengers: bool = False) -> float:
+    # passengers (PassengerUnit) have no display_type: their energy is always known
     army_supply: float = 0
     for unit in units:
         health_percentage: float = 1 if not unit.health_max else (unit.health + unit.shield) / (unit.health_max + unit.shield_max)
         health_ratio: float = (1 - math.cos(math.pi * health_percentage)) / 2
-        energy_percentage: float = 1 if not unit.energy_percentage else unit.energy_percentage
+        energy_known: bool = are_passengers or unit.is_visible
+        energy_percentage: float = unit.energy_percentage if energy_known else 1
         energy_ratio: float = 0.5 + (1 - math.cos(math.pi * energy_percentage)) / 2
         if (unit.can_attack or unit.energy_max == 0):
-            army_supply += supply[unit.type_id] * health_ratio
+            army_supply += get_unit_value(unit) * health_ratio
         else:
-            army_supply += supply[unit.type_id] * energy_ratio
+            army_supply += get_unit_value(unit) * energy_ratio
     return army_supply

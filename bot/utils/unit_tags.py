@@ -124,6 +124,7 @@ bio: List[UnitTypeId] = [
     UnitTypeId.MARINE,
     UnitTypeId.MARAUDER,
     UnitTypeId.GHOST,
+    UnitTypeId.HELLIONTANK,
 ]
 bio_stimmable: List[UnitTypeId] = [
     UnitTypeId.MARINE,

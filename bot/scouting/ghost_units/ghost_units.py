@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Callable, Generator, List, Optional, Set
+from typing import Any, Callable, Generator, Iterable, List, Optional, Set
 
 from attr import dataclass
 from sc2.bot_ai import BotAI
@@ -103,8 +103,15 @@ class GhostUnits:
         self.ghost_units.extend(other.ghost_units)
         return self
     
-    def __call__(self, type_id: UnitTypeId) -> GhostUnits:
-        return self.filter(lambda g: g.type_id == type_id)
+    def __call__(self, unit_types: UnitTypeId | Iterable[UnitTypeId]) -> GhostUnits:
+        return self.of_type(unit_types)
+
+    def of_type(self, unit_types: UnitTypeId | Iterable[UnitTypeId]) -> GhostUnits:
+        """ Same as Units.of_type: filters ghosts by one type or a collection of types. """
+        if (isinstance(unit_types, UnitTypeId)):
+            return self.filter(lambda ghost: ghost.type_id == unit_types)
+        types: Set[UnitTypeId] = unit_types if isinstance(unit_types, (set, frozenset)) else set(unit_types)
+        return self.filter(lambda ghost: ghost.type_id in types)
 
     @property
     def amount(self) -> int:

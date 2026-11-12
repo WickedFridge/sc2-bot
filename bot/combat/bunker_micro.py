@@ -126,9 +126,9 @@ class BunkerMicro:
             if (bunker.cargo_left == 0):
                 continue
             
-            bio_in_range: Units = self.bot.units.filter(
+            bio_in_range: Units = self.bot.units(bio).filter(
                 # we had a small buffer for units that are a bit too far
-                lambda unit: unit.type_id in bio and unit.distance_to(bunker) <= bunker.radius + 0.5
+                lambda unit: unit.type_id != UnitTypeId.HELLIONTANK and unit.distance_to(bunker) <= bunker.radius + 0.5
             )
             if (bio_in_range.amount == 0):
                 continue

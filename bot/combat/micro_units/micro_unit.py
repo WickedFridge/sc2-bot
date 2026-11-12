@@ -443,16 +443,8 @@ class MicroUnit(CachedClass):
     async def retreat(self, unit: Unit, local_units: Units):
         if (self.bot.townhalls.amount == 0):
             return
-        
-        # Don't get in the way of flying townhalls
-        local_flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).in_distance_between(unit.position, 0, 10)
-        retreat_position = self.retreat_position if local_flying_townhall.amount == 0 else self.retreat_position.towards(local_flying_townhall.center, -5)
-        
-        if (unit.is_flying and self.safety_disengage(unit)):
-            return
-        if (unit.distance_to(retreat_position) < 5):
-            return
-        
+
+        # attack changelings and stuff
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
         attackable_enemy_units_in_range: Units = enemy_units_in_range.filter(lambda enemy: self.can_be_attacked(enemy, unit))
         if (enemy_units_in_range.amount >= 1):
@@ -464,6 +456,19 @@ class MicroUnit(CachedClass):
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
             unit.move(safest_spot)
             return
+        
+        # Don't get in the way of flying townhalls
+        flying_townhalls: Units = self.bot.structures({UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING}).closer_than(10, unit)
+        retreat_position: Point2 = self.retreat_position
+        if (flying_townhalls.amount >= 1):
+            townhall: Unit = flying_townhalls.closest_to(unit)
+            landing_spot: Point2 = townhall.order_target if isinstance(townhall.order_target, Point2) else townhall.position
+            retreat_position = unit.position.towards(landing_spot, -10)
+        
+        if (unit.is_flying and self.safety_disengage(unit)):
+            return
+        if (unit.distance_to(retreat_position) < 5):
+            return    
         if (unit.distance_to(local_units.center) > 8):
             unit.move(local_units.center)
         else:
