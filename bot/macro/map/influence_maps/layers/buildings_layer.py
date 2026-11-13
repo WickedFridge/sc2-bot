@@ -289,7 +289,7 @@ class BuildingLayer:
                 self.reservations.pop(Point2((x, y)).rounded, None)
     
     def reserve_cc(self, pos: Point2) -> None:
-        size = CC_RADIUS * 2
+        size: int = round(CC_RADIUS * 2)
         origin = pos.rounded - Point2((2, 2))
 
         print(f'Reserving CC at {pos}, origin {origin}, size {size}')
@@ -323,7 +323,9 @@ class BuildingLayer:
             self.reserve_area(origin + Point2(point), 1, set(important_buildings))
 
     def reserve_around_production(self, origin: Point2) -> None:
-        lane_y = range(-2, 4)
+        # only alongside the production (y = 0 to 2): corners are left to
+        # reserve_clean_below/above_production so Thors and tanks can pass
+        lane_y = range(0, 3)
 
         points: list[tuple[int, int]] = [
             *_lane([-2, -1], lane_y),  # two lanes on the left
@@ -333,11 +335,25 @@ class BuildingLayer:
 
         for point in points:
             self.reserve_area(origin + Point2(point), 1, set(important_buildings))
-    
+
+    def reserve_clean_below_production(self, origin: Point2) -> None:
+        # two lines below the production (y = -2 and -1), from x = -2 to 6
+        points: list[tuple[int, int]] = _lane(list(range(-2, 7)), range(-2, 0))
+
+        for point in points:
+            self.reserve_tile(origin + Point2(point), set())
+
+    def reserve_clean_above_production(self, origin: Point2) -> None:
+        # two lines above the production (y = 3 and 4), from x = -2 to 6
+        points: list[tuple[int, int]] = _lane(list(range(-2, 7)), range(3, 5))
+
+        for point in points:
+            self.reserve_tile(origin + Point2(point), set())
+
     def reserve_production(self, pos: Point2) -> None:
-        size = PRODUCTION_RADIUS * 2
-        origin = pos.rounded - Point2((1, 1))
-        addon_position = addon_offset(pos.rounded)
+        size: int = round(PRODUCTION_RADIUS * 2)
+        origin: Point2 = pos.rounded - Point2((1, 1))
+        addon_position: Point2 = addon_offset(pos.rounded)
         self.reserve_area(
             origin,
             size,
@@ -349,7 +365,20 @@ class BuildingLayer:
             set(add_ons),
         )
         self.reserve_around_production(origin)
-    
+
+        # stacks of 3 production buildings max:
+        # if there is production below us, we're the top of the stack -> keep the lines above clean
+        if (self._is_reserved_for_production(one_block_under(pos))):
+            self.reserve_clean_above_production(origin)
+            return
+        # if there is production above us, we're the bottom of the stack -> keep the lines below clean
+        if (self._is_reserved_for_production(one_block_over(pos))):
+            self.reserve_clean_below_production(origin)
+
+    def _is_reserved_for_production(self, pos: Point2) -> bool:
+        reserved_for: set[UnitTypeId] | None = self.reservations.get(pos.rounded)
+        return reserved_for is not None and not reserved_for.isdisjoint(production)
+
     def reserve_bunker(self, pos: Point2) -> None:
         size: int = int(BUNKER_RADIUS * 2)
         origin: Point2 = pos.rounded - Point2((1, 1))
@@ -394,6 +423,9 @@ class BuildingLayer:
                 and ramp.barracks_in_middle != ramp.barracks_correct_placement
             ):
                 return
+            
+            # mark the building itself as production, so the stack detection in reserve_production sees it
+            self.reserve_area(origin, size, set(production))
             addon_origin: Point2 = unit.add_on_position.rounded - Point2((1, 1))
             self.reserve_area(addon_origin, 2 * ADDON_RADIUS, set(add_ons))
             self.reserve_around_production(origin)

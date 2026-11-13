@@ -16,7 +16,7 @@ from sc2.units import Units
 
 class MicroScoutingUnit(MicroUnit):
     # scouts make a detour to any unscouted base spot closer than this
-    DETOUR_SCOUT_DISTANCE: float = 18
+    DETOUR_SCOUT_DISTANCE: float = 20
     # past this distance from the next unscouted point, head for the base center instead
     BASE_APPROACH_DISTANCE: float = 15
 
@@ -66,24 +66,36 @@ class MicroScoutingUnit(MicroUnit):
 
         return Expansions(self.bot, list(min(permutations(bases), key=route_length)))
 
+    def needs_scouting(self, base: Expansion) -> bool:
+        # enemy bases: seeing the spot or a building next to it is enough to move on
+        if (base in self.enemy_bases_to_scout.expansions):
+            return not base.is_scouted and not base.has_enemy_buildings_around
+        # other bases must be fully scouted
+        return not base.is_fully_scouted
+
+    def base_scout_point(self, unit: Unit, base: Expansion) -> Point2:
+        if (base in self.enemy_bases_to_scout.expansions):
+            return base.position
+        target: Point2 = closest_point(unit.position, base.unscouted_points)
+        if (unit.distance_to(target) > self.BASE_APPROACH_DISTANCE):
+            return base.position
+        return target
+
     def scout_target(self, unit: Unit) -> Point2:
-        # if we pass close to a base whose spot has never been seen, take a quick look on the way
+        # if we pass close to a base that still needs scouting, take a look on the way
         nearby_unscouted_bases: Expansions = self.bot.expansions.filter(
             lambda base: (
-                not base.is_scouted
-                and base.position.distance_to(unit) <= self.DETOUR_SCOUT_DISTANCE
+                base.position.distance_to(unit) <= self.DETOUR_SCOUT_DISTANCE
                 and not base.has_enemy_buildings_around
+                and not base.is_scouted
             )
         )
         if (nearby_unscouted_bases.amount >= 1):
-            return nearby_unscouted_bases.closest_to(unit).position
+            return self.base_scout_point(unit, nearby_unscouted_bases.closest_to(unit))
 
         for base in self.home_scout_route(unit.position).extended(self.enemy_bases_to_scout.expansions):
-            if (not base.is_fully_scouted):
-                target: Point2 = closest_point(unit.position, base.unscouted_points)
-                if (unit.distance_to(target) > self.BASE_APPROACH_DISTANCE):
-                    return base.position
-                return target
+            if (self.needs_scouting(base)):
+                return self.base_scout_point(unit, base)
 
         return self.bot.expansions.enemy_main.mineral_line
 
