@@ -531,23 +531,21 @@ class BuildOrder(CachedClass):
         return []
     
     def modify_composition(self, composition: Composition) -> bool:
+        """
+        Applies the production queues: each active queue locks the units of its building,
+        the other buildings keep following the regular composition.
+        Once the build order is completed, only the queues flagged `outlives_build` are applied
+        (they deactivate by themselves once exhausted).
+        Returns True only if the build fully drives the composition (`_modify_composition`),
+        in which case the regular composition is skipped.
+        """
         if (self.is_completed):
+            for queue in self.production_queues:
+                queue.apply_lingering(composition)
             return False
-        queue_driven: bool = False
         for queue in self.production_queues:
-            queue_driven = queue.apply(composition) or queue_driven
-        # _modify_composition runs last so a build can still override the queues
-        return self._modify_composition(composition) or queue_driven
-
-    def apply_lingering_queues(self, composition: Composition) -> None:
-        """
-        Once the build order is completed, applies the queues flagged `outlives_build`
-        on top of the regular composition (they deactivate by themselves once exhausted).
-        """
-        if (not self.is_completed):
-            return
-        for queue in self.production_queues:
-            queue.apply_lingering(composition)
+            queue.apply(composition)
+        return self._modify_composition(composition)
 
     def _modify_composition(self, composition: Composition) -> bool:
         return False

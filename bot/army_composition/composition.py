@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Iterator, List, TYPE_CHECKING
+from typing import Dict, Iterator, List, Set, TYPE_CHECKING
 from bot.utils.colors import GREEN, RED, WHITE
 from bot.utils.unit_supply import get_unit_supply
 from sc2.bot_ai import BotAI
@@ -13,29 +13,42 @@ class  Composition:
     bot: BotAI
     supply_cap: int
     units: Dict[UnitTypeId, int]
+    locked: Set[UnitTypeId]
 
     @property
     def wicked(self) -> WickedBot:
         return self.bot  # type: ignore
-    
+
     def __init__(self, bot: BotAI, supply_cap: int) -> None:
         self.bot = bot
         self.supply_cap = supply_cap
         self.units = {}
-    
+        self.locked = set()
+
+    def lock(self, unit_type: UnitTypeId, count: int) -> None:
+        """
+        Set the amount of a unit type and lock it: later add / set / remove / fill
+        calls on this type are ignored (e.g. units of a building driven by a production queue).
+        A locked type can still be re-locked to another amount.
+        """
+        self.units[unit_type] = count
+        self.locked.add(unit_type)
+
     def add(self, unit_type: UnitTypeId, count: int = 1) -> None:
         """Add units of a given type to the composition."""
-        if (count == 0):
+        if (count == 0 or unit_type in self.locked):
             return
         self.units[unit_type] = self.units.get(unit_type, 0) + count
-    
+
     def set(self, unit_type: UnitTypeId, count: int = 1) -> None:
         """Add units of a given type to the composition."""
+        if (unit_type in self.locked):
+            return
         self.units[unit_type] = count
 
     def remove(self, unit_type: UnitTypeId, count: int = 1) -> None:
         """Remove units, dropping to zero if count exceeds."""
-        if (count == 0):
+        if (count == 0 or unit_type in self.locked):
             return
         if (unit_type in self.units):
             self.units[unit_type] = max(0, self.units[unit_type] - count)
@@ -60,7 +73,7 @@ class  Composition:
         return self.units.get(unit_type, 0)
 
     def __setitem__(self, unit_type: UnitTypeId, count: int) -> None:
-        self.units[unit_type] = count
+        self.set(unit_type, count)
 
     def __iter__(self) -> Iterator[UnitTypeId]:
         return iter(self.units)
@@ -96,6 +109,8 @@ class  Composition:
     
     def fill(self, unit_type: UnitTypeId, ratio: float = 1) -> None:
         """Fill remaining supply with a specific unit type."""
+        if (unit_type in self.locked):
+            return
         unit_supply_value: int = get_unit_supply(unit_type)
         max_addable: int = self.supply_remaining // unit_supply_value
         if (max_addable >= 1):

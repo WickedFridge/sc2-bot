@@ -44,6 +44,8 @@ class MacroCyclone(MacroBuild):
             BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'refinery #3/4', UnitTypeId.REFINERY, target_count=4, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
             BuildOrderStep(bot, self, 'rax #4/5', UnitTypeId.BARRACKS, target_count=5, requirements=[(UnitTypeId.REFINERY, 4, False)]),
+            BuildOrderStep(bot, self, '+1 atk', UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, requirements=[(UnitTypeId.ENGINEERINGBAY, 1, True)]),
+            BuildOrderStep(bot, self, '+1 def', UpgradeId.TERRANINFANTRYARMORSLEVEL1, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, True)]),    
         ]
 
         self.production_queues = [

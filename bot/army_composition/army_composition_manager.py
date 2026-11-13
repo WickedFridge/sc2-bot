@@ -259,7 +259,9 @@ class ArmyCompositionManager(CachedClass):
             if (self.default_amount(unit_type)):
                 composition.set(unit_type, self.default_amount(unit_type))
         
-        # build order specific modifications
+        # build order specific modifications: production queues lock their building's units
+        # (applied first so the regular composition and the fills can't change them,
+        # and the remaining supply accounts for them)
         build_order_driven: bool = self.wicked.build_order.build.modify_composition(composition)
         if (build_order_driven):
             return composition
@@ -371,10 +373,6 @@ class ArmyCompositionManager(CachedClass):
             )
             if (bio_supply >= 8 * self.default_amount(UnitTypeId.MEDIVAC)):
                 composition.set(UnitTypeId.MEDIVAC, min(MAX_MEDIVAC_AMOUNT, round(bio_supply / 8)))
-
-        # build order queues that outlive the build order override their building's units
-        # (applied before the fills so the remaining supply accounts for them)
-        self.wicked.build_order.build.apply_lingering_queues(composition)
 
         # always fill the rest of the composition with 1/2 of Marines
         composition.fill(UnitTypeId.MARINE, 1/2)

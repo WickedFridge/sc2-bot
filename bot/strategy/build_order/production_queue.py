@@ -21,7 +21,8 @@ class ProductionQueue:
     going back to the regular composition, e.g. [(REAPER, 4), (MARINE, 1)].
     Progress is measured on units *produced* this game (popped + in production),
     not on units alive: a unit dying is never replaced by the queue.
-    While active, every other unit of that building is frozen at its current count.
+    While active, every other unit of that building is frozen (locked) at its current count;
+    units of the other buildings keep following the regular composition.
     """
     bot: Superbot
     building_type: UnitTypeId
@@ -104,7 +105,7 @@ class ProductionQueue:
             self._queue_entry(composition, current)
         else:
             for unit_type, amount in self.hold_composition.items():
-                composition.set(unit_type, amount)
+                composition.lock(unit_type, amount)
         return True
 
     def apply_lingering(self, composition: Composition) -> bool:
@@ -124,9 +125,10 @@ class ProductionQueue:
         return True
 
     def _freeze_building(self, composition: Composition) -> None:
+        """Lock every unit of this building at its current count: the regular composition can't change them."""
         for unit_type in production_units[self.building_type]:
-            composition.set(unit_type, self.bot.total_unit_amount(unit_type))
+            composition.lock(unit_type, self.bot.total_unit_amount(unit_type))
 
     def _queue_entry(self, composition: Composition, current: tuple[UnitTypeId, int]) -> None:
         unit_type, remaining = current
-        composition.set(unit_type, self.bot.total_unit_amount(unit_type) + remaining)
+        composition.lock(unit_type, self.bot.total_unit_amount(unit_type) + remaining)
