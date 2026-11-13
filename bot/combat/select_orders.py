@@ -27,9 +27,11 @@ from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2, Point3
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air, scouting_units, support_units
+from ..utils.unit_tags import tower_types, worker_types, dont_attack, bio, menacing, creep, anti_air, support_units
 
 WEAPON_READY_THRESHOLD: float = 6.0
+# default distance under which a tumor triggers CLEAN_CREEP (see SelectOrders.clean_creep_tumor_distance)
+CLEAN_CREEP_TUMOR_DISTANCE: float = 10
 
 class SelectOrders:
     bot: Superbot
@@ -205,7 +207,7 @@ class SelectOrders:
 
         closest_building_to_enemies: Unit = None if global_enemy_menacing_units_buildings.amount == 0 else self.bot.structures.in_closest_distance_to_group(global_enemy_menacing_units_buildings)
         distance_building_to_enemies: float = 1000 if global_enemy_menacing_units_buildings.amount == 0 else global_enemy_menacing_units_buildings.closest_distance_to(closest_building_to_enemies)
-        creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(army.radius + 10, army.center)
+        creep_tumors: Units = self.bot.enemy_structures(creep).closer_than(self.clean_creep_tumor_distance(army), army.center)
         closest_scv: Optional[Unit] = self.bot.workers.closest_to(army.center) if self.bot.workers.amount >= 1 else None
 
         # if there are units, fight or retreat
@@ -257,12 +259,7 @@ class SelectOrders:
     
     def get_army_orders(self, army: Army) -> Orders:
         # -- Specific orders for reapers
-        if (
-            army.units(scouting_units).amount == army.units.amount
-            or army.units(scouting_units).amount >= 4 and not self.bot.stim_almost_completed
-            or army.units(UnitTypeId.BANSHEE).amount >= 1
-            or army.units(UnitTypeId.REAPER).amount >= 1 and army.units.amount <= 2
-        ):
+        if (army.is_scouting_army):
             return self.scouting_units_orders(army)
         
         # -- Define local enemies
@@ -522,42 +519,69 @@ class SelectOrders:
         distance_to_enemy_building: float = self.bot.enemy_structures.closest_distance_to(army.center)
         return distance_to_enemy_building * self.BASE_TRADE_RATIO > distance_to_threat
     
+    def clean_creep_tumor_distance(self, army: Army) -> float:
+        # a tumor closer than this triggers CLEAN_CREEP and is targeted directly
+        # fast creep cleaners (reapers, hellions, banshees) look further
+        if (army.is_scouting_army):
+            return army.radius + 10
+        return CLEAN_CREEP_TUMOR_DISTANCE
+
+    def clean_creep_target(self, army: Army) -> Optional[Unit | Point2]:
+        """
+        Target of the CLEAN_CREEP order, None if there's nothing to clean.
+        Used both to select the order and to execute it, so they can't disagree.
+        """
+        creep_tumors: Units = self.bot.enemy_structures(creep)
+
+        # --- Case 1) very close tumor
+        close_tumors: Units = creep_tumors.closer_than(self.clean_creep_tumor_distance(army), army.center)
+        if (close_tumors.amount >= 1):
+            return close_tumors.closest_to(army.center)
+
+        # --- Case 2) Base blocked by creep
+        # a base is "blocked" if there's creep with density > 0.4 within 12 of it
+        # Don't clean creep if we're too far from it
+        BASE_RADIUS: int = 12
+        CREEP_DENSITY_THRESHOLD: float = 0.4
+        CLEAN_CREEP_BASE_DISTANCE: int = 30
+        creep_layer = self.bot.map.influence_maps.creep
+        detected = self.bot.map.influence_maps.detection.detected
+
+        # Check all owned bases + the next one
+        expansions_to_check: Expansions = self.bot.expansions.taken.copy()
+        expansions_to_check.add(self.bot.expansions.next)
+
+        for expansion in expansions_to_check:
+            if (army.center.distance_to(expansion.position) >= CLEAN_CREEP_BASE_DISTANCE):
+                continue
+            density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS)
+            if (position is None or density <= CREEP_DENSITY_THRESHOLD):
+                continue
+            # visible tumors at this base: go kill them
+            base_tumors: Units = creep_tumors.closer_than(BASE_RADIUS, expansion.position)
+            if (base_tumors.amount >= 1):
+                return base_tumors.closest_to(army.center)
+            # detected creep without visible tumor: the tumor is dead, the creep is receding
+            if (detected[position] != 0):
+                continue
+            # tumor hidden in the creep: walk there so it can be scanned (see BuildingsHandler.scan_creep)
+            return position
+
+        return None
+
     def should_clean_creep(self, army: Army) -> Optional[Orders]:
         if (
             self.bot.matchup != Matchup.TvZ
             or not army.can_attack_ground
         ):
             return None
-        
-        # --- Case 1) very close tumor
-        CLOSE_THRESHOLD: int = 10
-        tumors: Units = self.bot.enemy_structures(creep).closer_than(CLOSE_THRESHOLD, army.center)
-        if (tumors.amount >= 1):
+
+        if (self.clean_creep_target(army) is not None):
             return Orders.CLEAN_CREEP
 
-        # --- Case 2) Base blocked by creep
-        # Threshold: if a base has >= 0.4 in radius 6, it's "blocked"
-        # Don't clean creep if we're too far from it
-        BASE_RADIUS = 6
-        CREEP_DENSITY_THRESHOLD = 0.4
-        CLEEN_CREEP_BASE: int = 30
-        
-        # Check all owned bases
+        CREEP_DENSITY_THRESHOLD: float = 0.4
         creep_layer = self.bot.map.influence_maps.creep
-        expansions_to_check: Expansions = self.bot.expansions.taken.copy()
-        expansions_to_check.add(self.bot.expansions.next)
-        
-        for expansion in expansions_to_check:
-            density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
-            if (position is None):
-                continue
-            tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
-            if (
-                density > CREEP_DENSITY_THRESHOLD
-                and army.center.distance_to(expansion.position) < CLEEN_CREEP_BASE
-            ):
-                return Orders.CLEAN_CREEP
-            
+
         # Only clean close creep if we have detectors and with small squads
         detectors: Units = army.units.filter(lambda unit: unit.is_detector)
         if (detectors.amount == 0 or army.supply > 12):
@@ -660,7 +684,8 @@ class SelectOrders:
         # if we would win a fight, we attack front
         else:
             # the next building if we know where it is, the nearest base if we don't
-            if (global_enemy_buildings.amount >= 1):
+            # creep tumors aren't buildings to chase (handled by the creep orders)
+            if (global_enemy_buildings.exclude_type(creep).amount >= 1):
                 return Orders.CHASE_BUILDINGS
             else:
                 return Orders.ATTACK_NEAREST_BASE
@@ -720,7 +745,7 @@ class SelectOrders:
                     await self.execute.attack_nearest_base(army)
 
                 case Orders.CLEAN_CREEP:
-                    self.execute.clean_creep(army)
+                    self.execute.clean_creep(army, self.clean_creep_target(army))
                 
                 case Orders.CHASE_CREEP:
                     self.execute.chase_creep(army)
@@ -760,7 +785,6 @@ class SelectOrders:
             Orders.CHASE_BUILDINGS: LIGHTBLUE,
             Orders.ATTACK_NEAREST_BASE: PURPLE,
             Orders.KILL_BUILDINGS: PURPLE,
-            Orders.CHASE_BUILDINGS: PURPLE,
             Orders.REGROUP: WHITE,
             Orders.CHASE_CREEP: PURPLE,
             Orders.CLEAN_CREEP: ORANGE,

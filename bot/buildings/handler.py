@@ -354,12 +354,15 @@ class BuildingsHandler:
         MIN_FIGHTING_UNITS: int = 2
         BASE_RADIUS: int = 12
         GROUP_RADIUS: int = 15
+        CLEAN_RADIUS: int = 10  # distance max entre le point scanné et nos unités
         creep_layer = self.bot.map.influence_maps.creep
         # covers turrets, active scans, and ravens with a margin (they will detect it soon anyway)
         soon_detected = self.bot.map.influence_maps.detection.soon_detected
 
         def try_scan(position: Point2 | None, density: float) -> bool:
             if (position is None or density < CREEP_DENSITY_THRESHOLD or soon_detected[position] != 0):
+                return False
+            if (creep_cleaners.closer_than(CLEAN_RADIUS, position).amount < MIN_FIGHTING_UNITS):
                 return False
             orbitals_with_energy.random(AbilityId.SCANNERSWEEP_SCAN, position)
             return True

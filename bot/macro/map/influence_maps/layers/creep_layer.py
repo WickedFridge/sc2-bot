@@ -17,7 +17,7 @@ class CreepLayer:
     bonus: InfluenceMap                  # float32, bonus danger by creep
     
     # memory maps
-    creep_decay: InfluenceMap            # stores tiles where tumors were killed → reduce priority
+    creep_decay: InfluenceMap            # game loop until which tiles around a killed tumor are considered cleared
     last_seen_frame: np.ndarray          # timestamp last visible
     
     grad_x: np.ndarray
@@ -28,7 +28,6 @@ class CreepLayer:
     SLOW_UPDATE_INTERVAL: int = 16       # compute heavy maps every N game loops (~0.7s)
     MIN_CREEP_TILES_FOR_SLOW: int = 150  # skip heavy work if creep very small
     FOG_GRACE_FRAMES: int = 120          # after this, tiles become speculative again
-    DECAY_STRENGTH: float = 0.4          # reduce influence after tumor kill
     ASSUMPTION_RADIUS: int = 5           # fog creep expansion like before
     CLEAR_RADIUS: int = 6  # tiles around killed tumor to invalidate creep
 
@@ -115,10 +114,8 @@ class CreepLayer:
 
         density: np.ndarray = dist_to_noncreep / R   # 0 = border, >=1 inside thick creep
         density = np.clip(density, 0, None).astype(np.float32)
-        
-        # Reduce priority where tumor was recently killed
-        density *= (1.0 - self.DECAY_STRENGTH * self.creep_decay.map)
 
+        # recently cleared tiles are already excluded from creep_assumed (see compute_assumed_creep)
         self.density.map[:] = density
     
     def compute_gradients(self):
@@ -265,7 +262,7 @@ class CreepLayer:
         
         # Clamp inside map bounds
         cx = max(0, min(pos.x, w - 1))
-        cy = max(0, min(pos.x, h - 1))
+        cy = max(0, min(pos.y, h - 1))
 
         # Compute squared distance to avoid sqrt cost
         dx = xs - cx
@@ -295,7 +292,10 @@ class CreepLayer:
     
     def detect_destroyed_tumor(self, unit: Unit):
         print("editing creep decay with dead tumor")
-        value: int = self.bot.state.game_loop + self.FOG_GRACE_FRAMES
-        self.creep_decay.update(unit.position, self.CLEAR_RADIUS, value, density_alpha=0)
+        # store the expiry game loop (max, not sum: overlapping kills must not extend the clear)
+        expiry: int = self.bot.state.game_loop + self.FOG_GRACE_FRAMES
+        x1, y1, x2, y2, _, dist = self.creep_decay._region(unit.position, self.CLEAR_RADIUS)
+        sub: np.ndarray = self.creep_decay.map[y1:y2, x1:x2]  # view, written in place
+        np.maximum(sub, np.where(dist <= self.CLEAR_RADIUS, expiry, 0), out=sub)
         # take the cleared creep into account on the next update
         self.last_slow_update_loop = None

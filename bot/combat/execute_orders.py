@@ -391,40 +391,17 @@ class Execute(CachedClass):
         if (not army.leader):
             await self.retreat_army(army)
             return
-        attack_position: Point2 = self.bot.enemy_structures.closest_to(army.leader).position
+        # creep tumors aren't buildings to chase (handled by the creep orders)
+        attack_position: Point2 = self.bot.enemy_structures.exclude_type(creep).closest_to(army.leader).position
         await self.micro.handlers[army.leader.type_id].a_move(army.leader, attack_position)
         for unit in army.followers:
             await self.micro.handlers[unit.type_id].chase_buildings(unit, army, attack_position)
 
-    def clean_creep(self, army: Army):
-        target: Point2 | Unit = None
-        creep_tumors: Units = self.bot.enemy_structures([UnitTypeId.CREEPTUMORBURROWED, UnitTypeId.CREEPTUMOR, UnitTypeId.CREEPTUMORQUEEN])
-        TUMOR_DISTANCE_THRESHOLD: float = 10
-        
-        if (creep_tumors.closer_than(TUMOR_DISTANCE_THRESHOLD, army.center).amount >= 1):
-            closest_tumor: Unit = creep_tumors.closest_to(army.center)
-            target = closest_tumor
-        else:
-            CREEP_DENSITY_THRESHOLD: float = 0.4
-            BASE_RADIUS: int = 6
-            creep_layer = self.bot.map.influence_maps.creep
-            expansions_to_check: Expansions = self.bot.expansions.taken.copy()
-            expansions_to_check.add(self.bot.expansions.next)
-            
-            for expansion in expansions_to_check:
-                density, position = creep_layer.max_density_in_radius(expansion.position, BASE_RADIUS * 2)
-                if (position is None):
-                    continue
-                tumors: Units = self.bot.enemy_structures(creep).closer_than(BASE_RADIUS * 2, expansion.position)
-                detected: bool = bool(self.bot.map.influence_maps.detection.detected[position])
-                if (density > CREEP_DENSITY_THRESHOLD and tumors.amount == 0 and not detected):
-                    target = position
-        
+    def clean_creep(self, army: Army, target: Optional[Unit | Point2]):
+        # target is chosen by SelectOrders.clean_creep_target
         if (target is None):
-            if (creep_tumors.amount >= 1):
-                target = creep_tumors.closest_to(army.center)
-            else:
-                print("Error : no creep target")
+            print("Error : no creep target")
+            return
         for unit in army.units:
             unit.attack(target)
 

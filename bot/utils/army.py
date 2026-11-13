@@ -1,5 +1,6 @@
+from __future__ import annotations
 import math
-from typing import List, Optional, Set
+from typing import List, Optional, Set, TYPE_CHECKING
 from bot.combat.orders import Orders
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -8,8 +9,12 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from ..utils.unit_tags import worker_types, menacing, bio, droppable_units, support_units
+from ..utils.unit_tags import worker_types, menacing, bio, droppable_units, support_units, scouting_units
 from ..utils.unit_supply import get_units_supply, weighted_units_supply
+
+if TYPE_CHECKING:
+    # typing only: importing Superbot at runtime would be circular
+    from bot.superbot import Superbot
 
 
 class Army(CachedClass):
@@ -77,6 +82,18 @@ class Army(CachedClass):
         if (self.supply == 0):
             return 0
         return self.armored_supply / self.supply
+
+    @property
+    def is_scouting_army(self) -> bool:
+        """Small fast squads (reapers, hellions, banshees...) that scout, harass and clean creep instead of fighting"""
+        bot: Superbot = self.bot
+        scouting_amount: int = self.units(scouting_units).amount
+        return (
+            scouting_amount == self.units.amount
+            or scouting_amount >= 4 and not bot.stim_almost_completed
+            or self.units(UnitTypeId.BANSHEE).amount >= 1
+            or self.units(UnitTypeId.REAPER).amount >= 1 and self.units.amount <= 2
+        )
 
     @property
     def support_supply(self) -> float:
