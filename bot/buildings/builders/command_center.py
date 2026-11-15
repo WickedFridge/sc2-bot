@@ -76,7 +76,7 @@ class CommandCenter(Building):
             case 2:
                 return near_cc_position
             case _:
-                if (safe_expansions.amount >= 1):
+                if (safe_expansions.amount > 1):
                     if (are_bases_saturated):
                         return safe_expansions.closest_to(cc_position).position.towards(cc_position, random.randrange(2, 5))
                     min_range: int = 0 if townhall_amount < 4 else 1
