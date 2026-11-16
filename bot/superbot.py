@@ -20,10 +20,12 @@ from sc2.units import Units
 
 if TYPE_CHECKING:
     from bot.buildings.handler import BuildingsHandler  # circular import, type hints only
+    from bot.combat.anchors import Anchors  # circular import, type hints only
 
 class Superbot(BotAI):
     addon_swap: AddonSwapManager
     buildings: BuildingsHandler
+    anchors: Anchors
     opponent_id: str | None = None
     is_ladder: bool = False
 

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 from bot.macro.map.influence_maps.danger.danger_evaluator import DangerEvaluator
@@ -109,8 +109,13 @@ class InfluenceMapManager:
         terrain: bool = True,
         effects: bool = True,
         trajectory: bool = True,
+        tile_filter: Optional[Callable[[Point2], bool]] = None,
     ) -> tuple[Point2, float]:
-        
+        """
+        Best scored tile around pos. tile_filter, if given, excludes the tiles it rejects:
+        if it rejects them all, the returned score is -inf.
+        """
+
         # Get the masked window: returns x1, y1, masked_values
         x1, y1, masked_values = self.read(pos.position, radius, air, include_danger=danger, include_terrain_penalty=terrain, include_effects=effects)
 
@@ -145,6 +150,9 @@ class InfluenceMapManager:
             
             px: int = x1 + ix
             py: int = y1 + iy
+
+            if (tile_filter is not None and not tile_filter(Point2((px, py)))):
+                continue
 
             dx: int = px - x
             dy: int = py - y
@@ -216,7 +224,14 @@ class InfluenceMapManager:
         return Point2((x1 + ix, y1 + iy))
     
     
-    def best_attacking_spot(self, unit: Unit, target: Unit, risk: float = 0.7) -> Point2:
+    def best_attacking_spot(
+        self,
+        unit: Unit,
+        target: Unit,
+        risk: float = 0.7,
+        tile_filter: Optional[Callable[[Point2], bool]] = None,
+    ) -> Optional[Point2]:
+        """None only if tile_filter rejected every tile"""
         MIN_DISTANCE: float = 1.5
         target_air: bool = target.is_flying
         distance: float = unit.radius + target.radius
@@ -246,7 +261,10 @@ class InfluenceMapManager:
             target_air,
             score_fn=lambda value, towards, extend: (-value + extend / 2 + towards * weight_t + range_bias * weight_r),
             prefer_direction=unit.position,
+            tile_filter=tile_filter,
         )
+        if (tile_filter is not None and score == -np.inf):
+            return None
         return position
     
     def safest_spot_around_point(self, spot: Point2, radius: float = 4, air: bool = False) -> Point2:
@@ -286,7 +304,14 @@ class InfluenceMapManager:
         )
         return position
     
-    def safest_spot_away(self, unit: Unit, direction: Point2 | Unit, range_modifier: float = 1) -> Point2:
+    def safest_spot_away(
+        self,
+        unit: Unit,
+        direction: Point2 | Unit,
+        range_modifier: float = 1,
+        tile_filter: Optional[Callable[[Point2], bool]] = None,
+    ) -> Optional[Point2]:
+        """None only if tile_filter rejected every tile"""
         radius: int = max(2, round(unit.real_speed * 1.4 * range_modifier))
         air: bool = unit.is_flying
 
@@ -296,5 +321,8 @@ class InfluenceMapManager:
             air,
             score_fn=lambda value, towards, extend: (-value - 2 * towards + extend),
             prefer_direction=direction.position,
+            tile_filter=tile_filter,
         )
+        if (tile_filter is not None and score == -np.inf):
+            return None
         return position

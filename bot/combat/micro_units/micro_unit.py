@@ -1,7 +1,8 @@
 from __future__ import annotations
 import math
-from typing import List, Optional, TYPE_CHECKING
+from typing import Callable, List, Optional, TYPE_CHECKING
 
+from bot.combat.anchors import Anchor
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
@@ -30,6 +31,8 @@ class MicroUnit(CachedClass):
     PICKUP_RANGE: int = 3
     # Don't chase ghost units (last known positions) further than this
     GHOST_CHASE_RANGE: float = 20
+    # Ground units further than this from any valid anchor zone aren't held back by it
+    ANCHOR_SEARCH_DISTANCE: float = 15
 
     def __init__(self, bot: Superbot):
         super().__init__(bot)
@@ -266,39 +269,104 @@ class MicroUnit(CachedClass):
         flying_unit.move(safest_spot)
         return True
     
-    def hit_n_run(self, unit: Unit, enemy_units_in_range: Units, kite_forward: bool = False):
+    def cover_destination(self, unit: Unit, destination: Point2) -> Point2:
+        """
+        Keeps a ground unit's move inside the zone covered by our anchors (sieged tanks, PF, loaded bunkers),
+        if one is close enough. Shooting isn't constrained, only moving.
+        """
+        if (unit.is_flying):
+            return destination
+        cover_point: Optional[Point2] = self.bot.anchors.cover_point(destination, unit, self.ANCHOR_SEARCH_DISTANCE)
+        return destination if cover_point is None else cover_point
+
+    def covered_filter(self, unit: Unit, cover: bool) -> Optional[Callable[[Point2], bool]]:
+        """Tile filter keeping the unit inside the anchors' covered zone, None if it isn't constrained"""
+        if (not cover or unit.is_flying):
+            return None
+        return self.bot.anchors.covered_filter(unit, self.ANCHOR_SEARCH_DISTANCE)
+
+    def pick_covered_spot(
+        self,
+        unit: Unit,
+        covered: Optional[Callable[[Point2], bool]],
+        pick: Callable[[Optional[Callable[[Point2], bool]]], Optional[Point2]],
+    ) -> Point2:
+        """
+        Picks the best tile among the covered ones, so the influence map still chooses where to go.
+        If no tile in reach is covered (unit out of the zone), heads to the zone's edge instead.
+        """
+        if (covered is None):
+            return pick(None)
+        spot: Optional[Point2] = pick(covered)
+        if (spot is not None):
+            return spot
+        return self.cover_destination(unit, pick(None))
+
+    def attacking_spot(self, unit: Unit, target: Unit, cover: bool = False) -> Point2:
+        if (target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]):
+            best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_point(target.position, 2, air=unit.is_flying)
+            return self.cover_destination(unit, best_position) if cover else best_position
+        return self.pick_covered_spot(
+            unit,
+            self.covered_filter(unit, cover),
+            lambda tile_filter: self.bot.map.influence_maps.best_attacking_spot(unit, target, tile_filter=tile_filter),
+        )
+
+    def hit_n_run(self, unit: Unit, enemy_units_in_range: Units, kite_forward: bool = False, cover: bool = False):
         if (enemy_units_in_range.amount == 0):
             return
         target: Unit = self.pick_best_target(enemy_units_in_range)
+        covered: Optional[Callable[[Point2], bool]] = self.covered_filter(unit, cover)
+
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
+            # attacking a target out of range walks to it: don't leave the covered zone for that,
+            # shoot what is already in range instead
+            if (covered is not None and not unit.target_in_range(target)):
+                targets_in_range: Units = enemy_units_in_range.filter(lambda enemy: unit.target_in_range(enemy))
+                if (targets_in_range.amount >= 1):
+                    unit.attack(self.pick_best_target(targets_in_range))
+                    return
+                if (not covered(unit.position.towards(target, 1))):
+                    unit.move(self.attacking_spot(unit, target, cover))
+                    return
             unit.attack(target)
-        else:
-            if (target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]):
-                best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_point(target.position, 2, air=unit.is_flying)
-            else:
-                best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, target)
-            unit.move(best_position)
-    
+            return
+
+        # the enemy walked into an anchor's range: kite back to make it overcommit
+        engaged_anchor: Optional[Anchor] = (
+            self.bot.anchors.engaged_anchor(unit, target, self.ANCHOR_SEARCH_DISTANCE)
+            if covered is not None
+            else None
+        )
+        if (engaged_anchor is not None):
+            # safest_spot_away moves away from the given point: give it one on the enemy side
+            enemy_side: Point2 = unit.position + engaged_anchor.threat_direction
+            unit.move(self.pick_covered_spot(
+                unit,
+                covered,
+                lambda tile_filter: self.bot.map.influence_maps.safest_spot_away(unit, enemy_side, tile_filter=tile_filter),
+            ))
+            return
+
+        unit.move(self.attacking_spot(unit, target, cover))
+
     def handle_engagement(
         self,
         unit: Unit,
         enemy_units_in_range: Units,
         other_enemies: Units,
         kite_forward: bool = False,
+        cover: bool = False,
     ) -> bool:
-        
+
         # If someone is in range → hit'n'run
         if (enemy_units_in_range.amount >= 1):
-            self.hit_n_run(unit, enemy_units_in_range, kite_forward)
+            self.hit_n_run(unit, enemy_units_in_range, kite_forward, cover)
             return True
-        
+
         if (other_enemies.amount >= 1):
             closest_target: Unit = other_enemies.closest_to(unit)
-            if (closest_target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]):
-                best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_point(closest_target.position, 2, air=unit.is_flying)
-            else:
-                best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(unit, closest_target)
-            unit.move(best_position)
+            unit.move(self.attacking_spot(unit, closest_target, cover))
             return True
         return False
     
@@ -334,10 +402,10 @@ class MicroUnit(CachedClass):
                 if (structure.cargo_left >= 1):
                     unit.move(structure.position.towards(retreat_position, 2))
                 elif (unit.distance_to(retreat_position) > 2):
-                    unit.move(retreat_position)
+                    unit.move(self.cover_destination(unit, retreat_position))
                 else:
                     safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(structure)
-                    unit.move(safest_spot)
+                    unit.move(self.cover_destination(unit, safest_spot))
             else:
                 if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
                     target: Unit = self.pick_best_target(enemy_units)

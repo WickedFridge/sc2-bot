@@ -861,6 +861,40 @@ class Debug:
             self.draw_box_on_world(unit.position, size=1, draw_color=RED)
             self.draw_text_on_world(unit.position, unit_label, RED)
     
+    def anchors(self):
+        # covered zone of each anchor for a marine-sized unit: green if it shelters units, grey otherwise
+        MARINE_RADIUS: float = 0.375
+        OUTLINE_SAMPLES: int = 32
+        for anchor in self.bot.anchors.all:
+            color: tuple = GREEN if anchor.is_valid else WHITE
+            z: float = self.bot.get_terrain_z_height(anchor.position) + 0.2
+
+            # outline of the real (possibly directional) covered zone, sampled around the anchor
+            if (anchor.cover_radius(MARINE_RADIUS) > 0):
+                edge_points: List[Point2] = []
+                for i in range(OUTLINE_SAMPLES):
+                    angle: float = 2 * math.pi * i / OUTLINE_SAMPLES
+                    far_point: Point2 = anchor.position + Point2((math.cos(angle), math.sin(angle))) * 20
+                    edge_points.append(anchor.closest_covered_point(far_point, MARINE_RADIUS))
+                for start, end in zip(edge_points, edge_points[1:] + edge_points[:1]):
+                    self.bot.client.debug_line_out(Point3((start.x, start.y, z)), Point3((end.x, end.y, z)), color=color)
+
+            # threat direction
+            if (anchor.threat_direction is not None):
+                arrow_end: Point2 = anchor.position + anchor.threat_direction * 4
+                self.bot.client.debug_line_out(
+                    Point3((anchor.position.x, anchor.position.y, z)),
+                    Point3((arrow_end.x, arrow_end.y, z)),
+                    color=RED,
+                )
+
+            label: str = f'R_e: {anchor.enemy_range:.1f} depth: {anchor.depth:.1f}'
+            if (anchor.threat_direction is None):
+                label += ' (no direction)'
+            if (anchor.air_threatened):
+                label += ' (air threat)'
+            self.draw_text_on_world(anchor.position, label, color)
+
     def ghost_units(self):
         ghost_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
         for unit in ghost_units:

@@ -94,4 +94,4 @@ class MicroGhost(MicroBioUnit):
             return
         if (self.snipe(ghost)):
             return
-        await super().fight(ghost, local_units)
+        await super().fight(ghost, local_units, chase)

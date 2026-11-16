@@ -143,11 +143,15 @@ class MicroBioUnit(MicroUnit):
         ):
             self.stim(bio_unit, force=not shorter_range)
 
+        # out of chases, moves stay inside the zone covered by our anchors (sieged tanks, PF, loaded bunkers)
+        cover: bool = not chase
+
         # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
         if (shorter_range and self.handle_engagement(
             bio_unit,
             enemy_units_in_range,
             other_enemies,
+            cover=cover,
         )):
             return
 
@@ -157,7 +161,8 @@ class MicroBioUnit(MicroUnit):
             bio_unit,
             potential_targets,
             other_enemies,
-            kite_forward=True
+            kite_forward=True,
+            cover=cover,
         )):
             return
 
@@ -177,8 +182,7 @@ class MicroBioUnit(MicroUnit):
             bio_unit.move(local_units.center)
             return
         target: Unit = other_enemies.first
-        best_position: Point2 = self.bot.map.influence_maps.best_attacking_spot(bio_unit, target)
-        bio_unit.move(best_position)
+        bio_unit.move(self.attacking_spot(bio_unit, target, cover))
 
     @override
     async def harass(self, unit: Unit, local_units: Units, workers: Units):

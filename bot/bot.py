@@ -4,6 +4,7 @@ from bot.analytics.analytics import Analytics
 from bot.army_composition.army_composition_manager import ArmyCompositionManager, get_composition_manager
 from bot.buildings.builder import Builder
 from bot.buildings.handler import BuildingsHandler
+from bot.combat.anchors import Anchors
 from bot.combat.select_orders import SelectOrders
 from bot.debug import Debug
 from bot.macro.expansion_manager import Expansions, get_expansions
@@ -29,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.2.7"
+VERSION: str = "15.3.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -53,6 +54,7 @@ class WickedBot(Superbot):
         self.builder = Builder(self)
         self.buildings = BuildingsHandler(self)
         self.addon_swap = AddonSwapManager(self)
+        self.anchors = Anchors(self)
         self.search = Search(self)
         self.combat = SelectOrders(self)
         self.trainer = Trainer(self, self.combat)
@@ -136,7 +138,7 @@ class WickedBot(Superbot):
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
             await self.client.debug_control_enemy()
-            # await self.client.debug_upgrade()
+            await self.client.debug_upgrade()
             # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
@@ -151,7 +153,7 @@ class WickedBot(Superbot):
         # await self.debug.colorize_bunkers()
         # await self.debug.placement_grid()
         # await self.debug.pathing_grid()
-        await self.debug.building_grid()
+        # await self.debug.building_grid()
         # await self.macro.debug_bases_threat()
         # await self.debug.bases_content()
         # await self.debug.bases_bunkers()
@@ -189,6 +191,7 @@ class WickedBot(Superbot):
         # self.debug.enemy_composition()
         # self.debug.burrowed_units()
         self.debug.ghost_units()
+        self.debug.anchors()
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()
         await self.debug.chat_commands()
