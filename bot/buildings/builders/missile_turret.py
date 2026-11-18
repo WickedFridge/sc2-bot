@@ -22,7 +22,7 @@ class MissileTurret(Building):
     
     @property
     def enemy_harass(self) -> bool:
-        return any(unit in self.bot.scouting.known_enemy_composition for unit in flying_harassment_units)
+        return any(unit in self.bot.scouting.possible_enemy_composition for unit in flying_harassment_units)
     
     @property
     def expansions_without_turret(self) -> Expansions:
