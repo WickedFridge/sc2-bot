@@ -48,7 +48,7 @@ class Scv(Train):
                     townhall.build_progress for townhall in self.bot.townhalls.not_ready
                 )
             )
-            optimal_amount += max(6, 11 * max_readyness)
+            optimal_amount += max(6, 11 * max_readyness) * (townhalls.amount - self.bot.expansions.taken.amount)
 
         maximal_amount: float = absolute_maximal_amount * (1 - 1 / (3.5 + 400 * math.exp(-orbital_count))) + 1 - 1.1 * orbital_count
 

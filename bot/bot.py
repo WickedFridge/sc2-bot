@@ -30,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.3.1"
+VERSION: str = "15.3.2"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -305,12 +305,7 @@ class WickedBot(Superbot):
         # Spend Money
         money_spenders: List[Callable[[Resources], Awaitable[Resources]]] = []
 
-        should_build_cc: bool = self.should_build_cc
-        profiler.mark('spend.should_build_cc')
-        if (should_build_cc):
-            money_spenders.extend([
-                self.builder.command_center.build
-            ])
+        
 
         money_spenders.extend([
             # basic economy
@@ -319,6 +314,14 @@ class WickedBot(Superbot):
             self.trainer.scv.train,
             self.builder.refinery.build,
         ])
+        
+        profiler.mark('spend.should_build_cc')
+        should_build_cc: bool = self.should_build_cc
+        if (should_build_cc):
+            money_spenders.extend([
+                self.builder.command_center.build
+            ])
+        
         money_spenders.extend([
             # add ons
             self.builder.barracks_techlab.build,
