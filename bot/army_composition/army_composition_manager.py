@@ -180,8 +180,6 @@ class ArmyCompositionManager(CachedClass):
             if (enemy_units.amount > 0):
                 cyclone_amount += cyclone_response_amount * enemy_units.amount
             else:
-                if (unit_type in [UnitTypeId.VIKINGASSAULT, UnitTypeId.LIBERATORAG]):
-                    continue
                 cyclone_amount += cyclone_response_amount / 3
 
         # round, because 2.3 cyclones = 2 cyclones in practice

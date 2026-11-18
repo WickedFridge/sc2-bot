@@ -163,7 +163,7 @@ class BuildingsHandler:
             repair_ratio *= 1.5 - burning_building.health_percentage
             max_workers_repairing_building: int = int((
                 15 if burning_building.type_id == UnitTypeId.PLANETARYFORTRESS
-                else 8 if burning_building.type_id in must_repair
+                else 8 if burning_building.type_id in must_repair and self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
                 else 3
             ) * repair_ratio)
             local_available_workers: Units = (

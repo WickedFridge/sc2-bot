@@ -33,7 +33,7 @@ def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount
     ).take(workers_pulled_amount)
 
 def wall_is_up(bot: BotAI) -> bool:
-    supply_depots: Units = bot.structures(UnitTypeId.SUPPLYDEPOT)
+    supply_depots: Units = bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED])
     barracks: Units = bot.structures(UnitTypeId.BARRACKS)
 
     corner_positions: List[Point2] = list(bot.main_base_ramp.corner_depots)

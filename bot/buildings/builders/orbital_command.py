@@ -46,7 +46,7 @@ class OrbitalCommand(UpgradeBuilding):
         
         # don't build orbital when we're getting worker rushed unless we're floating minerals
         if (self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]):
-            return self.bot.minerals >= 200
+            return self.bot.minerals >= 175
 
         # we only build Orbital until we have 4 CCs
         if (self.bot.townhalls.ready.amount <= 3):

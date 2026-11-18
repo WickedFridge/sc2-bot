@@ -26,10 +26,12 @@ class Refinery(Building):
             return False
         
         scv_amount: int = self.bot.supply_workers
+        orbital_amount: int = self.bot.structures([UnitTypeId.ORBITALCOMMAND, UnitTypeId.ORBITALCOMMANDFLYING]).amount
+        completed_orbital_amount: int = self.bot.structures([UnitTypeId.ORBITALCOMMAND, UnitTypeId.ORBITALCOMMANDFLYING]).ready.amount
         
         if (
             self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]
-            and scv_amount < 14
+            and orbital_amount >= 1
         ):
             return False
         
@@ -42,7 +44,6 @@ class Refinery(Building):
         refinery_amount: int = self.amount - depleted_refineries
 
         max_refineries: int = 10
-        orbital_amount: float = self.bot.structures(UnitTypeId.ORBITALCOMMAND).ready.amount
         
         
         match(refinery_amount):
@@ -62,7 +63,7 @@ class Refinery(Building):
                 return (
                     self.bot.structures(UnitTypeId.ENGINEERINGBAY).amount >= 2
                     and (
-                        orbital_amount >= 3
+                        completed_orbital_amount >= 3
                         or self.bot.structures(UnitTypeId.PLANETARYFORTRESS).amount >= 1
                         or self.bot.already_pending(UnitTypeId.PLANETARYFORTRESS) >= 1
                         or self.bot.minerals >= 600 and self.bot.vespene <= 100
@@ -82,15 +83,15 @@ class Refinery(Building):
                     return True
                 
                 # we want at least 4 orbitals for gaz 7, 5 for gaz 8 and 6 for gaz 9
-                if (refinery_amount - orbital_amount > 2):
+                if (refinery_amount - completed_orbital_amount > 2):
                     return False
                 
                 # more scan usage in TvZ
                 if (self.bot.matchup == Matchup.TvZ):
-                    orbital_amount *= 0.5
+                    completed_orbital_amount *= 0.5
                 
                 # formula to calculate this, see DESMOS
-                return scv_amount >= 26 * math.sqrt(refinery_amount) + (3 - orbital_amount) * refinery_amount * 0.6
+                return scv_amount >= 26 * math.sqrt(refinery_amount) + (3 - completed_orbital_amount) * refinery_amount * 0.6
     
     @property
     def target_geyser(self) -> Unit | None:
