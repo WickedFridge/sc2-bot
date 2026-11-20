@@ -31,7 +31,7 @@ class Refinery(Building):
         
         if (
             self.bot.scouting.situation in [Situation.CHEESE_WORKER_RUSH, Situation.CHEESE_CANNON_RUSH]
-            and orbital_amount >= 1
+            and orbital_amount < 1
         ):
             return False
         

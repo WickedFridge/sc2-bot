@@ -204,6 +204,7 @@ class BuildingsHandler:
     async def cancel_buildings(self):
         main_base_wall_positions: List[Point2] = list(self.bot.main_base_ramp.corner_depots)
         main_base_wall_positions.append(self.bot.main_base_ramp.barracks_correct_placement)
+        main_base_wall_positions.append(self.bot.main_base_ramp.depot_in_middle)
         incomplete_buildings: Units = self.bot.structures.filter(
             lambda structure: (
                 structure.health_percentage < structure.build_progress < 0.95

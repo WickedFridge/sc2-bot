@@ -265,52 +265,54 @@ class Scouting:
         scout.attack(target)
         return True
 
-    async def scout_proxy(self):
-        scout_needed_situations: List[Situation] = [
-            Situation.STABLE,
-            Situation.CHEESE_PROXY_BUILDINGS,
-            Situation.CHEESE_BUNKER_RUSH,
-            Situation.CHEESE_CANNON_RUSH,
-            Situation.CHEESE_UNKNOWN,
-            Situation.CHEESE_PROXY_RAX,
-        ]
-        if (self.bot.matchup == Matchup.TvZ or self.bot.scouting.situation not in scout_needed_situations):
-            self.engaged_worker_tag = None
-            return
-        if (self.bot.workers.gathering.amount == 0):
-            print("no worker available to scout o7")
-            self.engaged_worker_tag = None
-            return
-        barracks_amount: int = self.bot.structures(UnitTypeId.BARRACKS).amount
-        rax_60: int = self.bot.structures(UnitTypeId.BARRACKS).filter(lambda rax: rax.build_progress >= 0.60).amount
-        matchup_condition: bool = (
-            (self.bot.matchup == Matchup.TvP and barracks_amount == 1)
-            or (self.bot.matchup in [Matchup.TvT, Matchup.TvR] and rax_60 >= 1)
-        )
+    def _release_scout(self):
+        self.scout_tag = None
+        self.engaged_worker_tag = None
 
-        zones: List[Expansion] = self._proxy_zones
-        extra_scout_points: List[Point2] = self._proxy_building_points(zones)
-
-        if (
-            not matchup_condition
-            or self.bot.expansions.b2.is_ready
-            or (
-                all(zone.is_fully_scouted for zone in zones)
-                and len(extra_scout_points) == 0
-            )
-        ):
-            self.scout_tag = None
-            self.engaged_worker_tag = None
-            return
-
-        # if we don't already have a scout assigned, we assign one
+    def _get_or_assign_scout(self) -> Optional[Unit]:
+        # keep the same scout across missions, so the worker rush watcher seamlessly becomes the proxy scout
         if (self.scout_tag is None):
             self.scout_tag = self.bot.workers.gathering.closest_to(self.bot.expansions.b2.position).tag
         if (self.scout is None):
             print("ERROR CAN'T FIND SCOUT !")
-            return
-        scout: Unit = self.scout
+            self._release_scout()
+        return self.scout
 
+    @property
+    def _rax_60_amount(self) -> int:
+        return self.bot.structures(UnitTypeId.BARRACKS).filter(lambda rax: rax.build_progress >= 0.60).amount
+
+    @property
+    def _worker_rush_watch_needed(self) -> bool:
+        """ From our first depot at 40% until our first barracks at 60%, watch the b2 entrance for an incoming worker rush. """
+        # TODO: filter on opponents known to worker rush once the defense is solid
+        depot_40: int = self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).filter(
+            lambda depot: depot.build_progress >= 0.40
+        ).amount
+        return depot_40 >= 1 and self._rax_60_amount == 0
+
+    def _proxy_scout_needed(self, zones: List[Expansion], extra_scout_points: List[Point2]) -> bool:
+        if (self.bot.matchup == Matchup.TvZ or self.bot.expansions.b2.is_ready):
+            return False
+        matchup_condition: bool = (
+            (self.bot.matchup == Matchup.TvP and self.bot.structures(UnitTypeId.BARRACKS).amount == 1)
+            or (self.bot.matchup in [Matchup.TvT, Matchup.TvR] and self._rax_60_amount >= 1)
+        )
+        if (not matchup_condition):
+            return False
+        return (
+            not all(zone.is_fully_scouted for zone in zones)
+            or len(extra_scout_points) > 0
+        )
+
+    def _watch_b2_entrance(self, scout: Unit):
+        """ Stand at the b2 entrance without engaging: the strategy handler detects the worker rush from the vision we provide. """
+        self.engaged_worker_tag = None
+        entrance: Point2 = self.bot.expansions.b2.bunker_forward.towards(self.bot.expansions.enemy_b2.position, 5)
+        if (scout.distance_to(entrance) > 1):
+            scout.move(entrance)
+
+    def _scout_proxy(self, scout: Unit, zones: List[Expansion], extra_scout_points: List[Point2]):
         if (self._engage_enemy_worker(scout, zones)):
             return
 
@@ -322,6 +324,37 @@ class Scouting:
 
         scout.move(target)
         print(f'[{self.bot.time.__round__(1)}] Scouting, {remaining} unscouted points left')
+
+    async def scout_proxy_and_cheese(self):
+        # CHEESE_WORKER_RUSH is excluded on purpose: once identified, the scout is released to defend
+        scout_needed_situations: List[Situation] = [
+            Situation.STABLE,
+            Situation.CHEESE_PROXY_BUILDINGS,
+            Situation.CHEESE_BUNKER_RUSH,
+            Situation.CHEESE_CANNON_RUSH,
+            Situation.CHEESE_UNKNOWN,
+            Situation.CHEESE_PROXY_RAX,
+        ]
+        if (self.situation not in scout_needed_situations):
+            self._release_scout()
+            return
+        if (self.scout_tag is None and self.bot.workers.gathering.amount == 0):
+            print("no worker available to scout o7")
+            return
+
+        zones: List[Expansion] = self._proxy_zones
+        extra_scout_points: List[Point2] = self._proxy_building_points(zones)
+
+        if (self._proxy_scout_needed(zones, extra_scout_points)):
+            scout: Optional[Unit] = self._get_or_assign_scout()
+            if (scout is not None):
+                self._scout_proxy(scout, zones, extra_scout_points)
+        elif (self._worker_rush_watch_needed):
+            scout: Optional[Unit] = self._get_or_assign_scout()
+            if (scout is not None):
+                self._watch_b2_entrance(scout)
+        else:
+            self._release_scout()
     
 def get_scouting(bot: Superbot) -> Scouting:
     global scouting

@@ -30,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.3.3"
+VERSION: str = "15.4.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -138,7 +138,7 @@ class WickedBot(Superbot):
             # await self.client.debug_all_resources()
             # await self.client.debug_show_map()
             await self.client.debug_control_enemy()
-            await self.client.debug_upgrade()
+            # await self.client.debug_upgrade()
             # await self.client.debug_create_unit([[UnitTypeId.REAPER, 3, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MARINE, 4, self.townhalls.random.position, 1]])
             # await self.client.debug_create_unit([[UnitTypeId.MEDIVAC, 1, self.townhalls.random.position, 1]])
@@ -273,7 +273,7 @@ class WickedBot(Superbot):
         await self.buildings.finish_construction()
         await self.builder.supply_depot.move_worker_first()
         await self.builder.command_center.move_worker_expand()
-        await self.scouting.scout_proxy()
+        await self.scouting.scout_proxy_and_cheese()
         profiler.mark('strategy')
 
         # Control buildings

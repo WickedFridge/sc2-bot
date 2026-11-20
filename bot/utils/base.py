@@ -170,7 +170,8 @@ class Base:
                 self.defend_worker_rush()
     
     def defend_worker_rush(self) -> None:
-        defend_worker_rush(self.bot)
+        return
+        # defend_worker_rush(self.bot)
              
     
     def defend_bunker_rush(self) -> None:

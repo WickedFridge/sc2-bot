@@ -20,9 +20,24 @@ class SupplyDepot(Building):
     
     @property
     @override
-    def force_position(self) -> bool:
-        return self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount < 2
+    def amount(self) -> int:
+        amount: int = (
+            self.bot.structures(self.unitId).ready.amount +
+            self.pending_amount
+        )
+        amount += self.bot.structures(UnitTypeId.SUPPLYDEPOTLOWERED).ready.amount
+
+        return amount
+
+    @property
+    def need_depot_wall(self) -> bool:
+        return self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH and self.amount < 3
     
+    @property
+    @override
+    def force_position(self) -> bool:
+        return self.amount < 2 or self.need_depot_wall
+ 
     @property
     def max_depots_pending(self) -> int:
         """Allow more simultaneous depots as the game progresses."""
@@ -39,6 +54,9 @@ class SupplyDepot(Building):
     @property
     @override
     def custom_conditions(self) -> bool:
+        if (self.need_depot_wall):
+            return True
+        
         SUPPLY_DEPOT: int = 8
         SUPPLY_CC: int = 15
         MAX_SUPPLY: int = 200
@@ -118,6 +136,8 @@ class SupplyDepot(Building):
             if (depots.closer_than(1, position).amount == 0):
                 return position
 
+        if (self.need_depot_wall):
+            return self.bot.main_base_ramp.depot_in_middle
         
         expansion: Expansion = self.bot.expansions.taken.ready.random
         if (not expansion):

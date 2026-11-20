@@ -187,7 +187,9 @@ class Macro:
             return
 
         worker_count: int = self.bot.supply_workers - self.bot.already_pending(UnitTypeId.SCV)
-        has_idle_workers: bool = self.bot.workers.idle.amount > 0
+        # the scout can be idle on purpose (e.g. watching the b2 entrance), don't send it back mining
+        idle_workers: Units = self.bot.workers.idle.filter(lambda worker: worker.tag != self.bot.scouting.scout_tag)
+        has_idle_workers: bool = idle_workers.amount > 0
         has_oversaturated_refinery: bool = self.bot.gas_buildings.filter(
             lambda refinery: refinery.assigned_harvesters >= 4
         ).amount > 0
@@ -288,7 +290,7 @@ class Macro:
             for expansion in expansions_list
             if (expansion.optimal_mineral_workers > 0 and expansion.mineral_fields.amount > 0)
         }
-        for idle_worker in self.bot.workers.idle:
+        for idle_worker in idle_workers:
             if (not expansion_virtual_capacity):
                 break
             best_position: Point2 = max(

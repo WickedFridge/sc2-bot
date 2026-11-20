@@ -25,7 +25,10 @@ class Barracks(Building):
     @property
     @override
     def force_position(self) -> bool:
-        return self.bot.structures(UnitTypeId.BARRACKS).amount == 0 or self.free_addon is not None
+        return (
+            self.free_addon is not None
+            or self.amount == 0 and self.bot.scouting.situation != Situation.CHEESE_WORKER_RUSH
+        )
 
     @custom_cache_once_per_frame
     def free_addon(self) -> Optional[Unit]:
