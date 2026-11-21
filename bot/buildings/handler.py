@@ -250,7 +250,7 @@ class BuildingsHandler:
             closest_expansion: Expansion = same_height_expansions.closest_to(position)
             return (
                 closest_expansion.position == self.bot.expansions.main.position
-                or closest_expansion.is_defended
+                or closest_expansion.has_defensive_structure
             )
 
         bunkers_in_constructions: Units = self.bot.structures(UnitTypeId.BUNKER).filter(lambda structure: structure.build_progress < 0.1)

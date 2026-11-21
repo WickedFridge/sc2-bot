@@ -218,16 +218,21 @@ class MicroUnit(CachedClass):
             return center([self.bot.expansions.last_taken.position, second_to_last_taken_expansion.position])
         
         # if one of our expand is getting harassed, choose this one
-        if (self.bot.enemy_units.amount >= 1):
+        # (units that can't hurt anything, like an overlord, don't count, but detected burrowed units must be cleaned)
+        enemy_fighting_units: Units = self.bot.enemy_units.filter(
+            lambda enemy: self.is_fighting_unit(enemy) or (enemy.is_burrowed and enemy.can_be_attacked)
+        )
+        if (enemy_fighting_units.amount >= 1):
             # select enemy harassing
-            enemy_units_harassing: Units = self.bot.enemy_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
+            enemy_units_harassing: Units = enemy_fighting_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
             if (enemy_units_harassing.amount >= 1):
                 return self.bot.expansions.taken.closest_to(enemy_units_harassing.center).retreat_position
-        
-        # if one of our expand is getting harassed by ghost units (probably Lurkers or burrowed Zerglings), choose this one
-        if (self.bot.ghost_units.assumed_enemy_units.amount >= 1):
+
+        # if one of our expand is getting harassed by ghost units (probably Lurkers), choose this one
+        enemy_fighting_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.filter(self.is_fighting_unit)
+        if (enemy_fighting_ghosts.amount >= 1):
             # select ghost of enemy harassing
-            enemy_ghosts_harassing: GhostUnits = self.bot.ghost_units.assumed_enemy_units.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
+            enemy_ghosts_harassing: GhostUnits = enemy_fighting_ghosts.in_distance_of_group(self.bot.expansions.taken.ccs, 15)
             if (enemy_ghosts_harassing.amount >= 1):
                 return self.bot.expansions.taken.closest_to(enemy_ghosts_harassing.center).retreat_position
 
@@ -511,23 +516,31 @@ class MicroUnit(CachedClass):
     async def retreat(self, unit: Unit, local_units: Units):
         if (self.bot.townhalls.amount == 0):
             return
+        await self.retreat_to(unit, local_units, self.retreat_position)
 
+    async def retreat_to(self, unit: Unit, local_units: Units, retreat_position: Point2, regroup: bool = True):
+        """
+        Moves back to the given position, shooting what's in range on the way.
+        With regroup, units too far from their army join it first.
+        """
         # attack changelings and stuff
         enemy_units_in_range: Units = self.bot.enemy_units.in_attack_range_of(unit)
-        attackable_enemy_units_in_range: Units = enemy_units_in_range.filter(lambda enemy: self.can_be_attacked(enemy, unit))
         if (enemy_units_in_range.amount >= 1):
+            attackable_enemy_units_in_range: Units = enemy_units_in_range.filter(lambda enemy: self.can_be_attacked(enemy, unit))
             # only shoot when the weapon is ready, otherwise keep running away
             if (attackable_enemy_units_in_range.amount >= 1 and unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
                 target: Unit = self.pick_best_target(attackable_enemy_units_in_range)
                 unit.attack(target)
                 return
-            safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, enemy_units_in_range.closest_to(unit))
-            unit.move(safest_spot)
-            return
-        
+            # don't run away from units that can't hurt us (undetected burrowed zergling...), or we never settle next to them
+            fighting_enemies_in_range: Units = enemy_units_in_range.filter(self.is_fighting_unit)
+            if (fighting_enemies_in_range.amount >= 1):
+                safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_away(unit, fighting_enemies_in_range.closest_to(unit))
+                unit.move(safest_spot)
+                return
+
         # Don't get in the way of flying townhalls
         flying_townhalls: Units = self.bot.structures({UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING}).closer_than(10, unit)
-        retreat_position: Point2 = self.retreat_position
         if (flying_townhalls.amount >= 1):
             townhall: Unit = flying_townhalls.closest_to(unit)
             landing_spot: Point2 = townhall.order_target if isinstance(townhall.order_target, Point2) else townhall.position
@@ -537,7 +550,7 @@ class MicroUnit(CachedClass):
             return
         if (unit.distance_to(retreat_position) < 5):
             return    
-        if (unit.distance_to(local_units.center) > 8):
+        if (regroup and unit.distance_to(local_units.center) > 8):
             unit.move(local_units.center)
         else:
             unit.move(retreat_position)

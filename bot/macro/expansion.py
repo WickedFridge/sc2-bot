@@ -2,7 +2,9 @@ from collections import deque
 from typing import List, Optional
 
 from bot.macro.map.map import MapData, get_map
+from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.army import Army
+from bot.utils.unit_supply import weighted_units_supply
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
 from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line, same_height_points_around
@@ -11,6 +13,7 @@ from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.game_info import Ramp
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
@@ -23,6 +26,13 @@ class Expansion(CachedClass):
     position: Point2
     distance_from_main: float
     radius: int = 12
+    # A base with a bunker is defended once it has this many defenders (bunker passengers + units around)
+    MIN_DEFENDERS: int = 4
+    # Our units closer than this to the base (or to its defensive structure) defend it
+    GARRISON_RADIUS: float = 12
+    STRUCTURE_GARRISON_RADIUS: float = 6
+    # Units closer than this to the base are considered on site
+    PRESENCE_RADIUS: float = 15
     last_scouted: float = 0
     _potentially_enemy: bool = False
     _unscouted_candidates: Optional[List[Point2]] = None
@@ -309,11 +319,83 @@ class Expansion(CachedClass):
         return resources.center
 
     @custom_cache_once_per_frame
-    def is_defended(self) -> bool:
+    def has_defensive_structure(self) -> bool:
         defenses: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready
         if (defenses.amount == 0):
             return False
         return (defenses.closest_distance_to(self.position) <= 12)
+
+    @custom_cache_once_per_frame
+    def is_defended(self) -> bool:
+        """Has a PF, or enough defenders (bunker passengers + units around)"""
+        return self.is_defended_without(None)
+
+    def is_defended_without(self, unit: Optional[Unit]) -> bool:
+        """Same as is_defended, without counting the given unit (so a defender doesn't leave a base that needs it)"""
+        structure: Optional[Unit] = self.defending_structure
+        if (structure is not None and structure.type_id == UnitTypeId.PLANETARYFORTRESS):
+            return True
+        passengers: int = len(structure.passengers) if structure is not None else 0
+        defenders: Units = self.defenders if unit is None else self.defenders.tags_not_in({unit.tag})
+        return defenders.amount + passengers >= self.MIN_DEFENDERS
+
+    @custom_cache_once_per_frame
+    def needs_defense(self) -> bool:
+        """
+        Bases to garrison: the ones with a defensive structure (a pending bunker counts: its builder
+        needs protection and it will be filled as soon as it's done), or with a detected burrowed unit to clean
+        """
+        return self.has_defensive_structure or self.has_pending_bunker or self.has_burrowed_enemy
+
+    @custom_cache_once_per_frame
+    def has_pending_bunker(self) -> bool:
+        """A bunker is in construction, or a worker is on its way to build one"""
+        positions: List[Point2] = [bunker.position for bunker in self.bot.structures(UnitTypeId.BUNKER).not_ready]
+        for worker in self.bot.workers:
+            for order in worker.orders:
+                if (order.ability.id == AbilityId.TERRANBUILD_BUNKER and isinstance(order.target, Point2)):
+                    positions.append(order.target)
+        return any(position.distance_to(self.position) <= 12 for position in positions)
+
+    @custom_cache_once_per_frame
+    def has_burrowed_enemy(self) -> bool:
+        """A detected burrowed enemy is around (typically a zergling preventing the CC from landing)"""
+        return self.bot.enemy_units.closer_than(self.GARRISON_RADIUS, self.position).filter(
+            lambda unit: unit.is_burrowed and unit.can_be_attacked
+        ).amount >= 1
+
+    @custom_cache_once_per_frame
+    def defenders(self) -> Units:
+        """Our fighting units around the base or its defensive structure (bunker passengers aren't included)"""
+        structure: Optional[Unit] = self.defending_structure
+        return self.bot.units.filter(
+            lambda unit: (
+                unit.type_id not in worker_types
+                and unit.type_id != UnitTypeId.MEDIVAC
+                and (unit.can_attack or unit.type_id in menacing)
+                and (
+                    unit.distance_to(self.position) <= self.GARRISON_RADIUS
+                    or (structure is not None and unit.distance_to(structure) <= self.STRUCTURE_GARRISON_RADIUS)
+                )
+            )
+        )
+
+    @custom_cache_once_per_frame
+    def local_units(self) -> Units:
+        """All our units around the base"""
+        return self.bot.units.closer_than(self.PRESENCE_RADIUS, self.position)
+
+    @custom_cache_once_per_frame
+    def local_enemy_supply(self) -> float:
+        """
+        Weighted supply of the enemies able to fight around the base, last known positions included.
+        Units that can't hurt anything (burrowed zergling, overlord...) don't count.
+        """
+        def is_fighting(unit: Unit | GhostUnit) -> bool:
+            return unit.can_attack or unit.type_id in menacing
+        local_enemies: Units = self.bot.enemy_units.closer_than(self.PRESENCE_RADIUS, self.position).filter(is_fighting)
+        local_enemy_ghosts: GhostUnits = self.bot.ghost_units.assumed_enemy_units.closer_than(self.PRESENCE_RADIUS, self.position).filter(is_fighting)
+        return weighted_units_supply(local_enemies) + weighted_units_supply(local_enemy_ghosts)
     
     @custom_cache_once_per_frame
     def detects(self) -> bool:
@@ -326,7 +408,7 @@ class Expansion(CachedClass):
     def retreat_position(self) -> Point2:
         if (self.is_main):
             return self.bot.main_base_ramp.barracks_correct_placement
-        if (self.is_defended and self.mineral_fields.amount >= 1):
+        if (self.has_defensive_structure and self.mineral_fields.amount >= 1):
             close_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).ready.closer_than(12, self.position)
             if (close_bunkers.amount > 1):
                 return close_bunkers.center.towards(self.position, 0.5)
@@ -405,7 +487,7 @@ class Expansion(CachedClass):
     
     @custom_cache_once_per_frame
     def defending_structure(self) -> Optional[Unit]:
-        if (self.is_defended == False):
+        if (self.has_defensive_structure == False):
             return None
         return self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready.closest_to(self.position)
     

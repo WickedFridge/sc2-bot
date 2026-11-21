@@ -183,7 +183,7 @@ class Debug:
     async def bases_bunkers(self):
         for expansion in self.bot.expansions.taken:
             below_expansion_point: Point2 = Point2((expansion.position.x, expansion.position.y - 0.5))
-            self.draw_text_on_world(expansion.position, f'defended [{expansion.is_defended}]', LIGHTBLUE)
+            self.draw_text_on_world(expansion.position, f'defensive structure [{expansion.has_defensive_structure}] defended [{expansion.is_defended}]', LIGHTBLUE)
             defending_bunker: Unit = expansion.defending_structure
             if (defending_bunker):
                 self.draw_text_on_world(below_expansion_point, f'[{defending_bunker.position}]', GREEN)
@@ -498,7 +498,7 @@ class Debug:
             self.draw_text_on_world(unit.position, f'Addon Pos: {position}', ORANGE)
 
     async def bunker_positions(self):
-        for expansion in self.bot.expansions.not_defended:
+        for expansion in self.bot.expansions.without_defensive_structure:
             bunker_position: Point2 = expansion.bunker_position
             self.draw_grid_on_world(bunker_position, 3, "Bunker")
             

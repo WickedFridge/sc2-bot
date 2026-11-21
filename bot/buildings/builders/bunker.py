@@ -84,7 +84,7 @@ class Bunker(Building):
                 self.bot.expansions.taken.amount == 1
                 or (
                     self.bot.expansions.taken.amount == 2
-                    and not self.bot.expansions.b2.is_defended
+                    and not self.bot.expansions.b2.has_defensive_structure
                 )
             )
         ):
@@ -117,7 +117,7 @@ class Bunker(Building):
         # if there's already a bunker finished at the natural and we're on b2, additional bunkers should go on the natural
         if (
             self.bot.expansions.taken.amount == 2
-            and self.bot.expansions.b2.is_defended
+            and self.bot.expansions.b2.has_defensive_structure
         ):
             return self.bot.expansions.b2.bunker_position
 

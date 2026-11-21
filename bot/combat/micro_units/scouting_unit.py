@@ -68,7 +68,7 @@ class MicroScoutingUnit(MicroUnit):
 
     def needs_scouting(self, base: Expansion) -> bool:
         # enemy bases: seeing the spot or a building next to it is enough to move on
-        if (base in self.enemy_bases_to_scout.expansions):
+        if (base in self.enemy_bases_to_scout.expansions and base != self.bot.expansions.enemy_main):
             return not base.is_scouted and not base.has_enemy_buildings_around
         # other bases must be fully scouted
         return not base.is_fully_scouted

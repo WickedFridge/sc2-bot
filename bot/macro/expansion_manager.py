@@ -139,6 +139,14 @@ class Expansions(CachedClass):
         return self.filter(lambda expansion: expansion.is_free == True)
 
     @custom_cache_once_per_frame
+    def with_defensive_structure(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.has_defensive_structure == True)
+
+    @custom_cache_once_per_frame
+    def without_defensive_structure(self) -> Expansions:
+        return self.filter(lambda expansion: expansion.has_defensive_structure == False)
+
+    @custom_cache_once_per_frame
     def defended(self) -> Expansions:
         return self.filter(lambda expansion: expansion.is_defended == True)
     

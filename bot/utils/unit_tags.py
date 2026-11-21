@@ -57,7 +57,6 @@ menacing: List[UnitTypeId] = [
     UnitTypeId.BANELING,
     UnitTypeId.BANELINGCOCOON,
     UnitTypeId.BANELINGBURROWED,
-    UnitTypeId.ZERGLINGBURROWED,
     UnitTypeId.ROACHBURROWED,
     UnitTypeId.RAVAGERCOCOON,
     UnitTypeId.LURKERMPEGG,
@@ -185,7 +184,7 @@ cloaked_units: List[UnitTypeId] = [
     # UnitTypeId.OBSERVER,
     # UnitTypeId.OBSERVERSIEGEMODE,
     UnitTypeId.DARKTEMPLAR,
-    UnitTypeId.MOTHERSHIP,
+    # UnitTypeId.MOTHERSHIP,
     # These shouldn't trigger detection but turrets so it's the same response
     UnitTypeId.MUTALISK,
 ]
