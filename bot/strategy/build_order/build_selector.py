@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import math
 import random
 from typing import TYPE_CHECKING, Dict, List, Type
+from bot.analytics.decisions import Decision, opening
 from bot.analytics.match_history import MatchHistory
 from bot.analytics.match_record import RESULT_CRASH, MatchRecord
 from bot.utils.matchup import Matchup
@@ -84,30 +85,34 @@ class BuildSelector:
         map_name: str,
     ) -> Type[BuildOrder]:
         names: List[str] = [candidate.name.name for candidate in candidates]
-        matches: List[MatchRecord] = [
-            match for match in self.history.load()
+        # the opening is credited with the result of the whole match, reactions included
+        openings: List[Decision] = []
+        for match in self.history.load():
+            decision: Decision | None = opening(match)
             if (
-                match.source == self.source
+                decision is not None
+                and decision.build in names
+                and match.source == self.source
                 and match.matchup == matchup.name
-                and match.starting_build in names
                 and self.match_score(match) is not None
-            )
-        ]
+            ):
+                openings.append(decision)
         # weighted scores of each build, by (same opponent, same map)
         scores: Dict[str, Dict[tuple[bool, bool], BuildScore]] = {
             name: {key: BuildScore() for key in SIMILARITY} for name in names
         }
         recency: float = 1.0
         # the history is appended chronologically : most recent matches are last
-        for match in reversed(matches):
+        for decision in reversed(openings):
+            match: MatchRecord = decision.match
             score: float | None = self.match_score(match)
-            assert match.starting_build is not None and score is not None
+            assert score is not None
             key: tuple[bool, bool] = (match.opponent_id == opponent_id, match.map == map_name)
             weight: float = SIMILARITY[key]
             if (key[0]):
                 weight *= recency
                 recency *= DECAY
-            scores[match.starting_build][key].add(score, weight)
+            scores[decision.build][key].add(score, weight)
 
         print(f"[BuildSelector] {matchup.name} vs {opponent_id} on {map_name}")
         best_candidate: Type[BuildOrder] = candidates[0]

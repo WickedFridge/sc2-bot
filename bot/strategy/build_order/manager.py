@@ -97,11 +97,12 @@ class BuildOrderManager:
             print(f"[BuildOrderManager] Build selection failed, picking a random build: {e}")
             return random.choice(candidates)
 
-    async def switch_build(self, new_build_order: BuildOrder) -> None:
-        print(f"[BuildOrderManager] Switching {self.build.name.value} order to {new_build_order.name.value}")
+    async def switch_build(self, new_build_order: BuildOrder, trigger: str) -> None:
+        """trigger: why we switch, a Situation name or TRIGGER_DEBUG. Recorded to learn which reactions work."""
+        print(f"[BuildOrderManager] Switching {self.build.name.value} order to {new_build_order.name.value} ({trigger})")
         previous_swap_plans = self.build.swap_plans
         self.build = new_build_order
-        self.wicked.analytics.record_build_switch(new_build_order.name.name, self.bot.time)
+        self.wicked.analytics.record_build_switch(new_build_order.name.name, self.bot.time, trigger)
         await self.announce_build()
         self.build.reconcile(previous_swap_plans)
 

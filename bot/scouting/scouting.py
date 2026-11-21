@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING, Optional
+from bot.analytics.opponent_profile import OpponentProfile
 from bot.macro.expansion import Expansion
 from bot.strategy.strategy_types import Situation
 from bot.utils.army import Army
@@ -66,6 +67,7 @@ class Scouting:
     scout_tag: int | None
     engaged_worker_tag: int | None
     engaged_min_distance: float
+    opponent_profile: OpponentProfile
 
     # radius around a scouted zone within which an enemy building or worker is considered suspicious
     PROXY_SEARCH_RADIUS: int = 25
@@ -82,7 +84,9 @@ class Scouting:
         self.scout_tag = None
         self.engaged_worker_tag = None
         self.engaged_min_distance = 0
-    
+        # unknown until the match history is loaded: be cautious
+        self.opponent_profile = OpponentProfile()
+
     @property
     def enemy_composition(self) -> dict[UnitTypeId, float]:
         enemy_composition: dict[UnitTypeId, float] = {}
@@ -284,8 +288,12 @@ class Scouting:
 
     @property
     def _worker_rush_watch_needed(self) -> bool:
-        """ From our first depot at 40% until our first barracks at 60%, watch the b2 entrance for an incoming worker rush. """
-        # TODO: filter on opponents known to worker rush once the defense is solid
+        """
+        From our first depot at 40% until our first barracks at 60%, watch the b2 entrance for an incoming worker rush.
+        Only against opponents that already worker rushed us, or that we never played.
+        """
+        if (not self.opponent_profile.may_do(Situation.CHEESE_WORKER_RUSH)):
+            return False
         depot_40: int = self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).filter(
             lambda depot: depot.build_progress >= 0.40
         ).amount
@@ -308,7 +316,7 @@ class Scouting:
     def _watch_b2_entrance(self, scout: Unit):
         """ Stand at the b2 entrance without engaging: the strategy handler detects the worker rush from the vision we provide. """
         self.engaged_worker_tag = None
-        entrance: Point2 = self.bot.expansions.b2.bunker_forward.towards(self.bot.expansions.enemy_b2.position, 5)
+        entrance: Point2 = self.bot.expansions.b2.bunker_forward.towards(self.bot.game_info.map_center, 3)
         if (scout.distance_to(entrance) > 1):
             scout.move(entrance)
 

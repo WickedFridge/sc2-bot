@@ -2,6 +2,7 @@ import math
 from typing import List, Optional, Set
 
 import numpy as np
+from bot.analytics.match_record import TRIGGER_DEBUG
 from bot.army_composition.composition import Composition
 from bot.macro.expansion_manager import Expansions
 from bot.scouting.ghost_units.ghost_units import GhostUnits
@@ -627,24 +628,26 @@ class Debug:
             print(f'Unknown build order: {build} !')
             return
         print(f'Switching to {build_order_name} !')
+        new_build: BuildOrder | None = None
         match (build_order_name):
             case BuildOrderName.TEST:
-                await self.bot.build_order.switch_build(CycloneTankTest(self.bot))
+                new_build = CycloneTankTest(self.bot)
             case BuildOrderName.KOKA_BUILD:
-                await self.bot.build_order.switch_build(KokaBuild(self.bot))
+                new_build = KokaBuild(self.bot)
             case BuildOrderName.DEFENSIVE_CYCLONE:
-                await self.bot.build_order.switch_build(DefensiveCyclone(self.bot))
+                new_build = DefensiveCyclone(self.bot)
             case BuildOrderName.DEFENSIVE_CYCLONE_TANK:
-                await self.bot.build_order.switch_build(DefensiveCycloneTank(self.bot))
+                new_build = DefensiveCycloneTank(self.bot)
             case BuildOrderName.CYCLONE_TANK_3RAX:
-                await self.bot.build_order.switch_build(CycloneTank3Rax(self.bot))
+                new_build = CycloneTank3Rax(self.bot)
             case BuildOrderName.CONSERVATIVE_RAX_EXPAND:
-                await self.bot.build_order.switch_build(ConservativeRaxExpand(self.bot))
+                new_build = ConservativeRaxExpand(self.bot)
             case BuildOrderName.DEFENSIVE_MISTRAL_211:
-                await self.bot.build_order.switch_build(DefensiveMistral211(self.bot))
-
+                new_build = DefensiveMistral211(self.bot)
             case _:
                 print(f'switch to {build_order_name} not implemented')
+        if (new_build is not None):
+            await self.bot.build_order.switch_build(new_build, TRIGGER_DEBUG)
     
     async def spawn_orbitals(self):
         expansions_amount: int = self.bot.expansions.amount

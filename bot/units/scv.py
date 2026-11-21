@@ -61,6 +61,8 @@ class Scv(Train):
     @property
     @override
     def custom_conditions(self) -> bool:
+        if (self.bot.scouting.situation == Situation.CHEESE_WORKER_RUSH and self.bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount < 3):
+            return False
         return self.scv_amount < self.max_amount
     
     @property

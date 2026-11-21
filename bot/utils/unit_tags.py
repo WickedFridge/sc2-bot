@@ -279,13 +279,11 @@ anti_air: List[UnitTypeId] = [
     # Terran
     UnitTypeId.VIKINGFIGHTER,
     UnitTypeId.CYCLONE,
-    UnitTypeId.THORAP,
     # Zerg
     UnitTypeId.CORRUPTOR,
     UnitTypeId.MUTALISK,
     # Protoss
     UnitTypeId.PHOENIX,
-    UnitTypeId.TEMPEST,
 ]
 
 massive_flyers: List[UnitTypeId] = [

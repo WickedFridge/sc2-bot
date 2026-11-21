@@ -30,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.4.0"
+VERSION: str = "15.4.3"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -224,6 +224,7 @@ class WickedBot(Superbot):
             self.build_order.select_build(self.matchup)
             await self.tag_game()
             self.analytics.start_match()
+            self.scouting.opponent_profile = self.analytics.opponent_profile()
             await self.analytics.announce_stats()
             if (not self.is_ladder):
                 await self.debug_setup()
@@ -258,6 +259,7 @@ class WickedBot(Superbot):
         self.scouting.detect_enemy_buildings()
         await self.scouting.detect_enemy_upgrades()
         await self.strategy.update_situation()
+        self.analytics.record_situation()
         await self.macro.update_threat_level()
         self.composition_manager.update_composition()
         self.composition_manager.log_composition()

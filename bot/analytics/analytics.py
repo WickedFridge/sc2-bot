@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 from typing import Dict, List
+from bot.analytics.decisions import Decision, has_reacted, opening
 from bot.analytics.match_history import MatchHistory
-from bot.analytics.match_record import RESULT_CRASH, BuildUsage, MatchRecord
+from bot.analytics.match_record import RESULT_CRASH, BuildUsage, CheeseDetection, MatchRecord
+from bot.analytics.opponent_profile import OpponentProfile
 from bot.strategy.build_order.bo_names import BuildOrderName
+from bot.strategy.strategy_types import Situation
 from bot.superbot import Superbot
 from bot.utils.matchup import Matchup
 from sc2.data import Race, Result
@@ -47,6 +50,7 @@ class Analytics:
                 map=self.bot.game_info.map_name,
                 matchup=self.bot.matchup.name,
                 builds=[BuildUsage(self.bot.build_order.build.name.name, self.bot.time)],
+                cheeses=[],
             )
             self.history.save_current(self.record)
         except Exception as e:
@@ -64,14 +68,41 @@ class Analytics:
         except Exception as e:
             print(f"[Analytics] recover_crashed_match failed: {e}")
 
-    def record_build_switch(self, build_name: str, time: float) -> None:
+    def record_build_switch(self, build_name: str, time: float, trigger: str) -> None:
         if (self.record is None):
             return
         try:
-            self.record.builds.append(BuildUsage(build_name, time))
+            self.record.builds.append(BuildUsage(build_name, time, trigger))
             self.history.save_current(self.record)
         except Exception as e:
             print(f"[Analytics] record_build_switch failed: {e}")
+
+    def record_situation(self) -> None:
+        """Records each cheese the first time it's detected. Called every frame: no disk write unless a new cheese shows up."""
+        situation: Situation = self.bot.scouting.situation
+        if (self.record is None or self.record.cheeses is None or not situation.is_cheese):
+            return
+        if (any(cheese.name == situation.name for cheese in self.record.cheeses)):
+            return
+        try:
+            self.record.cheeses.append(CheeseDetection(situation.name, round(self.bot.time, 1)))
+            self.history.save_current(self.record)
+        except Exception as e:
+            print(f"[Analytics] record_situation failed: {e}")
+
+    def opponent_profile(self) -> OpponentProfile:
+        try:
+            opponent_id: str = str(self.bot.opponent_id)
+            matches: List[MatchRecord] = [
+                match for match in self.history.load()
+                if (match.source == self.source and match.opponent_id == opponent_id)
+            ]
+            profile: OpponentProfile = OpponentProfile.from_matches(matches)
+            print(f"[Analytics] {profile} vs {opponent_id}")
+            return profile
+        except Exception as e:
+            print(f"[Analytics] opponent_profile failed, assuming an unknown opponent: {e}")
+            return OpponentProfile()
 
     def update_opponent_race(self, matchup: Matchup) -> None:
         if (self.record is None):
@@ -109,43 +140,52 @@ class Analytics:
         map_name: str = self.bot.game_info.map_name
         # builds that can't be selected in this matchup are not worth announcing
         playable_builds: List[str] = [build.name.name for build in self.bot.build_order.candidates(matchup)]
-        matches: List[MatchRecord] = [
-            match for match in self.history.load()
+        openings: List[Decision] = []
+        for match in self.history.load():
+            decision: Decision | None = opening(match)
             if (
-                match.source == self.source
+                decision is not None
+                and decision.build in playable_builds
+                and match.source == self.source
                 and match.result in (Result.Victory.name, Result.Defeat.name)
-                and match.starting_build in playable_builds
                 # random opponents: their race isn't known yet, so every matchup counts
                 and (matchup == Matchup.TvR or match.matchup == matchup.name)
-            )
+            ):
+                openings.append(decision)
+        opponent_openings: List[Decision] = [decision for decision in openings if decision.match.opponent_id == opponent_id]
+        map_openings: List[Decision] = [
+            decision for decision in openings
+            if (decision.match.opponent_id != opponent_id and decision.match.map == map_name)
         ]
-        opponent_matches: List[MatchRecord] = [match for match in matches if match.opponent_id == opponent_id]
-        map_matches: List[MatchRecord] = [
-            match for match in matches
-            if (match.opponent_id != opponent_id and match.map == map_name)
-        ]
-        if (len(opponent_matches) == 0 and len(map_matches) == 0):
+        if (len(opponent_openings) == 0 and len(map_openings) == 0):
             return ["Stats : no known match against this opponent or on this map"]
 
-        opponent_scores: Dict[str, List[int]] = self.scores_by_build(opponent_matches)
-        map_scores: Dict[str, List[int]] = self.scores_by_build(map_matches)
+        opponent_scores: Dict[str, List[int]] = self.scores_by_build(opponent_openings)
+        # an opening that only wins after a switch probably misses a scout: starting with the reaction may be better
+        reacted_scores: Dict[str, List[int]] = self.scores_by_build(
+            [decision for decision in opponent_openings if has_reacted(decision.match)]
+        )
+        map_scores: Dict[str, List[int]] = self.scores_by_build(map_openings)
         messages: List[str] = [
-            f"Stats vs {opponent_id} ({matchup}) : W-L vs this opponent (W-L vs others on {map_name})"
+            f"Stats vs {opponent_id} ({matchup}) : W-L vs this opponent [of which after a switch] (W-L vs others on {map_name})"
         ]
         # builds played against this opponent first
         builds: List[str] = list(opponent_scores) + [build for build in map_scores if build not in opponent_scores]
         for build in builds:
             wins, losses = opponent_scores.get(build, [0, 0])
+            reacted_wins, reacted_losses = reacted_scores.get(build, [0, 0])
             map_wins, map_losses = map_scores.get(build, [0, 0])
-            messages.append(f"{self.display_name(build)} : {wins}-{losses} ({map_wins}-{map_losses})")
+            messages.append(
+                f"{self.display_name(build)} : {wins}-{losses} [{reacted_wins}-{reacted_losses}] ({map_wins}-{map_losses})"
+            )
         return messages
 
-    def scores_by_build(self, matches: List[MatchRecord]) -> Dict[str, List[int]]:
-        """[wins, losses] of each starting build"""
+    def scores_by_build(self, openings: List[Decision]) -> Dict[str, List[int]]:
+        """[wins, losses] of each opening build"""
         scores: Dict[str, List[int]] = {}
-        for match in matches:
-            score: List[int] = scores.setdefault(match.starting_build or "Unknown", [0, 0])
-            score[0 if match.result == Result.Victory.name else 1] += 1
+        for decision in openings:
+            score: List[int] = scores.setdefault(decision.build, [0, 0])
+            score[0 if decision.match.result == Result.Victory.name else 1] += 1
         return scores
 
     def display_name(self, build: str) -> str:

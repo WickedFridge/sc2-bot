@@ -52,15 +52,15 @@ class Situation(enum.Enum):
             Situation.CHEESE_LING_DRONE,
             Situation.CHEESE_LING_FLOOD,
             Situation.CHEESE_WORKER_RUSH,
+            Situation.CHEESE_REAPER_RUSH,
             Situation.CHEESE_ROACH_RUSH,
             Situation.CHEESE_MASS_MARINES,
             Situation.CHEESE_3_GATES,
             Situation.CHEESE_1_1_1,
             Situation.CHEESE_SKYTOSS,
-            Situation.CHEESE_PROXY_RAX,
-            Situation.CHEESE_REAPER_RUSH,
-            Situation.CHEESE_IMMORTAL_BUST,
             Situation.CHEESE_BATTLECRUISER,
+            Situation.CHEESE_PROXY_RAX,
+            Situation.CHEESE_IMMORTAL_BUST,
             Situation.CHEESE_UNKNOWN,
         ]
 
