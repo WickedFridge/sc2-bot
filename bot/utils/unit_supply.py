@@ -1,5 +1,6 @@
 import math
 from bot.scouting.ghost_units.ghost_units import GhostUnits
+from sc2.ids.buff_id import BuffId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.units import Units
 
@@ -165,7 +166,11 @@ def weighted_units_supply(units: Units | GhostUnits, are_passengers: bool = Fals
         energy_percentage: float = unit.energy_percentage if energy_known else 1
         energy_ratio: float = 0.5 + (1 - math.cos(math.pi * energy_percentage)) / 2
         if (unit.can_attack or unit.energy_max == 0):
-            army_supply += get_unit_value(unit) * health_ratio
+            unit_value: float = get_unit_value(unit) * health_ratio
+            # passengers (PassengerUnit protos) have no buff_ids
+            if (not are_passengers and (unit.has_buff(BuffId.STIMPACK) or unit.has_buff(BuffId.STIMPACKMARAUDER))):
+                unit_value *= 1.5
+            army_supply += unit_value
         else:
             army_supply += get_unit_value(unit) * energy_ratio
     return army_supply

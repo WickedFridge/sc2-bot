@@ -30,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.5.0"
+VERSION: str = "15.6.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -196,6 +196,7 @@ class WickedBot(Superbot):
         await self.combat.debug_drop_target()
         await self.debug.chat_commands()
         await self.debug.build_order()
+        self.debug.build_order_trace()  # TEMP: concussive / factory investigation
         self.debug.composition_manager()
         self.debug.composition_priorities()
         self.debug.search_priorities()

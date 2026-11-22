@@ -461,6 +461,13 @@ class BuildOrder(CachedClass):
         for step in self.steps:
             if not (step.is_satisfied and step.step_id in reactors + techlabs):
                 continue
+            # A step can look satisfied only through equivalences while its own
+            # prerequisites are not met (ex: 'Starport Reactor' x2 counted from the
+            # Barracks + Factory reactors while the Starport techlab step is still
+            # pending). The build hasn't reached it yet: it is not a target addon,
+            # otherwise reconcile() routes a reactor to the Starport too early.
+            if (not step.requirements_met):
+                continue
             equivalent_types: List[UnitTypeId] = [step.step_id] + self.equivalences.get(step.step_id, [])
             matched_type: Optional[UnitTypeId] = next(
                 (

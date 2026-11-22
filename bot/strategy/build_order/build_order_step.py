@@ -8,8 +8,10 @@ from sc2.ids.upgrade_id import UpgradeId
 
 if TYPE_CHECKING:
     from bot.strategy.build_order.build_order import BuildOrder
+    from bot.superbot import Superbot
 
 class BuildOrderStep(CachedClass):
+    bot: Superbot
     build_order: BuildOrder
     name: str
     step_id: UnitTypeId | UpgradeId
@@ -58,17 +60,23 @@ class BuildOrderStep(CachedClass):
     @property
     def current_amount(self) -> int:
         if (isinstance(self.step_id, UpgradeId)):
-            return self.bot.already_pending_upgrade(self.step_id) > 0
+            return int(self.bot.upgrade_started(self.step_id))
         return self.build_order.unit_amount(self.step_id)
 
     @custom_cache_once_per_frame
     def is_satisfied(self) -> bool:
         return self.current_amount >= self.target_count
     
+    @property
+    def requirements_met(self) -> bool:
+        """True if every (unit type, amount, completed) requirement of the step is fulfilled."""
+        for unit_type, amount_required, completed in self.requirements:
+            if (self.build_order.unit_amount(unit_type, include_pending=not completed) < amount_required):
+                return False
+        return True
+
     def is_available_debug(self) -> tuple[bool, str]:
-        # if (self.is_satisfied):
-        #     return True, ''
-        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
+        if (isinstance(self.step_id, UnitTypeId) and self.bot.tech_requirement_progress(self.step_id) < 1.0):
             return False, f'(tech requirement not ready)'
         if (self.bot.townhalls.amount < self.townhalls):
             return False, f'(not enough townhalls)'
@@ -87,13 +95,13 @@ class BuildOrderStep(CachedClass):
             if (produced_count < amount_required):
                 return False, f'(not enough {unit_type} produced ({produced_count}/{amount_required}))'
         for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) == 0):
+            if (not self.bot.upgrade_started(upgrade)):
                 return False, f'(upgrade {upgrade} not started)'
         return True, ''
     
     @property
     def is_available(self) -> bool:
-        if (self.bot.tech_requirement_progress(self.step_id) < 1.0):
+        if (isinstance(self.step_id, UnitTypeId) and self.bot.tech_requirement_progress(self.step_id) < 1.0):
             return False
         if (self.bot.supply_used < self.supply):
             return False
@@ -111,6 +119,6 @@ class BuildOrderStep(CachedClass):
             if (self.bot.units_produced(unit_type) < amount_required):
                 return False
         for upgrade in self.upgrades_required:
-            if (self.bot.already_pending_upgrade(upgrade) == 0):
+            if (not self.bot.upgrade_started(upgrade)):
                 return False
         return True

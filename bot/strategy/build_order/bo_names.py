@@ -18,9 +18,10 @@ class BuildOrderName(enum.Enum):
     GREEDY_2_2_TIMING = 'Greedy_3CC_2/2_Timing'
     CYCLONE_3_RAVEN = 'Cyclone_3_Ravens'
     BANSHEESEBURGER = 'Bansheeseburger'
-    BANSHEE_CLOAK_3CC = "Banshee Cloak 3CC"
-    BANSHEE_CLOAK_MARINE_TANK = "Banshee Cloak Marine Tank"
-    THREECC_5RAX_PLUS_1 = "3CC 5Rax +1"
+    BANSHEE_CLOAK_3CC = "Banshee_Cloak_3CC"
+    BANSHEE_CLOAK_MARINE_TANK = "Banshee_Cloak_Marine_Tank"
+    THREECC_5RAX_PLUS_1 = "3CC_5Rax_plus1"
+    MACRO_CONCUSSIVE = "Macro Concussive"
 
 for item in BuildOrderName:
     globals()[item.name] = item

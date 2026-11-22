@@ -46,7 +46,7 @@ class ArmyCompositionManager(CachedClass):
         unlocks: dict[UnitTypeId, List[UnitTypeId|UpgradeId]] = {
             UnitTypeId.REAPER: [UnitTypeId.BARRACKS],
             UnitTypeId.MARINE: [UnitTypeId.BARRACKS],
-            UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS, UpgradeId.STIMPACK],
+            UnitTypeId.MARAUDER: [UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.GHOST: [UnitTypeId.GHOSTACADEMY, UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKS],
             UnitTypeId.HELLION: [UnitTypeId.FACTORY],
             UnitTypeId.CYCLONE: [UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORY],
@@ -215,13 +215,15 @@ class ArmyCompositionManager(CachedClass):
             Matchup.TvR: 0,
         }
         default_ratio: float = default_marauder_ratio[self.wicked.matchup]
+        is_precarious: bool = self.wicked.scouting.situation in precarious_situations
+
+        # no marauders before stim unless we're in danger (build orders can still override through their composition)
+        if (self.bot.already_pending(UpgradeId.STIMPACK) == 0 and not is_precarious):
+            return 0
 
         if (self.wicked.scouting.known_enemy_army.supply < 10):
             # default is 0 if we can't make medivacs yet and we're not in a precarious situation
-            if (
-                UnitTypeId.MEDIVAC not in self.available_units
-                and self.wicked.scouting.situation not in precarious_situations
-            ):
+            if (UnitTypeId.MEDIVAC not in self.available_units and not is_precarious):
                 return 0
             return default_ratio
         return min(max_marauder_ratio, max(default_ratio, self.wicked.scouting.known_enemy_army.armored_ground_ratio))
@@ -294,8 +296,8 @@ class ArmyCompositionManager(CachedClass):
             marauder_count: int = marauder_supply // 2
             MAX_MARAUDER_COUNT: int = (
                 6 if self.bot.matchup == Matchup.TvT else
-                12 if self.bot.matchup == Matchup.TvZ else
-                15
+                15 if self.bot.matchup == Matchup.TvZ else
+                18
             )
             
             # TvT is a special case: the cap always applies, regardless of Ghost availability
@@ -308,7 +310,6 @@ class ArmyCompositionManager(CachedClass):
                 or UnitTypeId.TEMPEST in self.wicked.scouting.known_enemy_composition
             ):
                 marauder_count = round(marauder_count * 0.75)
-            
             
             composition.add(UnitTypeId.MARAUDER, marauder_count)
         
@@ -385,7 +386,11 @@ class ArmyCompositionManager(CachedClass):
                 or self.bot.vespene >= 300
             )
         ):
-            composition.fill(UnitTypeId.GHOST)
+            if (self.bot.matchup == Matchup.TvP):
+                composition.fill(UnitTypeId.GHOST, max=8)
+                composition.fill(UnitTypeId.MARINE)
+            else:
+                composition.fill(UnitTypeId.GHOST)
         else:
             composition.fill(UnitTypeId.MARINE)
         return composition

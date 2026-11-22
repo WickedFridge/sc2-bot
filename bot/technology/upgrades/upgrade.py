@@ -117,8 +117,8 @@ class Upgrade(CachedClass):
                 resources_updated.minerals.short = False
             return resources_updated
         
-        print("Search", self.name)
         building: Unit = self.bot.structures(self.building).ready.idle.random
+        print(f"Search {self.name} ({building.type_id.name})")
         if (self.is_ability):
             building(self.ability)
         else:

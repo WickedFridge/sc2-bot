@@ -12,6 +12,7 @@ from bot.strategy.build_order.builds.macro_builds.bansheeseburger import Banshee
 from bot.strategy.build_order.builds.macro_builds.cc_first_two_rax import CCFirstTwoRax
 from bot.strategy.build_order.builds.macro_builds.cyclone_3_raven import Cyclone3Raven
 from bot.strategy.build_order.builds.macro_builds.macro_banshee_cloak import BansheeCloak3CC
+from bot.strategy.build_order.builds.macro_builds.macro_concussive import MacroConcussive
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_hellbat_push import TwoRaxReapersHellbatPush
 from bot.strategy.build_order.builds.test_builds.macro_cyclone_test import CycloneTest
 from bot.strategy.build_order.builds.test_builds.two_rax_reapers_test import TwoRaxTest
@@ -69,8 +70,9 @@ class BuildOrderManager:
                 return [
                     MacroCyclone,
                     BansheeCloak3CC,
-                    # ConservativeRaxExpand,
                     ThreeCC5RaxPlus1,
+                    MacroConcussive,
+                    # ConservativeRaxExpand,
                     # DefensiveDoubleCycloneMagfield,
                     # DefensiveCycloneTank,
                     # CycloneTank3Rax,

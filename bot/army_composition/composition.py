@@ -107,11 +107,11 @@ class  Composition:
             output.append((f'{current_count}/{count} : {unit_type.name}', color))
         return output
     
-    def fill(self, unit_type: UnitTypeId, ratio: float = 1) -> None:
+    def fill(self, unit_type: UnitTypeId, ratio: float = 1, max: int = 200) -> None:
         """Fill remaining supply with a specific unit type."""
         if (unit_type in self.locked):
             return
         unit_supply_value: int = get_unit_supply(unit_type)
-        max_addable: int = self.supply_remaining // unit_supply_value
+        max_addable: int = min(max, self.supply_remaining // unit_supply_value)
         if (max_addable >= 1):
             self.add(unit_type, int(max_addable * ratio))
