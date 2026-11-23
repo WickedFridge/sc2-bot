@@ -30,7 +30,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.7.0"
+VERSION: str = "15.7.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -344,6 +344,7 @@ class WickedBot(Superbot):
             # very important tech
             self.search.stimpack.search,
             self.search.combat_shield.search,
+            self.search.magfield_accelerator.search,
             self.search.infantry_attack_level_1.search,
             self.search.infantry_armor_level_1.search,
             self.search.interference_maxtrix.search,
@@ -357,12 +358,11 @@ class WickedBot(Superbot):
             self.search.banshee_cloak.search,
         ])
         # army
-        money_spenders.extend(self.trainer.ordered_army_trainers)
+        money_spenders.append(self.trainer.train_army)
         money_spenders.extend([
             # advanced tech
             self.builder.ebay.build,
             self.builder.ghost_academy.build,
-            self.search.magfield_accelerator.search,
             self.search.blueflame.search,
         ])
         # mech upgrades, sorted by score

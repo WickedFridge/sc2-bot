@@ -206,6 +206,11 @@ class MicroSiegeTank(MicroUnit):
         await super().harass(unit, local_units, workers)
     
     @override
+    async def defend(self, unit: Unit, local_units: Units, target: Point2):
+        self.switch_mode(unit, Units([], self.bot))
+        await super().defend(unit, local_units, target)
+    
+    @override
     async def a_move(self, unit: Unit, target: Point2):
         self.switch_mode(unit, Units([], self.bot))
         await super().a_move(unit, target)

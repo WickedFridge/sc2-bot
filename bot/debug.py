@@ -27,7 +27,6 @@ from bot.utils.colors import BLACK, BLUE, GREEN, LIGHTBLUE, ORANGE, PURPLE, RED,
 from bot.utils.defend_worker_rush import wall_is_up
 from bot.utils.point2_functions.utils import center, evaluate_path_debug, grid_offsets, sample_tile_path
 from bot.utils.unit_functions import calculate_bunker_range, find_by_tag, is_being_constructed, scv_build_progress
-from sc2.bot_ai import BotAI
 from sc2.game_state import EffectData
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
@@ -768,13 +767,6 @@ class Debug:
             
 
     TRACE_LOG_PATH: str = 'bo_trace.log'
-    PENDING_FIX_TYPES: tuple[UnitTypeId, ...] = (
-        UnitTypeId.BARRACKSTECHLAB, UnitTypeId.BARRACKSREACTOR,
-        UnitTypeId.FACTORYTECHLAB, UnitTypeId.FACTORYREACTOR,
-        UnitTypeId.STARPORTTECHLAB, UnitTypeId.STARPORTREACTOR,
-        UnitTypeId.REFINERY, UnitTypeId.SUPPLYDEPOT, UnitTypeId.BARRACKS,
-        UnitTypeId.FACTORY, UnitTypeId.STARPORT, UnitTypeId.COMMANDCENTER, UnitTypeId.ORBITALCOMMAND,
-    )
     _trace_build_id: Optional[int] = None
     _trace_steps: dict[int, tuple[bool, bool]] = {}
 
@@ -793,15 +785,7 @@ class Debug:
         TEMP: logs build order events only:
         - build switches
         - each step going pending / blocked (with the reason) / done
-        - each frame where the already_pending override removes a stale order
         """
-        for structure_type in self.PENDING_FIX_TYPES:
-            raw: float = BotAI.already_pending(self.bot, structure_type)
-            fixed: float = self.bot.already_pending(structure_type)
-            if (raw != fixed):
-                ready: int = self.bot.structures(structure_type).ready.amount
-                self.trace('pending fix', f"{structure_type.name}: {raw:g} -> {fixed:g} (ready: {ready})")
-
         build_order: BuildOrder = self.bot.build_order.build
         if (id(build_order) != self._trace_build_id):
             self._trace_build_id = id(build_order)

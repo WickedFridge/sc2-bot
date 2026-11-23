@@ -15,7 +15,9 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets, untargetable
+from bot.utils.unit_functions import calculate_bunker_range
+from bot.utils.unit_supply import weighted_units_supply
+from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets, untargetable, worker_types
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot  # only imported for type hints
@@ -428,7 +430,31 @@ class MicroUnit(CachedClass):
         return False
     
     
-    # TODO if enemy units are menacing something else than the bunker, get out and fight
+    def structure_covers(self, structure: Unit, enemy: Unit) -> bool:
+        """True if the defensive structure can shoot the enemy (an empty bunker covers nothing)"""
+        if (structure.type_id == UnitTypeId.BUNKER):
+            if (structure.cargo_used == 0):
+                return False
+            bunker_ground_range, bunker_air_range = calculate_bunker_range(self.bot, structure)
+            bunker_range: float = bunker_air_range if enemy.is_flying else bunker_ground_range
+            return structure.distance_to(enemy) <= bunker_range + enemy.radius
+        return structure.target_in_range(enemy)
+
+    def wins_local_fight(self, unit: Unit, enemies: Units) -> bool:
+        """Compares our fighting units (and loaded bunkers) around the enemies with theirs, weighted by health"""
+        LOCAL_RADIUS: float = 10
+        enemy_center: Point2 = enemies.center
+        local_enemies: Units = self.enemy_fighting.filter(
+            lambda enemy: enemy.type_id not in worker_types and enemy.distance_to(enemy_center) <= LOCAL_RADIUS
+        )
+        local_allies: Units = (self.bot.units + self.bot.structures(UnitTypeId.BUNKER)).filter(
+            lambda ally: (
+                ally.tag == unit.tag
+                or (ally.type_id not in worker_types and ally.distance_to(enemy_center) <= LOCAL_RADIUS)
+            )
+        )
+        return weighted_units_supply(local_allies) >= weighted_units_supply(local_enemies)
+
     def fight_around_structure(self, unit: Unit, enemy_units: Units, structure: Unit):
         if (not structure):
             return
@@ -455,6 +481,15 @@ class MicroUnit(CachedClass):
                     or self.bot.workers.in_attack_range_of(enemy_unit).amount >= 1
                 )
             )
+            # enemies the structure can't shoot kill workers/buildings freely: step out if we win the fight
+            # (e.g. an adept in the mineral line, out of an empty bunker's range)
+            uncovered_targets: Units = menacing_enemy_units.filter(
+                lambda enemy_unit: self.is_targetable(enemy_unit) and not self.structure_covers(structure, enemy_unit)
+            )
+            if (uncovered_targets.amount >= 1 and self.wins_local_fight(unit, uncovered_targets)):
+                self.hit_n_run(unit, uncovered_targets, kite_back=True)
+                return
+
             if (menacing_enemy_units.amount == 0 or menacing_enemy_units.closest_distance_to(structure) <= 8):
                 if (structure.cargo_left >= 1):
                     unit.move(structure.position.towards(retreat_position, 2))
@@ -464,8 +499,10 @@ class MicroUnit(CachedClass):
                     safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(structure)
                     unit.move(self.cover_destination(unit, safest_spot))
             else:
-                if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
-                    target: Unit = self.pick_best_target(enemy_units)
+                # never order an attack on an adept shade / phased disruptor
+                targetable_enemy_units: Units = enemy_units.filter(self.is_targetable)
+                if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD and targetable_enemy_units.amount >= 1):
+                    target: Unit = self.pick_best_target(targetable_enemy_units)
                     unit.attack(target)
                 else:
                     safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(structure)

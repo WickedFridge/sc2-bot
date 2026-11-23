@@ -51,9 +51,14 @@ class BarracksAddon(Building):
     
     @property
     def barracks_without_addon(self) -> Units:
-        """Returns barracks that are idle and do not have an addon."""
+        """Returns barracks that are idle, do not have an addon and are not reserved by an addon swap."""
+        swap_tags: set[int] = self.bot.addon_swap.managed_tags
         return self.bot.structures(UnitTypeId.BARRACKS).ready.idle.filter(
-            lambda barrack: not barrack.has_add_on and self.bot.in_placement_grid(barrack.add_on_position)
+            lambda barrack: (
+                barrack.tag not in swap_tags
+                and not barrack.has_add_on
+                and self.bot.in_placement_grid(barrack.add_on_position)
+            )
         )
 
     @property

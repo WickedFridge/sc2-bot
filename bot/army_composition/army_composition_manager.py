@@ -423,11 +423,16 @@ class ArmyCompositionManager(CachedClass):
         unit_type_amount: int = self.wicked.total_unit_amount(unit_type)
         return max(0, self.composition[unit_type] - unit_type_amount)
     
-    def ratio_trained(self, unit_type: UnitTypeId) -> float:
+    def training_priority(self, unit_type: UnitTypeId) -> float:
+        """
+        Sainte-Laguë key (lower = train first): position of the next unit of this type
+        in an ideal interleaved production sequence. Avoids small targets (0/2 Thor)
+        hogging resources ahead of large ones (1/15 tank).
+        """
         if (unit_type not in self.available_units or self.composition[unit_type] == 0):
-            return 1
+            return math.inf
         unit_type_amount: int = self.wicked.total_unit_amount(unit_type)
-        return min(1, unit_type_amount / self.composition[unit_type])
+        return (unit_type_amount + 0.5) / self.composition[unit_type]
 
 def get_composition_manager(bot: BotAI) -> ArmyCompositionManager:
     global composition_manager

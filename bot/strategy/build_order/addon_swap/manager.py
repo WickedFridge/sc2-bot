@@ -223,14 +223,16 @@ class AddonSwapManager:
             return
 
         print(f"[AddonSwapManager] Donor airborne (Path A) — lifting recipient {swap.recipient_type.name} (tag={grounded_recipient.tag}).")
-        grounded_recipient(LIFT_ABILITY[swap.recipient_type])
+        # a recipient still under construction can't lift: recipient_lifting retries once it is ready
+        if (grounded_recipient.is_ready):
+            grounded_recipient(LIFT_ABILITY[swap.recipient_type])
         swap.state = SwapState.RECIPIENT_LIFTING
 
     def recipient_lifting(self, swap: SwapPlan) -> None:
-        """Re-issue recipient lift until airborne, then proceed to landing."""
+        """Re-issue recipient lift until airborne (once it is built), then proceed to landing."""
         if (swap.recipient_flying is None):
             grounded: Optional[Unit] = swap.recipient
-            if (grounded is not None):
+            if (grounded is not None and grounded.is_ready):
                 grounded(LIFT_ABILITY[swap.recipient_type])
             return
 

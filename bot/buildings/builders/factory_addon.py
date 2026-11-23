@@ -16,9 +16,14 @@ class FactoryAddon(Building):
 
     @property
     def factory_without_addon(self) -> Units:
-        """Returns factories that are idle and do not have an addon."""
+        """Returns factories that are idle, do not have an addon and are not reserved by an addon swap."""
+        swap_tags: set[int] = self.bot.addon_swap.managed_tags
         return self.bot.structures(UnitTypeId.FACTORY).ready.idle.filter(
-            lambda factory: not factory.has_add_on and self.bot.in_placement_grid(factory.add_on_position)
+            lambda factory: (
+                factory.tag not in swap_tags
+                and not factory.has_add_on
+                and self.bot.in_placement_grid(factory.add_on_position)
+            )
         )
 
     @property

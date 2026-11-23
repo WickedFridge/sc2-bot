@@ -4,6 +4,7 @@ from typing import List, Optional, override
 from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.scouting.ghost_units.ghost_units import GhostUnit
 from sc2.ids.ability_id import AbilityId
+from sc2.ids.buff_id import BuffId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
@@ -47,10 +48,29 @@ class MicroCyclone(MicroUnit):
         safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(cyclone)
         cyclone.move(safest_spot)
 
+    def _get_active_lock_target(self, cyclone: Unit) -> Optional[Unit]:
+        """
+        Returns the unit currently locked by this cyclone, or None if the lock is broken
+        (target dead/out of vision, escaped the leash range e.g. blink, or lock expired).
+        Stale entries are cleaned from cyclone_locks.
+        """
+        target_tag: Optional[int] = self.cyclone_locks.get(cyclone.tag, None)
+        if (target_tag is None):
+            return None
+        target: Optional[Unit] = self.bot.enemy_units.find_by_tag(target_tag)
+        lock_is_active: bool = (
+            target is not None
+            and cyclone.distance_to(target) <= self.LOCKON_KEEP_RANGE
+            and target.has_buff(BuffId.LOCKON)
+        )
+        if (not lock_is_active):
+            self.cyclone_locks.pop(cyclone.tag, None)
+            return None
+        return target
+
     def _fight_on_lock_cooldown(self, cyclone: Unit, enemies_in_range: Units, local_enemies: Units):
         # if we have locked onto a target, stay in range and find the safest spot to kite around it
-        target_tag: int = self.cyclone_locks.get(cyclone.tag, None)
-        target: Unit = self.bot.enemy_units.find_by_tag(target_tag) if target_tag else None
+        target: Optional[Unit] = self._get_active_lock_target(cyclone)
 
         if (target):
             safest_spot: Point2 = self.bot.map.influence_maps.safest_spot_around_unit(target, self.LOCKON_KEEP_RANGE - target.real_speed / 2)

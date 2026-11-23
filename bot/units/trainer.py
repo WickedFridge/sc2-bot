@@ -79,13 +79,11 @@ class Trainer:
     
     @property
     def ordered_unit_types(self) -> List[UnitTypeId]:
-        unit_ratios: List[tuple[UnitTypeId, float]] = [
-            (unit_id, self.bot.composition_manager.ratio_trained(unit_id)) for unit_id in self.army_trainers.keys()
-        ]
-        
-        # sort by ratio
-        unit_ratios.sort(key=lambda x: x[1])
-        return [unit for unit, _ in unit_ratios]
+        # stable sort: ties (and units out of the composition, at inf) keep the army_trainers order
+        return sorted(
+            self.army_trainers.keys(),
+            key=self.bot.composition_manager.training_priority,
+        )
 
     def trainer_for(self, unit_type: UnitTypeId) -> Callable[[Resources], Awaitable[Resources]]:
         """Map each UnitTypeId to its corresponding train() function."""
@@ -94,6 +92,34 @@ class Trainer:
 
         return self.army_trainers[unit_type].train
 
-    @property
-    def ordered_army_trainers(self) -> List[Callable[[Resources], Awaitable[Resources]]]:
-        return [self.trainer_for(unit) for unit in self.ordered_unit_types]
+    async def train_army(self, resources: Resources) -> Resources:
+        """
+        Train army units one at a time, re-sorting the priorities after each order,
+        so that production is interleaved (tank, tank, thor, tank...) instead of one
+        unit type filling every free building in the same frame.
+
+        Each pass goes through the unit types by priority and stops at the first one trained.
+        A type that can't be afforded marks the resource as short for the types after it
+        (they don't steal its money), like the other money spenders.
+        Every pass starts again from the shortages known when entering this function, so that
+        a shortage caused by a lower priority type doesn't block the new first ones.
+        """
+        for train in self.army_trainers.values():
+            train.i = 0
+        minerals_short: bool = resources.minerals.short
+        vespene_short: bool = resources.vespene.short
+
+        while True:
+            if (resources.is_short_both):
+                return resources
+            trained: bool = False
+            for unit_type in self.ordered_unit_types:
+                trained, resources = await self.army_trainers[unit_type].train_one(resources)
+                if (trained):
+                    break
+            if (not trained):
+                return resources
+            resources = Resources.from_tuples(
+                (resources.minerals.amount, minerals_short),
+                (resources.vespene.amount, vespene_short),
+            )

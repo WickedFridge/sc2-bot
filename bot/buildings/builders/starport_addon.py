@@ -15,9 +15,14 @@ class StarportAddon(Building):
 
     @property
     def starports_without_addon(self) -> Units:
-        """Returns starports that are idle and do not have an addon."""
+        """Returns starports that are idle, do not have an addon and are not reserved by an addon swap."""
+        swap_tags: set[int] = self.bot.addon_swap.managed_tags
         return self.bot.structures(UnitTypeId.STARPORT).ready.idle.filter(
-            lambda starport: not starport.has_add_on and self.bot.in_placement_grid(starport.add_on_position)
+            lambda starport: (
+                starport.tag not in swap_tags
+                and not starport.has_add_on
+                and self.bot.in_placement_grid(starport.add_on_position)
+            )
         )
 
     

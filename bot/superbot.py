@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import Counter
 from typing import List, Optional, TYPE_CHECKING
 
 from attr import dataclass
@@ -102,12 +103,29 @@ class Superbot(BotAI):
             case _:
                 return [unit_type]
 
+    @property
+    def ordered_this_frame(self) -> Counter[UnitTypeId]:
+        """
+        Units ordered during the current frame. already_pending is cached once per frame,
+        so these orders are only seen by it on the next frame: without this counter,
+        several buildings could train the last missing unit in the same frame.
+        """
+        game_loop: int = self.state.game_loop
+        if (getattr(self, '_ordered_frame', None) != game_loop):
+            self._ordered_frame = game_loop
+            self._ordered_this_frame = Counter()
+        return self._ordered_this_frame
+
+    def register_order(self, unit_type: UnitTypeId) -> None:
+        self.ordered_this_frame[unit_type] += 1
+
     def total_unit_amount(self, unit_type: UnitTypeId) -> int:
         unit_types: List[UnitTypeId] = self.equivalences(unit_type)
         # return sum(self.units_with_passengers(u_type).amount + self.already_pending(u_type) for u_type in unit_types)
         total_amount: int = self.units_with_passengers(unit_types).amount
+        ordered: Counter[UnitTypeId] = self.ordered_this_frame
         for u_type in unit_types:
-            total_amount += self.already_pending(u_type)
+            total_amount += self.already_pending(u_type) + ordered[u_type]
         return total_amount
 
     def already_pending(self, unit_type: UpgradeId | UnitTypeId) -> float:

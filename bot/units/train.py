@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math
-from typing import TYPE_CHECKING, List, Set
+from typing import TYPE_CHECKING, List, Set, Tuple
 
 from bot.macro.resources import Resources
 from bot.superbot import Superbot
@@ -121,10 +121,34 @@ class Train:
     def on_complete(self):
         pass
 
+    def issue_order(self, building: Unit) -> None:
+        self.log(self.i)
+        building.train(self.unitId)
+        # add a fake order so that other function know that we are not idle anymore
+        building.orders.append(FakeOrder(self.order_id))
+        # already_pending is cached for the frame: count this order until the next one
+        self.bot.register_order(self.unitId)
+        self.i += 1
+        self.on_complete()
+
+    async def train_one(self, resources: Resources) -> Tuple[bool, Resources]:
+        """Train a single unit if possible. Returns whether a unit was ordered."""
+        if (not self.conditions):
+            return False, resources
+        buildings: Units = self.building_group
+        if (buildings.amount == 0):
+            return False, resources
+        enough_resources: bool
+        enough_resources, resources = resources.update(self.training_cost)
+        if (not enough_resources):
+            return False, resources
+        self.issue_order(buildings.first)
+        return True, resources
+
     async def train(self, resources: Resources) -> Resources:
         if (not self.conditions):
             return resources
-        
+
         self.i = 0
         resources_updated: Resources = resources
         for building in self.building_group:
@@ -134,11 +158,6 @@ class Train:
             resources_updated: Resources
             enough_resources, resources_updated = resources_updated.update(self.training_cost)
             if (enough_resources == False):
-                return resources_updated            
-            self.log(self.i)
-            building.train(self.unitId)
-            # add a fake order so that other function know that we are not idle anymore
-            building.orders.append(FakeOrder(self.order_id))
-            self.i += 1
-            self.on_complete()
+                return resources_updated
+            self.issue_order(building)
         return resources_updated
