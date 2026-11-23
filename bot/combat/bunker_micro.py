@@ -1,5 +1,6 @@
-from typing import List
+from typing import Callable, List, Optional
 
+from bot.combat.micro_units.micro_unit import MicroUnit
 from bot.macro.expansion import Expansion
 from bot.superbot import Superbot
 from bot.utils.army import Army
@@ -16,9 +17,12 @@ from sc2.units import Units
 
 class BunkerMicro:
     bot: Superbot
+    # shared targeting logic (target filters, priorities)
+    targeting: MicroUnit
 
     def __init__(self, bot: Superbot):
         self.bot = bot
+        self.targeting = MicroUnit(bot)
 
     def should_unload(self, bunker: Unit) -> bool:
         # If bunker under 20 hp, unload
@@ -55,31 +59,23 @@ class BunkerMicro:
 
         return False
 
-    def select_target(self, bunker: Unit, enemy_units_in_range: Units) -> Unit:
-        # sort with armored units first if we have marauders inside
-        # sort with light units first if we have ghosts inside
-        passengers_types: List[UnitTypeId] = [passenger.type_id for passenger in bunker.passengers]
-        
-        enemy_light_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_light)
-        enemy_armored_units: Units = enemy_units_in_range.filter(lambda enemy_unit: enemy_unit.is_armored)
-        enemy_to_fight: Units = enemy_units_in_range
-        
-        # choose a better target if the unit has bonus damage
-        if (UnitTypeId.MARAUDER in passengers_types):
-            enemy_to_fight = enemy_armored_units if enemy_armored_units.amount >= 1 else enemy_units_in_range
-        elif (UnitTypeId.GHOST in passengers_types):
-            enemy_to_fight = enemy_light_units if enemy_light_units.amount >= 1 else enemy_units_in_range
-        else:
-            enemy_to_fight = enemy_units_in_range
-
-        enemy_to_fight.sort(
-            key=lambda enemy_unit: (
-                BuffId.RAVENSHREDDERMISSILEARMORREDUCTION in enemy_unit.buffs,
-                enemy_unit.shield,
-                enemy_unit.shield + enemy_unit.health
-            )
+    def select_target(self, bunker: Unit, enemy_units_in_range: Units) -> Optional[Unit]:
+        """Same targeting as the units (priority targets, buffs), bonus damage depending on the passengers"""
+        targets: Units = enemy_units_in_range.filter(
+            lambda enemy: self.targeting.is_valid_enemy(enemy) and self.targeting.is_targetable(enemy)
         )
-        return enemy_to_fight.first
+        if (targets.amount == 0):
+            return None
+
+        # armored units first if we have marauders inside, light units first if we have ghosts inside
+        passengers_types: List[UnitTypeId] = [passenger.type_id for passenger in bunker.passengers]
+        bonus_damage_filter: Callable[[Unit], bool] = lambda enemy_unit: False
+        if (UnitTypeId.MARAUDER in passengers_types):
+            bonus_damage_filter = lambda enemy_unit: enemy_unit.is_armored
+        elif (UnitTypeId.GHOST in passengers_types):
+            bonus_damage_filter = lambda enemy_unit: enemy_unit.is_light
+
+        return self.targeting.pick_best_target(targets, bonus_damage_filter)
         
     
     async def handle_bunkers(self):
@@ -119,8 +115,9 @@ class BunkerMicro:
                     print("stimming passengers")
                     bunker(AbilityId.EFFECT_STIM)
                 
-                enemy: Unit = self.select_target(bunker, enemy_units_in_range)
-                bunker.attack(enemy)
+                enemy: Optional[Unit] = self.select_target(bunker, enemy_units_in_range)
+                if (enemy is not None):
+                    bunker.attack(enemy)
             
             # load the bunker with bio if there is space
             if (bunker.cargo_left == 0):

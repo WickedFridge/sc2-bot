@@ -1,6 +1,6 @@
 from __future__ import annotations
 import math
-from typing import Callable, List, Optional, TYPE_CHECKING
+from typing import Callable, List, Optional, Set, TYPE_CHECKING
 
 from bot.combat.anchors import Anchor
 from bot.macro.expansion import Expansion
@@ -10,11 +10,12 @@ from bot.utils.army import Army
 from bot.utils.point2_functions.utils import center
 from sc2.cache import CachedClass, custom_cache_once_per_frame
 from sc2.ids.buff_id import BuffId
+from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
-from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets
+from bot.utils.unit_tags import dont_attack, menacing, menacing_air, tower_types, creep, building_priorities, priority_targets, untargetable
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot  # only imported for type hints
@@ -57,8 +58,12 @@ class MicroUnit(CachedClass):
     def is_creep_tumor(self, unit: Unit) -> bool:
         return unit.type_id in creep
     
+    def is_targetable(self, enemy: Unit) -> bool:
+        """False for undetected cloaked/burrowed units and untargetable ones (adept shade, purification nova)"""
+        return enemy.can_be_attacked and enemy.type_id not in untargetable
+
     def can_be_attacked(self, enemy: Unit, unit: Unit) -> bool:
-        if (not enemy.can_be_attacked):
+        if (not self.is_targetable(enemy)):
             return False
         return (
             (enemy.is_flying == False and unit.can_attack_ground)
@@ -97,6 +102,11 @@ class MicroUnit(CachedClass):
     @custom_cache_once_per_frame
     def enemy_fighting(self) -> Units:
         return self.enemy_all.filter(self.is_fighting_unit)
+
+    @custom_cache_once_per_frame
+    def enemy_targetable(self) -> Units:
+        """enemy_all without what can't be shot at, to pick targets (enemy_all stays the reference for threats)"""
+        return self.enemy_all.filter(self.is_targetable)
            
     def enemies_threatening_air_in_range(
             self, unit: Unit, safety_distance: float = 0, range_override: float | None = None
@@ -144,7 +154,7 @@ class MicroUnit(CachedClass):
             return Units([], self.bot)
         base_range: float = unit.distance_to_weapon_ready + unit.radius
 
-        return self.enemy_all.filter(
+        return self.enemy_targetable.filter(
             lambda enemy: enemy.distance_to(unit) <= (
                 base_range + enemy.radius + 
                 (unit.ground_range if not enemy.is_flying else unit.air_range)
@@ -156,9 +166,11 @@ class MicroUnit(CachedClass):
             return Units([], self.bot)
         
         enemies: Units = (
-            self.enemy_all
+            self.enemy_targetable
             if not include_buildings
-            else (self.bot.enemy_units + self.bot.enemy_structures).filter(self.is_valid_enemy)
+            else (self.bot.enemy_units + self.bot.enemy_structures).filter(
+                lambda enemy: self.is_valid_enemy(enemy) and self.is_targetable(enemy)
+            )
         )
         return enemies.filter(
             lambda enemy: unit.target_in_range(enemy) and enemy.is_visible
@@ -185,9 +197,40 @@ class MicroUnit(CachedClass):
             lambda building: building.health + building.shield
         )
         
-    def pick_best_target(self, enemy_units_in_range: Units) -> Unit:
-        enemy_priority: Units = enemy_units_in_range.filter(lambda unit: unit.type_id in priority_targets)
-        enemy_bonus_damage: Units = enemy_units_in_range.filter(self.filter_bonus_damage)
+    @custom_cache_once_per_frame
+    def guardian_shield_sentry_tags(self) -> Set[int]:
+        """
+        Sentries currently casting Guardian Shield (the GUARDIANSHIELD buff is also on every unit in the aura,
+        so the caster is found as the sentry at the center of the effect)
+        """
+        MAX_DISTANCE: float = 1
+        enemy_sentries: Units = self.bot.enemy_units(UnitTypeId.SENTRY)
+        if (enemy_sentries.amount == 0):
+            return set()
+        tags: Set[int] = set()
+        for effect in self.bot.state.effects:
+            if (effect.id != EffectId.GUARDIANSHIELDPERSISTENT or not effect.is_enemy):
+                continue
+            for position in effect.positions:
+                caster: Unit = enemy_sentries.closest_to(position)
+                if (caster.distance_to(position) <= MAX_DISTANCE):
+                    tags.add(caster.tag)
+        return tags
+
+    def is_priority_target(self, enemy: Unit) -> bool:
+        return enemy.type_id in priority_targets or enemy.tag in self.guardian_shield_sentry_tags
+
+    def pick_best_target(
+        self,
+        enemy_units_in_range: Units,
+        bonus_damage_filter: Optional[Callable[[Unit], bool]] = None,
+    ) -> Unit:
+        """bonus_damage_filter defaults to this unit's bonuses (overridden by bunkers, depending on their passengers)"""
+        if (bonus_damage_filter is None):
+            bonus_damage_filter = self.filter_bonus_damage
+        # priority targets come before bonus damage ones, so marauders focus Guardian Shield sentries too
+        enemy_priority: Units = enemy_units_in_range.filter(self.is_priority_target)
+        enemy_bonus_damage: Units = enemy_units_in_range.filter(bonus_damage_filter)
         enemy_to_fight: Units = (
             enemy_priority
             if enemy_priority.amount >= 1
@@ -198,7 +241,6 @@ class MicroUnit(CachedClass):
             lambda enemy_unit: (
                 not enemy_unit.has_buff(BuffId.RAVENSCRAMBLERMISSILE),              # False to come up first
                 not enemy_unit.has_buff(BuffId.RAVENSHREDDERMISSILEARMORREDUCTION), # False to come up first
-                not enemy_unit.has_buff(BuffId.GUARDIANSHIELD),                     # False to come up first
                 enemy_unit.has_buff(BuffId.PROTECTIVEBARRIER),                      # True to come up last
                 enemy_unit.has_buff(BuffId.GHOSTSNIPEDOT),                          # True to come up last
                 enemy_unit.shield,
@@ -307,34 +349,44 @@ class MicroUnit(CachedClass):
             return spot
         return self.cover_destination(unit, pick(None))
 
-    def attacking_spot(self, unit: Unit, target: Unit, cover: bool = False) -> Point2:
+    def outranges(self, unit: Unit, target: Unit) -> bool:
+        our_range: float = unit.air_range if target.is_flying else unit.ground_range
+        their_range: float = target.air_range if unit.is_flying else target.ground_range
+        return their_range < our_range
+
+    def attacking_spot(self, unit: Unit, target: Unit, cover: bool = False, kite_back: bool = False) -> Point2:
+        """
+        kite_back: against a target we outrange, stay at max range instead of anticipating its escape
+        (normal fight: make it walk into us; chases keep the default to stay on it)
+        """
         if (target.type_id in [UnitTypeId.TEMPEST, UnitTypeId.BATTLECRUISER]):
             best_position: Point2 = self.bot.map.influence_maps.safest_spot_around_point(target.position, 2, air=unit.is_flying)
             return self.cover_destination(unit, best_position) if cover else best_position
+        DEFAULT_RISK: float = 0.7
+        risk: float = 0 if kite_back and self.outranges(unit, target) else DEFAULT_RISK
         return self.pick_covered_spot(
             unit,
             self.covered_filter(unit, cover),
-            lambda tile_filter: self.bot.map.influence_maps.best_attacking_spot(unit, target, tile_filter=tile_filter),
+            lambda tile_filter: self.bot.map.influence_maps.best_attacking_spot(unit, target, risk=risk, tile_filter=tile_filter),
         )
 
-    def hit_n_run(self, unit: Unit, enemy_units_in_range: Units, kite_forward: bool = False, cover: bool = False):
-        if (enemy_units_in_range.amount == 0):
+    def hit_n_run(self, unit: Unit, enemy_units: Units, cover: bool = False, kite_back: bool = False):
+        """
+        enemy_units can include targets out of range (potential targets).
+        Weapon ready: shoot the best target in range, or head to the best attacking spot if none is.
+        Weapon on cooldown: reposition towards the best target overall.
+        """
+        if (enemy_units.amount == 0):
             return
-        target: Unit = self.pick_best_target(enemy_units_in_range)
+        target: Unit = self.pick_best_target(enemy_units)
         covered: Optional[Callable[[Point2], bool]] = self.covered_filter(unit, cover)
 
         if (unit.weapon_cooldown <= self.WEAPON_READY_THRESHOLD):
-            # attacking a target out of range walks to it: don't leave the covered zone for that,
-            # shoot what is already in range instead
-            if (covered is not None and not unit.target_in_range(target)):
-                targets_in_range: Units = enemy_units_in_range.filter(lambda enemy: unit.target_in_range(enemy))
-                if (targets_in_range.amount >= 1):
-                    unit.attack(self.pick_best_target(targets_in_range))
-                    return
-                if (not covered(unit.position.towards(target, 1))):
-                    unit.move(self.attacking_spot(unit, target, cover))
-                    return
-            unit.attack(target)
+            targets_in_range: Units = enemy_units.filter(lambda enemy: unit.target_in_range(enemy))
+            if (targets_in_range.amount >= 1):
+                unit.attack(self.pick_best_target(targets_in_range))
+            else:
+                unit.move(self.attacking_spot(unit, target, cover, kite_back))
             return
 
         # the enemy walked into an anchor's range: kite back to make it overcommit
@@ -353,25 +405,25 @@ class MicroUnit(CachedClass):
             ))
             return
 
-        unit.move(self.attacking_spot(unit, target, cover))
+        unit.move(self.attacking_spot(unit, target, cover, kite_back))
 
     def handle_engagement(
         self,
         unit: Unit,
         enemy_units_in_range: Units,
         other_enemies: Units,
-        kite_forward: bool = False,
         cover: bool = False,
+        kite_back: bool = False,
     ) -> bool:
 
         # If someone is in range → hit'n'run
         if (enemy_units_in_range.amount >= 1):
-            self.hit_n_run(unit, enemy_units_in_range, kite_forward, cover)
+            self.hit_n_run(unit, enemy_units_in_range, cover, kite_back)
             return True
 
         if (other_enemies.amount >= 1):
             closest_target: Unit = other_enemies.closest_to(unit)
-            unit.move(self.attacking_spot(unit, closest_target, cover))
+            unit.move(self.attacking_spot(unit, closest_target, cover, kite_back))
             return True
         return False
     

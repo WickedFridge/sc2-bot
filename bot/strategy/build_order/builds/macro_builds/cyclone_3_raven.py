@@ -50,11 +50,10 @@ class Cyclone3Raven(MacroBuild):
             BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, target_count=3, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, False)], workers=23),
             BuildOrderStep(bot, self, 'rax reactor', UnitTypeId.BARRACKSREACTOR, target_count=1, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, True)]),
             BuildOrderStep(bot, self, 'factory techlab', UnitTypeId.FACTORYTECHLAB, target_count=2, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
-            BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.FACTORYTECHLAB, 1, True)]),
+            BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.FACTORYTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3),
             BuildOrderStep(bot, self, 'starport reactor', UnitTypeId.STARPORTREACTOR, target_count=2, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
-            BuildOrderStep(bot, self, 'rax #2', UnitTypeId.BARRACKS, target_count=2, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)], townhalls=3),
-            BuildOrderStep(bot, self, 'rax #3', UnitTypeId.BARRACKS, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 1, False)], townhalls=3),
+            BuildOrderStep(bot, self, 'rax #2/3', UnitTypeId.BARRACKS, target_count=3, requirements=[(UnitTypeId.STARPORTREACTOR, 2, False)], townhalls=3),
         ]
 
         self.production_queues = [

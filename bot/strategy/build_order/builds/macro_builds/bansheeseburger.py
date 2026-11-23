@@ -10,6 +10,7 @@ from bot.strategy.build_order.build_order import BuildOrder
 from bot.strategy.build_order.build_order_step import BuildOrderStep
 from bot.strategy.build_order.builds.defensive_reaction_builds.defensive_cyclone_tank import DefensiveCycloneTank
 from bot.strategy.build_order.builds.macro_build import MacroBuild
+from bot.utils.unit_tags import reactors
 if TYPE_CHECKING:
     from bot.superbot import Superbot
 from bot.strategy.build_order.production_queue import ProductionQueue
@@ -55,9 +56,9 @@ class Bansheeseburger(MacroBuild):
             BuildOrderStep(bot, self, 'reactor #2 (from facto)', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, False)], units_produced_required=[(UnitTypeId.BANSHEE, 2)]),
             BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, upgrades_required=[UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, UpgradeId.TERRANINFANTRYARMORSLEVEL1]),
             BuildOrderStep(bot, self, 'reactor #3 (from facto)', UnitTypeId.FACTORYREACTOR, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
-            BuildOrderStep(bot, self, 'reactor #4 (from starport)', UnitTypeId.STARPORTREACTOR, target_count=4, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'reactor #4 (from starport)', UnitTypeId.STARPORTREACTOR, target_count=4, requirements=[(UnitTypeId.BARRACKS, 3, False), (UnitTypeId.FACTORYREACTOR, 3, False)]),
             BuildOrderStep(bot, self, 'rax 4/5', UnitTypeId.BARRACKS, target_count=5, upgrades_required=[UpgradeId.STIMPACK]),
-            BuildOrderStep(bot, self, 'gas #4', UnitTypeId.REFINERY, target_count=3, workers=44, requirements=[(UnitTypeId.BARRACKS, 5, False)]),
+            BuildOrderStep(bot, self, 'gas #4', UnitTypeId.REFINERY, target_count=4, workers=44, requirements=[(UnitTypeId.BARRACKS, 5, False)]),
 
         ]
 
@@ -116,7 +117,18 @@ class Bansheeseburger(MacroBuild):
                 UnitTypeId.FACTORY,
                 UnitTypeId.REACTOR,
                 condition=lambda: (
-                    self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    self.bot.structures(reactors).amount >= 2
+                    and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    and self.bot.structures(UnitTypeId.STARPORT).amount >= 1
+                ),
+            ),
+            AddonDetachSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.REACTOR,
+                condition=lambda: (
+                    self.bot.structures(reactors).amount >= 3
+                    and self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
                     and self.bot.structures(UnitTypeId.STARPORT).amount >= 1
                 ),
             ),

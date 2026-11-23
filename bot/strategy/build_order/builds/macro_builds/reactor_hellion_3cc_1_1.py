@@ -38,7 +38,7 @@ class Greedy22Timing(MacroBuild):
             BuildOrderStep(bot, self, 'facto', UnitTypeId.FACTORY, army_supply=2, townhalls=2),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.BARRACKSREACTOR, 1, False)]),
-            BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, requirements=[(UnitTypeId.HELLION, 2, False)]),
+            BuildOrderStep(bot, self, '2 Ebays', UnitTypeId.ENGINEERINGBAY, target_count=2, townhalls=3, units_produced_required=[(UnitTypeId.HELLION, 2)]),
             BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.ENGINEERINGBAY, 2, False)]),
             BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, workers=28),
             BuildOrderStep(bot, self, '+1 atk', UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, requirements=[(UnitTypeId.ENGINEERINGBAY, 1, True)]),

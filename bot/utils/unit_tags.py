@@ -85,6 +85,11 @@ dont_attack: List[UnitTypeId] = [
     UnitTypeId.LARVA,
     UnitTypeId.INTERCEPTOR
 ]
+# can never be targeted, but still threats (kept for danger evaluation)
+untargetable: List[UnitTypeId] = [
+    UnitTypeId.ADEPTPHASESHIFT,
+    UnitTypeId.DISRUPTORPHASED,
+]
 add_ons: List[UnitTypeId] = [
     UnitTypeId.BARRACKSREACTOR,
     UnitTypeId.BARRACKSTECHLAB,
@@ -303,7 +308,7 @@ priority_targets: List[UnitTypeId] = [
     UnitTypeId.BATTLECRUISER,
     UnitTypeId.RAVEN,
     UnitTypeId.COLOSSUS,
-    UnitTypeId.DISRUPTORPHASED,
+    UnitTypeId.DISRUPTOR,
     UnitTypeId.HIGHTEMPLAR,
     UnitTypeId.CARRIER,
     UnitTypeId.TEMPEST,

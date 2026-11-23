@@ -29,8 +29,8 @@ class KokaBuild(MacroBuild):
             BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
             BuildOrderStep(bot, self, 'starport', UnitTypeId.STARPORT, requirements=[(UnitTypeId.FACTORY, 1, True)]),
             BuildOrderStep(bot, self, 'facto reactor', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.STARPORT, 1, False)]),
-            BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 1, False)]),
-            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, requirements=[(UnitTypeId.MEDIVAC, 2, False)]),
+            BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.FACTORYREACTOR, 2, False)]),
+            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, units_produced_required=[(UnitTypeId.MEDIVAC, 2)]),
         ]
 
         self.production_queues = [

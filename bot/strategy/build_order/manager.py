@@ -58,9 +58,9 @@ class BuildOrderManager:
                 ]
             case Matchup.TvZ:
                 return [
-                    # TwoRaxReapersKokabuild,
-                    # TwoRaxReapersHellbatPush,
-                    # Greedy22Timing,
+                    TwoRaxReapersKokabuild,
+                    TwoRaxReapersHellbatPush,
+                    Greedy22Timing,
                     Bansheeseburger,
                     # DefensiveCyclone,
                     # KokaBuild,

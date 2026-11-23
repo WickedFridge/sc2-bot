@@ -61,7 +61,7 @@ class BansheeCloak3CC(MacroBuild):
             BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, True)]),
             BuildOrderStep(bot, self, 'shield', UpgradeId.SHIELDWALL, requirements=[(UnitTypeId.BARRACKSTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, '+1 atk', UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, requirements=[(UnitTypeId.ENGINEERINGBAY, 1, True)]),
-            BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, upgrades_required=[UpgradeId.STIMPACK, UpgradeId.SHIELDWALL, UpgradeId.TERRANINFANTRYARMORSLEVEL1]),
+            BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, upgrades_required=[UpgradeId.STIMPACK, UpgradeId.SHIELDWALL, UpgradeId.TERRANINFANTRYWEAPONSLEVEL1]),
         ]            
 
         self.production_queues = [

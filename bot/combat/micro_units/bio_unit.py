@@ -114,7 +114,7 @@ class MicroBioUnit(MicroUnit):
         
         average_ground_range: float = Army(local_units, self.bot).average_ground_range
         shorter_range: bool = any([enemy_unit.ground_range < average_ground_range for enemy_unit in enemy_units_in_range])
-        other_enemies: Units = self.enemy_fighting.sorted(
+        other_enemies: Units = self.enemy_fighting.filter(self.is_targetable).sorted(
             lambda enemy_unit: (enemy_unit.distance_to(bio_unit), enemy_unit.shield, enemy_unit.health + enemy_unit.shield)
         )
 
@@ -146,12 +146,13 @@ class MicroBioUnit(MicroUnit):
         # out of chases, moves stay inside the zone covered by our anchors (sieged tanks, PF, loaded bunkers)
         cover: bool = not chase
 
-        # ----- CASE 1: MELEE ENGAGEMENT (kite backward) -----
+        # ----- CASE 1: MELEE ENGAGEMENT (kite backward, or stick to them when chasing) -----
         if (shorter_range and self.handle_engagement(
             bio_unit,
             enemy_units_in_range,
             other_enemies,
             cover=cover,
+            kite_back=not chase,
         )):
             return
 
@@ -161,7 +162,6 @@ class MicroBioUnit(MicroUnit):
             bio_unit,
             potential_targets,
             other_enemies,
-            kite_forward=True,
             cover=cover,
         )):
             return
