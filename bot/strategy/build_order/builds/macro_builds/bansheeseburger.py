@@ -55,7 +55,7 @@ class Bansheeseburger(MacroBuild):
             BuildOrderStep(bot, self, 'reactor #2 (from facto)', UnitTypeId.FACTORYREACTOR, target_count=2, requirements=[(UnitTypeId.BARRACKS, 2, False)], units_produced_required=[(UnitTypeId.BANSHEE, 2)]),
             BuildOrderStep(bot, self, 'stim', UpgradeId.STIMPACK, upgrades_required=[UpgradeId.TERRANINFANTRYWEAPONSLEVEL1, UpgradeId.TERRANINFANTRYARMORSLEVEL1]),
             BuildOrderStep(bot, self, 'reactor #3 (from facto)', UnitTypeId.FACTORYREACTOR, target_count=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
-            BuildOrderStep(bot, self, 'reactor #4 (from starport)', UnitTypeId.FACTORYREACTOR, target_count=4, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
+            BuildOrderStep(bot, self, 'reactor #4 (from starport)', UnitTypeId.STARPORTREACTOR, target_count=4, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'rax 4/5', UnitTypeId.BARRACKS, target_count=5, upgrades_required=[UpgradeId.STIMPACK]),
             BuildOrderStep(bot, self, 'gas #4', UnitTypeId.REFINERY, target_count=3, workers=44, requirements=[(UnitTypeId.BARRACKS, 5, False)]),
 
@@ -101,6 +101,15 @@ class Bansheeseburger(MacroBuild):
                 UnitTypeId.BARRACKS,
                 UnitTypeId.STARPORT,
                 UnitTypeId.TECHLAB,
+            ),
+            AddonDetachSwap(
+                bot,
+                UnitTypeId.FACTORY,
+                UnitTypeId.REACTOR,
+                condition=lambda: (
+                    self.bot.composition_manager.should_train(UnitTypeId.HELLION) == False
+                    and self.bot.structures(UnitTypeId.STARPORT).amount >= 1
+                ),
             ),
             AddonDetachSwap(
                 bot,
