@@ -8,6 +8,7 @@ from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
 from bot.utils.point2_functions.utils import closest_point
+from bot.utils.unit_tags import townhalls
 from sc2.cache import custom_cache_once_per_frame
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -101,6 +102,13 @@ class MicroScoutingUnit(MicroUnit):
 
     @override
     async def scout(self, unit: Unit, local_units: Units):
+        enemy_townhalls_nearby: Units = self.bot.enemy_structures(townhalls).ready.closer_than(10, unit)
+        enemy_around: Units = self.bot.enemy_units.closer_than(10, unit).filter(self.is_fighting_unit)
+        if (enemy_townhalls_nearby.amount >= 1 and enemy_around.amount == 0):
+            expansion: Expansion = self.bot.expansions.closest_to(unit)
+            visibility = self.bot.state.visibility
+            if (any(visibility[mf.position] == 0 for mf in expansion.mineral_fields)):
+                unit.move(expansion.mineral_line)
         unit.move(self.scout_target(unit))
 
     @override
