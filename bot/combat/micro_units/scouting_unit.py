@@ -107,7 +107,7 @@ class MicroScoutingUnit(MicroUnit):
         if (enemy_townhalls_nearby.amount >= 1 and enemy_around.amount == 0):
             expansion: Expansion = self.bot.expansions.closest_to(unit)
             visibility = self.bot.state.visibility
-            if (any(visibility[mf.position] == 0 for mf in expansion.mineral_fields)):
+            if (any(visibility[mf.position.rounded] == 0 for mf in expansion.mineral_fields)):
                 unit.move(expansion.mineral_line)
         unit.move(self.scout_target(unit))
 
