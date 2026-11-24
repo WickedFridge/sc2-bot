@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Optional, Set
 
+from bot.strategy.build_order.addon_swap.abilities import ADDON_BUILD_ABILITIES
 from bot.strategy.build_order.addon_swap.state import SwapState
 from bot.utils.unit_functions import get_addon_id
 from sc2.ids.unit_typeid import UnitTypeId
@@ -193,19 +194,28 @@ class SwapPlan(ABC):
     def find_recipient(self, busy_tags: Set[int]) -> Optional[Unit]:
         """
         Search for an eligible recipient: a grounded recipient_type building
-        with no addon, not already managed by another swap.
+        with no addon (nor one being started), not already managed by another swap.
         Prefers completed buildings, then the most advanced construction.
         """
         candidates: Units = self.bot.structures(self.recipient_type).filter(
             lambda b: (
                 b.tag not in busy_tags
                 and not b.has_add_on
+                and not self.is_building_addon(b)
                 and not b.is_flying
             )
         )
         if (not candidates):
             return None
         return max(candidates, key=lambda b: b.build_progress)
+
+    @staticmethod
+    def is_building_addon(building: Unit) -> bool:
+        """
+        True if the building has been ordered to build an addon. The addon unit only
+        appears a few frames later, so has_add_on is still False meanwhile.
+        """
+        return any(order.ability.id in ADDON_BUILD_ABILITIES for order in building.orders)
 
     def detect_addon_tag(self, donor: Unit) -> Optional[int]:
         """

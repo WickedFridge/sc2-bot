@@ -747,12 +747,22 @@ class BuildingsHandler:
             reactor_on_wall: bool = existing_addons.of_type(UnitTypeId.REACTOR).filter(
                 lambda addon: addon.position.distance_to(wall_addon_position) < 1
             ).amount >= 1
+            # un addon en cours de swap peut être au wall (son bâtiment vient de décoller) :
+            # l'emplacement est réservé au recipient du swap, on ne doit pas s'y poser
+            wall_reserved_by_swap: bool = existing_addons.filter(
+                lambda addon: (
+                    addon.tag in swap_managed_tags
+                    and abs(addon.add_on_land_position.x - wall_position.x) < 3
+                    and abs(addon.add_on_land_position.y - wall_position.y) < 3
+                )
+            ).amount >= 1
             # toute l'empreinte 3x3 doit être libre : la rax du wall posée en barracks_in_middle
             # ne chevauche barracks_correct_placement que sur une colonne (le centre reste libre),
             # et elle ne pose aucune réservation autour d'elle (cf. BuildingLayer.on_building_created)
             if (
                 self.bot.map.influence_maps.buildings.should_build_building(wall_position, land_type, PRODUCTION_RADIUS)
                 and not (flying_building.type_id == UnitTypeId.FACTORYFLYING and reactor_on_wall)
+                and not wall_reserved_by_swap
             ):
                 print(f"[reposition_buildings] finishing the wall with {flying_building.name}")
                 flying_building(AbilityId.LAND, wall_position)

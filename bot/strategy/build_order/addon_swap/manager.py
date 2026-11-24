@@ -229,10 +229,21 @@ class AddonSwapManager:
         swap.state = SwapState.RECIPIENT_LIFTING
 
     def recipient_lifting(self, swap: SwapPlan) -> None:
-        """Re-issue recipient lift until airborne (once it is built), then proceed to landing."""
+        """
+        Re-issue recipient lift until airborne (once it is built), then proceed to landing.
+        If the committed recipient got its own addon in the meantime (it can't lift while
+        the addon is building or researching, and would abandon it), switch to another one.
+        """
         if (swap.recipient_flying is None):
             grounded: Optional[Unit] = swap.recipient
-            if (grounded is not None and grounded.is_ready):
+            if (grounded is not None and (grounded.has_add_on or swap.is_building_addon(grounded))):
+                replacement: Optional[Unit] = swap.find_recipient(self.managed_tags)
+                if (replacement is not None):
+                    print(f"[AddonSwapManager] Recipient (tag={grounded.tag}) has its own addon — switching to {swap.recipient_type.name} (tag={replacement.tag}).")
+                    swap.recipient_tag = replacement.tag
+                    swap.recipient_original_position = replacement.position
+                    grounded = replacement
+            if (grounded is not None and grounded.is_ready and not grounded.has_add_on):
                 grounded(LIFT_ABILITY[swap.recipient_type])
             return
 
