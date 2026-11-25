@@ -42,7 +42,7 @@ class DefensiveDoubleCycloneMagfield(BuildOrder):
             BuildOrderStep(bot, self, 'gas #2', UnitTypeId.REFINERY, target_count=2, workers=18, townhalls=2),
             BuildOrderStep(bot, self, 'barracks techlab', UnitTypeId.BARRACKSTECHLAB, target_count=1, requirements=[(UnitTypeId.FACTORY, 1, False)]),
             BuildOrderStep(bot, self, 'gas #3', UnitTypeId.REFINERY, target_count=3, workers=25, townhalls=2),
-            BuildOrderStep(bot, self, 'factory #2', UnitTypeId.FACTORY, target_count=2, townhalls=2),
+            BuildOrderStep(bot, self, 'factory #2', UnitTypeId.FACTORY, target_count=2, townhalls=2, requirements=[(UnitTypeId.BARRACKSTECHLAB, 1, False)]),
             BuildOrderStep(bot, self, 'techlab #2', UnitTypeId.BARRACKSTECHLAB, target_count=2, requirements=[(UnitTypeId.FACTORY, 2, False)]),
             BuildOrderStep(bot, self, 'Magfield', UpgradeId.CYCLONELOCKONDAMAGEUPGRADE, requirements=[(UnitTypeId.FACTORYTECHLAB, 2, True)]),
             BuildOrderStep(bot, self, 'CC #3', UnitTypeId.COMMANDCENTER, target_count=3, upgrades_required=[UpgradeId.CYCLONELOCKONDAMAGEUPGRADE]),

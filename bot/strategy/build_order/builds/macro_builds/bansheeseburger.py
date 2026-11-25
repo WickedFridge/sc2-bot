@@ -68,7 +68,7 @@ class Bansheeseburger(MacroBuild):
                 UnitTypeId.BARRACKS,
                 [(UnitTypeId.REAPER, 1)],
                 hold_until=lambda: (
-                    self.bot.already_pending(UpgradeId.STIMPACK) > 0
+                    self.bot.already_pending(UpgradeId.TERRANINFANTRYWEAPONSLEVEL1) > 0
                 ),
                 hold_composition={UnitTypeId.MARINE: 1},
             ),

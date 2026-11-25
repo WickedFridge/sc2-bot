@@ -51,7 +51,7 @@ class ThreeCC5RaxPlus1(MacroBuild):
             BuildOrderStep(bot, self, 'gas', UnitTypeId.REFINERY, requirements=[(UnitTypeId.BARRACKS, 1, False)], workers=15),
             BuildOrderStep(bot, self, 'expand', UnitTypeId.COMMANDCENTER, target_count=2, requirements=[(UnitTypeId.ORBITALCOMMAND, 1, False)]),
             BuildOrderStep(bot, self, 'reactor', UnitTypeId.BARRACKSREACTOR, units_produced_required=[(UnitTypeId.MARINE, 2)]),
-            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3),
+            BuildOrderStep(bot, self, '3rd CC', UnitTypeId.COMMANDCENTER, target_count=3, townhalls=2),
             BuildOrderStep(bot, self, 'Rax 2/3', UnitTypeId.BARRACKS, target_count=3, townhalls=3),
             BuildOrderStep(bot, self, 'Ebay #1', UnitTypeId.ENGINEERINGBAY, target_count=1, townhalls=3, requirements=[(UnitTypeId.BARRACKS, 3, False)]),
             BuildOrderStep(bot, self, 'techlab', UnitTypeId.BARRACKSTECHLAB, requirements=[(UnitTypeId.BARRACKS, 2, True)]),
