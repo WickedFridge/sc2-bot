@@ -26,6 +26,8 @@ class Expansion(CachedClass):
     position: Point2
     distance_from_main: float
     radius: int = 12
+    # half of the townhall's 5x5 footprint
+    FOOTPRINT_RADIUS: float = 2.5
     # A base with a bunker is defended once it has this many defenders (bunker passengers + units around)
     MIN_DEFENDERS: int = 4
     # Our units closer than this to the base (or to its defensive structure) defend it
@@ -54,11 +56,13 @@ class Expansion(CachedClass):
         for th in townhalls.not_flying:
             if (th.position == self.position):
                 return True
-        for townhall in townhalls.flying:
-            if (townhall.order_target == self.position):
-                return True
-        return False
-    
+        return self.has_incoming_townhall
+
+    @custom_cache_once_per_frame
+    def has_incoming_townhall(self) -> bool:
+        """One of our townhalls is flying to the slot (which may not have been scouted yet)."""
+        return any(townhall.order_target == self.position for townhall in self.bot.townhalls.flying)
+
     @custom_cache_once_per_frame
     def is_unknown(self) -> bool:
         return self.bot.state.visibility[self.position.rounded] == 0
@@ -103,8 +107,40 @@ class Expansion(CachedClass):
     def is_probably_free(self) -> bool:
         return (
             (self.is_free or self.is_unknown)
+            and not self.has_incoming_townhall
             and not self.is_potentially_enemy
             and self.no_enemy_around
+        )
+
+    @custom_cache_once_per_frame
+    def is_landable(self) -> bool:
+        """
+        Nothing known prevents a townhall from landing on the slot.
+        Unlike is_free, an incoming townhall doesn't make it unavailable.
+        """
+        if (any(townhall.position == self.position for townhall in self.bot.townhalls.not_flying) or self.is_enemy):
+            return False
+        if (self.is_unknown):
+            return True
+        return (
+            self.mineral_fields.amount >= 1
+            and self.is_buildable
+            and not self.is_blocked_by_enemy
+        )
+
+    def is_on_footprint(self, unit: Unit | GhostUnit) -> bool:
+        return (
+            max(abs(unit.position.x - self.position.x), abs(unit.position.y - self.position.y))
+            < self.FOOTPRINT_RADIUS + unit.radius
+        )
+
+    @custom_cache_once_per_frame
+    def is_blocked_by_enemy(self) -> bool:
+        """An enemy ground unit is on the footprint, either visible or assumed to be there (burrowed lurker...)."""
+        # assumed_enemy_units doesn't include the visible units
+        return (
+            self.bot.enemy_units.not_flying.filter(self.is_on_footprint).amount >= 1
+            or self.bot.ghost_units.assumed_enemy_units.not_flying.filter(self.is_on_footprint).amount >= 1
         )
 
     @custom_cache_once_per_frame

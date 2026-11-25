@@ -2,13 +2,24 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.colors import ORANGE
+from bot.utils.matchup import Matchup
 from bot.utils.point2_functions.utils import closest_to_ally_stuff, furthest_points
+from sc2.data import ActionResult
 from sc2.game_state import EffectData
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.effect_id import EffectId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
+from sc2.unit import Unit
 if TYPE_CHECKING:
+    from bot.macro.expansion import Expansion  # only imported for type hints
     from bot.superbot import Superbot  # only imported for type hints
+
+LAND_TOWNHALL_ABILITIES: set[int] = {
+    AbilityId.LAND.value,
+    AbilityId.LAND_COMMANDCENTER.value,
+    AbilityId.LAND_ORBITALCOMMAND.value,
+}
 
 ghost_units_manager: GhostUnitsManager | None = None
 
@@ -80,6 +91,84 @@ class GhostUnitsManager:
                 )
                 self.tag_counter += 1
 
+    def add_landing_blocker_ghosts(self) -> None:
+        """Assume a burrowed unit blocks a townhall that failed to land on an expansion for no visible reason."""
+        # (type, radius, health)
+        blocker: tuple[UnitTypeId, float, float]
+        match (self.bot.matchup):
+            case Matchup.TvZ:
+                blocker = (UnitTypeId.ZERGLINGBURROWED, 0.375, 35)
+            case Matchup.TvT:
+                blocker = (UnitTypeId.WIDOWMINEBURROWED, 0.5, 90)
+            case _:
+                # no burrowed unit can block us, it's probably a bug
+                return
+        type_id, radius, health = blocker
+
+        frame = self.bot.state.game_loop
+        lifetime: int = 300
+        # current observation only: state.action_errors also repeats the previous frame's errors
+        for error in self.bot.state.response_observation.action_errors:
+            if (
+                error.ability_id not in LAND_TOWNHALL_ABILITIES
+                or error.result != ActionResult.CantLandLocationInvalid.value
+            ):
+                continue
+            townhall: Unit | None = self.bot.townhalls.find_by_tag(error.unit_tag)
+            if (townhall is None):
+                continue
+            # the order can also be rejected from afar, or away from an expansion
+            expansion: Expansion = self.bot.expansions.closest_to(townhall.position)
+            if (townhall.distance_to(expansion.position) > expansion.FOOTPRINT_RADIUS):
+                continue
+            # don't use is_landable: it's cached for the frame, and would ignore the ghost we're about to add
+            if (
+                not expansion.is_buildable
+                or self.bot.enemy_units.not_flying.filter(expansion.is_on_footprint).amount >= 1
+                or self.bot.units(UnitTypeId.SIEGETANKSIEGED).filter(expansion.is_on_footprint).amount >= 1
+            ):
+                print(f"[GhostUnits] Landing failed on {expansion.position}, but the cause is visible")
+                continue
+
+            ghost: GhostUnit | None = self.get_ghost_unit_by_position(expansion.position, type_id=type_id)
+            if (ghost is not None):
+                ghost.expiry_frame = frame + lifetime
+                continue
+            print(f"[GhostUnits] Landing failed on {expansion.position}, assuming a {type_id.name}")
+            self.tag_counter += 1
+            tag: int = self.tag_counter + self.counter_offset  # offset to avoid collision with real unit tags
+            self.ghost_units[tag] = GhostUnit(
+                tag=tag,
+                position=expansion.position,
+                type_id=type_id,
+                radius=radius,
+                ground_dps=0,
+                ground_range=0,
+                air_dps=0,
+                air_range=0,
+                real_speed=0,
+                health=health,
+                health_max=health,
+                health_percentage=1.0,
+                shield=0,
+                shield_max=0,
+                shield_percentage=0.0,
+                energy=0,
+                energy_max=0,
+                energy_percentage=0.0,
+                is_flying=False,
+                is_armored=False,
+                can_attack=False,
+                can_attack_ground=False,
+                can_attack_air=False,
+                is_visible=False,
+                # widow mines aren't in burrowed_units: needed to be scanned
+                is_cloaked=True,
+                is_ready=True,
+                last_seen_frame=frame,
+                expiry_frame=frame + lifetime,
+            )
+
     def update_ghost_units(self):
         frame = self.bot.state.game_loop
         # 1- Add / refresh visible enemy units
@@ -124,6 +213,9 @@ class GhostUnitsManager:
             
         # 1.5- Special case - add lurkers based on lurker spines
         self.add_lurker_ghosts()
+
+        # 1.6- Special case - add burrowed units blocking our townhalls
+        self.add_landing_blocker_ghosts()
 
         # 2- Remove expired ghost units
         expired = [

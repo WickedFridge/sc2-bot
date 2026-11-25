@@ -39,6 +39,8 @@ TOWNHALL_UPGRADE_CANCELS: dict[UnitTypeId, AbilityId] = {
 class BuildingsHandler:
     bot: Superbot
     DANGER_THRESHOLD: float = 8
+    # closer than this to its target, a townhall is touching down and shouldn't be redirected
+    LANDING_COMMIT_DISTANCE: float = 3
     # tag -> game loop at which the townhall morph started
     townhall_upgrades_start: dict[int, int]
 
@@ -581,73 +583,141 @@ class BuildingsHandler:
 
     
     async def land_townhalls(self):
-        flying_townhall: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready
-        for townhall in flying_townhall:
-            # stop townhalls that are landing on a taken expansion slot, so they can find a better one
-            if (
-                len(townhall.orders) >= 1
-                and townhall.orders[0].ability.id == AbilityId.LAND
-                and isinstance(townhall.orders[0].target, Point2)
-            ):
-                # if trying to land on a taken expansion slot
-                target_position: Point2 = townhall.orders[0].target
-                expansion_target: Expansion = self.bot.expansions.closest_to(townhall.orders[0].target)
-                if (
-                    expansion_target.cc is not None
-                    and townhall.tag != expansion_target.cc.tag
-                    and target_position in self.bot.expansions.positions
-                ):
-                    print("Stop townhall, spot already taken")
-                    townhall.stop()
-                    continue
-            
-            probably_free_expansions: Expansions = self.bot.expansions.with_resources.probably_free
-            expansion_spot: Point2 = (
-                probably_free_expansions.next.position if flying_townhall.amount == 1 and probably_free_expansions.amount >= 1
-                else probably_free_expansions.closest_to(townhall.position).position if probably_free_expansions.amount >= 1
-                else self.bot.expansions.last_taken.position if self.bot.expansions.taken.amount >= 1
-                else self.bot.expansions.main.position
-            )
-            is_landing: bool = len(townhall.orders) >= 1 and townhall.orders[0].ability.id == AbilityId.LAND
+        flying_townhalls: Units = self.bot.structures([UnitTypeId.ORBITALCOMMANDFLYING, UnitTypeId.COMMANDCENTERFLYING]).ready.filter(
+            # townhalls with another order (still lifting) are left alone until it's done
+            lambda townhall: townhall.is_idle or self.landing_target(townhall) is not None
+        )
+        slots: dict[int, Expansion] = self.assign_landing_slots(flying_townhalls)
+        expansion_positions: List[Point2] = self.bot.expansions.positions
 
-            # townhall is landing on a safe spot (not an expansion slot) : redirect it to the expansion if it became safe
-            if (
-                is_landing
-                and isinstance(townhall.orders[0].target, Point2)
-                and townhall.orders[0].target not in self.bot.expansions.positions
-            ):
-                if (
-                    not self.bot.is_visible(expansion_spot)
-                    or self.bot.map.influence_maps.average_danger_around(expansion_spot, radius=10, air=False) >= self.DANGER_THRESHOLD
-                ):
-                    continue
-                print("Expansion is safe again, redirect townhall")
-                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
-                    townhall(AbilityId.LAND_COMMANDCENTER, expansion_spot)
-                else:
-                    townhall(AbilityId.LAND_ORBITALCOMMAND, expansion_spot)
+        for townhall in flying_townhalls:
+            target: Point2 | None = self.landing_target(townhall)
+            slot: Expansion | None = slots.get(townhall.tag)
+            is_landing_off_slot: bool = target is not None and target not in expansion_positions
+
+            # no slot available : land next to a safe base while waiting for one
+            if (slot is None):
+                if (not is_landing_off_slot):
+                    print("No expansion slot available, land townhall on a safe spot")
+                    self.land_on_safe_spot(townhall, townhall.position)
                 continue
 
-            landing_spot: Point2 = townhall.orders[0].target if is_landing else expansion_spot
-            danger_around: float = self.bot.map.influence_maps.average_danger_around(landing_spot, radius=10, air=False)
-            if (danger_around < self.DANGER_THRESHOLD):
-                if (not townhall.is_idle):
-                    continue
-                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
-                    townhall(AbilityId.LAND_COMMANDCENTER, landing_spot)
-                else:
-                    townhall(AbilityId.LAND_ORBITALCOMMAND, landing_spot)
-            else:
-                safest_base: Expansion = (
-                    self.bot.expansions.main
-                    if self.bot.expansions.taken.safe.amount == 0
-                    else self.bot.expansions.taken.safe.closest_to(townhall.position)
-                )
-                safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, landing_spot, 2.5)
-                if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
-                    townhall(AbilityId.LAND_COMMANDCENTER, safe_spot)
-                else:
-                    townhall(AbilityId.LAND_ORBITALCOMMAND, safe_spot)
+            # townhall is landing on a safe spot (not an expansion slot) : redirect it to the expansion if it became safe
+            if (is_landing_off_slot):
+                if (self.is_visible_and_safe(slot)):
+                    print("Expansion is safe again, redirect townhall")
+                    self.land_townhall(townhall, slot.position)
+                continue
+
+            if (self.landing_danger(slot) >= self.DANGER_THRESHOLD):
+                self.land_on_safe_spot(townhall, slot.position)
+                continue
+
+            if (target == slot.position):
+                continue
+            if (target is not None):
+                print(f"Redirect townhall in flight: {target} -> {slot.position}")
+            self.land_townhall(townhall, slot.position)
+
+    def assign_landing_slots(self, flying_townhalls: Units) -> dict[int, Expansion]:
+        """
+        Pick the expansion slot of each flying townhall (tag -> expansion), re-evaluated every frame:
+        - a townhall keeps its slot as long as it's available and no better one shows up
+        - a townhall whose slot isn't available anymore gets a new one
+        - two townhalls never get the same slot
+        Expansions are ordered from the best one to the worst one.
+        """
+        slots: dict[int, Expansion] = {}
+        order: dict[Point2, int] = {position: index for index, position in enumerate(self.bot.expansions.positions)}
+
+        # 1) keep the current slots that are still available (the closest townhall has priority)
+        heading: List[tuple[float, Unit, Expansion]] = []
+        for townhall in flying_townhalls:
+            target: Point2 | None = self.landing_target(townhall)
+            if (target is not None and target in self.bot.expansions.positions):
+                heading.append((townhall.distance_to(target), townhall, self.bot.expansions.closest_to(target)))
+        heading.sort(key=lambda entry: entry[0])
+
+        redirectable: List[Unit] = []
+        for distance, townhall, expansion in heading:
+            if (expansion in slots.values()):
+                continue
+            # when touching down, the townhall itself may block its slot
+            is_touching_down: bool = distance <= self.LANDING_COMMIT_DISTANCE
+            if (not is_touching_down and not expansion.is_landable):
+                continue
+            slots[townhall.tag] = expansion
+            if (not is_touching_down):
+                redirectable.append(townhall)
+
+        available: List[Expansion] = [
+            expansion for expansion in self.bot.expansions.with_resources.probably_free
+            if expansion.is_landable
+        ]
+
+        # 2) townhalls without a slot share the best available ones
+        without_slot: List[Unit] = [townhall for townhall in flying_townhalls if townhall.tag not in slots]
+        best_available: List[Expansion] = available[:len(without_slot)]
+        for townhall in without_slot:
+            if (len(best_available) == 0):
+                break
+            slot: Expansion = min(best_available, key=lambda expansion: townhall.distance_to(expansion.position))
+            slots[townhall.tag] = slot
+            best_available.remove(slot)
+            available.remove(slot)
+
+        # 3) redirect townhalls if a better slot is available
+        # as for retreating townhalls, only trust a slot that we see
+        # the townhall with the worst slot takes the best one, so the others don't have to shift
+        redirectable.sort(key=lambda townhall: order[slots[townhall.tag].position], reverse=True)
+        for townhall in redirectable:
+            current_order: int = order[slots[townhall.tag].position]
+            better_slot: Expansion | None = next(
+                (
+                    expansion for expansion in available
+                    if order[expansion.position] < current_order and self.is_visible_and_safe(expansion)
+                ),
+                None,
+            )
+            if (better_slot is None):
+                continue
+            slots[townhall.tag] = better_slot
+            available.remove(better_slot)
+
+        return slots
+
+    def landing_target(self, townhall: Unit) -> Point2 | None:
+        """Position where the townhall is landing, None if it isn't landing."""
+        if (
+            len(townhall.orders) >= 1
+            and townhall.orders[0].ability.id == AbilityId.LAND
+            and isinstance(townhall.orders[0].target, Point2)
+        ):
+            return townhall.orders[0].target
+        return None
+
+    def landing_danger(self, expansion: Expansion) -> float:
+        return self.bot.map.influence_maps.average_danger_around(expansion.position, radius=10, air=False)
+
+    def is_visible_and_safe(self, expansion: Expansion) -> bool:
+        return expansion.is_visible and self.landing_danger(expansion) < self.DANGER_THRESHOLD
+
+    def land_townhall(self, townhall: Unit, position: Point2) -> None:
+        if (townhall.type_id == UnitTypeId.COMMANDCENTERFLYING):
+            townhall(AbilityId.LAND_COMMANDCENTER, position)
+        else:
+            townhall(AbilityId.LAND_ORBITALCOMMAND, position)
+
+    def land_on_safe_spot(self, townhall: Unit, preferred_direction: Point2) -> None:
+        # only bases with a landed townhall: the slot we're flying to isn't a safe base
+        safe_bases: Expansions = self.bot.expansions.ready.safe
+        safest_base: Expansion = (
+            self.bot.expansions.main
+            if safe_bases.amount == 0
+            else safe_bases.closest_to(townhall.position)
+        )
+        safe_spot: Point2 = dfs_in_pathing(self.bot, safest_base.position, UnitTypeId.COMMANDCENTER, preferred_direction, 2.5)
+        self.land_townhall(townhall, safe_spot)
 
     async def reposition_buildings(self) -> None:
         """
