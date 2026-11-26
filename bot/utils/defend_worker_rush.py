@@ -13,9 +13,10 @@ The algorithm:
     to stack up.
 """
 
-from typing import List
+from typing import List, Optional, Set
 
 from sc2.bot_ai import BotAI
+from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
@@ -32,14 +33,66 @@ def choose_workers_to_pull(bot: BotAI, enemy_units: Units, workers_pulled_amount
         lambda worker: (-worker.health, worker.distance_to_squared(enemy_units.center))
     ).take(workers_pulled_amount)
 
+def is_building_planned_at(bot: BotAI, position: Point2, ability: AbilityId) -> bool:
+    # a worker has been ordered to build there but the structure isn't placed yet
+    return any(
+        order.ability.id == ability
+        and isinstance(order.target, Point2)
+        and order.target.distance_to(position) < 1
+        for worker in bot.workers
+        for order in worker.orders
+    )
+
+def is_wall_spot_covered(bot: BotAI, types: Set[UnitTypeId], position: Point2, ability: AbilityId) -> bool:
+    # bot.structures includes buildings under construction
+    return (
+        bot.structures(types).closer_than(1, position).exists
+        or is_building_planned_at(bot, position, ability)
+    )
+
+def buildings_missing_from_wall(bot: BotAI) -> int:
+    """
+    The wall has 3 slots: the 2 corner depots and the middle slot.
+    The middle slot is filled either by a depot in the middle or by any barracks
+    (wherever it is, it can relocate to close the wall).
+    """
+    if (wall_is_up(bot)):
+        return 0
+
+    depot_types: Set[UnitTypeId] = {UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED}
+    missing: int = 0
+
+    # the 2 corner depots
+    for position in bot.main_base_ramp.corner_depots:
+        if (not is_wall_spot_covered(bot, depot_types, position, AbilityId.TERRANBUILD_SUPPLYDEPOT)):
+            missing += 1
+
+    # the middle slot: any barracks (built, in construction or ordered) or the middle depot
+    has_barracks: bool = (
+        bot.structures({UnitTypeId.BARRACKS, UnitTypeId.BARRACKSFLYING}).exists
+        or bot.already_pending(UnitTypeId.BARRACKS) > 0
+    )
+    depot_in_middle: Optional[Point2] = bot.main_base_ramp.depot_in_middle
+    has_middle_depot: bool = (
+        depot_in_middle is not None
+        and is_wall_spot_covered(bot, depot_types, depot_in_middle, AbilityId.TERRANBUILD_SUPPLYDEPOT)
+    )
+    if (not has_barracks and not has_middle_depot):
+        missing += 1
+
+    return missing
+
+
 def wall_is_up(bot: BotAI) -> bool:
     supply_depots: Units = bot.structures([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED])
     barracks: Units = bot.structures(UnitTypeId.BARRACKS)
 
     corner_positions: List[Point2] = list(bot.main_base_ramp.corner_depots)
+    depot_middle: Point2 = bot.main_base_ramp.depot_in_middle
     depots_at_wall: Units = supply_depots.filter(
         lambda depot: any(depot.position == pos for pos in corner_positions)
     )
+    depots_in_middle: Units = supply_depots.filter(lambda depot: depot.position == depot_middle)
     if (depots_at_wall.amount < 2 or barracks.amount < 1):
         return False
 
@@ -53,6 +106,10 @@ def wall_is_up(bot: BotAI) -> bool:
         and barracks_wall.has_add_on
     ):
         return True
+
+    if (depots_in_middle.amount == 1):
+        return True
+
     return False
 
 def pullback_workers(workers: Units, main_position: Point2, main_minerals: Units, mineral_field_main: Unit) -> None:

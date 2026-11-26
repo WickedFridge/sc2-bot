@@ -10,6 +10,7 @@ from bot.strategy.build_order.builds.macro_builds.macro_cyclone import MacroCycl
 from bot.strategy.build_order.builds.macro_builds.two_rax_reapers_kokabuild import TwoRaxReapersKokabuild
 from bot.strategy.strategy_types import Priority, Situation, Strategy
 from bot.utils.army import Army
+from bot.utils.defend_worker_rush import buildings_missing_from_wall, wall_is_up
 from bot.utils.matchup import Matchup
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
@@ -437,6 +438,18 @@ class StrategyHandler:
         defensive_response: Optional[BuildOrder] = self.bot.build_order.dispatcher.get_defensive_response(situation)
         if (defensive_response is not None and defensive_response.name != self.bot.build_order.build.name):
             await self.bot.build_order.switch_build(defensive_response, situation.name)
+        
+        # cancel incoming worker during worker rushes if we don't have enough to build a wall
+        if (situation == Situation.CHEESE_WORKER_RUSH):
+            if (
+                not(wall_is_up(self.bot))
+                and buildings_missing_from_wall(self.bot) >= self.bot.minerals / 100
+                and self.bot.already_pending(UnitTypeId.SCV) >= 1
+            ):
+                townhalls_producing: Units = self.bot.townhalls.filter(lambda th: th.orders[0] == AbilityId.COMMANDCENTERTRAIN_SCV)
+                for th in townhalls_producing:
+                    th.stop()
+
         
         dont_cancel_b2_b3: bool = situation in [
             Situation.CHEESE_SKYTOSS,

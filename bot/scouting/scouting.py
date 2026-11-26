@@ -75,6 +75,8 @@ class Scouting:
     BUILDING_SEARCH_RADIUS: int = 5
     # give up the chase once the enemy worker has pulled away this much from our closest approach
     DISENGAGE_MARGIN: float = 2
+    # the worker rush watcher stops once it gets this close to the b2 entrance
+    ENTRANCE_WATCH_RADIUS: float = 4
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
@@ -314,11 +316,20 @@ class Scouting:
         )
 
     def _watch_b2_entrance(self, scout: Unit):
-        """ Stand at the b2 entrance without engaging: the strategy handler detects the worker rush from the vision we provide. """
+        """
+        Stand near the b2 entrance without engaging: the strategy handler detects the worker rush from the vision we provide.
+        The scout moves towards the enemy main rather than the entrance itself, so it follows the natural pathing
+        an incoming worker rush would take, and stops once it gets close enough to the entrance.
+        """
         self.engaged_worker_tag = None
         entrance: Point2 = self.bot.expansions.b2.bunker_forward.towards(self.bot.game_info.map_center, 3)
-        if (scout.distance_to(entrance) > 1):
-            scout.move(entrance)
+        enemy_main: Point2 = self.bot.expansions.enemy_main.position
+        if (scout.distance_to(entrance) > self.ENTRANCE_WATCH_RADIUS):
+            # avoid re-issuing the same order every frame
+            if (not scout.is_moving or scout.order_target != enemy_main):
+                scout.move(enemy_main)
+        elif (scout.is_moving):
+            scout.stop()
 
     def _scout_proxy(self, scout: Unit, zones: List[Expansion], extra_scout_points: List[Point2]):
         if (self._engage_enemy_worker(scout, zones)):
