@@ -10,7 +10,7 @@ from bot.utils.unit_supply import weighted_units_supply
 from bot.utils.matchup import Matchup, get_matchup
 from bot.utils.point2_functions.ramps import find_closest_bottom_ramp
 from bot.utils.point2_functions.utils import center, closest_point, position_behind_worker_line, same_height_points_around
-from bot.utils.point2_functions.dfs_positions import dfs_in_pathing
+from bot.utils.point2_functions.dfs_positions import dfs_in_pathing, valid_building_position
 from bot.utils.unit_functions import worker_amount_mineral_field, worker_amount_vespene_geyser
 from sc2.bot_ai import BotAI
 from sc2.cache import CachedClass, custom_cache_once_per_frame
@@ -23,6 +23,9 @@ from sc2.unit import Unit
 from sc2.units import Units
 from bot.utils.unit_tags import townhalls, menacing, worker_types
 from functools import cached_property
+
+# mining bunker touching a side of the townhall on that many tiles (1 = measured as the best layout, 3 max)
+BUNKER_MINING_CONTACT_TILES: int = 1
 
 class Expansion(CachedClass):
     position: Point2
@@ -550,13 +553,16 @@ class Expansion(CachedClass):
         """
         if (not self.can_bunker_mine):
             return
+        # preferred: glued to the townhall (the workers drop their vespene right out of the bunker)
+        glued_position: Optional[Point2] = self._glued_bunker_mining_position()
+        if (glued_position is not None):
+            self.bunker_mining_position = glued_position
+            return
+
+        # fallback: closest buildable position between the geysers and the townhall
         points: List[Point2] = [geyser.position for geyser in self.vespene_geysers]
         points.append(self.position)
         target: Optional[Point2] = center(points)
-        # geyser_center: Point2 = center(points)
-        # if (geyser_center is None):
-        #     return
-        # target: Optional[Point2] = center([geyser_center, self.position])
         if (target is None):
             return
         # the bunker's 3x3 footprint can't overlap the townhall's 5x5 footprint
@@ -577,7 +583,33 @@ class Expansion(CachedClass):
             preferred_direction,
             reject=overlaps_townhall,
         )
-    
+
+    def _glued_bunker_mining_position(self) -> Optional[Point2]:
+        """
+        Bunker touching a side of the townhall on BUNKER_MINING_CONTACT_TILES tiles (the layout measured as the best),
+        the buildable one closest to both geysers. None if none is buildable.
+        """
+        # centers distance when the footprints touch (5x5 townhall, 3x3 bunker)
+        touching_offset: float = self.FOOTPRINT_RADIUS + BUNKER_RADIUS
+        # offset along the touching side: 1 contact tile = shifted as far as possible towards the corner
+        side_offset: float = touching_offset - BUNKER_MINING_CONTACT_TILES
+        candidates: List[Point2] = []
+        for touching_sign in (-1, 1):
+            for side_sign in (-1, 1):
+                # left / right sides, then bottom / top sides
+                candidates.append(self.position + Point2((touching_sign * touching_offset, side_sign * side_offset)))
+                candidates.append(self.position + Point2((side_sign * side_offset, touching_sign * touching_offset)))
+        buildable: List[Point2] = [
+            candidate for candidate in candidates
+            if valid_building_position(self.bot, candidate, UnitTypeId.BUNKER, BUNKER_RADIUS, False)
+        ]
+        if (len(buildable) == 0):
+            return None
+        return min(
+            buildable,
+            key=lambda candidate: sum(candidate.distance_to(geyser) for geyser in self.vespene_geysers),
+        )
+
     @custom_cache_once_per_frame
     def bunker_mining_unit(self) -> Optional[Unit]:
         if (self.bunker_mining_position is None):

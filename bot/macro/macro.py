@@ -4,6 +4,7 @@ from bot.combat.threats import Threat
 from bot.macro.bunker_mining import BunkerMining
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
+from bot.macro.gas_test import GasTest
 from bot.macro.speed_mining import SpeedMining
 from bot.strategy.strategy_types import Situation
 from bot.utils.base import Base
@@ -29,6 +30,7 @@ class Macro:
     bases: List[Base]
     speed_mining: SpeedMining
     bunker_mining: BunkerMining
+    gas_test: GasTest
     supply_block_time: int = 0
     structure_to_base: dict[int, Base] = {}
 
@@ -37,6 +39,7 @@ class Macro:
         self.bases = []
         self.bunker_mining = BunkerMining(bot)
         self.speed_mining = SpeedMining(bot, self.bunker_mining)
+        self.gas_test = GasTest(bot, self.bunker_mining)
 
     async def update_threat_level(self):
         self.bases = self.threat_detection()
@@ -197,8 +200,9 @@ class Macro:
         )
         has_idle_workers: bool = idle_workers.amount > 0
         # bunker mined refineries handle their extra workers themselves
+        # (and the gas test handles its bases' refineries)
         regular_refineries: Units = self.bot.gas_buildings.filter(
-            lambda refinery: not self.bunker_mining.is_bunker_mined(refinery)
+            lambda refinery: not self.bunker_mining.is_bunker_mined(refinery) and not self.gas_test.is_test_refinery(refinery)
         )
         has_oversaturated_refinery: bool = regular_refineries.filter(
             lambda refinery: refinery.assigned_harvesters >= 4
@@ -224,7 +228,9 @@ class Macro:
             expansion_by_position[expansion.position] = expansion
             workers_on_minerals: int = expansion.mineral_worker_count
             optimal_workers_on_minerals: float = expansion.optimal_mineral_workers
-            total_gas_workers += expansion.vespene_worker_count
+            # the gas test handles its bases' gas workers
+            if (not self.gas_test.is_test_expansion(expansion)):
+                total_gas_workers += expansion.vespene_worker_count
 
             if (optimal_workers_on_minerals > 0):
                 total_ideal_mineral_workers += optimal_workers_on_minerals
@@ -244,10 +250,15 @@ class Macro:
         mule_equivalent_workers: int = orbital_count * 4
         effective_worker_count: int = worker_count + mule_equivalent_workers
 
+        # bases whose gas workers are handled here (the gas test handles its own)
+        gas_expansions: List[Expansion] = [
+            expansion for expansion in expansions_list if not self.gas_test.is_test_expansion(expansion)
+        ]
+
         # Total harvesting capacity of all ready refineries across safe expansions.
         total_refinery_capacity: int = sum(
             self.bunker_mining.ideal_harvesters(refinery)
-            for expansion in expansions_list
+            for expansion in gas_expansions
             for refinery in expansion.refineries
             if refinery.is_ready
         )
@@ -342,7 +353,7 @@ class Macro:
             print(f"Assign to Gas [{total_gas_workers}+{workers_heading_to_gas}/{total_refinery_capacity}] [{gaz_detail}]")
             needing_gas_fill: List[Unit] = [
                 refinery
-                for expansion in expansions_list
+                for expansion in gas_expansions
                 for refinery in expansion.refineries
                 if (self.bunker_mining.harvesters(refinery) < self.bunker_mining.ideal_harvesters(refinery))
             ]
@@ -388,7 +399,7 @@ class Macro:
             print(f'pull worker out of gas [{total_gas_workers}/{target_gas_workers}] (+- {gas_hysteresis})')
             # regular refineries first, bunker mined ones only as a last resort
             expansions_with_gas_workers: List[Expansion] = [
-                expansion for expansion in expansions_list if expansion.vespene_worker_count > 0
+                expansion for expansion in gas_expansions if expansion.vespene_worker_count > 0
             ]
             regular_gas_expansions: List[Expansion] = [
                 expansion for expansion in expansions_with_gas_workers

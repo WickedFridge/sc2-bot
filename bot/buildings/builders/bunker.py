@@ -1,6 +1,5 @@
 from typing import Optional, override
 from bot.buildings.building import Building
-from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
@@ -100,6 +99,8 @@ class Bunker(Building):
 
     @property
     def _bunker_mining_missing(self) -> Optional[Point2]:
+        if (not self.bot.bunker_mining.enabled):
+            return None
         to_build: Expansions = self.bot.expansions.bunker_mining_to_build
         return to_build.first.bunker_mining_position if to_build.amount >= 1 else None
 

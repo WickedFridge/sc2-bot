@@ -964,11 +964,25 @@ class Debug:
                 self.draw_line_world(townhall.position, bunker.position, WHITE)
             for refinery in expansion.refineries:
                 self.draw_line_world(bunker.position, refinery.position, WHITE)
-            # unload / waiting points
+            # unload points
             if (lock.outbound_point is not None):
                 self.draw_box_on_world(lock.outbound_point, 0.3, GREEN)
             if (lock.inbound_point is not None):
                 self.draw_box_on_world(lock.inbound_point, 0.3, YELLOW)
+
+            # bunker orders queue and reservations (tags shortened to their last 4 digits)
+            bunker_orders: str = ', '.join(
+                f'{order.ability.id.name}'
+                + (f'>{str(order.target)[-4:]}' if isinstance(order.target, int) else '')
+                for order in bunker.orders
+            )
+            reserved: str = ', '.join(str(tag)[-4:] for tag in lock.reserved_tags)
+            self.draw_text_on_world(
+                bunker.position + Point2((0, -0.6)),
+                f'orders: [{bunker_orders}]\nreserved: [{reserved}]',
+                ORANGE,
+                10,
+            )
 
             for trio in bunker_mining.trios_of_bunker(bunker.tag):
                 for worker_tag, status in trio.workers.items():
@@ -976,7 +990,15 @@ class Debug:
                     # loaded workers aren't visible: draw their status on the bunker
                     position: Point2 = worker.position if worker is not None else bunker.position
                     color: tuple = YELLOW if status in returning_statuses else GREEN
-                    self.draw_text_on_world(position, status.value, color, 10)
+                    # current order of the worker: is it heading to the bunker, the refinery, the CC... or idle
+                    order: str = ''
+                    if (worker is not None):
+                        order = (
+                            f' {worker.orders[0].ability.id.name}'
+                            + (f'>{str(worker.order_target)[-4:]}' if isinstance(worker.order_target, int) else '')
+                            if len(worker.orders) >= 1 else ' IDLE'
+                        )
+                    self.draw_text_on_world(position, f'{str(worker_tag)[-4:]} {status.value}{order}', color, 10)
 
     def ghost_units(self):
         ghost_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units

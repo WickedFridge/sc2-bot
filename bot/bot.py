@@ -31,7 +31,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "16.0.0"
+VERSION: str = "16.0.1"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -257,6 +257,7 @@ class WickedBot(Superbot):
         # General Worker management
         await self.macro.speed_mining.execute()
         await self.macro.bunker_mining.execute()
+        await self.macro.gas_test.execute()
         await self.macro.distribute_workers(iteration)
         await self.macro.mule_idle()
         await self.macro.unbug_workers()

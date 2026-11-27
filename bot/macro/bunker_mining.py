@@ -14,8 +14,12 @@ if TYPE_CHECKING:
 
 # with bunker mining, 2 workers are enough to saturate a refinery
 WORKERS_PER_REFINERY: int = 2
-# distance from the bunker's center of the unload / waiting points
+# distance from the bunker's center of the unload points
 EXIT_DISTANCE: float = 2.5
+# a worker within that distance of the bunker's edge is "next to it": served first, waits where it is
+CLOSE_MARGIN: float = 1.0
+# distance from the bunker's edge of the waiting point (within CLOSE_MARGIN, so the worker stops there)
+WAITING_MARGIN: float = 0.5
 # a worker stuck in the same status for that long is reset (~8s)
 STUCK_TIMEOUT: int = 180
 
@@ -54,7 +58,7 @@ class BunkerLock:
     direction: BunkerDirection = BunkerDirection.FREE
     # workers ordered to load in the current direction, until they're unloaded
     reserved_tags: set[int] = field(default_factory=set)
-    # unload (rally) points, also used as waiting points: refineries side / townhall side
+    # unload (rally) points: between both refineries / townhall side
     outbound_point: Optional[Point2] = None
     inbound_point: Optional[Point2] = None
 
@@ -76,15 +80,32 @@ class BunkerMiningTrio:
         self.status_since.pop(worker_tag, None)
 
 
+@dataclass
+class LoadRequest:
+    """A worker asking to cross the bunker this frame"""
+    worker: Unit
+    bunker: Unit
+    lock: BunkerLock
+    direction: BunkerDirection
+    # game loop of the worker's last status change
+    waiting_since: int
+
+
 class BunkerMining:
     bot: Superbot
     trios: List[BunkerMiningTrio]
     locks: Dict[int, BunkerLock]
+    enabled: bool
+    # gathered while updating the workers, then served by priority
+    _load_requests: List[LoadRequest]
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.trios = []
         self.locks = {}
+        # disabled (e.g. by the gas test): every trio is released and no mining bunker is requested
+        self.enabled = True
+        self._load_requests = []
 
     async def execute(self) -> None:
         self._sync_trios()
@@ -198,6 +219,7 @@ class BunkerMining:
                 continue
             for worker_tag in list(trio.workers):
                 self._update_worker(trio, worker_tag, bunker, refinery, lock)
+        self._resolve_load_requests()
 
     def _update_worker(self, trio: BunkerMiningTrio, worker_tag: int, bunker: Unit, refinery: Unit, lock: BunkerLock) -> None:
         game_loop: int = self.bot.state.game_loop
@@ -227,41 +249,50 @@ class BunkerMining:
             status = reset_status
 
         if (worker is not None):
-            self._act(worker, status, bunker, refinery, lock)
+            self._act(worker, status, bunker, refinery, lock, trio.status_since[worker_tag])
 
     def _next_status(self, status: MiningStatus, worker: Optional[Unit], in_bunker: bool) -> MiningStatus:
         visible: bool = worker is not None
         carrying: bool = visible and worker.is_carrying_vespene
+        # neither visible nor loaded: inside the refinery, it will come out with vespene
+        in_refinery: bool = not visible and not in_bunker
         match (status):
             case MiningStatus.READY_TO_MINE if in_bunker:
                 return MiningStatus.MINE_IN_BUNKER
+            # unloaded straight into the refinery (rallied on it) between two steps: never seen outside
+            case MiningStatus.MINE_IN_BUNKER if in_refinery:
+                return MiningStatus.MINE_BACK
             case MiningStatus.MINE_IN_BUNKER if visible:
                 return MiningStatus.MINE_OUT_BUNKER
-            case MiningStatus.MINE_OUT_BUNKER if carrying:
+            case MiningStatus.MINE_OUT_BUNKER if carrying or in_refinery:
                 return MiningStatus.MINE_BACK
             case MiningStatus.MINE_BACK if in_bunker:
                 return MiningStatus.MINE_BACK_IN_BUNKER
+            # safety: seen outside without vespene, it didn't actually harvest yet
+            case MiningStatus.MINE_BACK if visible and not carrying:
+                return MiningStatus.MINE_OUT_BUNKER
             case MiningStatus.MINE_BACK_IN_BUNKER if visible:
                 return MiningStatus.MINE_BACK_OUT_BUNKER
             case MiningStatus.MINE_BACK_OUT_BUNKER if visible and not carrying:
                 return MiningStatus.READY_TO_MINE
         return status
 
-    def _act(self, worker: Unit, status: MiningStatus, bunker: Unit, refinery: Unit, lock: BunkerLock) -> None:
+    def _act(self, worker: Unit, status: MiningStatus, bunker: Unit, refinery: Unit, lock: BunkerLock, waiting_since: int) -> None:
         """Orders are only given when the worker isn't already doing the right thing"""
         match (status):
             case MiningStatus.READY_TO_MINE:
-                self._try_load(worker, bunker, lock, BunkerDirection.OUTBOUND, lock.inbound_point)
+                # loads are served by priority once every worker is updated
+                self._load_requests.append(LoadRequest(worker, bunker, lock, BunkerDirection.OUTBOUND, waiting_since))
             case MiningStatus.MINE_OUT_BUNKER:
                 if (worker.order_target != refinery.tag):
                     worker.gather(refinery)
             case MiningStatus.MINE_BACK:
-                self._try_load(worker, bunker, lock, BunkerDirection.INBOUND, lock.outbound_point)
+                self._load_requests.append(LoadRequest(worker, bunker, lock, BunkerDirection.INBOUND, waiting_since))
             case MiningStatus.MINE_BACK_OUT_BUNKER:
                 if (not worker.is_returning):
                     worker.return_resource()
 
-    def _try_load(self, worker: Unit, bunker: Unit, lock: BunkerLock, direction: BunkerDirection, waiting_point: Point2) -> None:
+    def _try_load(self, worker: Unit, bunker: Unit, lock: BunkerLock, direction: BunkerDirection) -> None:
         # already allowed in: only re-order if the order was lost
         if (worker.tag in lock.reserved_tags):
             if (not self._is_loading(bunker, worker)):
@@ -276,24 +307,54 @@ class BunkerMining:
             lock.reserved_tags.add(worker.tag)
             self._load(bunker, worker)
             return
-        # the bunker is used the other way: wait next to it
+        # the bunker is used the other way: wait where it is if already next to it,
+        # otherwise on the bunker's edge on the worker's side (always reachable, no detour around the refinery)
+        if (self._is_close_to_bunker(worker, bunker)):
+            # cancel the automatic order (return cargo / gather) that would make it walk around the bunker
+            if (not worker.is_idle):
+                worker.stop()
+            return
+        waiting_point: Point2 = bunker.position.towards(worker.position, bunker.radius + worker.radius + WAITING_MARGIN)
         is_heading_to_waiting_point: bool = (
             isinstance(worker.order_target, Point2)
             and worker.order_target.distance_to(waiting_point) < 0.5
         )
-        if (not is_heading_to_waiting_point and worker.distance_to(waiting_point) > 1):
+        if (not is_heading_to_waiting_point):
             worker.move(waiting_point)
 
+    def _is_close_to_bunker(self, worker: Unit, bunker: Unit) -> bool:
+        return worker.distance_to(bunker) <= bunker.radius + worker.radius + CLOSE_MARGIN
+
+    def _resolve_load_requests(self) -> None:
+        """
+        Serves the workers asking for the bunker by priority (instead of the trios' order), so that when
+        the bunker frees up, a worker already waiting next to it goes before one that just dropped its vespene:
+        - the workers next to the bunker first
+        - then the one in its current status for the longest time
+        """
+        def priority(request: LoadRequest) -> tuple[bool, int]:
+            return (not self._is_close_to_bunker(request.worker, request.bunker), request.waiting_since)
+
+        for request in sorted(self._load_requests, key=priority):
+            self._try_load(request.worker, request.bunker, request.lock, request.direction)
+        self._load_requests = []
+
     def _is_loading(self, bunker: Unit, worker: Unit) -> bool:
-        return any(
+        # worker side (smart on the bunker) or bunker side (load order on the worker)
+        return worker.order_target == bunker.tag or any(
             order.ability.id == AbilityId.LOAD_BUNKER and order.target == worker.tag
             for order in bunker.orders
         )
 
     def _load(self, bunker: Unit, worker: Unit) -> None:
-        # the bunker gives the order (a worker's smart on the bunker could repair it instead):
-        # queued so that the current order (another worker's load, an unload) isn't cancelled
-        bunker(AbilityId.LOAD_BUNKER, worker, queue=len(bunker.orders) >= 1)
+        if (bunker.health_percentage >= 1):
+            # full health: smart can only load (no repair), and each worker carries its own order,
+            # so loads don't wait behind each other in the bunker's queue
+            worker.smart(bunker)
+        else:
+            # damaged: smart would repair, the bunker gives the order instead,
+            # queued so that the current order (another worker's load, an unload) isn't cancelled
+            bunker(AbilityId.LOAD_BUNKER, worker, queue=len(bunker.orders) >= 1)
 
     def _drive_bunkers(self) -> None:
         """Unloads the miners as soon as they're in, frees the bunker once empty"""
@@ -359,7 +420,9 @@ class BunkerMining:
         """One trio per refinery of each base that can bunker mine, one lock per bunker used by a trio"""
         active_pairs: Dict[int, int] = {}  # refinery tag -> bunker tag
         exit_points: Dict[int, tuple[Point2, Point2]] = {}  # bunker tag -> (outbound, inbound)
-        for expansion in self.bot.expansions.bunker_mining_ready:
+        # disabled: no active pair, every trio is released below
+        ready_expansions: List[Expansion] = self.bot.expansions.bunker_mining_ready.expansions if self.enabled else []
+        for expansion in ready_expansions:
             bunker: Optional[Unit] = expansion.bunker_mining_unit
             townhall: Optional[Unit] = expansion.cc
             if (bunker is None or townhall is None):
