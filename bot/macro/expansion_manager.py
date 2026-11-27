@@ -183,6 +183,56 @@ class Expansions(CachedClass):
         )
         return current_worker_count + self.mule_worker_equivalent >= optimal_worker_count - 5
 
+    @custom_cache_once_per_frame
+    def bunker_mining_bunkers(self) -> Units:
+        """Bunkers (in construction or ready) placed on a bunker mining position, excluded from salvage and bunker micro"""
+        bunkers: List[Unit] = [
+            expansion.bunker_mining_unit
+            for expansion in self.expansions
+            if expansion.bunker_mining_unit is not None
+        ]
+        return Units(bunkers, self.bot)
+
+    @custom_cache_once_per_frame
+    def bunker_mining_to_build(self) -> Expansions:
+        """Bases whose both refineries exist (in construction included) but without their mining bunker yet"""
+        return self.filter(
+            lambda expansion: (
+                expansion.can_bunker_mine
+                and expansion.bunker_mining_position is not None
+                and expansion.bunker_mining_unit is None
+                and self.bot.gas_buildings.closer_than(10, expansion.position).amount == 2
+                # don't build it back once salvaged
+                and expansion.vespene_geysers.filter(lambda geyser: geyser.has_vespene).amount >= 1
+            )
+        )
+
+    @custom_cache_once_per_frame
+    def bunker_mining_to_salvage(self) -> Units:
+        """Mining bunkers of bases whose both refineries are empty"""
+        bunkers: List[Unit] = [
+            expansion.bunker_mining_unit
+            for expansion in self.expansions
+            if (
+                expansion.bunker_mining_unit is not None
+                and expansion.vespene_geysers.filter(lambda geyser: geyser.has_vespene).amount == 0
+            )
+        ]
+        return Units(bunkers, self.bot)
+
+    @custom_cache_once_per_frame
+    def bunker_mining_ready(self) -> Expansions:
+        # refineries are already filtered on ready + vespene left
+        return self.filter(
+            lambda expansion: (
+                expansion.can_bunker_mine
+                and expansion.is_ready
+                and expansion.refineries.amount == 2
+                and expansion.bunker_mining_unit is not None
+                and expansion.bunker_mining_unit.is_ready
+            )
+        )
+        
     @property
     def mule_worker_equivalent(self) -> float:
         """

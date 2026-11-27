@@ -3,6 +3,7 @@
 
 from typing import List, Dict
 
+from bot.macro.bunker_mining import BunkerMining
 from bot.utils.sharpy_sc2math import get_intersections
 from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
@@ -19,8 +20,10 @@ class SpeedMining:
     """Make worker mine faster perhaps?"""
     ai: BotAI
 
-    def __init__(self, ai, enable_on_return=True, enable_on_mine=True) -> None:
+    def __init__(self, ai, bunker_mining: BunkerMining, enable_on_return=True, enable_on_mine=True) -> None:
         self.ai = ai
+        # bunker miners have their own orders
+        self.bunker_mining = bunker_mining
         self.enable_on_return = enable_on_return
         self.enable_on_mine = enable_on_mine
         self.mineral_target_dict: Dict[Point2, Point2] = {}
@@ -38,6 +41,8 @@ class SpeedMining:
 
     def get_mineral_workers(self) -> Units:
         def miner_filter(unit: Unit) -> bool:
+            if (self.bunker_mining.is_bunker_miner(unit.tag)):
+                return False
             if (unit.is_carrying_vespene):
                 return False
             if (unit.order_target is not None and isinstance(unit.order_target, int)):

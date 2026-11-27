@@ -95,7 +95,10 @@ class Refinery(Building):
     
     @property
     def target_geyser(self) -> Unit | None:
-        for expansion in self.bot.expansions.taken:
+        sorted_expansions: Expansions = self.bot.expansions.taken.sorted(
+            lambda expansion: expansion.can_bunker_mine, reverse=True
+        )
+        for expansion in sorted_expansions:
             if (expansion.refineries.amount <= 2):
                 free_geyser: Units = expansion.vespene_geysers.filter(
                     lambda geyser: (

@@ -12,6 +12,7 @@ from sc2.ids.unit_typeid import UnitTypeId
 from sc2.ids.upgrade_id import UpgradeId
 from sc2.position import Point2
 from sc2.unit import Unit
+from sc2.units import Units
 
 if TYPE_CHECKING:
     from bot.superbot import Superbot  # typing only: avoids a circular import
@@ -188,7 +189,11 @@ class Anchors(CachedClass):
             pf_range: float = pf.ground_range + (1 if hisec else 0)
             anchors.append(self._create_anchor(pf, pf.radius + pf_range, STRUCTURE_MARGIN))
 
-        for bunker in self.bot.structures(UnitTypeId.BUNKER):
+        # bunker mining bunkers only carry SCVs
+        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).tags_not_in(
+            self.bot.expansions.bunker_mining_bunkers.tags
+        )
+        for bunker in bunkers:
             if (bunker.build_progress < 0.95 or bunker.cargo_used == 0):
                 continue
             # already measured from the bunker's center

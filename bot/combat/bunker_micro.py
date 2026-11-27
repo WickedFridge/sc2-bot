@@ -79,7 +79,11 @@ class BunkerMicro:
         
     
     async def handle_bunkers(self):
-        for bunker in self.bot.structures(UnitTypeId.BUNKER):
+        # bunker mining bunkers are driven by BunkerMining
+        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).tags_not_in(
+            self.bot.expansions.bunker_mining_bunkers.tags
+        )
+        for bunker in bunkers:
             bunker_ground_range, bunker_air_range = calculate_bunker_range(self.bot, bunker)
             SAFETY_RADIUS: float = 1.5
 

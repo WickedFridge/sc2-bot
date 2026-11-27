@@ -1,6 +1,8 @@
 from collections import deque
+import math
 from typing import List, Optional
 
+from bot.macro.map.influence_maps.layers.buildings_layer import BUNKER_RADIUS
 from bot.macro.map.map import MapData, get_map
 from bot.scouting.ghost_units.ghost_units import GhostUnit, GhostUnits
 from bot.utils.army import Army
@@ -25,6 +27,11 @@ from functools import cached_property
 class Expansion(CachedClass):
     position: Point2
     distance_from_main: float
+    mineral_line: Point2
+    # Both geysers are on the same side of the mineral line
+    can_bunker_mine: bool
+    # Computed once by the buildings layer at initialization (None if the base can't bunker mine)
+    bunker_mining_position: Optional[Point2] = None
     radius: int = 12
     # half of the townhall's 5x5 footprint
     FOOTPRINT_RADIUS: float = 2.5
@@ -43,6 +50,36 @@ class Expansion(CachedClass):
         super().__init__(bot)
         self.position = position
         self.distance_from_main = distance
+        # The resources layout is static: compute it once at game start, while every resource is still there
+        minerals: Units = self.bot.mineral_field.closer_than(10, position)
+        geysers: Units = self.bot.vespene_geyser.closer_than(10, position)
+        self.mineral_line = self._compute_mineral_line(minerals, geysers)
+        self.can_bunker_mine = self._compute_can_bunker_mine(minerals, geysers)
+
+    def _compute_mineral_line(self, minerals: Units, geysers: Units) -> Point2:
+        resources: Units = minerals + geysers
+        if (resources.amount == 0):
+            return self.position.towards(self.bot.game_info.map_center, 5)
+        return resources.center
+
+    def _compute_can_bunker_mine(self, minerals: Units, geysers: Units) -> bool:
+        """
+        Both geysers are on the same side of the mineral line, i.e. no mineral field
+        lies between them when sorted by angle around the townhall.
+        """
+        if (geysers.amount != 2 or minerals.amount == 0):
+            return False
+        reference_offset: Point2 = minerals.center - self.position
+        reference_angle: float = math.atan2(reference_offset.y, reference_offset.x)
+
+        def relative_angle(resource: Unit) -> float:
+            # angle from the mineral line's direction, normalized in [-pi, pi)
+            offset: Point2 = resource.position - self.position
+            angle: float = math.atan2(offset.y, offset.x) - reference_angle
+            return (angle + math.pi) % (2 * math.pi) - math.pi
+
+        low, high = sorted(relative_angle(geyser) for geyser in geysers)
+        return not any(low < relative_angle(mineral) < high for mineral in minerals)
 
     @cached_property
     def is_main(self) -> bool:
@@ -297,7 +334,8 @@ class Expansion(CachedClass):
 
     @custom_cache_once_per_frame
     def vespene_worker_count(self) -> int:
-        return sum(refinery.assigned_harvesters for refinery in self.refineries)
+        # bunker mined refineries are counted by BunkerMining (loaded workers aren't in assigned_harvesters)
+        return sum(self.bot.bunker_mining.harvesters(refinery) for refinery in self.refineries)
     
     @custom_cache_once_per_frame
     def optimal_mineral_workers(self) -> float:
@@ -309,7 +347,11 @@ class Expansion(CachedClass):
     def optimal_vespene_workers(self) -> float:
         if self.refineries.amount == 0:
             return 0
-        return sum(worker_amount_vespene_geyser(vg.vespene_contents) for vg in self.vespene_geysers_refinery)
+        # 2 workers per refinery when bunker mined, 3 otherwise
+        return sum(
+            min(self.bot.bunker_mining.ideal_harvesters(refinery), worker_amount_vespene_geyser(refinery.vespene_contents))
+            for refinery in self.refineries
+        )
 
     @custom_cache_once_per_frame
     def mineral_saturation(self) -> float:
@@ -347,13 +389,6 @@ class Expansion(CachedClass):
 
         return saturation
     
-    @cached_property
-    def mineral_line(self) -> Point2:
-        resources: Units = self.mineral_fields + self.vespene_geysers
-        if (resources.amount == 0):
-            return self.position.towards(self.bot.game_info.map_center, 5)
-        return resources.center
-
     @custom_cache_once_per_frame
     def has_defensive_structure(self) -> bool:
         defenses: Units = self.bot.structures([UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]).ready
@@ -507,6 +542,52 @@ class Expansion(CachedClass):
         if (self.is_main):
             return self.bunker_ramp
         return self.bunker_forward_in_pathing
+    
+    def compute_bunker_mining_position(self) -> None:
+        """
+        Called once by the buildings layer, after the static blockers (minerals, geysers, rocks)
+        are set but before the mineral lines are reserved, so the DFS can land between the geysers.
+        """
+        if (not self.can_bunker_mine):
+            return
+        points: List[Point2] = [geyser.position for geyser in self.vespene_geysers]
+        points.append(self.position)
+        target: Optional[Point2] = center(points)
+        # geyser_center: Point2 = center(points)
+        # if (geyser_center is None):
+        #     return
+        # target: Optional[Point2] = center([geyser_center, self.position])
+        if (target is None):
+            return
+        # the bunker's 3x3 footprint can't overlap the townhall's 5x5 footprint
+        min_offset: float = self.FOOTPRINT_RADIUS + BUNKER_RADIUS
+
+        def overlaps_townhall(position: Point2) -> bool:
+            return (
+                abs(position.x - self.position.x) < min_offset
+                and abs(position.y - self.position.y) < min_offset
+            )
+
+        # search away from the townhall
+        preferred_direction: Point2 = target + (target - self.position)
+        self.bunker_mining_position = dfs_in_pathing(
+            self.bot,
+            target,
+            UnitTypeId.BUNKER,
+            preferred_direction,
+            reject=overlaps_townhall,
+        )
+    
+    @custom_cache_once_per_frame
+    def bunker_mining_unit(self) -> Optional[Unit]:
+        if (self.bunker_mining_position is None):
+            return None
+        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+            lambda bunker: bunker.distance_to(self.bunker_mining_position) < 1
+        )
+        if (bunkers.amount >= 1):
+            return bunkers.first
+        return None
     
     @custom_cache_once_per_frame
     def turret_mineral_line(self) -> Point2:

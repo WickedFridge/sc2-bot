@@ -433,7 +433,8 @@ class MicroUnit(CachedClass):
     def structure_covers(self, structure: Unit, enemy: Unit) -> bool:
         """True if the defensive structure can shoot the enemy (an empty bunker covers nothing)"""
         if (structure.type_id == UnitTypeId.BUNKER):
-            if (structure.cargo_used == 0):
+            # bunker mining bunkers only carry SCVs
+            if (structure.cargo_used == 0 or structure.tag in self.bot.expansions.bunker_mining_bunkers.tags):
                 return False
             bunker_ground_range, bunker_air_range = calculate_bunker_range(self.bot, structure)
             bunker_range: float = bunker_air_range if enemy.is_flying else bunker_ground_range
@@ -447,7 +448,10 @@ class MicroUnit(CachedClass):
         local_enemies: Units = self.enemy_fighting.filter(
             lambda enemy: enemy.type_id not in worker_types and enemy.distance_to(enemy_center) <= LOCAL_RADIUS
         )
-        local_allies: Units = (self.bot.units + self.bot.structures(UnitTypeId.BUNKER)).filter(
+        defensive_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).tags_not_in(
+            self.bot.expansions.bunker_mining_bunkers.tags
+        )
+        local_allies: Units = (self.bot.units + defensive_bunkers).filter(
             lambda ally: (
                 ally.tag == unit.tag
                 or (ally.type_id not in worker_types and ally.distance_to(enemy_center) <= LOCAL_RADIUS)

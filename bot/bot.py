@@ -7,6 +7,7 @@ from bot.buildings.handler import BuildingsHandler
 from bot.combat.anchors import Anchors
 from bot.combat.select_orders import SelectOrders
 from bot.debug import Debug
+from bot.macro.bunker_mining import BunkerMining
 from bot.macro.expansion_manager import Expansions, get_expansions
 from bot.macro.macro import Macro
 from bot.macro.map.map import MapData, get_map
@@ -30,7 +31,7 @@ from sc2.unit import Unit
 from sc2.units import Units
 from .utils.unit_tags import zerg_townhalls, creep
 
-VERSION: str = "15.8.6"
+VERSION: str = "16.0.0"
 
 class WickedBot(Superbot):
     NAME: str = "WickedBot"
@@ -109,6 +110,11 @@ class WickedBot(Superbot):
     @override
     def ghost_units(self) -> GhostUnitsManager:
         return get_ghost_units(self)
+
+    @property
+    @override
+    def bunker_mining(self) -> BunkerMining:
+        return self.macro.bunker_mining
 
     @override
     async def on_start(self):
@@ -192,6 +198,7 @@ class WickedBot(Superbot):
         # self.debug.burrowed_units()
         self.debug.ghost_units()
         self.debug.anchors()
+        self.debug.bunker_mining(self.macro.bunker_mining)
         await self.combat.debug_army_orders()
         await self.combat.debug_drop_target()
         await self.debug.chat_commands()
@@ -249,6 +256,7 @@ class WickedBot(Superbot):
         
         # General Worker management
         await self.macro.speed_mining.execute()
+        await self.macro.bunker_mining.execute()
         await self.macro.distribute_workers(iteration)
         await self.macro.mule_idle()
         await self.macro.unbug_workers()
@@ -438,6 +446,7 @@ class WickedBot(Superbot):
     @override
     async def on_unit_destroyed(self, unit_tag: int):
         self.addon_swap.on_unit_destroyed(unit_tag)
+        self.macro.bunker_mining.on_unit_destroyed(unit_tag)
         if (unit_tag in self.scouting.known_enemy_buildings.tags):
             destroyed_building: Unit = self.scouting.known_enemy_buildings.by_tag(unit_tag)
             if (destroyed_building.type_id in zerg_townhalls or destroyed_building.type_id in creep):

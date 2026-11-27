@@ -1,4 +1,4 @@
-from typing import override
+from typing import Optional, override
 from bot.buildings.building import Building
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
@@ -99,8 +99,16 @@ class Bunker(Building):
         )
 
     @property
+    def _bunker_mining_missing(self) -> Optional[Point2]:
+        to_build: Expansions = self.bot.expansions.bunker_mining_to_build
+        return to_build.first.bunker_mining_position if to_build.amount >= 1 else None
+
+    @property
     @override
     def custom_conditions(self) -> bool:
+        if (self._bunker_mining_missing is not None):
+            return True
+        
         return (
             self._has_minimum_army
             and (
@@ -114,6 +122,10 @@ class Bunker(Building):
     @property
     @override
     def position(self) -> Point2:
+        # bunker mining first
+        if (self._bunker_mining_missing is not None):
+            return self._bunker_mining_missing
+        
         # if there's already a bunker finished at the natural and we're on b2, additional bunkers should go on the natural
         if (
             self.bot.expansions.taken.amount == 2

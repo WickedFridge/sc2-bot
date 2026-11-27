@@ -26,6 +26,7 @@ from sc2.units import Units
 if TYPE_CHECKING:
     from bot.buildings.handler import BuildingsHandler  # circular import, type hints only
     from bot.combat.anchors import Anchors  # circular import, type hints only
+    from bot.macro.bunker_mining import BunkerMining  # type hints only
 
 class Superbot(BotAI):
     addon_swap: AddonSwapManager
@@ -64,6 +65,10 @@ class Superbot(BotAI):
 
     @property
     def ghost_units(self) -> GhostUnitsManager:
+        pass
+
+    @property
+    def bunker_mining(self) -> BunkerMining:
         pass
 
     @property

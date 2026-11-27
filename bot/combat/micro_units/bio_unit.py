@@ -80,7 +80,10 @@ class MicroBioUnit(MicroUnit):
             return
         
         defensive_structures: List[UnitTypeId] = [UnitTypeId.BUNKER, UnitTypeId.PLANETARYFORTRESS]
-        close_defensive_structure: Units = self.bot.structures(defensive_structures).filter(
+        # bunker mining bunkers aren't used for defense
+        close_defensive_structure: Units = self.bot.structures(defensive_structures).tags_not_in(
+            self.bot.expansions.bunker_mining_bunkers.tags
+        ).filter(
             lambda defense: defense.distance_to(bio_unit) <= 10 and defense.build_progress >= 0.9
         )
         if (close_defensive_structure.amount >= 1):

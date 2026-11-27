@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, TYPE_CHECKING
 from bot.combat.threats import Threat
+from bot.macro.bunker_mining import BunkerMining
 from bot.macro.expansion import Expansion
 from bot.macro.expansion_manager import Expansions
 from bot.macro.speed_mining import SpeedMining
@@ -27,13 +28,15 @@ class Macro:
     bot: Superbot
     bases: List[Base]
     speed_mining: SpeedMining
+    bunker_mining: BunkerMining
     supply_block_time: int = 0
     structure_to_base: dict[int, Base] = {}
 
     def __init__(self, bot: Superbot) -> None:
         self.bot = bot
         self.bases = []
-        self.speed_mining = SpeedMining(bot)
+        self.bunker_mining = BunkerMining(bot)
+        self.speed_mining = SpeedMining(bot, self.bunker_mining)
 
     async def update_threat_level(self):
         self.bases = self.threat_detection()
@@ -188,9 +191,16 @@ class Macro:
 
         worker_count: int = self.bot.supply_workers - self.bot.already_pending(UnitTypeId.SCV)
         # the scout can be idle on purpose (e.g. watching the b2 entrance), don't send it back mining
-        idle_workers: Units = self.bot.workers.idle.filter(lambda worker: worker.tag != self.bot.scouting.scout_tag)
+        # bunker miners can be idle on purpose too (waiting for the bunker)
+        idle_workers: Units = self.bot.workers.idle.filter(
+            lambda worker: worker.tag != self.bot.scouting.scout_tag and not self.bunker_mining.is_bunker_miner(worker.tag)
+        )
         has_idle_workers: bool = idle_workers.amount > 0
-        has_oversaturated_refinery: bool = self.bot.gas_buildings.filter(
+        # bunker mined refineries handle their extra workers themselves
+        regular_refineries: Units = self.bot.gas_buildings.filter(
+            lambda refinery: not self.bunker_mining.is_bunker_mined(refinery)
+        )
+        has_oversaturated_refinery: bool = regular_refineries.filter(
             lambda refinery: refinery.assigned_harvesters >= 4
         ).amount > 0
         frequency: int = max(1, min(worker_count, 40))
@@ -236,7 +246,7 @@ class Macro:
 
         # Total harvesting capacity of all ready refineries across safe expansions.
         total_refinery_capacity: int = sum(
-            refinery.ideal_harvesters
+            self.bunker_mining.ideal_harvesters(refinery)
             for expansion in expansions_list
             for refinery in expansion.refineries
             if refinery.is_ready
@@ -305,7 +315,7 @@ class Macro:
             expansion_virtual_capacity[best_position] -= 1
 
         # Fix oversaturated refineries (≥4 workers) — redirect excess to the least saturated minerals
-        for refinery in self.bot.gas_buildings.filter(lambda refinery: refinery.assigned_harvesters >= 4):
+        for refinery in regular_refineries.filter(lambda refinery: refinery.assigned_harvesters >= 4):
             excess_harvesters: Units = self.bot.workers.filter(
                 lambda worker: worker.order_target == refinery.tag and not worker.is_carrying_vespene
             )
@@ -327,14 +337,14 @@ class Macro:
             gaz_detail: str = ""
             for _exp in expansions_list:
                 for _ref in _exp.refineries:
-                    gaz_detail += f"({_ref.assigned_harvesters}/{_ref.ideal_harvesters}) "
+                    gaz_detail += f"({self.bunker_mining.harvesters(_ref)}/{self.bunker_mining.ideal_harvesters(_ref)}) "
             
             print(f"Assign to Gas [{total_gas_workers}+{workers_heading_to_gas}/{total_refinery_capacity}] [{gaz_detail}]")
             needing_gas_fill: List[Unit] = [
                 refinery
                 for expansion in expansions_list
                 for refinery in expansion.refineries
-                if (refinery.assigned_harvesters < refinery.ideal_harvesters)
+                if (self.bunker_mining.harvesters(refinery) < self.bunker_mining.ideal_harvesters(refinery))
             ]
             if (needing_gas_fill):
                 sufficiently_saturated_expansions: List[Expansion] = [
@@ -343,7 +353,7 @@ class Macro:
                 ]
                 if (sufficiently_saturated_expansions):
                     priority_refineries: List[Unit] = [
-                        refinery for refinery in needing_gas_fill if (refinery.assigned_harvesters <= 1)
+                        refinery for refinery in needing_gas_fill if (self.bunker_mining.harvesters(refinery) <= 1)
                     ]
                     candidate_refineries: List[Unit] = (
                         priority_refineries if priority_refineries else needing_gas_fill
@@ -376,8 +386,16 @@ class Macro:
             # Pull a gas worker back to minerals. Return to the local base if it needs minerals
             # (avoids long travel); otherwise send to the globally least saturated line.
             print(f'pull worker out of gas [{total_gas_workers}/{target_gas_workers}] (+- {gas_hysteresis})')
+            # regular refineries first, bunker mined ones only as a last resort
+            expansions_with_gas_workers: List[Expansion] = [
+                expansion for expansion in expansions_list if expansion.vespene_worker_count > 0
+            ]
+            regular_gas_expansions: List[Expansion] = [
+                expansion for expansion in expansions_with_gas_workers
+                if not self.bunker_mining.is_expansion_bunker_mined(expansion)
+            ]
             most_gas_saturated_expansion: Expansion = max(
-                (expansion for expansion in expansions_list if expansion.vespene_worker_count > 0),
+                regular_gas_expansions if regular_gas_expansions else expansions_with_gas_workers,
                 key=lambda expansion: expansion.vespene_saturation,
                 default=None,
             )
@@ -387,7 +405,12 @@ class Macro:
                     if most_gas_saturated_expansion.mineral_saturation < RALLY_LOCAL_SATURATION_THRESHOLD
                     else least_saturated_mineral_expansion
                 )
-                if (mineral_destination.mineral_fields.amount >= 1):
+                if (
+                    mineral_destination.mineral_fields.amount >= 1
+                    and self.bunker_mining.is_expansion_bunker_mined(most_gas_saturated_expansion)
+                ):
+                    self.bunker_mining.release_one(most_gas_saturated_expansion, mineral_destination.mineral_fields.random)
+                elif (mineral_destination.mineral_fields.amount >= 1):
                     all_gas_workers: Units = most_gas_saturated_expansion.vespene_workers
                     non_carrying_gas_workers: Units = all_gas_workers.filter(
                         lambda worker: not worker.is_carrying_vespene

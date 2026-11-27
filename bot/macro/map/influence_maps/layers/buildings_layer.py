@@ -1,17 +1,20 @@
+from __future__ import annotations
 import math
 from operator import pos
-from typing import List
+from typing import TYPE_CHECKING, List
 from attr import dataclass
 from numpy.ma import size
 from bot.macro.map.influence_maps.influence_map import InfluenceMap
 from bot.utils.point2_functions.utils import addon_offset, grid_offsets
-from sc2.bot_ai import BotAI
 from sc2.ids.ability_id import AbilityId
 from sc2.ids.unit_typeid import UnitTypeId
 from sc2.position import Point2
 from sc2.unit import Unit
 from sc2.units import Units
 from .....utils.unit_tags import add_ons, production, production_flying, important_buildings
+
+if TYPE_CHECKING:
+    from bot.superbot import Superbot  # only imported for type hints
 
 @dataclass(frozen=True)
 class BuildingTile:
@@ -36,12 +39,12 @@ def _lane(x_values: list[int], y_range: range) -> list[tuple[int, int]]:
     return [(x, y) for x in x_values for y in y_range]
 
 class BuildingLayer:
-    bot: BotAI
+    bot: Superbot
     occupancy: InfluenceMap
     reservations: dict[Point2, set[UnitTypeId]]
     _grounded_buildings: set[int] = set()
-    
-    def __init__(self, bot: BotAI):
+
+    def __init__(self, bot: Superbot):
         self.bot = bot
         self.occupancy = InfluenceMap(bot)
         self.occupancy.map[:] = 1.0  # All buildable at start
@@ -113,9 +116,22 @@ class BuildingLayer:
         for structure in self.bot.structures:
             self.on_building_created(structure)
     
+    def _compute_bunker_mining_positions(self) -> None:
+        # must run before _reserve_expansion_locations: the mineral line reservations would reject the bunker
+        for expansion in self.bot.expansions.filter(lambda expansion: expansion.can_bunker_mine):
+            expansion.compute_bunker_mining_position()
+
+    def _reserve_bunker_mining_slots(self) -> None:
+        # must run after _reserve_expansion_locations: the bunker slot overrides the mineral line reservations
+        for expansion in self.bot.expansions.filter(lambda expansion: expansion.can_bunker_mine):
+            if (expansion.bunker_mining_position is not None):
+                self.reserve_bunker(expansion.bunker_mining_position)
+
     def initialize(self) -> None:
         self._initialize_static_blockers()
+        self._compute_bunker_mining_positions()
         self._reserve_expansion_locations()
+        self._reserve_bunker_mining_slots()
         self._initialize_existing_structures()
 
     def update(self):

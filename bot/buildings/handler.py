@@ -250,6 +250,9 @@ class BuildingsHandler:
             if (same_height_expansions.amount == 0):
                 return True
             closest_expansion: Expansion = same_height_expansions.closest_to(position)
+            if (closest_expansion.can_bunker_mine and position == closest_expansion.bunker_mining_position):
+                return False
+            
             return (
                 closest_expansion.position == self.bot.expansions.main.position
                 or closest_expansion.has_defensive_structure
@@ -912,6 +915,14 @@ class BuildingsHandler:
             factory(AbilityId.LIFT)
 
     async def salvage_bunkers(self) -> None:
+        # mining bunkers: salvaged once both refineries are empty, whatever the situation
+        # (the trios are released as soon as the refineries are empty, the bunker unloads its workers first)
+        for bunker in self.bot.expansions.bunker_mining_to_salvage.ready.filter(
+            lambda bunker: bunker.cargo_used == 0 and not bunker.is_using_ability(AbilityId.SALVAGEEFFECT_SALVAGE)
+        ):
+            print(f'[BunkerMining] refineries empty, salvage bunker {bunker.tag}')
+            bunker(AbilityId.SALVAGEEFFECT_SALVAGE)
+
         if (
             self.bot.scouting.situation != Situation.STABLE
             or self.bot.expansions.taken.amount < 3
@@ -919,11 +930,16 @@ class BuildingsHandler:
         ):
             return
 
+        # bunker mining bunkers are only salvaged once their refineries are empty (above)
+        bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).tags_not_in(
+            self.bot.expansions.bunker_mining_bunkers.tags
+        )
+
         # Salvage main bunker and second bunkers at bases once we're stable
-        main_ramp_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.main_base_ramp.top_center)
+        main_ramp_bunkers: Units = bunkers.closer_than(8, self.bot.main_base_ramp.top_center)
         if (main_ramp_bunkers.amount >= 1):
             main_ramp_bunkers.first(AbilityId.SALVAGEEFFECT_SALVAGE)
-        natural_bunkers: Units = self.bot.structures(UnitTypeId.BUNKER).closer_than(8, self.bot.expansions.b2.position).filter(
+        natural_bunkers: Units = bunkers.closer_than(8, self.bot.expansions.b2.position).filter(
             lambda bunker: (
                 not bunker.is_using_ability(AbilityId.SALVAGEEFFECT_SALVAGE)
             )
@@ -936,7 +952,7 @@ class BuildingsHandler:
             return
         
         BASE_SIZE: int = 12
-        bunkers_to_salvage: Units = self.bot.structures(UnitTypeId.BUNKER).filter(
+        bunkers_to_salvage: Units = bunkers.filter(
             lambda unit: (
                 unit.cargo_used == 0
                 and planetaries.closest_distance_to(unit) <= BASE_SIZE

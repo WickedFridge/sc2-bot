@@ -4,6 +4,7 @@ from typing import List, Optional, Set
 import numpy as np
 from bot.analytics.match_record import TRIGGER_DEBUG
 from bot.army_composition.composition import Composition
+from bot.macro.bunker_mining import BunkerLock, BunkerMining, MiningStatus
 from bot.macro.expansion_manager import Expansions
 from bot.scouting.ghost_units.ghost_units import GhostUnits
 from bot.strategy.build_order.addon_swap import SwapState
@@ -940,6 +941,42 @@ class Debug:
             if (anchor.air_threatened):
                 label += ' (air threat)'
             self.draw_text_on_world(anchor.position, label, color)
+
+    def bunker_mining(self, bunker_mining: BunkerMining):
+        # bunker direction + passengers, CC <-> bunker <-> refineries links, status of each bunker miner
+        returning_statuses: Set[MiningStatus] = {
+            MiningStatus.MINE_BACK,
+            MiningStatus.MINE_BACK_IN_BUNKER,
+            MiningStatus.MINE_BACK_OUT_BUNKER,
+        }
+        for expansion in self.bot.expansions.bunker_mining_ready:
+            bunker: Optional[Unit] = expansion.bunker_mining_unit
+            if (bunker is None):
+                continue
+            lock: BunkerLock = bunker_mining.locks.get(bunker.tag, BunkerLock())
+            self.draw_text_on_world(
+                bunker.position,
+                f'{lock.direction.value} [{len(bunker.passengers)}/{bunker.cargo_max}]',
+                ORANGE,
+            )
+            townhall: Optional[Unit] = expansion.cc
+            if (townhall is not None):
+                self.draw_line_world(townhall.position, bunker.position, WHITE)
+            for refinery in expansion.refineries:
+                self.draw_line_world(bunker.position, refinery.position, WHITE)
+            # unload / waiting points
+            if (lock.outbound_point is not None):
+                self.draw_box_on_world(lock.outbound_point, 0.3, GREEN)
+            if (lock.inbound_point is not None):
+                self.draw_box_on_world(lock.inbound_point, 0.3, YELLOW)
+
+            for trio in bunker_mining.trios_of_bunker(bunker.tag):
+                for worker_tag, status in trio.workers.items():
+                    worker: Optional[Unit] = self.bot.workers.find_by_tag(worker_tag)
+                    # loaded workers aren't visible: draw their status on the bunker
+                    position: Point2 = worker.position if worker is not None else bunker.position
+                    color: tuple = YELLOW if status in returning_statuses else GREEN
+                    self.draw_text_on_world(position, status.value, color, 10)
 
     def ghost_units(self):
         ghost_units: GhostUnits = self.bot.ghost_units.assumed_enemy_units
